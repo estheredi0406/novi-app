@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev:api": "npm run dev --workspace @novi/api",
+    "dev:mobile": "npm run start --workspace @novi/mobile",
     "typecheck": "npm run typecheck --workspaces --if-present"
   }
 }
