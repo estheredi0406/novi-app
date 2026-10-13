@@ -16,3 +16,6 @@ dist/
 *.log
 Thumbs.db
 .DS_Store
+
+# Prisma client: rebuilt by prisma generate
+generated/
