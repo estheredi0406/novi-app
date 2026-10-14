@@ -8,9 +8,11 @@
   "engines": {
     "node": ">=24"
   },
-  "scripts": {
-    "dev:api": "npm run dev --workspace @novi/api",
-    "dev:mobile": "npm run start --workspace @novi/mobile",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "scripts": {
+    "build:shared": "npm run build --workspace @novi/shared",
+    "test": "npm run build:shared && npm run test --workspaces --if-present",
+    "dev:api": "npm run build:shared && npm run dev --workspace @novi/api",
+    "dev:mobile": "npm run build:shared && npm run start --workspace @novi/mobile",
+    "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present"
   }
-}
+} 
