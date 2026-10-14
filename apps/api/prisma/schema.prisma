@@ -8,3 +8,150 @@
   datasource db {
     provider = "postgresql"
   }
+
+
+  //----------------Value Lists-------------------------
+
+
+  //Interface languages ; follow ISO 639-1 (ee = Ewe)
+
+  enum Language {
+
+    EN 
+    FR 
+    EE
+  }
+
+  // SMS code to be sent 
+
+  enum OtpPurpose {
+    SIGN_UP
+    NEW_DEVICE
+    PIN_RESET
+  }
+
+
+// Member agrees to
+
+enum ConsentType {
+  ID_CHECK //her details may be sent to ANID FOR verification
+  CREDIT_DATA_USE // her records may be used for credit not tax
+}
+
+
+//----------------Members and access------------
+
+
+// A verified member. Account exist only after a successgul identity check 
+
+
+model User {
+  id                String    @id @default(uuid())
+  phone             String    @unique // +228 followed by 8 digits
+  fullName          String
+  market            String
+  language          Language
+  pinHash           String    // argon2id; the PIN itself is never stored
+  niuKeyedHash      String    @unique // stops one person opening two accounts
+  idVerifiedAt      DateTime
+  failedPinAttempts Int       @default(0)
+  lockoutLevel      Int       @default(0) // each lockout lasts longer than the last
+  lockedUntil       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  devices     Device[]
+  sessions    Session[]
+  consents    Consent[]
+  auditEvents AuditEvent[]
+
+  @@map("users")
+}
+
+// A phone the member has trusted, identified by the app's installation ID.
+model Device {
+  id             String   @id @default(uuid())
+  userId         String
+  installationId String
+  trustedAt      DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+
+  user     User      @relation(fields: [userId], references: [id])
+  sessions Session[]
+
+  @@unique([userId, installationId])
+  @@map("devices")
+}
+
+// One logged-in session. Revoking it logs the member out on that device.
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  deviceId         String
+  refreshTokenHash String    @unique // the token itself is never stored
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// One SMS code sent to a phone number.
+model OtpChallenge {
+  id         String     @id @default(uuid())
+  phone      String
+  purpose    OtpPurpose
+  codeHash   String     // the code itself is never stored
+  attempts   Int        @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@index([phone, createdAt])
+  @@map("otp_challenges")
+}
+
+// One identity check attempt. Exists before any account, so it is not linked
+// to a user; used to block an NIU after 3 failures in 24 hours.
+model IdentityCheck {
+  id           String   @id @default(uuid())
+  niuKeyedHash String
+  phone        String
+  matched      Boolean
+  createdAt    DateTime @default(now())
+
+  @@index([niuKeyedHash, createdAt])
+  @@map("identity_checks")
+}
+
+// What a member agreed to, and to which version of the text.
+model Consent {
+  id         String      @id @default(uuid())
+  userId     String
+  type       ConsentType
+  version    String
+  acceptedAt DateTime
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("consents")
+}
+
+// Append-only record of important events: who did what, and when.
+model AuditEvent {
+  id        String   @id @default(uuid())
+  userId    String?  // empty for events before an account exists
+  type      String   // e.g. USER_REGISTERED, PIN_LOCKED
+  details   Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("audit_events")
+}
+
