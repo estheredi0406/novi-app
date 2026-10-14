@@ -48,7 +48,8 @@ enum ConsentType {
 model User {
   id                String    @id @default(uuid())
   phone             String    @unique // +228 followed by 8 digits
-  fullName          String
+  legalName         String    // exactly as on the ID record; used on the ACEV
+  displayName       String    // what her group sees; she can change it
   market            String? // only in the case the trades in a market
   area              String
   language          Language
