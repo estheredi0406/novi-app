@@ -34,13 +34,20 @@ export async function verifyAccessToken(token: string): Promise<AccessClaims | n
 
 
 // Which step of a flow a step token proves was completed.
-export type StepPurpose = "SIGN_UP" | "PIN_RESET" | "NEW_DEVICE" | "IDENTITY_VERIFIED";
+export type StepPurpose = "SIGN_UP" | "PIN_RESET" | "NEW_DEVICE" | "IDENTITY_PENDING" | "IDENTITY_VERIFIED";
 
 // Short-lived proof that one step was completed, e.g. "this phone number was
 // confirmed by SMS for sign-up". Each purpose gets its own audience, so a token
-// earned in one flow cannot be used in another, and none can pass as an access token.
-export async function createStepToken(purpose: StepPurpose, subject: string, minutes = 10): Promise<string> {
-  return new SignJWT({})
+// earned in one flow cannot be used in another, and none can pass as an access
+// token. Extra claims carry what the next step needs; they are signed, so they
+// cannot be altered, but they are readable, so they never hold a raw secret.
+export async function createStepToken(
+  purpose: StepPurpose,
+  subject: string,
+  minutes = 10,
+  claims: Record<string, string> = {},
+): Promise<string> {
+  return new SignJWT(claims)
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(subject)
     .setIssuer(ISSUER)
@@ -50,12 +57,15 @@ export async function createStepToken(purpose: StepPurpose, subject: string, min
     .sign(secret);
 }
 
-// Returns the token's subject (e.g. the verified phone) if the token is genuine,
-// unexpired and was issued for this purpose; otherwise null.
-export async function verifyStepToken(token: string, purpose: StepPurpose): Promise<string | null> {
+export type StepToken = { subject: string; claims: Record<string, unknown> };
+
+// Returns the token's subject and claims if it is genuine, unexpired and was
+// issued for this purpose; otherwise null.
+export async function verifyStepToken(token: string, purpose: StepPurpose): Promise<StepToken | null> {
   try {
     const { payload } = await jwtVerify(token, secret, { issuer: ISSUER, audience: `novi-step-${purpose}` });
-    return typeof payload.sub === "string" ? payload.sub : null;
+    if (typeof payload.sub !== "string") return null;
+    return { subject: payload.sub, claims: payload };
   } catch {
     return null;
   }
