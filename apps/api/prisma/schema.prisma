@@ -36,6 +36,7 @@
 enum ConsentType {
   ID_CHECK //her details may be sent to ANID FOR verification
   CREDIT_DATA_USE // her records may be used for credit not tax
+  TERMS           // the Novi rules
 }
 
 

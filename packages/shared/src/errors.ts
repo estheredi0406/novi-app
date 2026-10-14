@@ -14,6 +14,7 @@ export const errors = {
   PHONE_ALREADY_REGISTERED: { messageKey: "auth.phoneAlreadyRegistered" },
   PIN_INVALID: { messageKey: "auth.pinInvalid" },
   PIN_LOCKED: { messageKey: "auth.pinLocked" },
+  PIN_TOO_WEAK: { messageKey: "auth.pinTooWeak" },
   NEW_DEVICE: { messageKey: "auth.newDevice" },
   SESSION_REVOKED: { messageKey: "auth.sessionRevoked" },
 

@@ -3,6 +3,7 @@ import { confirmIdentityCheck, startIdentityCheck } from "../services/identitySe
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { AppError } from "../lib/errors.js";
+import { register } from "../services/authService.js";
 import { requestOtp, verifyOtp } from "../services/otpService.js";
 
 export const authRouter = Router();
@@ -73,4 +74,22 @@ authRouter.post("/identity/start", identityChecksPerAddress, async (req, res) =>
 authRouter.post("/identity/confirm", async (req, res) => {
   const input = identityConfirmBody.parse(req.body);
   res.status(200).json(await confirmIdentityCheck(input));
+});
+
+const registerBody = z.object({
+  verificationToken: z.string().min(1),
+  identityToken: z.string().min(1),
+  pin: z.string().regex(/^\d{4}$/),
+  displayName: z.string().trim().min(1).max(60),
+  area: z.string().trim().min(2).max(60),
+  market: z.string().trim().min(2).max(60).nullable().optional(),
+  language: z.enum(["EN", "FR", "EE"]),
+  installationId: z.string().uuid(),
+  acceptedTerms: z.boolean(),
+  acceptedCreditDataUse: z.boolean(),
+});
+
+authRouter.post("/register", async (req, res) => {
+  const input = registerBody.parse(req.body);
+  res.status(201).json(await register(input));
 });
