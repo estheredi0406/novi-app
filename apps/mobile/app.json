@@ -6,6 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "novi",
+    "experiments": {
+    "typedRoutes": true
+    },
     "ios": {
       "supportsTablet": true
     },
