@@ -2,6 +2,7 @@ import express from "express";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { authRouter } from "./routes/auth.js";
 import { healthRouter } from "./routes/health.js";
+import { meRouter } from "./routes/me.js";
 
 // Builds the Express application without starting it,
 // so tests can send requests to it without opening a network port.
@@ -12,6 +13,7 @@ app.use(express.json());
 
 app.use("/health", healthRouter);
 app.use("/v1/auth", authRouter);
+app.use("/v1/me", meRouter);
 
 // Must come last: turns every error into the standard error response.
 app.use(errorHandler);

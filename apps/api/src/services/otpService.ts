@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import type { Language } from "../generated/prisma/enums.js";
+import type { Language, OtpPurpose } from "../generated/prisma/enums.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { hashSecret, verifySecret } from "../lib/hashing.js";
@@ -41,17 +41,11 @@ async function enforcePhoneLimits(phone: string): Promise<void> {
   }
 }
 
-// Creates a challenge and sends the right SMS. The response is identical whether
-// or not the phone has an account, so the API never reveals who uses Novi.
-export async function requestOtp(input: { phone: string; purpose: PublicOtpPurpose; language: Language }) {
-  const { phone, purpose, language } = input;
+// Creates a challenge after checking the phone's limits, and returns its ID
+// and the code. The caller decides whether and what to send.
+async function newChallenge(phone: string, purpose: OtpPurpose) {
   await enforcePhoneLimits(phone);
-
-  const hasAccount = (await prisma.user.findUnique({ where: { phone }, select: { id: true } })) !== null;
   const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
-
-  // A challenge is always created, even when no code is sent, so that
-  // verifying behaves the same for every number.
   const challenge = await prisma.otpChallenge.create({
     data: {
       phone,
@@ -60,6 +54,18 @@ export async function requestOtp(input: { phone: string; purpose: PublicOtpPurpo
       expiresAt: new Date(Date.now() + CODE_LIFETIME_SEC * 1000),
     },
   });
+  return { challengeId: challenge.id, code };
+}
+
+// Creates a challenge and sends the right SMS. The response is identical whether
+// or not the phone has an account, so the API never reveals who uses Novi.
+export async function requestOtp(input: { phone: string; purpose: PublicOtpPurpose; language: Language }) {
+  const { phone, purpose, language } = input;
+  const hasAccount = (await prisma.user.findUnique({ where: { phone }, select: { id: true } })) !== null;
+
+  // A challenge is always created, even when no code is sent, so that
+  // verifying behaves the same for every number.
+  const { challengeId, code } = await newChallenge(phone, purpose);
 
   if (purpose === "SIGN_UP") {
     await sms.send(phone, hasAccount ? alreadyRegisteredSms(language) : otpSms(language, code));
@@ -67,7 +73,14 @@ export async function requestOtp(input: { phone: string; purpose: PublicOtpPurpo
     await sms.send(phone, otpSms(language, code));
   }
 
-  return { challengeId: challenge.id, expiresInSec: CODE_LIFETIME_SEC, resendInSec: RESEND_WAIT_SEC };
+  return { challengeId, expiresInSec: CODE_LIFETIME_SEC, resendInSec: RESEND_WAIT_SEC };
+}
+
+// Sends a code to confirm a new phone. Called by login only after the right PIN.
+export async function sendDeviceCode(phone: string, language: Language): Promise<string> {
+  const { challengeId, code } = await newChallenge(phone, "NEW_DEVICE");
+  await sms.send(phone, otpSms(language, code));
+  return challengeId;
 }
 
 // Checks a code. On success the challenge is used up and a 10-minute

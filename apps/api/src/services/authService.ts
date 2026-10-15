@@ -2,14 +2,19 @@ import type { AuthResponse, MemberProfile } from "@novi/shared";
 import type { Language, User } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
-import { hashSecret } from "../lib/hashing.js";
+import { hashSecret, verifySecret } from "../lib/hashing.js";
 import { isWeakPin } from "../lib/pinRules.js";
 import { verifyStepToken } from "../lib/tokens.js";
+import { sendDeviceCode } from "./otpService.js";
 import { openSession } from "./sessionService.js";
 
 // Version of the consent texts shown at sign-up. A new text gets a new version,
 // so the database always shows which wording each member agreed to.
 const CONSENT_VERSION = "2026-10-14";
+
+const MAX_PIN_ATTEMPTS = 5;
+// Lockout lengths in minutes: first lock, second, third and later (D18).
+const LOCK_MINUTES = [15, 60, 24 * 60];
 
 // The member as the app shows her; never includes the PIN hash or NIU hash.
 export function toMemberProfile(user: User): MemberProfile {
@@ -22,6 +27,8 @@ export function toMemberProfile(user: User): MemberProfile {
     market: user.market,
   };
 }
+
+// ---------- Sign-up ----------
 
 // Final sign-up step: requires both stamps for the same phone, then creates
 // the member, her consents, trusted device, session and audit entry together.
@@ -45,8 +52,12 @@ export async function register(input: {
   const phone = phoneStep.subject;
 
   const { niuHash, legalName, idConsentAt, verifiedAt } = idStep.claims;
-  if (typeof niuHash !== "string" || typeof legalName !== "string" ||
-      typeof idConsentAt !== "string" || typeof verifiedAt !== "string") {
+  if (
+    typeof niuHash !== "string" ||
+    typeof legalName !== "string" ||
+    typeof idConsentAt !== "string" ||
+    typeof verifiedAt !== "string"
+  ) {
     throw new AppError("UNAUTHENTICATED", 401);
   }
 
@@ -94,6 +105,110 @@ export async function register(input: {
     // No personal data in the audit details: the user ID already says who.
     await tx.auditEvent.create({ data: { userId: user.id, type: "USER_REGISTERED", details: { deviceId: device.id } } });
 
+    return { tokens, member: toMemberProfile(user) };
+  });
+}
+
+// ---------- PIN checking and lockout ----------
+
+function lockMinutes(level: number): number {
+  return LOCK_MINUTES[Math.min(level, LOCK_MINUTES.length) - 1] ?? 15;
+}
+
+// A hash of no real PIN, checked when the phone has no account, so that an
+// unknown number takes as long to answer as a wrong PIN and reveals nothing.
+let dummyHash: Promise<string> | undefined;
+function dummyPinHash(): Promise<string> {
+  dummyHash ??= hashSecret("not-a-member-pin");
+  return dummyHash;
+}
+
+// Checks a PIN with the lockout rules: 5 wrong tries lock the account, each
+// lock longer than the last; a right PIN clears the count and the escalation.
+async function checkPin(user: User, pin: string): Promise<void> {
+  const now = Date.now();
+  if (user.lockedUntil && user.lockedUntil.getTime() > now) {
+    throw new AppError("PIN_LOCKED", 423, Math.ceil((user.lockedUntil.getTime() - now) / 1000));
+  }
+
+  if (await verifySecret(user.pinHash, pin)) {
+    if (user.failedPinAttempts > 0 || user.lockoutLevel > 0) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedPinAttempts: 0, lockoutLevel: 0, lockedUntil: null },
+      });
+    }
+    return;
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: user.id },
+    data: { failedPinAttempts: { increment: 1 } },
+  });
+  if (updated.failedPinAttempts < MAX_PIN_ATTEMPTS) throw new AppError("PIN_INVALID", 401);
+
+  const level = updated.lockoutLevel + 1;
+  const minutes = lockMinutes(level);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { failedPinAttempts: 0, lockoutLevel: level, lockedUntil: new Date(now + minutes * 60 * 1000) },
+  });
+  await prisma.auditEvent.create({ data: { userId: user.id, type: "PIN_LOCKED", details: { level, minutes } } });
+  throw new AppError("PIN_LOCKED", 423, minutes * 60);
+}
+
+// ---------- Login and new phones ----------
+
+// Daily login. On a trusted phone, opens a session. On a new phone, and only
+// after the right PIN, sends an SMS code to confirm the phone first.
+export async function login(input: { phone: string; pin: string; installationId: string }): Promise<AuthResponse> {
+  const user = await prisma.user.findUnique({ where: { phone: input.phone } });
+  if (!user) {
+    await verifySecret(await dummyPinHash(), input.pin);
+    throw new AppError("PIN_INVALID", 401);
+  }
+
+  await checkPin(user, input.pin);
+
+  const device = await prisma.device.findUnique({
+    where: { userId_installationId: { userId: user.id, installationId: input.installationId } },
+  });
+  if (!device) {
+    const challengeId = await sendDeviceCode(user.phone, user.language);
+    throw new AppError("NEW_DEVICE", 409, undefined, challengeId);
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.device.update({ where: { id: device.id }, data: { lastSeenAt: new Date() } });
+    const tokens = await openSession(tx, user.id, device.id);
+    await tx.auditEvent.create({ data: { userId: user.id, type: "LOGIN", details: { deviceId: device.id } } });
+    return { tokens, member: toMemberProfile(user) };
+  });
+}
+
+// Trusts a new phone: needs the SMS code (she holds the SIM) and the PIN
+// (she knows the secret), then opens a session on that phone.
+export async function trustDevice(input: {
+  verificationToken: string;
+  pin: string;
+  installationId: string;
+}): Promise<AuthResponse> {
+  const step = await verifyStepToken(input.verificationToken, "NEW_DEVICE");
+  if (!step) throw new AppError("UNAUTHENTICATED", 401);
+
+  const user = await prisma.user.findUnique({ where: { phone: step.subject } });
+  if (!user) throw new AppError("UNAUTHENTICATED", 401);
+
+  await checkPin(user, input.pin);
+
+  return prisma.$transaction(async (tx) => {
+    const device = await tx.device.upsert({
+      where: { userId_installationId: { userId: user.id, installationId: input.installationId } },
+      create: { userId: user.id, installationId: input.installationId },
+      update: { lastSeenAt: new Date() },
+    });
+    const tokens = await openSession(tx, user.id, device.id);
+    await tx.auditEvent.create({ data: { userId: user.id, type: "DEVICE_TRUSTED", details: { deviceId: device.id } } });
     return { tokens, member: toMemberProfile(user) };
   });
 }

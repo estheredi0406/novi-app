@@ -8,7 +8,12 @@ import { AppError } from "../lib/errors.js";
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof AppError) {
     const body: ApiError = {
-      error: { code: err.code, messageKey: errors[err.code].messageKey, retryAfterSec: err.retryAfterSec },
+      error: {
+        code: err.code,
+        messageKey: errors[err.code].messageKey,
+        retryAfterSec: err.retryAfterSec,
+        challengeId: err.challengeId,
+      },
     };
     res.status(err.status).json(body);
     return;

@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import type { AuthResponse } from "@novi/shared";
 import request from "supertest";
 import { app } from "../app.js";
 import { identity, sms } from "../providers/index.js";
@@ -33,4 +35,25 @@ export async function verifiedIdentity(verificationToken: string, details = AKOS
     .post("/v1/auth/identity/confirm")
     .send({ verificationToken, pendingToken: start.body.pendingToken, code });
   return res.body.identityToken;
+}
+
+// Signs a member up through the real endpoints and returns her tokens, profile
+// and the installation ID of the phone she signed up on (now trusted).
+export async function signedUpMember(phone = "+22890000001", installationId = randomUUID()) {
+  const verificationToken = await verifiedPhone(phone);
+  const identityToken = await verifiedIdentity(verificationToken);
+  const res = await request(app).post("/v1/auth/register").send({
+    verificationToken,
+    identityToken,
+    pin: "4829",
+    displayName: "Akossiwa",
+    area: "Bè",
+    market: "Assigamé",
+    language: "FR",
+    installationId,
+    acceptedTerms: true,
+    acceptedCreditDataUse: true,
+  });
+  if (res.status !== 201) throw new Error(`sign-up failed: ${JSON.stringify(res.body)}`);
+  return { ...(res.body as AuthResponse), installationId };
 }

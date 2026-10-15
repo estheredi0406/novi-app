@@ -94,6 +94,7 @@ model Session {
   refreshTokenHash String    @unique // the token itself is never stored
   expiresAt        DateTime
   revokedAt        DateTime?
+  revokedReason    String?   // ROTATED, LOGOUT, PIN_RESET or REUSE_DETECTED
   createdAt        DateTime  @default(now())
 
   user   User   @relation(fields: [userId], references: [id])
