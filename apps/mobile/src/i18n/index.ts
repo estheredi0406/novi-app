@@ -1,6 +1,7 @@
 import { getLocales } from "expo-localization";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { getSavedLanguage, saveLanguage } from "../lib/storage";
 import ee from "./ee.json";
 import en from "./en.json";
 import fr from "./fr.json";
@@ -36,8 +37,16 @@ void i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false }, // React already protects displayed text
 });
 
+// Changes the language now and remembers it for the next launch.
 export function setAppLanguage(language: AppLanguage): void {
   void i18n.changeLanguage(toI18nCode(language));
+  void saveLanguage(language);
+}
+
+// At launch: the language she chose last time, if any.
+export async function restoreSavedLanguage(): Promise<void> {
+  const saved = await getSavedLanguage();
+  if (saved) await i18n.changeLanguage(toI18nCode(saved));
 }
 
 export default i18n;
