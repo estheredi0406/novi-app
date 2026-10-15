@@ -1,0 +1,140 @@
+{
+  "common": {
+    "continue": "Continuer",
+    "back": "Retour",
+    "listen": "Écouter",
+    "tryAgain": "Réessayer",
+    "next": "Suivant"
+  },
+  "welcome": {
+    "greeting": "Bienvenue",
+    "check": "Vérifier la connexion",
+    "foundations": "Vérification des fondations, remplacée aux prochaines étapes."
+  },
+  "language": {
+    "title": "Choisissez votre langue",
+    "lede": "Choisissez la langue dans laquelle Novi vous parle. Touchez le haut-parleur pour l'écouter.",
+    "later": "Vous pourrez la changer plus tard dans Moi.",
+    "en": "English",
+    "fr": "Français",
+    "ee": "Eʋegbe"
+  },
+  "phone": {
+    "step": "Étape 1 · Votre numéro",
+    "title": "Quel est votre numéro de téléphone ?",
+    "label": "Numéro de portable",
+    "safety": "Nous vous envoyons un code par SMS. Novi ne vous demandera jamais votre code Mixx ou Flooz.",
+    "send": "Envoyez-moi le code"
+  },
+  "code": {
+    "step": "Étape 2 · Vérifiez vos SMS",
+    "title": "Tapez les 6 chiffres reçus",
+    "sentTo": "Envoyé au {{phone}}",
+    "change": "Changer de numéro",
+    "resendIn": "Pas de SMS ? Vous pourrez redemander dans {{time}}",
+    "resend": "Renvoyer"
+  },
+  "consent": {
+    "step": "Étape 3 · Votre accord",
+    "title": "Avant de vérifier votre identité",
+    "lede": "Novi n'ouvre un compte qu'après confirmation de votre identité par l'ANID, l'agence d'identification du Togo. Personne ne peut alors s'inscrire à votre nom.",
+    "idCheck": "Novi peut envoyer mon numéro d'identification, mon nom et ma date de naissance à l'ANID pour confirmer mon identité. Novi ne garde que la réponse, jamais une photo de ma carte.",
+    "creditUse": "Mon historique d'épargne sert uniquement à mon attestation de crédit. Jamais aux impôts.",
+    "terms": "J'accepte les règles de Novi.",
+    "nothingSent": "Rien n'est envoyé à l'ANID avant que vous cochiez la première case et continuiez."
+  },
+  "idDetails": {
+    "step": "Étape 4 · Vérification d'identité",
+    "title": "Recopiez votre carte d'identité électronique",
+    "niu": "NIU (numéro d'identification)",
+    "legalName": "Votre nom exactement comme sur la carte",
+    "dateOfBirth": "Date de naissance",
+    "day": "Jour",
+    "month": "Mois",
+    "year": "Année",
+    "nameHint": "Utilisez le nom imprimé sur la carte, pas un surnom. Vous choisirez le nom affiché pour votre groupe à l'étape 6.",
+    "submit": "Vérifier avec l'ANID"
+  },
+  "anidCode": {
+    "title": "L'ANID vous a envoyé un code",
+    "sentTo": "Il a été envoyé au téléphone de votre dossier d'identité : {{phone}}",
+    "notYourPhone": "Ce n'est pas votre téléphone ? Le code est peut-être sur le téléphone d'un proche ou une ancienne puce. Demandez-le, ou voyez les autres solutions."
+  },
+  "notVerified": {
+    "title": "Nous n'avons pas pu confirmer votre identité",
+    "lede": "Cela arrive quand un nom est écrit différemment, ou quand l'ANID a un ancien numéro pour vous. Ce n'est pas de votre faute.",
+    "visit": "Rendez-vous à votre IMF",
+    "bring": "Apportez votre carte d'identité électronique. Ils pourront confirmer votre identité sur place, et vous pourrez ensuite terminer l'inscription.",
+    "nothingSaved": "Rien n'a été enregistré. Vous pouvez aussi réessayer demain.",
+    "restart": "Revenir au début"
+  },
+  "pin": {
+    "step": "Étape 5 · Votre code secret",
+    "createTitle": "Choisissez un PIN à 4 chiffres",
+    "confirmTitle": "Tapez à nouveau votre PIN",
+    "lede": "Vous le taperez à chaque ouverture de Novi, pour qu'une personne utilisant votre téléphone ne voie pas votre groupe.",
+    "tip": "Novi refuse les PIN trop faciles comme 1234 ou 0000. Évitez votre année de naissance et le code de votre mobile money.",
+    "mismatch": "Les deux PIN sont différents. Réessayez."
+  },
+  "profile": {
+    "step": "Étape 6 · À propos de vous",
+    "title": "Comment votre groupe doit-il vous appeler ?",
+    "displayName": "Le nom utilisé par votre groupe",
+    "area": "Où faites-vous votre commerce ?",
+    "otherArea": "Un autre quartier",
+    "market": "Vendez-vous dans un marché ? (facultatif)",
+    "noMarket": "Pas dans un marché",
+    "otherMarket": "Un autre marché",
+    "privacy": "Les groupes proches peuvent vous trouver par quartier. Novi n'affiche jamais votre position exacte.",
+    "finish": "Ouvrir mon Novi"
+  },
+  "unlock": {
+    "greeting": "Bienvenue, {{name}}",
+    "lede": "Tapez votre PIN pour ouvrir vos groupes",
+    "forgot": "PIN oublié ?",
+    "lockWarning": "5 erreurs bloquent Novi pendant 15 minutes."
+  },
+  "locked": {
+    "title": "Novi est bloqué pour le moment",
+    "lede": "5 PIN erronés. Cela protège votre groupe si quelqu'un d'autre a votre téléphone.",
+    "tryAgainIn": "Vous pourrez réessayer dans",
+    "reset": "PIN oublié ? Réinitialisez-le par SMS",
+    "longer": "Chaque nouveau blocage dure plus longtemps que le précédent."
+  },
+  "newDevice": {
+    "title": "C'est un nouveau téléphone",
+    "lede": "Nous avons envoyé un code au {{phone}} pour vérifier que ce téléphone est le vôtre."
+  },
+  "reset": {
+    "title": "Choisissez un nouveau PIN",
+    "done": "Votre PIN est changé. Vous êtes déconnecté sur tous les téléphones. Connectez-vous avec votre nouveau PIN."
+  },
+  "errors": {
+    "validationFailed": "Une information manque ou n'a pas le bon format. Vérifiez et réessayez.",
+    "unauthenticated": "Veuillez vous reconnecter.",
+    "notFound": "Introuvable.",
+    "internal": "Un problème est survenu de notre côté. Réessayez dans un instant.",
+    "rateLimited": "Trop de tentatives. Patientez puis réessayez.",
+    "noConnection": "Pas de connexion à Novi. Vérifiez votre internet et réessayez."
+  },
+  "auth": {
+    "otpInvalid": "Ce code n'est pas correct. Vérifiez le SMS et réessayez.",
+    "otpExpired": "Ce code a expiré. Demandez-en un nouveau.",
+    "otpTooManyAttempts": "Trop de codes erronés. Demandez-en un nouveau.",
+    "otpRateLimited": "Patientez avant de demander un autre code.",
+    "phoneAlreadyRegistered": "Ce numéro a déjà un compte Novi. Connectez-vous.",
+    "pinInvalid": "Numéro de téléphone ou PIN incorrect.",
+    "pinLocked": "Trop de PIN erronés. Novi est bloqué pour le moment.",
+    "newDevice": "C'est un nouveau téléphone. Nous vous avons envoyé un code par SMS pour vérifier qu'il est le vôtre.",
+    "sessionRevoked": "Vous avez été déconnecté. Veuillez vous reconnecter.",
+    "pinTooWeak": "Ce PIN est trop facile à deviner. Choisissez-en un autre.",
+    "consentRequired": "Cochez les cases pour continuer."
+  },
+  "identity": {
+    "mismatch": "Ces informations ne correspondent pas au dossier de l'ANID. Comparez-les avec votre carte.",
+    "blocked": "Nous n'avons pas pu confirmer votre identité. Rendez-vous à votre IMF avec votre carte d'identité.",
+    "niuAlreadyRegistered": "Cette pièce d'identité a déjà un compte Novi. Connectez-vous.",
+    "codeInvalid": "Ce code n'est pas correct. Réessayez.",
+    "codeExpired": "Ce code a expiré. Recommencez la vérification."
+  }
+}

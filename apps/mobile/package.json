@@ -4,15 +4,18 @@
   "main": "expo-router/entry",
   "dependencies": {
     "expo": "~57.0.28",
+    "expo-localization": "~57.0.2",
     "expo-status-bar": "~57.0.1",
+    "i18next": "^26.4.5",
     "react": "19.2.3",
+    "react-i18next": "^17.0.17",
     "react-native": "0.86.3"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
   },
-  "scripts": { 
+  "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",

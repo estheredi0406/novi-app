@@ -1,3 +1,4 @@
+import "../i18n";
 import { NotoSans_400Regular, NotoSans_600SemiBold, NotoSans_700Bold, useFonts } from "@expo-google-fonts/noto-sans";
 import { NotoSansDisplay_800ExtraBold } from "@expo-google-fonts/noto-sans-display";
 import { Stack } from "expo-router";

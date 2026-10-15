@@ -1,0 +1,140 @@
+{
+  "common": {
+    "continue": "Continue",
+    "back": "Back",
+    "listen": "Listen",
+    "tryAgain": "Try again",
+    "next": "Next"
+  },
+  "welcome": {
+    "greeting": "Welcome",
+    "check": "Check the connection",
+    "foundations": "Foundations check, replaced in the next steps."
+  },
+  "language": {
+    "title": "Choose your language",
+    "lede": "Choose the language Novi speaks to you in. Tap the speaker to hear it.",
+    "later": "You can change this later in Me.",
+    "en": "English",
+    "fr": "Français",
+    "ee": "Eʋegbe"
+  },
+  "phone": {
+    "step": "Step 1 · Your number",
+    "title": "What is your phone number?",
+    "label": "Mobile number",
+    "safety": "We send you a code by SMS. Novi will never ask for your Mixx or Flooz PIN.",
+    "send": "Send me the code"
+  },
+  "code": {
+    "step": "Step 2 · Check your SMS",
+    "title": "Type the 6 numbers we sent",
+    "sentTo": "Sent to {{phone}}",
+    "change": "Change number",
+    "resendIn": "No SMS yet? You can ask again in {{time}}",
+    "resend": "Resend"
+  },
+  "consent": {
+    "step": "Step 3 · Your agreement",
+    "title": "Before we check your ID",
+    "lede": "Novi only opens an account once ANID, Togo's ID agency, confirms it is you. Nobody can then join in your name.",
+    "idCheck": "Novi may send my ID number, name and date of birth to ANID to confirm it is me. Novi keeps only the answer, never a photo of my card.",
+    "creditUse": "My savings record is used only for my credit attestation. Never for taxes.",
+    "terms": "I accept the Novi rules.",
+    "nothingSent": "Nothing is sent to ANID until you tick the first box and continue."
+  },
+  "idDetails": {
+    "step": "Step 4 · Check it is you",
+    "title": "Copy what is on your e-ID card",
+    "niu": "NIU (ID number)",
+    "legalName": "Your name exactly as on the card",
+    "dateOfBirth": "Date of birth",
+    "day": "Day",
+    "month": "Month",
+    "year": "Year",
+    "nameHint": "Use the name printed on the card, not a nickname. You choose what your group calls you in step 6.",
+    "submit": "Check with ANID"
+  },
+  "anidCode": {
+    "title": "ANID sent you a code",
+    "sentTo": "It went to the phone on your ID record: {{phone}}",
+    "notYourPhone": "Not your phone? The code may be on a relative's phone or an old SIM. Ask them, or see other ways."
+  },
+  "notVerified": {
+    "title": "We couldn't confirm your identity",
+    "lede": "This happens when a name is spelled differently, or ANID has an old phone number for you. It is not your fault.",
+    "visit": "Visit your MFI",
+    "bring": "Bring your e-ID card. They can confirm it is you in person, and you can then finish signing up.",
+    "nothingSaved": "Nothing was saved. You can also try again tomorrow.",
+    "restart": "Back to the start"
+  },
+  "pin": {
+    "step": "Step 5 · Your secret",
+    "createTitle": "Choose a 4-number PIN",
+    "confirmTitle": "Type your PIN again",
+    "lede": "You will type it each time you open Novi, so someone using your phone cannot see your group.",
+    "tip": "Novi refuses easy PINs like 1234 or 0000. Avoid your birth year and the PIN you use for mobile money.",
+    "mismatch": "The two PINs are different. Try again."
+  },
+  "profile": {
+    "step": "Step 6 · About you",
+    "title": "How should your group know you?",
+    "displayName": "What your group calls you",
+    "area": "Where do you trade?",
+    "otherArea": "Another area",
+    "market": "Do you trade in a market? (optional)",
+    "noMarket": "Not in a market",
+    "otherMarket": "Another market",
+    "privacy": "Groups near you can find you by area. Novi never shows your exact location.",
+    "finish": "Open my Novi"
+  },
+  "unlock": {
+    "greeting": "Welcome, {{name}}",
+    "lede": "Type your PIN to open your groups",
+    "forgot": "Forgot your PIN?",
+    "lockWarning": "5 wrong tries locks Novi for 15 minutes."
+  },
+  "locked": {
+    "title": "Novi is locked for now",
+    "lede": "5 wrong PINs. This protects your group if someone else has your phone.",
+    "tryAgainIn": "You can try again in",
+    "reset": "Forgot your PIN? Reset it by SMS",
+    "longer": "Each new lock lasts longer than the last."
+  },
+  "newDevice": {
+    "title": "This is a new phone",
+    "lede": "We sent a code to {{phone}} to check this phone is yours."
+  },
+  "reset": {
+    "title": "Choose a new PIN",
+    "done": "Your PIN is changed. You are logged out on every phone. Log in with your new PIN."
+  },
+  "errors": {
+    "validationFailed": "Something is missing or not in the right form. Please check and try again.",
+    "unauthenticated": "Please log in again.",
+    "notFound": "We couldn't find this.",
+    "internal": "Something went wrong on our side. Please try again in a moment.",
+    "rateLimited": "Too many tries. Please wait and try again.",
+    "noConnection": "No connection to Novi. Check your internet and try again."
+  },
+  "auth": {
+    "otpInvalid": "This code is not right. Check the SMS and try again.",
+    "otpExpired": "This code has expired. Ask for a new one.",
+    "otpTooManyAttempts": "Too many wrong codes. Ask for a new one.",
+    "otpRateLimited": "Please wait before asking for another code.",
+    "phoneAlreadyRegistered": "This number already has a Novi account. Log in instead.",
+    "pinInvalid": "Wrong phone number or PIN.",
+    "pinLocked": "Too many wrong PINs. Novi is locked for now.",
+    "newDevice": "This is a new phone. We sent you an SMS code to check it is yours.",
+    "sessionRevoked": "You were logged out. Please log in again.",
+    "pinTooWeak": "This PIN is too easy to guess. Choose another.",
+    "consentRequired": "Please tick the boxes to continue."
+  },
+  "identity": {
+    "mismatch": "These details don't match ANID's record. Check them against your card.",
+    "blocked": "We couldn't confirm your identity. Please visit your MFI with your ID card.",
+    "niuAlreadyRegistered": "This ID already has a Novi account. Log in instead.",
+    "codeInvalid": "This code is not right. Try again.",
+    "codeExpired": "This code has expired. Start the check again."
+  }
+}
