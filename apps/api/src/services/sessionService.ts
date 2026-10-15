@@ -11,7 +11,8 @@ const ACCESS_TOKEN_SEC = 15 * 60;
 // a weak connection, not as theft (D19).
 const REUSE_GRACE_SEC = 30;
 
-export type RevokeReason = "ROTATED" | "LOGOUT" | "PIN_RESET" | "REUSE_DETECTED";
+// Why a session was closed. Only ROTATED sessions can trigger the reuse alarm.
+export type RevokeReason = "ROTATED" | "LOGOUT" | "PIN_RESET" | "REUSE_DETECTED" | "REPLACED";
 
 // Opens a session on a trusted device and returns its two tokens. Takes the
 // database client as a parameter so it can run inside a caller's transaction.

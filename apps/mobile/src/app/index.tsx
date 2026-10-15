@@ -4,15 +4,17 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { type AppLanguage, setAppLanguage } from "../i18n";
+import { useSession } from "../session/SessionProvider";
 import { colors } from "../theme/colors";
 import { fonts, type } from "../theme/typography";
 
 const LANGUAGES: AppLanguage[] = ["EE", "FR", "EN"];
 
 // Temporary first screen proving the foundations: navigation, palette, fonts
-// (including the Ewe letters) and language switching. Replaced in S1.6d.
+// (including the Ewe letters), language switching and the session. Replaced in S1.6d.
 export default function Welcome() {
   const { t, i18n } = useTranslation();
+  const { status } = useSession();
 
   return (
     <Screen>
@@ -21,6 +23,7 @@ export default function Welcome() {
         <Text style={[type.title, styles.ink]}>{t("welcome.greeting")}</Text>
         <Text style={[type.body, styles.ink]}>{t("phone.title")}</Text>
         <Text style={[type.body, styles.ink]}>ɖ ƒ ɣ ŋ ɔ ɛ ʋ Ɖ Ƒ Ɣ Ŋ Ɔ Ɛ Ʋ</Text>
+        <Text style={[type.small, styles.muted]}>Session: {status}</Text>
 
         <View style={styles.row}>
           {LANGUAGES.map((language) => {

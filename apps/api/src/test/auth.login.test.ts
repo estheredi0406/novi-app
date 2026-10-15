@@ -111,4 +111,12 @@ describe("login", () => {
 
     expect((await login(PIN, newPhone)).status).toBe(200);
   });
+
+    it("closes the phone's previous session when she logs in again", async () => {
+    const first = await login(PIN, installationId);
+    await login(PIN, installationId);
+    const res = await request(app).get("/v1/me").set("Authorization", `Bearer ${first.body.tokens.accessToken}`);
+    expect(res.status).toBe(401);
+    expect(res.body.error.code).toBe("SESSION_REVOKED");
+  });
 });

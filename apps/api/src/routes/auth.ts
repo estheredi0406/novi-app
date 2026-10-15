@@ -3,7 +3,7 @@ import { MemoryStore, rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { AppError } from "../lib/errors.js";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
-import { login, register, trustDevice } from "../services/authService.js";
+import { login, register, resetPin, trustDevice } from "../services/authService.js";
 import { confirmIdentityCheck, startIdentityCheck } from "../services/identityService.js";
 import { requestOtp, verifyOtp } from "../services/otpService.js";
 import { logout, refreshSession } from "../services/sessionService.js";
@@ -131,5 +131,14 @@ authRouter.post("/refresh", async (req, res) => {
 authRouter.post("/logout", requireAuth, async (_req, res) => {
   const { userId, sessionId } = currentMember(res);
   await logout(userId, sessionId);
+  res.status(204).end();
+});
+
+// ---------- Forgotten PIN ----------
+
+const pinResetBody = z.object({ verificationToken: z.string().min(1), newPin: pin });
+
+authRouter.post("/pin/reset", async (req, res) => {
+  await resetPin(pinResetBody.parse(req.body));
   res.status(204).end();
 });

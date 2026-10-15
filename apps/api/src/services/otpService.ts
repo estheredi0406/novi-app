@@ -1,4 +1,5 @@
 import { randomInt } from "node:crypto";
+import type { OtpChallenge, PhoneVerification } from "@novi/shared";
 import type { Language, OtpPurpose } from "../generated/prisma/enums.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
@@ -59,7 +60,11 @@ async function newChallenge(phone: string, purpose: OtpPurpose) {
 
 // Creates a challenge and sends the right SMS. The response is identical whether
 // or not the phone has an account, so the API never reveals who uses Novi.
-export async function requestOtp(input: { phone: string; purpose: PublicOtpPurpose; language: Language }) {
+export async function requestOtp(input: {
+  phone: string;
+  purpose: PublicOtpPurpose;
+  language: Language;
+}): Promise<OtpChallenge> {
   const { phone, purpose, language } = input;
   const hasAccount = (await prisma.user.findUnique({ where: { phone }, select: { id: true } })) !== null;
 
@@ -85,7 +90,7 @@ export async function sendDeviceCode(phone: string, language: Language): Promise
 
 // Checks a code. On success the challenge is used up and a 10-minute
 // verification token proves the phone was confirmed for this purpose.
-export async function verifyOtp(input: { challengeId: string; code: string }) {
+export async function verifyOtp(input: { challengeId: string; code: string }): Promise<PhoneVerification> {
   const challenge = await prisma.otpChallenge.findUnique({ where: { id: input.challengeId } });
   if (!challenge || challenge.consumedAt || challenge.expiresAt < new Date()) {
     throw new AppError("OTP_EXPIRED", 400);

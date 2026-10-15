@@ -24,6 +24,7 @@ export const errors = {
   CONSENT_REQUIRED: { messageKey: "auth.consentRequired" },
   ID_CODE_INVALID: { messageKey: "identity.codeInvalid" },
   ID_CODE_EXPIRED: { messageKey: "identity.codeExpired" },
+  RATE_LIMITED: { messageKey: "errors.rateLimited" },
 } as const;
 
 
@@ -37,5 +38,6 @@ export type ApiError = {
     code: ErrorCode;
     messageKey: string;
     retryAfterSec?: number; // when the member may try again, for lockouts and limits
+    challengeId?: string; // with NEW_DEVICE: the SMS code to verify on this phone
   };
 };

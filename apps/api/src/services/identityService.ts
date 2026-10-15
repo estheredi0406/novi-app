@@ -4,6 +4,7 @@ import { AppError } from "../lib/errors.js";
 import { niuKeyedHash } from "../lib/hashing.js";
 import { createStepToken, verifyStepToken } from "../lib/tokens.js";
 import { identity } from "../providers/index.js";
+import type { IdentityConfirmed, IdentityStarted } from "@novi/shared";
 
 const MAX_FAILURES = 3;
 const BLOCK_WINDOW_MS = 24 * 60 * 60 * 1000;

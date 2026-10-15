@@ -6,7 +6,7 @@ import { hashSecret, verifySecret } from "../lib/hashing.js";
 import { isWeakPin } from "../lib/pinRules.js";
 import { verifyStepToken } from "../lib/tokens.js";
 import { sendDeviceCode } from "./otpService.js";
-import { openSession } from "./sessionService.js";
+import { openSession, revokeAllSessions } from "./sessionService.js";
 
 // Version of the consent texts shown at sign-up. A new text gets a new version,
 // so the database always shows which wording each member agreed to.
@@ -180,6 +180,11 @@ export async function login(input: { phone: string; pin: string; installationId:
 
   return prisma.$transaction(async (tx) => {
     await tx.device.update({ where: { id: device.id }, data: { lastSeenAt: new Date() } });
+    // One session per phone: logging in again closes the phone's previous session (D23).
+    await tx.session.updateMany({
+      where: { deviceId: device.id, revokedAt: null },
+      data: { revokedAt: new Date(), revokedReason: "REPLACED" },
+    });
     const tokens = await openSession(tx, user.id, device.id);
     await tx.auditEvent.create({ data: { userId: user.id, type: "LOGIN", details: { deviceId: device.id } } });
     return { tokens, member: toMemberProfile(user) };
@@ -210,5 +215,35 @@ export async function trustDevice(input: {
     const tokens = await openSession(tx, user.id, device.id);
     await tx.auditEvent.create({ data: { userId: user.id, type: "DEVICE_TRUSTED", details: { deviceId: device.id } } });
     return { tokens, member: toMemberProfile(user) };
+  });
+}
+
+// ---------- Forgotten PIN ----------
+
+// Sets a new PIN after the member proves she holds the SIM (SMS code). Closes
+// every session on every phone and lifts any lockout. Each reset stamp works
+// once: a stamp issued before the last PIN change is refused (D20).
+export async function resetPin(input: { verificationToken: string; newPin: string }): Promise<void> {
+  const step = await verifyStepToken(input.verificationToken, "PIN_RESET");
+  if (!step) throw new AppError("UNAUTHENTICATED", 401);
+
+  const user = await prisma.user.findUnique({ where: { phone: step.subject } });
+  if (!user) throw new AppError("UNAUTHENTICATED", 401);
+
+  const issuedAtMs = typeof step.claims.iat === "number" ? step.claims.iat * 1000 : 0;
+  if (user.pinChangedAt && issuedAtMs <= user.pinChangedAt.getTime()) {
+    throw new AppError("UNAUTHENTICATED", 401);
+  }
+
+  if (isWeakPin(input.newPin)) throw new AppError("PIN_TOO_WEAK", 400);
+  const pinHash = await hashSecret(input.newPin);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: user.id },
+      data: { pinHash, pinChangedAt: new Date(), failedPinAttempts: 0, lockoutLevel: 0, lockedUntil: null },
+    });
+    await revokeAllSessions(tx, user.id, "PIN_RESET");
+    await tx.auditEvent.create({ data: { userId: user.id, type: "PIN_RESET" } });
   });
 }

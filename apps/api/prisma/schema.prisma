@@ -60,6 +60,7 @@ model User {
   failedPinAttempts Int       @default(0)
   lockoutLevel      Int       @default(0) // each lockout lasts longer than the last
   lockedUntil       DateTime?
+  pinChangedAt      DateTime? // stamps issued before this moment cannot reset the PIN again
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
