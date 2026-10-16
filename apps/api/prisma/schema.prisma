@@ -39,11 +39,50 @@ enum ConsentType {
   TERMS           // the Novi rules
 }
 
+// Where a group is in its life (D29). The API checks this before every
+// action and refuses anything the state does not allow.
+enum GroupState {
+  DRAFT     // being set up; rules not yet sent
+  PROPOSED  // rules sent; members deciding
+  STARTING  // waiting for the MFI to open the account
+  ACTIVE    // account open; contributions and payouts running
+  COMPLETED // every member has received the pot once
+  CANCELLED // stopped before any money moved
+}
+
+// How often members pay in.
+enum Frequency {
+  WEEKLY
+  MONTHLY
+}
+
+// How the order of payouts is chosen.
+enum PayoutOrder {
+  DRAWN // Novi draws it at random when the group starts (default)
+  FIXED // the organiser sets it, and everyone accepts it with the rules
+}
+
+// A member's role inside one group. Not an account type: the same person
+// can organise one group and be an ordinary member of another.
+enum MemberRole {
+  ORGANISER
+  MEMBER
+}
+
+// Where one seat is in its life.
+enum SeatState {
+  INVITED   // invitation sent, no answer yet
+  ACCEPTED  // said yes to a version of the rules (see acceptedVersion)
+  COUNTERED // asked for a change, with a note
+  DECLINED  // said no; the seat is free
+  REMOVED   // the organiser withdrew the invitation
+}
+
 
 //----------------Members and access------------
 
 
-// A verified member. Account exist only after a successgul identity check 
+// A verified member. An account exists only after a successful identity check.
 
 
 model User {
@@ -68,6 +107,11 @@ model User {
   sessions    Session[]
   consents    Consent[]
   auditEvents AuditEvent[]
+
+  organisedGroups Group[]        @relation("GroupOrganiser")
+  memberships     Membership[]   @relation("SeatHolder")
+  invitesSent     Membership[]   @relation("SeatInviter")
+  rulesProposed   RulesVersion[]
 
   @@map("users")
 }
@@ -160,3 +204,88 @@ model AuditEvent {
   @@map("audit_events")
 }
 
+
+//----------------Groups----------------------------
+
+// A partner microfinance institution. It holds each group's money in an
+// account it opens; Novi never holds money (D2).
+model Mfi {
+  id        String   @id @default(uuid())
+  code      String   @unique // short name used in code and logs, e.g. FUCEC
+  name      String   // shown to members on every money screen
+  createdAt DateTime @default(now())
+
+  groups Group[]
+
+  @@map("mfis")
+}
+
+// A savings group. The rules themselves live in RulesVersion: the group only
+// points to the version currently in force, so no agreed version is ever lost.
+model Group {
+  id             String     @id @default(uuid())
+  name           String
+  state          GroupState @default(DRAFT)
+  currentVersion Int        @default(1) // the rules version members must accept
+  mfiId          String
+  organiserId    String
+  mfiAccountRef  String?    // the MFI's reference for the group account, once opened
+  startedAt      DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  mfi           Mfi            @relation(fields: [mfiId], references: [id])
+  organiser     User           @relation("GroupOrganiser", fields: [organiserId], references: [id])
+  rulesVersions RulesVersion[]
+  memberships   Membership[]
+
+  @@index([state])
+  @@map("groups")
+}
+
+// One version of a group's rules. Never edited: a change creates the next
+// version, and every acceptance falls back to "not yet" (D29).
+model RulesVersion {
+  id           String      @id @default(uuid())
+  groupId      String
+  version      Int
+  amountFcfa   Int         // each member's contribution, whole FCFA (D4)
+  frequency    Frequency
+  dueDay       Int         // WEEKLY: 1 (Monday) to 7 (Sunday); MONTHLY: 1 to 28
+  size         Int         // number of members, 3 to 15 (D28)
+  payoutOrder  PayoutOrder @default(DRAWN)
+  proposedById String
+  createdAt    DateTime    @default(now())
+
+  group      Group @relation(fields: [groupId], references: [id])
+  proposedBy User  @relation(fields: [proposedById], references: [id])
+
+  @@unique([groupId, version])
+  @@map("rules_versions")
+}
+
+// One seat in one group: who holds it, their role, and their answer to the rules.
+model Membership {
+  id              String     @id @default(uuid())
+  groupId         String
+  userId          String
+  role            MemberRole @default(MEMBER)
+  state           SeatState  @default(INVITED)
+  acceptedVersion Int?       // the rules version she accepted; must equal the group's current version
+  counterNote     String?    // what she asked to change, when COUNTERED
+  payoutPosition  Int?       // her turn in the payout order, set when the group starts
+  invitedById     String?    // empty for the organiser's own seat
+  respondedAt     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  group     Group @relation(fields: [groupId], references: [id])
+  user      User  @relation("SeatHolder", fields: [userId], references: [id])
+  invitedBy User? @relation("SeatInviter", fields: [invitedById], references: [id])
+
+  @@unique([groupId, userId]) // one seat per person per group
+  @@index([userId, state])    // her groups, for the 3-group limit (D26)
+  @@map("memberships")
+}
