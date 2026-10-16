@@ -86,7 +86,11 @@
     "noMarket": "Not in a market",
     "otherMarket": "Another market",
     "privacy": "Groups near you can find you by area. Novi never shows your exact location.",
-    "finish": "Open my Novi"
+    "finish": "Open my Novi",
+    "otherAreaPlaceholder": "Name of your area",
+    "otherMarketPlaceholder": "Name of your market",
+    "expired": "Sign-up took too long, so its checks have expired. Please start again.",
+    "restart": "Start again"
   },
   "unlock": {
     "greeting": "Welcome, {{name}}",
@@ -108,6 +112,15 @@
   "reset": {
     "title": "Choose a new PIN",
     "done": "Your PIN is changed. You are logged out on every phone. Log in with your new PIN."
+  },
+  "home": {
+    "greeting": "Welcome, {{name}}",
+    "open": "Your Novi account is open.",
+    "legalName": "Name on your ID",
+    "area": "Where you trade",
+    "next": "Your groups will appear here in the next version.",
+    "check": "Check the connection",
+    "logout": "Log out"
   },
   "errors": {
     "validationFailed": "Something is missing or not in the right form. Please check and try again.",
@@ -136,5 +149,12 @@
     "niuAlreadyRegistered": "This ID already has a Novi account. Log in instead.",
     "codeInvalid": "This code is not right. Try again.",
     "codeExpired": "This code has expired. Start the check again."
+  },
+    "anidCode": {
+    "title": "ANID sent you a code",
+    "sentTo": "It went to the phone on your ID record: {{phone}}",
+    "notYourPhone": "Not your phone? The code may be on a relative's phone or an old SIM. Ask them, or see other ways.",
+    "seeOther": "See other ways",
+    "restart": "Start the check again"
   }
 }

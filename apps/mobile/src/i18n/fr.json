@@ -86,7 +86,11 @@
     "noMarket": "Pas dans un marché",
     "otherMarket": "Un autre marché",
     "privacy": "Les groupes proches peuvent vous trouver par quartier. Novi n'affiche jamais votre position exacte.",
-    "finish": "Ouvrir mon Novi"
+    "finish": "Ouvrir mon Novi",
+    "otherAreaPlaceholder": "Nom de votre quartier",
+    "otherMarketPlaceholder": "Nom de votre marché",
+    "expired": "L'inscription a pris trop de temps et ses vérifications ont expiré. Veuillez recommencer.",
+    "restart": "Recommencer"
   },
   "unlock": {
     "greeting": "Bienvenue, {{name}}",
@@ -108,6 +112,15 @@
   "reset": {
     "title": "Choisissez un nouveau PIN",
     "done": "Votre PIN est changé. Vous êtes déconnecté sur tous les téléphones. Connectez-vous avec votre nouveau PIN."
+  },
+  "home": {
+    "greeting": "Bienvenue, {{name}}",
+    "open": "Votre compte Novi est ouvert.",
+    "legalName": "Nom sur votre pièce d'identité",
+    "area": "Lieu de commerce",
+    "next": "Vos groupes apparaîtront ici dans la prochaine version.",
+    "check": "Vérifier la connexion",
+    "logout": "Se déconnecter"
   },
   "errors": {
     "validationFailed": "Une information manque ou n'a pas le bon format. Vérifiez et réessayez.",
@@ -136,5 +149,12 @@
     "niuAlreadyRegistered": "Cette pièce d'identité a déjà un compte Novi. Connectez-vous.",
     "codeInvalid": "Ce code n'est pas correct. Réessayez.",
     "codeExpired": "Ce code a expiré. Recommencez la vérification."
+  },
+  "anidCode": {
+    "title": "L'ANID vous a envoyé un code",
+    "sentTo": "Il a été envoyé au téléphone de votre dossier d'identité : {{phone}}",
+    "notYourPhone": "Ce n'est pas votre téléphone ? Le code est peut-être sur le téléphone d'un proche ou une ancienne puce. Demandez-le, ou voyez les autres solutions.",
+    "seeOther": "Voir les autres solutions",
+    "restart": "Recommencer la vérification"
   }
 }
