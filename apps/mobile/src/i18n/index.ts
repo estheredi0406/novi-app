@@ -50,3 +50,8 @@ export async function restoreSavedLanguage(): Promise<void> {
 }
 
 export default i18n;
+
+// The language currently shown, in the API's format.
+export function currentLanguage(): AppLanguage {
+  return i18n.language === "en" ? "EN" : i18n.language === "ee" ? "EE" : "FR";
+}

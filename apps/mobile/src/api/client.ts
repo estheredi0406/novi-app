@@ -98,3 +98,8 @@ export async function memberRequest<T>(method: Method, path: string, body?: unkn
   }
   return parse<T>(res);
 }
+
+// The translation key to show for any error a request may throw.
+export function errorKey(err: unknown): string {
+  return err instanceof ApiError ? err.messageKey : "errors.internal";
+}

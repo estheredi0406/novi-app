@@ -27,7 +27,10 @@
     },
     "plugins": [
       "expo-localization",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-router",
+      "expo-status-bar",
+      "expo-font"
     ]
   }
 }

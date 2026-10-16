@@ -8,11 +8,22 @@
   "engines": {
     "node": ">=24"
   },
-    "scripts": {
+  "scripts": {
     "build:shared": "npm run build --workspace @novi/shared",
     "test": "npm run build:shared && npm run test --workspaces --if-present",
     "dev:api": "npm run build:shared && npm run dev --workspace @novi/api",
     "dev:mobile": "npm run build:shared && npm run start --workspace @novi/mobile",
     "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present"
+  },
+  "dependencies": {
+    "@expo-google-fonts/noto-sans": "^0.4.2",
+    "@expo-google-fonts/noto-sans-display": "^0.4.2",
+    "expo-constants": "~57.0.22",
+    "expo-font": "~57.0.4",
+    "expo-linking": "~57.0.13",
+    "expo-router": "~57.0.27",
+    "expo-status-bar": "~57.0.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0"
   }
-} 
+}
