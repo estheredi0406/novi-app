@@ -17,7 +17,8 @@
     "later": "Vous pourrez la changer plus tard dans Moi.",
     "en": "English",
     "fr": "Français",
-    "ee": "Eʋegbe"
+    "ee": "Eʋegbe",
+    "haveAccount": "J'ai déjà un compte Novi"
   },
   "phone": {
     "step": "Étape 1 · Votre numéro",
@@ -58,7 +59,9 @@
   "anidCode": {
     "title": "L'ANID vous a envoyé un code",
     "sentTo": "Il a été envoyé au téléphone de votre dossier d'identité : {{phone}}",
-    "notYourPhone": "Ce n'est pas votre téléphone ? Le code est peut-être sur le téléphone d'un proche ou une ancienne puce. Demandez-le, ou voyez les autres solutions."
+    "notYourPhone": "Ce n'est pas votre téléphone ? Le code est peut-être sur le téléphone d'un proche ou une ancienne puce. Demandez-le, ou voyez les autres solutions.",
+    "seeOther": "Voir les autres solutions",
+    "restart": "Recommencer la vérification"
   },
   "notVerified": {
     "title": "Nous n'avons pas pu confirmer votre identité",
@@ -92,6 +95,14 @@
     "expired": "L'inscription a pris trop de temps et ses vérifications ont expiré. Veuillez recommencer.",
     "restart": "Recommencer"
   },
+  "login": {
+    "title": "Se connecter",
+    "lede": "Tapez votre numéro de téléphone et votre PIN.",
+    "pinLabel": "Votre PIN à 4 chiffres",
+    "submit": "Se connecter",
+    "otherNumber": "Ce n'est pas vous ? Utilisez un autre numéro",
+    "newAccount": "Pas encore de compte ? Inscrivez-vous"
+  },
   "unlock": {
     "greeting": "Bienvenue, {{name}}",
     "lede": "Tapez votre PIN pour ouvrir vos groupes",
@@ -107,11 +118,20 @@
   },
   "newDevice": {
     "title": "C'est un nouveau téléphone",
-    "lede": "Nous avons envoyé un code au {{phone}} pour vérifier que ce téléphone est le vôtre."
+    "lede": "Nous avons envoyé un code au {{phone}} pour vérifier que ce téléphone est le vôtre.",
+    "codeLabel": "Code reçu par SMS",
+    "confirm": "Confirmer ce téléphone"
+  },
+  "forgot": {
+    "title": "Réinitialiser votre PIN",
+    "lede": "Nous envoyons un code par SMS à votre numéro. Ensuite, vous choisissez un nouveau PIN.",
+    "send": "Envoyez-moi le code"
   },
   "reset": {
     "title": "Choisissez un nouveau PIN",
-    "done": "Votre PIN est changé. Vous êtes déconnecté sur tous les téléphones. Connectez-vous avec votre nouveau PIN."
+    "done": "Votre PIN est changé. Vous êtes déconnecté sur tous les téléphones. Connectez-vous avec votre nouveau PIN.",
+    "confirmTitle": "Tapez à nouveau le nouveau PIN",
+    "login": "Se connecter"
   },
   "home": {
     "greeting": "Bienvenue, {{name}}",
@@ -149,12 +169,5 @@
     "niuAlreadyRegistered": "Cette pièce d'identité a déjà un compte Novi. Connectez-vous.",
     "codeInvalid": "Ce code n'est pas correct. Réessayez.",
     "codeExpired": "Ce code a expiré. Recommencez la vérification."
-  },
-  "anidCode": {
-    "title": "L'ANID vous a envoyé un code",
-    "sentTo": "Il a été envoyé au téléphone de votre dossier d'identité : {{phone}}",
-    "notYourPhone": "Ce n'est pas votre téléphone ? Le code est peut-être sur le téléphone d'un proche ou une ancienne puce. Demandez-le, ou voyez les autres solutions.",
-    "seeOther": "Voir les autres solutions",
-    "restart": "Recommencer la vérification"
   }
 }

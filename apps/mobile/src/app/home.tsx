@@ -15,6 +15,14 @@ export default function HomeScreen() {
   const { member, lock } = useSession();
   if (!member) return null;
 
+  // Logging out locks Novi on this phone, then opens the PIN screen. Going
+  // there directly, instead of letting the app fall back to whatever screen
+  // came before home, means she never lands back inside sign-up.
+  async function logOut() {
+    await lock();
+    router.replace("/login");
+  }
+
   const greeting = t("home.greeting", { name: member.displayName });
   const place = member.market ? `${member.area} · ${member.market}` : member.area;
 
@@ -42,7 +50,7 @@ export default function HomeScreen() {
         <Pressable accessibilityRole="button" onPress={() => router.push("/health")} style={styles.secondary}>
           <Text style={styles.link}>{t("home.check")}</Text>
         </Pressable>
-        <PrimaryButton label={t("home.logout")} onPress={() => void lock()} />
+        <PrimaryButton label={t("home.logout")} onPress={() => void logOut()} />
       </View>
     </Screen>
   );

@@ -17,7 +17,8 @@
     "later": "You can change this later in Me.",
     "en": "English",
     "fr": "Français",
-    "ee": "Eʋegbe"
+    "ee": "Eʋegbe",
+    "haveAccount": "I already have a Novi account"
   },
   "phone": {
     "step": "Step 1 · Your number",
@@ -58,7 +59,9 @@
   "anidCode": {
     "title": "ANID sent you a code",
     "sentTo": "It went to the phone on your ID record: {{phone}}",
-    "notYourPhone": "Not your phone? The code may be on a relative's phone or an old SIM. Ask them, or see other ways."
+    "notYourPhone": "Not your phone? The code may be on a relative's phone or an old SIM. Ask them, or see other ways.",
+    "seeOther": "See other ways",
+    "restart": "Start the check again"
   },
   "notVerified": {
     "title": "We couldn't confirm your identity",
@@ -92,6 +95,14 @@
     "expired": "Sign-up took too long, so its checks have expired. Please start again.",
     "restart": "Start again"
   },
+  "login": {
+    "title": "Log in",
+    "lede": "Type your phone number and your PIN.",
+    "pinLabel": "Your 4-number PIN",
+    "submit": "Log in",
+    "otherNumber": "Not you? Use another number",
+    "newAccount": "No account yet? Sign up"
+  },
   "unlock": {
     "greeting": "Welcome, {{name}}",
     "lede": "Type your PIN to open your groups",
@@ -107,11 +118,20 @@
   },
   "newDevice": {
     "title": "This is a new phone",
-    "lede": "We sent a code to {{phone}} to check this phone is yours."
+    "lede": "We sent a code to {{phone}} to check this phone is yours.",
+    "codeLabel": "Code from the SMS",
+    "confirm": "Confirm this phone"
+  },
+  "forgot": {
+    "title": "Reset your PIN",
+    "lede": "We send a code by SMS to your number. Then you choose a new PIN.",
+    "send": "Send me the code"
   },
   "reset": {
     "title": "Choose a new PIN",
-    "done": "Your PIN is changed. You are logged out on every phone. Log in with your new PIN."
+    "done": "Your PIN is changed. You are logged out on every phone. Log in with your new PIN.",
+    "confirmTitle": "Type the new PIN again",
+    "login": "Log in"
   },
   "home": {
     "greeting": "Welcome, {{name}}",
@@ -149,12 +169,5 @@
     "niuAlreadyRegistered": "This ID already has a Novi account. Log in instead.",
     "codeInvalid": "This code is not right. Try again.",
     "codeExpired": "This code has expired. Start the check again."
-  },
-    "anidCode": {
-    "title": "ANID sent you a code",
-    "sentTo": "It went to the phone on your ID record: {{phone}}",
-    "notYourPhone": "Not your phone? The code may be on a relative's phone or an old SIM. Ask them, or see other ways.",
-    "seeOther": "See other ways",
-    "restart": "Start the check again"
   }
 }

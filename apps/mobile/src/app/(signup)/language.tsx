@@ -15,7 +15,8 @@ const LANGUAGES: { language: AppLanguage; nameKey: string }[] = [
   { language: "EN", nameKey: "language.en" },
 ];
 
-// Screen A1: she chooses the language Novi speaks to her in.
+// Screen A1: she chooses the language Novi speaks to her in. A member on a
+// new or reset phone logs in from here instead of signing up again.
 export default function LanguageScreen() {
   const { t } = useTranslation();
   const selected = currentLanguage();
@@ -51,6 +52,9 @@ export default function LanguageScreen() {
       <View style={styles.footer}>
         <PrimaryButton label={t("common.continue")} onPress={() => router.push("/phone")} />
         <Text style={[type.small, styles.muted, styles.center]}>{t("language.later")}</Text>
+        <Pressable accessibilityRole="link" onPress={() => router.push("/login")} style={styles.linkButton}>
+          <Text style={styles.link}>{t("language.haveAccount")}</Text>
+        </Pressable>
       </View>
     </Screen>
   );
@@ -79,4 +83,6 @@ const styles = StyleSheet.create({
   radioSelected: { borderWidth: 7, borderColor: colors.action },
   optionText: { fontFamily: fonts.bodyBold, fontSize: 20, color: colors.ink },
   footer: { marginTop: "auto", gap: 12 },
+  linkButton: { minHeight: 44, alignItems: "center", justifyContent: "center" },
+  link: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.action },
 });
