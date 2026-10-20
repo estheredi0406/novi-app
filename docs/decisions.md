@@ -2,41 +2,124 @@
 
 Each entry records a choice, why it was made, and what was considered instead. Entries are never rewritten or deleted; a changed decision gets a new entry that names the one it supersedes.
 
-## D1. One repository for the whole system (13 Oct 2026)
+## Sprint 0: Foundations
+
+### D1. One repository for the whole system (13 Oct 2026)
 The API, mobile app, mock MFI and shared code live in one npm workspaces repository. The app and API import the same type definitions from packages/shared, so if the shape of a contribution changes on one side, the other fails to compile before the demo, not during it. A feature touching both sides is one commit. Considered: separate repositories; rejected because shared types would have to be published and versioned separately.
 
-## D2. Novi never holds money (13 Oct 2026)
+### D2. Novi never holds money (13 Oct 2026)
 Contributions go to an account at a licensed microfinance institution. Novi keeps the rules and the ledger and instructs the MFI to pay out. Under BCEAO Instruction n°001-01-2024, only banks, microfinance institutions, payment institutions and e-money issuers may provide payment services; Novi holds none of these licences.
 
-## D3. Every outside service sits behind an interface (13 Oct 2026)
+### D3. Every outside service sits behind an interface (13 Oct 2026)
 Identity checks, payments, the MFI and SMS are reached through IdentityProvider, PaymentProvider, MfiAdapter and SmsProvider. The demo uses mock versions; a real provider replaces one file. Reasons: FedaPay documents sandbox test numbers for Benin only, ANID identity checks are open to partners only, and Africa's Talking does not offer SMS or USSD in Togo in production.
 
-## D4. Money is stored as whole numbers of FCFA (13 Oct 2026)
+### D4. Money is stored as whole numbers of FCFA (13 Oct 2026)
 FCFA is used without a smaller unit in daily trade, and decimal numbers in JavaScript cause rounding errors (0.1 + 0.2 gives 0.30000000000000004). Every amount is an integer number of FCFA.
 
-## D5. The ledger is append-only (13 Oct 2026)
+### D5. The ledger is append-only (13 Oct 2026)
 A ledger entry is never edited or deleted; a correction is a new entry that references the one it corrects. Every member can then trust that the history she sees is the history that happened, which answers the trust problem behind organiser fraud in tontines.
 
-## D6. Node.js 24 (13 Oct 2026)
+### D6. Node.js 24 (13 Oct 2026)
 Supersedes the Node 20 choice in the original build brief. Node 20 reached end of life on 30 April 2026 and no longer receives security fixes (nodejs.org/en/about/previous-releases); Node 24 is the current long-term support line. Pinned in .nvmrc and in the engines field of package.json so development and hosting run the same version.
 
-## D7. Local database for development; Railway for deployment only (13 Oct 2026)
+### D7. Local database for development; Railway for deployment only (13 Oct 2026)
 PostgreSQL runs on the developer's laptop during Sprints 0 to 8; Railway hosts the API and database from Sprint 9, with one trial deployment of the API at the end of Sprint 0 to prove the pipeline. Railway's Free plan gives $1 of credit per month and its Hobby plan costs $5 per month (docs.railway.com/pricing), which would not keep an API and a database running continuously while no users exist; trial databases are deleted 30 days after credits expire. A local database also works offline. Moving changes only DATABASE_URL.
 
-## D8. PostgreSQL 18 with a dedicated, limited user (13 Oct 2026)
+### D8. PostgreSQL 18 with a dedicated, limited user (13 Oct 2026)
 Development uses PostgreSQL 18 on port 5432. The API connects as novi_app, which owns only the novi_dev database, never as the postgres administrator (least privilege). novi_app has CREATEDB because Prisma creates a temporary shadow database to check each migration.
 
-## D9. Prisma ORM 7.10.0, pinned exactly (13 Oct 2026)
+### D9. Prisma ORM 7.10.0, pinned exactly (13 Oct 2026)
 On 13 Oct 2026 the npm registry tagged prisma 8.0.0-rc.22 (a release candidate) as latest, with stable 7.10.0 under the prev tag. Novi uses the stable line. prisma, @prisma/client and @prisma/adapter-pg are installed with exact versions because they must always match. The generated client is written to apps/api/src/generated so it stays inside the TypeScript rootDir, and is ignored by Git because prisma generate rebuilds it.
 
-## D10. Expo SDK 57, blank template, Expo Go until native modules are needed (14 Oct 2026)
+### D10. Expo SDK 57, blank template, Expo Go until native modules are needed (14 Oct 2026)
 The mobile app starts from Expo's blank TypeScript template so every file is written and explained by the author. It runs in Expo Go during development; a development build replaces it when a feature needs native code Expo Go lacks (WatermelonDB, Sprint 6). No web target: Novi's users are on phones, and the MFI console is a separate web project.
 
-## D11. Known npm audit warnings deferred to the security pass (14 Oct 2026)
+### D11. Known npm audit warnings deferred to the security pass (14 Oct 2026)
 create-expo-app reported 22 vulnerabilities, mostly in development tooling. npm audit fix --force is not used because it upgrades packages beyond the versions Expo SDK 57 supports. They are reviewed in Sprint 9 with npm audit --omit=dev, which lists only issues in shipped code.
 
-## D12. Identity is verified before an account exists (14 Oct 2026)
+## Sprint 1: Sign-up and login
+
+### D12. Identity is verified before an account exists (14 Oct 2026)
 Under BCEAO Instruction 003-03-2025, Art. 14(5), a remote client's first transaction may only happen after her identity is verified. At sign-up, after consenting, the member enters her NIU, full name and date of birth; the mock ANID service checks they match its record and sends a one-time code to the phone on ANID's record, as MOSIP-based systems do. Names are compared ignoring capitals and extra spaces; everything else must match exactly. After 3 failed attempts the NIU is blocked for 24 hours and she is told to visit the MFI with her ID card. No account is created until verification succeeds, so there is no unverified account state and no ID queue for MFI officers. Supersedes the build brief's "accept invitations but cannot pay" state. Known limitation: the phone on ANID's record may not be hers today; the branch fallback covers this.
 
-## D13. Women traders first, open to every informal trader (14 Oct 2026)
+### D13. Women traders first, open to every informal trader (14 Oct 2026)
 Novi is designed around informal women traders, the group most affected by the problem: women hold 69.7% of jobs in Togo's informal units (INSEED & AFRISTAT, ERI-ESI 2017) and 45.4% of women own a financial account against 70.0% of men (Global Findex 2024). It starts in Lomé's markets but serves any informal trader: informal work extends well beyond markets (91.6% of jobs in Togo are informal, same survey), and nothing excludes men. A member records the neighbourhood where she trades (required, never an exact location) and a market only if she trades in one. Novi stores no gender: the product does not need it, and the women focus is measured in the research, not in the database. Interface text uses neutral wording, including in gendered languages such as French.
+
+### D14. Secrets live only in environment files (14 Oct 2026)
+The database address, JWT_SECRET and NIU_HASH_KEY are read from apps/api/.env (and .env.test for tests), which Git ignores; the API refuses to start if one is missing. .env.example holds placeholders only, so another developer knows what to set without seeing real values. On 16 Oct 2026 the real local password was found in .env.example; it was replaced with a placeholder and both database passwords were changed, because Git history keeps the old value. Every commit is now checked with git diff --staged first.
+
+### D15. Two names: legal name and display name (14 Oct 2026)
+legalName comes from the ANID check, appears on the ACEV and cannot be changed in the app. displayName is chosen by the member and is what her group sees. Groups never see the legal name or phone number.
+
+### D16. Easy PINs are refused (14 Oct 2026)
+A PIN made of one repeated digit, a straight sequence in either direction, or one of the most common choices is refused, on the phone at once and by the API with PIN_TOO_WEAK. The rule lives in packages/shared so app and API apply exactly the same one.
+
+### D17. No fingerprint or face unlock (14 Oct 2026)
+Phones in Lomé are often shared within a family. Device biometrics trust every fingerprint or face enrolled on the phone, which may include someone else's, so Novi relies on the PIN only she knows.
+
+### D18. PIN lockout grows with each lock (14 Oct 2026)
+Five wrong PINs lock the account for 15 minutes, then 1 hour, then 24 hours. A right PIN resets the count and the escalation. The lock is checked on the server, so reinstalling the app does not lift it.
+
+### D19. Short access tokens, rotated refresh tokens, a session check on every request (15 Oct 2026)
+Access tokens last 15 minutes. Refresh tokens last 30 days, are stored only as SHA-256 hashes and work once: each use returns a new pair. A retired refresh token presented again after a 30-second grace (for weak connections that send twice) revokes every session of that member. Every request also checks that its session is still open, so logout and PIN reset take effect at once.
+
+### D20. Forgotten PIN is reset by SMS and logs out every phone (15 Oct 2026)
+A PIN reset needs the SMS code for her number, then a new PIN typed twice. It revokes all sessions, clears any lockout, and records pinChangedAt so a reset stamp issued earlier cannot be used again.
+
+### D21. Expo Router and Noto fonts (15 Oct 2026)
+Screens use Expo Router (file-based routes, typed routes). Noto Sans and Noto Sans Display are loaded before anything is shown, because they contain the Ewe letters (ɖ ƒ ɣ ŋ ɔ ɛ ʋ) that system fonts may lack.
+
+### D22. Interface text as translation keys (15 Oct 2026)
+All text lives in en.json, fr.json and ee.json, read with i18next. The API sends message keys, never sentences. French must contain every English key (checked at compile time); Ewe falls back to French until a native speaker has reviewed it. A compile-time check fails if the API can send an error key that has no English text.
+
+### D23. PIN at every opening; one session per phone (15 Oct 2026)
+Tokens are cleared each time the app starts, so Novi asks for the PIN at every opening; only her phone number and display name stay on the phone, in secure storage. Logging in on a phone closes that phone's previous session (reason REPLACED).
+
+### D24. Sign-up protections (16 Oct 2026)
+Sign-up answers the same whether or not a number already has an account: the SMS to a registered number says so instead of carrying a code, and nothing on screen reveals it. Codes are limited per phone (60 seconds apart, 5 per hour, counted in the database) and per address (in memory). Identity checks are limited to 3 failures per NIU in 24 hours. The sign-up draft (stamps and PIN) is kept in memory only and is lost if the app closes.
+
+### D25. Multi-step login and PIN reset live in one screen each (16 Oct 2026)
+Login (PIN, lockout countdown, new-phone code) and PIN reset (phone, code, new PIN) are each one screen with steps, not one screen per step. The PIN typed before a new-phone check, and the stamp from the reset SMS, stay in that screen's memory only: never in storage, never in the route address, and gone when the screen closes. Sign-up keeps separate screens because its steps are long and each one is checked by the API before the next.
+
+## Sprint 2: Groups and rules
+
+### D26. A group counts towards the 3-group limit from the moment she accepts its rules (16 Oct 2026)
+A group counts towards a member's "at most 3 active groups" while it is PROPOSED (and she has accepted), STARTING or ACTIVE, not only once it is ACTIVE. Otherwise a member could accept many groups at once, and when they all start she could not pay into all of them, so each group would fail for everyone else in it.
+
+### D27. "One completed cycle" means a group she belonged to reached COMPLETED (16 Oct 2026)
+A member may start 2 groups. To start a third, she must have been a member of a group that reached COMPLETED: she kept paying until every member had received the pot. Receiving her own pot once is not enough, because she could stop paying straight after her turn.
+
+### D28. A group has between 3 and 15 members (16 Oct 2026)
+With 2 members a group is a private arrangement, and one missed payment empties half the pot. 15 is the upper limit already set by the product rules.
+
+### D29. Rules are versioned; a group starts only when every seat accepted the current version (16 Oct 2026)
+Each change to a group's rules (amount, frequency, size, payout order) creates a new version, and every acceptance falls back to "not yet". The organiser can start the group only when every remaining seat has accepted the current version. Silent seats must be removed first, which changes the size and therefore creates a new version that everyone accepts again. This proves later that every member agreed to the exact rules her money followed.
+
+### D30. Groups pay weekly or monthly, on a fixed day (16 Oct 2026)
+A group's rules set WEEKLY (day 1 Monday to 7 Sunday) or MONTHLY (day 1 to 28). Weekly matches market-day tontines; monthly suits members paid by the month. Monthly days stop at 28 so every month has the due day.
+
+### D31. Contributions are between 100 and 1 000 000 FCFA (16 Oct 2026)
+A group's contribution must be a whole number of FCFA from 100 to 1 000 000. The bounds are a safety net against typing mistakes (50 000 000 instead of 5 000), not a product rule; they are deliberately wide and will be confirmed with the partner MFI.
+
+### D32. Zod checks the shape of a request; the rules engine checks the rules (16 Oct 2026)
+Routes use Zod only to check that the right kinds of values were sent (a number, one of WEEKLY or MONTHLY) and to refuse unknown fields. Whether a value is allowed (3 to 15 members, 100 to 1 000 000 FCFA) is decided only by groupRules.ts, so each rule lives in one place and always answers with the same error code. A person with no seat in a group is told the group does not exist (404), not that access is forbidden, so group IDs cannot be probed.
+
+### D38. Invitations go to a phone number; a seat exists only once she answers (20 Oct 2026)
+The organiser invites by phone number. The invitation holds a place in the group (it counts towards the size) but is not a seat: the person gets a seat only when she answers. Inviting works, and looks, the same whether or not the number has a Novi account: the SMS text is the same, and the group sees only a masked number ("+228 90 •• •• 56") until she answers, so the organiser cannot use invitations to find out who uses Novi (the same rule as login, D24). A number invited before it had an account sees the invitation as soon as it signs up, because invitations are found by her verified phone number. The organiser can withdraw an invitation or remove a seat before the group starts; her own seat cannot be removed (she cancels the group instead).
+
+## Partners, money and data (20 Oct 2026)
+
+### D33. The MFI sees group totals, not individual members; the ACEV is shared only at her request (20 Oct 2026)
+The MFI that holds a group's money sees the group's total and the contribution amount set by its rules (for example 10 members x 5 000 FCFA = 50 000 FCFA due on Friday), not which member paid what. The per-member detail stays in Novi's ledger, visible to the group's own members. The MFI may use this data only to hold and pay out the money. A member's ACEV reaches an MFI only when she asks, to apply for credit, one request at a time; each share is recorded. The carnet is never shared by default. Reason: whoever holds the money necessarily sees the money, but traders may not want an institution to see each woman's payments; Ghana's e-levy showed informal workers pull back from tools they perceive as surveillance. To confirm in the MFI interview: whether anti-money-laundering rules require the MFI to identify each contributor, which may require a group account with named signatories rather than totals alone.
+
+### D34. The MFI is invisible infrastructure; Novi orchestrates; the ACEV is portable (20 Oct 2026)
+A licensed institution holds each group's money: an MFI partner, which members do not deal with directly. Members sign up, save and see everything in Novi; money screens show one line, "held at" the institution, for transparency. Novi never holds funds: under BCEAO Instruction 001-01-2024, Art. 2, payment services are reserved to banks, credit institutions, payment institutions, microfinance institutions and e-money issuers, and a tontine pot held for days or weeks also resembles savings, which banking and microfinance law reserve to licensed institutions. Considered: Novi collecting into its own FedaPay merchant balance (rejected: Novi would hold members' money without a licence) and members paying each other directly with Novi only recording (rejected: Novi could not run payouts automatically, its first differentiator). The ACEV belongs to the member and can be taken to any lender, not only the custodian (D33). Roadmap: if Novi scales, register under the lighter categories of the same instruction (account aggregation, Art. 3(40) and Art. 9; payment initiation, Art. 30 to 31), subject to legal advice; the instruction allows partnerships and forbids exclusivity (Art. 7), which supports working with several MFIs.
+
+### D35. Identity is checked by scanning the e-ID card's QR code (20 Oct 2026)
+Supersedes the typed-details step of D12. At sign-up the member scans the QR code on her e-ID card; Novi verifies ANID's signature on the data offline, which ANID describes as "verifiable offline and free of charge" (ID4Africa 2026), so there is no failed-ID queue for an MFI to handle. The scan proves the card is genuine, not that the person holding the phone owns it: one account per NIU and the SMS code to her phone remain, and the accredited online check through a licensed partner is the route to proving the holder. Until ANID publishes its QR format and signing key, the verifier uses a test key. A fallback is needed for members without a readable e-ID card (damaged card, card not yet issued).
+
+### D36. Novi works with several MFIs, never exclusively (20 Oct 2026)
+Each group's money is held by one licensed institution, chosen for the group; Novi can add further MFIs. BCEAO Instruction 001-01-2024, Art. 7, allows service partnerships and forbids exclusivity clauses. A member's ACEV can be taken to any of them.
+
+### D37. Lenders see a member's detailed record only with her approval (20 Oct 2026)
+The lender view shows one member's record: her payouts, her contributions, how regularly she paid, and any missed payments, because these inform the decision to grant a loan. It shows nothing until she approves access for a named lender. Each approval is for one lender, lasts a limited time, can be withdrawn, and every view is logged. Without her approval an MFI sees only group totals as custodian (D33). Considered: standing access for the custodian MFI (rejected: it turns the custodian into a monitor of each trader and conflicts with D33).
