@@ -1,5 +1,7 @@
 import type { IdentityProvider } from "./identity/IdentityProvider.js";
 import { MockAnidProvider } from "./identity/MockAnidProvider.js";
+import type { MfiAdapter } from "./mfi/MfiAdapter.js";
+import { MockMfiAdapter } from "./mfi/MockMfiAdapter.js";
 import type { SmsProvider } from "./sms/SmsProvider.js";
 import { MockSmsProvider } from "./sms/MockSmsProvider.js";
 
@@ -8,3 +10,4 @@ import { MockSmsProvider } from "./sms/MockSmsProvider.js";
 // provider changes this file and nothing else (D3).
 export const sms: SmsProvider = new MockSmsProvider();
 export const identity: IdentityProvider = new MockAnidProvider();
+export const mfi: MfiAdapter = new MockMfiAdapter();

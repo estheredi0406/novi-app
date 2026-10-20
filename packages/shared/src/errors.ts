@@ -40,6 +40,8 @@ export const errors = {
   SEATS_NOT_FILLED: { messageKey: "groups.seatsNotFilled" },
   NOT_EVERYONE_ACCEPTED: { messageKey: "groups.notEveryoneAccepted" },
   RULES_CHANGED: { messageKey: "groups.rulesChanged" },
+  ORDER_INVALID: { messageKey: "groups.orderInvalid" },
+  MFI_UNAVAILABLE: { messageKey: "groups.mfiUnavailable" },
 
   // Invitations
   ALREADY_INVITED: { messageKey: "groups.alreadyInvited" },

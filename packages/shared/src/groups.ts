@@ -15,6 +15,7 @@ export type GroupRules = {
   dueDay: number; // WEEKLY: 1 (Monday) to 7 (Sunday); MONTHLY: 1 to 28
   size: number;
   payoutOrder: PayoutOrder;
+  fixedOrder: string[]; // FIXED only: member IDs, first to be paid first (D41)
 };
 
 // One seat as every member of the group sees it. Only the display name is
@@ -26,6 +27,7 @@ export type GroupSeat = {
   state: SeatState;
   acceptedCurrentRules: boolean;
   counterNote: string | null;
+  payoutPosition: number | null; // her turn, 1 = paid first; set when the group starts
 };
 
 // An invitation not answered yet, as the group sees it. Only part of the

@@ -30,7 +30,8 @@ export type RuleBreak =
   | "START_LIMIT_REACHED"
   | "SEATS_NOT_FILLED"
   | "NOT_EVERYONE_ACCEPTED"
-  | "RULES_CHANGED"; // she answered a version of the rules that is no longer the current one
+  | "RULES_CHANGED" // she answered a version of the rules that is no longer the current one
+  | "ORDER_INVALID"; // a fixed payout order that does not list every member exactly once
 
 export type RuleResult = { ok: true } | { ok: false; reason: RuleBreak };
 
@@ -46,14 +47,16 @@ export type GroupAction =
   | "PROPOSE" // send the rules to the invited members
   | "RESPOND" // accept the rules, or ask for a change
   | "DECLINE" // say no, or leave before the group starts
+  | "SET_ORDER" // choose a fixed payout order (D41)
   | "START"
   | "CANCEL";
 
 type Who = "ORGANISER" | "MEMBER";
 
 // The whole state machine in one table. Anything not listed is refused.
-// Nothing can be done by a person once a group is STARTING or later: from
-// then on, only Novi and the MFI move it forward.
+// Once a group is STARTING, the only thing a person can do is ask Novi to
+// try opening the MFI account again; from then on, only Novi and the MFI
+// move it forward.
 const WHEN: Record<GroupAction, { states: readonly GroupState[]; by: Who }> = {
   EDIT_RULES: { states: ["DRAFT", "PROPOSED"], by: "ORGANISER" },
   INVITE: { states: ["DRAFT", "PROPOSED"], by: "ORGANISER" },
@@ -61,7 +64,8 @@ const WHEN: Record<GroupAction, { states: readonly GroupState[]; by: Who }> = {
   PROPOSE: { states: ["DRAFT"], by: "ORGANISER" },
   RESPOND: { states: ["PROPOSED"], by: "MEMBER" },
   DECLINE: { states: ["DRAFT", "PROPOSED"], by: "MEMBER" },
-  START: { states: ["PROPOSED"], by: "ORGANISER" },
+  SET_ORDER: { states: ["PROPOSED"], by: "ORGANISER" },
+  START: { states: ["PROPOSED", "STARTING"], by: "ORGANISER" },
   CANCEL: { states: ["DRAFT", "PROPOSED"], by: "ORGANISER" },
 };
 
@@ -150,4 +154,13 @@ export function checkReadyToStart(seats: readonly Seat[], size: number, currentV
   if (held.length !== size) return refused("SEATS_NOT_FILLED");
   const everyoneAgreed = held.every((seat) => seat.state === "ACCEPTED" && seat.acceptedVersion === currentVersion);
   return everyoneAgreed ? allowed : refused("NOT_EVERYONE_ACCEPTED");
+}
+
+// A fixed payout order must name every seat holder exactly once, and nobody
+// else (D41). It is checked when the organiser sets it, and again at the
+// start, because someone may have left or been removed in between.
+export function checkFixedOrder(order: readonly string[], seatHolders: readonly string[]): RuleResult {
+  const sameLength = order.length === seatHolders.length;
+  const everyoneOnce = new Set(order).size === order.length && seatHolders.every((id) => order.includes(id));
+  return sameLength && everyoneOnce ? allowed : refused("ORDER_INVALID");
 }

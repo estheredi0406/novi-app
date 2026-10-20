@@ -56,6 +56,7 @@ describe("creating a group", () => {
         state: "ACCEPTED",
         acceptedCurrentRules: true,
         counterNote: null,
+        payoutPosition: null,
       },
     ]);
   });

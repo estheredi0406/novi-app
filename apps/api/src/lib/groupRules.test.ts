@@ -5,6 +5,7 @@ import {
   checkCanInvite,
   checkCanJoin,
   checkCanStartAnother,
+  checkFixedOrder,
   checkReadyToStart,
   checkRules,
   countsTowardLimit,
@@ -46,6 +47,12 @@ describe("what can be done, when and by whom", () => {
     expect(checkAction("DECLINE", "PROPOSED", false)).toEqual({ ok: true });
     expect(checkAction("DECLINE", "ACTIVE", false)).toEqual({ ok: false, reason: "NOT_ALLOWED_NOW" });
     expect(checkAction("DECLINE", "PROPOSED", true)).toEqual({ ok: false, reason: "MEMBERS_ONLY" });
+  });
+
+  it("lets the organiser retry a start that is waiting for the MFI, and nothing else", () => {
+    expect(checkAction("START", "STARTING", true)).toEqual({ ok: true });
+    expect(checkAction("SET_ORDER", "STARTING", true)).toEqual({ ok: false, reason: "NOT_ALLOWED_NOW" });
+    expect(checkAction("START", "ACTIVE", true)).toEqual({ ok: false, reason: "NOT_ALLOWED_NOW" });
   });
 
   it("refuses cancelling a group once money may move", () => {
@@ -136,5 +143,20 @@ describe("starting a group", () => {
       ok: false,
       reason: "NOT_EVERYONE_ACCEPTED",
     });
+  });
+});
+
+describe("a fixed payout order (D41)", () => {
+  const SEATS = ["akossiwa", "abla", "koffi"];
+
+  it("accepts an order naming every member once", () => {
+    expect(checkFixedOrder(["abla", "koffi", "akossiwa"], SEATS)).toEqual({ ok: true });
+  });
+
+  it("refuses an order that misses someone, names someone twice, or names a stranger", () => {
+    const invalid = { ok: false, reason: "ORDER_INVALID" };
+    expect(checkFixedOrder(["abla", "koffi"], SEATS)).toEqual(invalid);
+    expect(checkFixedOrder(["abla", "abla", "koffi"], SEATS)).toEqual(invalid);
+    expect(checkFixedOrder(["abla", "koffi", "efua"], SEATS)).toEqual(invalid);
   });
 });

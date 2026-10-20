@@ -14,6 +14,8 @@ import {
   proposeGroup,
   removeSeat,
   reviseRules,
+  setPayoutOrder,
+  startGroup,
 } from "../services/groupService.js";
 
 export const groupsRouter = Router();
@@ -44,6 +46,7 @@ const seatParams = groupId.extend({ memberId: z.string().uuid() });
 const acceptBody = z.object({ version: z.number() }).strict();
 const counterBody = z.object({ version: z.number(), note: z.string().trim().min(1).max(280) }).strict();
 const emptyBody = z.object({}).strict();
+const orderBody = z.object({ memberIds: z.array(z.string().uuid()) }).strict();
 
 groupsRouter.get("/", async (_req, res) => {
   res.json(await listMyGroups(currentMember(res).userId));
@@ -113,4 +116,18 @@ groupsRouter.post("/:id/decline", async (req, res) => {
   emptyBody.parse(req.body);
   await declineGroup(id, currentMember(res).userId);
   res.status(204).end();
+});
+
+// ---------- Payout order and start (S2.7) ----------
+
+groupsRouter.post("/:id/order", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  const { memberIds } = orderBody.parse(req.body);
+  res.json(await setPayoutOrder(id, currentMember(res).userId, memberIds));
+});
+
+groupsRouter.post("/:id/start", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  emptyBody.parse(req.body);
+  res.json(await startGroup(id, currentMember(res).userId));
 });

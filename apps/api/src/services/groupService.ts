@@ -1,4 +1,5 @@
-import type { GroupDetail, GroupSummary, Invitation } from "@novi/shared";
+import type { GroupDetail, GroupRules, GroupSummary, Invitation } from "@novi/shared";
+import type { Prisma } from "../generated/prisma/client.js";
 import type { Frequency, PayoutOrder, SeatState } from "../generated/prisma/enums.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
@@ -7,6 +8,9 @@ import {
   checkAnswersCurrentRules,
   checkCanInvite,
   checkCanJoin,
+  checkCanStartAnother,
+  checkFixedOrder,
+  checkReadyToStart,
   checkRules,
   countsTowardLimit,
   type GroupAction,
@@ -15,8 +19,9 @@ import {
   type RuleResult,
   type Seat,
 } from "../lib/groupRules.js";
+import { drawOrder } from "../lib/payoutOrder.js";
 import { inviteSms } from "../lib/smsText.js";
-import { sms } from "../providers/index.js";
+import { mfi, sms } from "../providers/index.js";
 
 // The demo works with one partner MFI (brief, section 3). It is created the
 // first time a group needs it; with several MFIs, the organiser will choose.
@@ -38,6 +43,7 @@ const STATUS: Record<RuleBreak, number> = {
   SEATS_NOT_FILLED: 409,
   NOT_EVERYONE_ACCEPTED: 409,
   RULES_CHANGED: 409,
+  ORDER_INVALID: 400,
 };
 
 // Turns a refusal from the rules engine into the API error with the same code.
@@ -97,21 +103,27 @@ function currentRules(group: Pick<LoadedGroup, "id" | "currentVersion" | "rulesV
   return rules;
 }
 
-function toDetail(group: LoadedGroup, userId: string): GroupDetail {
+// The rules in force, as the app receives them.
+function toRules(group: Pick<LoadedGroup, "id" | "currentVersion" | "rulesVersions">): GroupRules {
   const rules = currentRules(group);
+  return {
+    version: rules.version,
+    amountFcfa: rules.amountFcfa,
+    frequency: rules.frequency,
+    dueDay: rules.dueDay,
+    size: rules.size,
+    payoutOrder: rules.payoutOrder,
+    fixedOrder: rules.fixedOrder,
+  };
+}
+
+function toDetail(group: LoadedGroup, userId: string): GroupDetail {
   return {
     id: group.id,
     name: group.name,
     state: group.state,
     mfiName: group.mfi.name,
-    rules: {
-      version: rules.version,
-      amountFcfa: rules.amountFcfa,
-      frequency: rules.frequency,
-      dueDay: rules.dueDay,
-      size: rules.size,
-      payoutOrder: rules.payoutOrder,
-    },
+    rules: toRules(group),
     seats: group.memberships.filter(holdsSeat).map((seat) => ({
       memberId: seat.userId,
       displayName: seat.user.displayName,
@@ -119,6 +131,7 @@ function toDetail(group: LoadedGroup, userId: string): GroupDetail {
       state: seat.state,
       acceptedCurrentRules: seat.state === "ACCEPTED" && seat.acceptedVersion === group.currentVersion,
       counterNote: seat.counterNote,
+      payoutPosition: seat.payoutPosition,
     })),
     pendingInvites: group.invites.map((invite) => ({ id: invite.id, maskedPhone: maskPhone(invite.phone) })),
     myRole: group.organiserId === userId ? "ORGANISER" : "MEMBER",
@@ -203,12 +216,16 @@ async function authorise(groupId: string, userId: string, action: GroupAction) {
   return loaded;
 }
 
-// Changes the rules by creating the next version (D29). Every member's
-// acceptance falls back to "not yet"; the organiser accepts the new version
-// by proposing it. Earlier versions stay, as the record of what was agreed.
-export async function reviseRules(groupId: string, userId: string, rules: RulesInput): Promise<GroupDetail> {
-  const { group } = await authorise(groupId, userId, "EDIT_RULES");
-  enforce(checkRules(rules));
+// Saves the next version of the rules (D29). Every member's acceptance falls
+// back to "not yet"; the organiser accepts the new version by proposing it.
+// Earlier versions stay, as the record of what was agreed.
+async function saveNextVersion(
+  group: LoadedGroup,
+  userId: string,
+  rules: RulesInput & { fixedOrder: string[] },
+  audit: "GROUP_RULES_REVISED" | "GROUP_ORDER_SET",
+) {
+  const groupId = group.id;
   const version = group.currentVersion + 1;
 
   await prisma.$transaction(async (tx) => {
@@ -222,8 +239,18 @@ export async function reviseRules(groupId: string, userId: string, rules: RulesI
       where: { groupId, role: "ORGANISER" },
       data: { state: "ACCEPTED", acceptedVersion: version, respondedAt: new Date() },
     });
-    await tx.auditEvent.create({ data: { userId, type: "GROUP_RULES_REVISED", details: { groupId, version } } });
+    await tx.auditEvent.create({ data: { userId, type: audit, details: { groupId, version } } });
   });
+}
+
+// Changes the amount, frequency, day, size or payout order. A fixed order
+// already set is kept while the group stays FIXED; if it no longer fits,
+// the start refuses it (D41).
+export async function reviseRules(groupId: string, userId: string, rules: RulesInput): Promise<GroupDetail> {
+  const { group } = await authorise(groupId, userId, "EDIT_RULES");
+  enforce(checkRules(rules));
+  const fixedOrder = rules.payoutOrder === "FIXED" ? currentRules(group).fixedOrder : [];
+  await saveNextVersion(group, userId, { ...rules, fixedOrder }, "GROUP_RULES_REVISED");
   return getGroup(groupId, userId);
 }
 
@@ -329,26 +356,16 @@ export async function listMyInvitations(userId: string): Promise<Invitation[]> {
     orderBy: { createdAt: "desc" },
     include: { group: { include: { ...detailQuery, organiser: { select: { displayName: true } } } } },
   });
-  return invites.map(({ id, group }) => {
-    const rules = currentRules(group);
-    return {
-      id,
-      groupId: group.id,
-      groupName: group.name,
-      groupState: group.state,
-      organiserName: group.organiser.displayName,
-      mfiName: group.mfi.name,
-      rules: {
-        version: rules.version,
-        amountFcfa: rules.amountFcfa,
-        frequency: rules.frequency,
-        dueDay: rules.dueDay,
-        size: rules.size,
-        payoutOrder: rules.payoutOrder,
-      },
-      seatsHeld: group.memberships.filter(holdsSeat).length,
-    };
-  });
+  return invites.map(({ id, group }) => ({
+    id,
+    groupId: group.id,
+    groupName: group.name,
+    groupState: group.state,
+    organiserName: group.organiser.displayName,
+    mfiName: group.mfi.name,
+    rules: toRules(group),
+    seatsHeld: group.memberships.filter(holdsSeat).length,
+  }));
 }
 
 // ---------- Answering (S2.6) ----------
@@ -435,5 +452,116 @@ export async function declineGroup(groupId: string, userId: string): Promise<voi
     acceptedVersion: null,
     counterNote: null,
     audit: "GROUP_DECLINED",
+  });
+}
+
+// ---------- Payout order and start (S2.7) ----------
+
+// The organiser sets who is paid first, second, and so on (D41): for example
+// Abla first, because her shop rent is due. It needs every seat taken, so the
+// order names real members, and it becomes a new version of the rules, so
+// everyone accepts the exact order before the group can start (D29).
+export async function setPayoutOrder(groupId: string, userId: string, memberIds: string[]): Promise<GroupDetail> {
+  const { group } = await authorise(groupId, userId, "SET_ORDER");
+  const rules = currentRules(group);
+  const holders = group.memberships.filter(holdsSeat).map((seat) => seat.userId);
+  if (holders.length !== rules.size) enforce({ ok: false, reason: "SEATS_NOT_FILLED" });
+  enforce(checkFixedOrder(memberIds, holders));
+
+  const { amountFcfa, frequency, dueDay, size } = rules;
+  await saveNextVersion(
+    group,
+    userId,
+    { amountFcfa, frequency, dueDay, size, payoutOrder: "FIXED", fixedOrder: memberIds },
+    "GROUP_ORDER_SET",
+  );
+  return getGroup(groupId, userId);
+}
+
+// How many groups she has started (D27), not counting the group given.
+async function countStarts(userId: string, exceptGroupId: string): Promise<number> {
+  return prisma.group.count({
+    where: { organiserId: userId, id: { not: exceptGroupId }, state: { in: ["STARTING", "ACTIVE", "COMPLETED"] } },
+  });
+}
+
+// Has she kept paying until the end of a whole cycle in some group (D27)?
+async function hasCompletedCycle(userId: string): Promise<boolean> {
+  const seats = await prisma.membership.count({ where: { userId, state: "ACCEPTED", group: { state: "COMPLETED" } } });
+  return seats > 0;
+}
+
+// Starts the group, in two steps.
+// 1. Novi checks every rule, fixes the payout order and moves the group to
+//    STARTING. From here nobody can leave or change anything.
+// 2. Novi asks the MFI to open the group's account; once it answers, the
+//    group is ACTIVE.
+// If the MFI does not answer, the group waits in STARTING with its order
+// kept, and the organiser can try again: the order is never drawn twice, so
+// nobody can retry until the draw suits them.
+export async function startGroup(groupId: string, userId: string): Promise<GroupDetail> {
+  const { group } = await authorise(groupId, userId, "START");
+  if (group.state === "PROPOSED") await fixOrder(group, userId);
+  await openAccount(groupId, userId);
+  return getGroup(groupId, userId);
+}
+
+async function fixOrder(group: LoadedGroup, userId: string) {
+  const rules = currentRules(group);
+  const seats = group.memberships.filter(holdsSeat);
+  enforce(checkReadyToStart(seats, rules.size, group.currentVersion));
+  enforce(checkCanStartAnother(await countStarts(userId, group.id), await hasCompletedCycle(userId)));
+
+  const holders = seats.map((seat) => seat.userId);
+  if (rules.payoutOrder === "FIXED") enforce(checkFixedOrder(rules.fixedOrder, holders));
+  const order = rules.payoutOrder === "FIXED" ? rules.fixedOrder : drawOrder(holders);
+
+  await prisma.$transaction(async (tx) => {
+    // Only a group still PROPOSED moves on, so two taps on "Start" at the
+    // same moment cannot draw two orders.
+    const moved = await tx.group.updateMany({ where: { id: group.id, state: "PROPOSED" }, data: { state: "STARTING" } });
+    if (moved.count === 0) throw new AppError("NOT_ALLOWED_NOW", 409);
+    for (const [index, memberId] of order.entries()) {
+      await tx.membership.update({
+        where: { groupId_userId: { groupId: group.id, userId: memberId } },
+        data: { payoutPosition: index + 1 },
+      });
+    }
+    const details: Prisma.InputJsonObject = {
+      groupId: group.id,
+      version: group.currentVersion,
+      payoutOrder: rules.payoutOrder,
+      order,
+    };
+    await tx.auditEvent.create({ data: { userId, type: "GROUP_STARTING", details } });
+  });
+}
+
+// Asks the MFI to open the account. The MFI is told group totals only: no
+// names, no phone numbers (D33).
+async function openAccount(groupId: string, userId: string) {
+  const group = await prisma.group.findUniqueOrThrow({ where: { id: groupId }, include: { rulesVersions: true } });
+  const rules = currentRules(group);
+
+  let accountRef: string;
+  try {
+    ({ accountRef } = await mfi.openGroupAccount({
+      groupId,
+      contributionFcfa: rules.amountFcfa,
+      members: rules.size,
+      frequency: rules.frequency,
+    }));
+  } catch (err) {
+    console.error(`MFI could not open the account for group ${groupId}:`, err);
+    await prisma.auditEvent.create({ data: { userId, type: "GROUP_MFI_FAILED", details: { groupId } } });
+    throw new AppError("MFI_UNAVAILABLE", 503);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.group.updateMany({
+      where: { id: groupId, state: "STARTING" },
+      data: { state: "ACTIVE", mfiAccountRef: accountRef, startedAt: new Date() },
+    });
+    await tx.auditEvent.create({ data: { userId, type: "GROUP_ACTIVE", details: { groupId } } });
   });
 }

@@ -183,6 +183,8 @@
     "seatsNotFilled": "Toutes les places doivent être prises avant le démarrage du groupe.",
     "notEveryoneAccepted": "Tous les membres doivent accepter les dernières règles avant le démarrage.",
     "rulesChanged": "Les règles viennent d'être modifiées par la personne qui organise. Lisez la nouvelle version avant de répondre.",
+    "orderInvalid": "L'ordre des tours doit citer chaque membre une seule fois.",
+    "mfiUnavailable": "L'IMF n'a pas pu ouvrir le compte du groupe pour le moment. Réessayez dans quelques minutes : l'ordre des tours est conservé.",
     "alreadyInvited": "Ce numéro est déjà invité dans le groupe, ou y a déjà une place.",
     "cannotRemoveOrganiser": "La place de la personne qui organise ne peut pas être retirée. Annulez plutôt le groupe."
   }
