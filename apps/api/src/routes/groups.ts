@@ -3,10 +3,13 @@ import { z } from "zod";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
 import {
   cancelGroup,
+  cancelInvite,
   createGroup,
   getGroup,
+  inviteToGroup,
   listMyGroups,
   proposeGroup,
+  removeSeat,
   reviseRules,
 } from "../services/groupService.js";
 
@@ -30,6 +33,9 @@ const rules = z
 
 const newGroup = rules.extend({ name: z.string().trim().min(2).max(60) }).strict();
 const groupId = z.object({ id: z.string().uuid() });
+const inviteBody = z.object({ phone: z.string().regex(/^\+228\d{8}$/) }).strict();
+const inviteParams = groupId.extend({ inviteId: z.string().uuid() });
+const seatParams = groupId.extend({ memberId: z.string().uuid() });
 
 groupsRouter.get("/", async (_req, res) => {
   res.json(await listMyGroups(currentMember(res).userId));
@@ -59,4 +65,22 @@ groupsRouter.post("/:id/propose", async (req, res) => {
 groupsRouter.post("/:id/cancel", async (req, res) => {
   const { id } = groupId.parse(req.params);
   res.json(await cancelGroup(id, currentMember(res).userId));
+});
+
+// ---------- Invitations (S2.5) ----------
+
+groupsRouter.post("/:id/invites", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  const { phone } = inviteBody.parse(req.body);
+  res.json(await inviteToGroup(id, currentMember(res).userId, phone));
+});
+
+groupsRouter.post("/:id/invites/:inviteId/cancel", async (req, res) => {
+  const { id, inviteId } = inviteParams.parse(req.params);
+  res.json(await cancelInvite(id, currentMember(res).userId, inviteId));
+});
+
+groupsRouter.post("/:id/seats/:memberId/remove", async (req, res) => {
+  const { id, memberId } = seatParams.parse(req.params);
+  res.json(await removeSeat(id, currentMember(res).userId, memberId));
 });

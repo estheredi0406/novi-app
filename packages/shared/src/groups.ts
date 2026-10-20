@@ -28,6 +28,13 @@ export type GroupSeat = {
   counterNote: string | null;
 };
 
+// An invitation not answered yet, as the group sees it. Only part of the
+// number is shown, the same way whether or not it has a Novi account (D38).
+export type PendingInvite = {
+  id: string;
+  maskedPhone: string; // "+228 90 •• •• 56"
+};
+
 // A group, as shown on its own page.
 export type GroupDetail = {
   id: string;
@@ -36,7 +43,21 @@ export type GroupDetail = {
   mfiName: string; // every money screen names the MFI holding the money
   rules: GroupRules;
   seats: GroupSeat[];
+  pendingInvites: PendingInvite[];
   myRole: MemberRole;
+};
+
+// An invitation as the invited person sees it: enough to decide whether to
+// join. She sees the group's rules before she has a seat in it.
+export type Invitation = {
+  id: string;
+  groupId: string;
+  groupName: string;
+  groupState: GroupState;
+  organiserName: string;
+  mfiName: string;
+  rules: GroupRules;
+  seatsHeld: number;
 };
 
 // A group, as shown in her list of groups.

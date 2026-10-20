@@ -1,4 +1,4 @@
-import type { Language } from "../generated/prisma/enums.js";
+import type { Frequency, Language } from "../generated/prisma/enums.js";
 
 // SMS go straight to the phone's inbox, where nothing translates them, so the
 // server writes them in the member's language. Ewe texts are pending review by
@@ -21,5 +21,30 @@ export function alreadyRegisteredSms(language: Language): string {
     case "FR":
     case "EE":
       return "Novi : quelqu'un a voulu créer un compte avec ce numéro, qui en a déjà un. Si c'était vous, connectez-vous.";
+  }
+}
+
+// "5000" becomes "5 000", the way amounts are written in Togo.
+function formatFcfa(amount: number): string {
+  return String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
+// The same text goes to a number with or without a Novi account, so the SMS
+// itself never reveals whether the person already uses Novi (D38).
+export function inviteSms(
+  language: Language,
+  invite: { organiserName: string; groupName: string; amountFcfa: number; frequency: Frequency },
+): string {
+  const amount = formatFcfa(invite.amountFcfa);
+  switch (language) {
+    case "EN": {
+      const every = invite.frequency === "WEEKLY" ? "every week" : "every month";
+      return `Novi: ${invite.organiserName} invites you to join "${invite.groupName}" (${amount} FCFA ${every}). Open or install Novi to answer.`;
+    }
+    case "FR":
+    case "EE": {
+      const every = invite.frequency === "WEEKLY" ? "chaque semaine" : "chaque mois";
+      return `Novi : ${invite.organiserName} vous invite à rejoindre « ${invite.groupName} » (${amount} FCFA ${every}). Ouvrez ou installez Novi pour répondre.`;
+    }
   }
 }

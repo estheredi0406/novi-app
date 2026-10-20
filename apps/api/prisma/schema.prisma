@@ -112,6 +112,7 @@ model User {
   memberships     Membership[]   @relation("SeatHolder")
   invitesSent     Membership[]   @relation("SeatInviter")
   rulesProposed   RulesVersion[]
+  phoneInvites    Invite[]
 
   @@map("users")
 }
@@ -240,6 +241,7 @@ model Group {
   organiser     User           @relation("GroupOrganiser", fields: [organiserId], references: [id])
   rulesVersions RulesVersion[]
   memberships   Membership[]
+  invites       Invite[]
 
   @@index([state])
   @@map("groups")
@@ -288,4 +290,25 @@ model Membership {
   @@unique([groupId, userId]) // one seat per person per group
   @@index([userId, state])    // her groups, for the 3-group limit (D26)
   @@map("memberships")
+}
+
+// An invitation sent to a phone number. It holds a place in the group until
+// the person answers; only then does she get a seat (Membership). Inviting by
+// number works the same whether or not the number has a Novi account, so the
+// organiser never learns who uses Novi (D38).
+model Invite {
+  id          String    @id @default(uuid())
+  groupId     String
+  phone       String    // +228 followed by 8 digits
+  invitedById String
+  createdAt   DateTime  @default(now())
+  answeredAt  DateTime? // she accepted, countered or declined: the invite is used
+  cancelledAt DateTime? // the organiser withdrew it
+
+  group     Group @relation(fields: [groupId], references: [id])
+  invitedBy User  @relation(fields: [invitedById], references: [id])
+
+  @@unique([groupId, phone]) // one invitation per number per group
+  @@index([phone])           // her invitations, found by her verified number
+  @@map("invites")
 }

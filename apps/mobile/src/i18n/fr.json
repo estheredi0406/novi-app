@@ -181,6 +181,8 @@
     "limitReached": "Vous êtes déjà dans 3 groupes. Terminez-en un ou quittez-le avant d'en rejoindre un autre.",
     "startLimitReached": "Vous pourrez lancer un troisième groupe quand un de vos groupes aura terminé son cycle.",
     "seatsNotFilled": "Toutes les places doivent être prises avant le démarrage du groupe.",
-    "notEveryoneAccepted": "Tous les membres doivent accepter les dernières règles avant le démarrage."
+    "notEveryoneAccepted": "Tous les membres doivent accepter les dernières règles avant le démarrage.",
+    "alreadyInvited": "Ce numéro est déjà invité dans le groupe, ou y a déjà une place.",
+    "cannotRemoveOrganiser": "La place de la personne qui organise ne peut pas être retirée. Annulez plutôt le groupe."
   }
 }

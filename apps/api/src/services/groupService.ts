@@ -1,9 +1,10 @@
-import type { GroupDetail, GroupSummary } from "@novi/shared";
+import type { GroupDetail, GroupSummary, Invitation } from "@novi/shared";
 import type { Frequency, PayoutOrder } from "../generated/prisma/enums.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import {
   checkAction,
+  checkCanInvite,
   checkCanJoin,
   checkRules,
   countsTowardLimit,
@@ -11,7 +12,10 @@ import {
   holdsSeat,
   type RuleBreak,
   type RuleResult,
+  type Seat,
 } from "../lib/groupRules.js";
+import { inviteSms } from "../lib/smsText.js";
+import { sms } from "../providers/index.js";
 
 // The demo works with one partner MFI (brief, section 3). It is created the
 // first time a group needs it; with several MFIs, the organiser will choose.
@@ -49,8 +53,12 @@ export type RulesInput = {
 
 // ---------- Reading ----------
 
+// An invitation still waiting for an answer: not answered, not withdrawn.
+const pending = { answeredAt: null, cancelledAt: null };
+
 // Everything needed to show one group: its MFI, every version of its rules
-// (the current one is picked below) and every seat with the holder's name.
+// (the current one is picked below), every seat with the holder's name, and
+// the invitations not answered yet.
 const detailQuery = {
   mfi: true,
   rulesVersions: { orderBy: { version: "desc" as const } },
@@ -58,7 +66,15 @@ const detailQuery = {
     orderBy: { createdAt: "asc" as const },
     include: { user: { select: { displayName: true } } },
   },
+  invites: { where: pending, orderBy: { createdAt: "asc" as const } },
 };
+
+// "+22890123456" becomes "+228 90 •• •• 56": enough for the group to tell
+// invitations apart, not enough to read the number.
+function maskPhone(phone: string): string {
+  const digits = phone.replace("+228", "");
+  return `+228 ${digits.slice(0, 2)} •• •• ${digits.slice(6)}`;
+}
 
 // Loads a group for this member, or answers NOT_FOUND. A person with no seat
 // in the group gets the same answer as for a group that does not exist, so
@@ -72,9 +88,15 @@ async function loadForMember(groupId: string, userId: string) {
 
 type LoadedGroup = Awaited<ReturnType<typeof loadForMember>>["group"];
 
-function toDetail(group: LoadedGroup, userId: string): GroupDetail {
+// The rules version in force now.
+function currentRules(group: Pick<LoadedGroup, "id" | "currentVersion" | "rulesVersions">) {
   const rules = group.rulesVersions.find((v) => v.version === group.currentVersion);
   if (!rules) throw new Error(`group ${group.id} has no rules version ${group.currentVersion}`);
+  return rules;
+}
+
+function toDetail(group: LoadedGroup, userId: string): GroupDetail {
+  const rules = currentRules(group);
   return {
     id: group.id,
     name: group.name,
@@ -96,8 +118,17 @@ function toDetail(group: LoadedGroup, userId: string): GroupDetail {
       acceptedCurrentRules: seat.state === "ACCEPTED" && seat.acceptedVersion === group.currentVersion,
       counterNote: seat.counterNote,
     })),
+    pendingInvites: group.invites.map((invite) => ({ id: invite.id, maskedPhone: maskPhone(invite.phone) })),
     myRole: group.organiserId === userId ? "ORGANISER" : "MEMBER",
   };
+}
+
+// Every place taken in the group: held seats, plus invitations waiting for an
+// answer, which keep a place so the organiser cannot invite more people than
+// the group's size.
+function placesTaken(group: Pick<LoadedGroup, "memberships" | "invites">): Seat[] {
+  const waiting: Seat[] = group.invites.map(() => ({ state: "INVITED", acceptedVersion: null }));
+  return [...group.memberships, ...waiting];
 }
 
 export async function getGroup(groupId: string, userId: string): Promise<GroupDetail> {
@@ -217,4 +248,103 @@ export async function cancelGroup(groupId: string, userId: string): Promise<Grou
     await tx.auditEvent.create({ data: { userId, type: "GROUP_CANCELLED", details: { groupId } } });
   });
   return getGroup(groupId, userId);
+}
+
+// ---------- Invitations (S2.5) ----------
+
+// Invites a phone number. It works the same whether or not the number has a
+// Novi account, and the answer to the organiser is the same either way: she
+// sees a masked number until the person answers (D38).
+export async function inviteToGroup(groupId: string, userId: string, phone: string): Promise<GroupDetail> {
+  const { group } = await authorise(groupId, userId, "INVITE");
+  const rules = currentRules(group);
+  enforce(checkCanInvite(placesTaken(group), rules.size));
+
+  // Refused for a number already waiting for an answer, or already holding a seat.
+  const invitee = await prisma.user.findUnique({ where: { phone }, select: { id: true, language: true } });
+  const alreadySeated = invitee && group.memberships.some((seat) => seat.userId === invitee.id && holdsSeat(seat));
+  if (alreadySeated || group.invites.some((invite) => invite.phone === phone)) {
+    throw new AppError("ALREADY_INVITED", 409);
+  }
+
+  const organiser = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { displayName: true, language: true } });
+  await prisma.$transaction(async (tx) => {
+    // An earlier invitation to this number that was withdrawn or answered is reused.
+    await tx.invite.upsert({
+      where: { groupId_phone: { groupId, phone } },
+      create: { groupId, phone, invitedById: userId },
+      update: { invitedById: userId, createdAt: new Date(), answeredAt: null, cancelledAt: null },
+    });
+    await tx.auditEvent.create({ data: { userId, type: "GROUP_INVITE_SENT", details: { groupId } } });
+  });
+
+  await sms.send(
+    phone,
+    inviteSms(invitee?.language ?? organiser.language, {
+      organiserName: organiser.displayName,
+      groupName: group.name,
+      amountFcfa: rules.amountFcfa,
+      frequency: rules.frequency,
+    }),
+  );
+  return getGroup(groupId, userId);
+}
+
+// Withdraws an invitation that has not been answered, freeing its place.
+export async function cancelInvite(groupId: string, userId: string, inviteId: string): Promise<GroupDetail> {
+  const { group } = await authorise(groupId, userId, "REMOVE_SEAT");
+  if (!group.invites.some((invite) => invite.id === inviteId)) throw new AppError("NOT_FOUND", 404);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.invite.update({ where: { id: inviteId }, data: { cancelledAt: new Date() } });
+    await tx.auditEvent.create({ data: { userId, type: "GROUP_INVITE_CANCELLED", details: { groupId } } });
+  });
+  return getGroup(groupId, userId);
+}
+
+// Removes a member's seat before the group starts. The organiser's own seat
+// cannot be removed: cancelling the group is how she stops it.
+export async function removeSeat(groupId: string, userId: string, memberId: string): Promise<GroupDetail> {
+  const { group } = await authorise(groupId, userId, "REMOVE_SEAT");
+  if (memberId === group.organiserId) throw new AppError("CANNOT_REMOVE_ORGANISER", 400);
+  const seat = group.memberships.find((s) => s.userId === memberId && holdsSeat(s));
+  if (!seat) throw new AppError("NOT_FOUND", 404);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.membership.update({ where: { id: seat.id }, data: { state: "REMOVED", respondedAt: new Date() } });
+    await tx.auditEvent.create({ data: { userId, type: "GROUP_SEAT_REMOVED", details: { groupId, memberId } } });
+  });
+  return getGroup(groupId, userId);
+}
+
+// The invitations waiting for her answer, found by her verified phone number.
+// A number invited before it had an account sees its invitations as soon as
+// it signs up. Only groups still being set up or decided are shown.
+export async function listMyInvitations(userId: string): Promise<Invitation[]> {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { phone: true } });
+  const invites = await prisma.invite.findMany({
+    where: { phone: user.phone, ...pending, group: { state: { in: ["DRAFT", "PROPOSED"] } } },
+    orderBy: { createdAt: "desc" },
+    include: { group: { include: { ...detailQuery, organiser: { select: { displayName: true } } } } },
+  });
+  return invites.map(({ id, group }) => {
+    const rules = currentRules(group);
+    return {
+      id,
+      groupId: group.id,
+      groupName: group.name,
+      groupState: group.state,
+      organiserName: group.organiser.displayName,
+      mfiName: group.mfi.name,
+      rules: {
+        version: rules.version,
+        amountFcfa: rules.amountFcfa,
+        frequency: rules.frequency,
+        dueDay: rules.dueDay,
+        size: rules.size,
+        payoutOrder: rules.payoutOrder,
+      },
+      seatsHeld: group.memberships.filter(holdsSeat).length,
+    };
+  });
 }

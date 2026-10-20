@@ -181,6 +181,8 @@
     "limitReached": "You are already in 3 groups. Finish or leave one before joining another.",
     "startLimitReached": "You can start a third group once a group you are in has completed its cycle.",
     "seatsNotFilled": "Every seat must be filled before the group starts.",
-    "notEveryoneAccepted": "Everyone must accept the latest rules before the group starts."
+    "notEveryoneAccepted": "Everyone must accept the latest rules before the group starts.",
+    "alreadyInvited": "This number is already invited to the group, or already has a seat in it.",
+    "cannotRemoveOrganiser": "The organiser's seat cannot be removed. Cancel the group instead."
   }
 }

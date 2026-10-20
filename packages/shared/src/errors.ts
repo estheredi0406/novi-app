@@ -39,6 +39,10 @@ export const errors = {
   START_LIMIT_REACHED: { messageKey: "groups.startLimitReached" },
   SEATS_NOT_FILLED: { messageKey: "groups.seatsNotFilled" },
   NOT_EVERYONE_ACCEPTED: { messageKey: "groups.notEveryoneAccepted" },
+
+  // Invitations
+  ALREADY_INVITED: { messageKey: "groups.alreadyInvited" },
+  CANNOT_REMOVE_ORGANISER: { messageKey: "groups.cannotRemoveOrganiser" },
 } as const;
 
 

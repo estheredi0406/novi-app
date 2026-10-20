@@ -3,6 +3,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { authRouter } from "./routes/auth.js";
 import { groupsRouter } from "./routes/groups.js";
 import { healthRouter } from "./routes/health.js";
+import { invitationsRouter } from "./routes/invitations.js";
 import { meRouter } from "./routes/me.js";
 
 // Builds the Express application without starting it,
@@ -16,6 +17,7 @@ app.use("/health", healthRouter);
 app.use("/v1/auth", authRouter);
 app.use("/v1/me", meRouter);
 app.use("/v1/groups", groupsRouter);
+app.use("/v1/invitations", invitationsRouter);
 
 // Must come last: turns every error into the standard error response.
-app.use(errorHandler); 
+app.use(errorHandler);
