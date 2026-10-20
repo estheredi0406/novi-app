@@ -25,6 +25,20 @@ export const errors = {
   ID_CODE_INVALID: { messageKey: "identity.codeInvalid" },
   ID_CODE_EXPIRED: { messageKey: "identity.codeExpired" },
   RATE_LIMITED: { messageKey: "errors.rateLimited" },
+
+  // Group rules (apps/api/src/lib/groupRules.ts). The codes match the
+  // rules engine's reasons one to one.
+  NOT_ALLOWED_NOW: { messageKey: "groups.notAllowedNow" },
+  ORGANISER_ONLY: { messageKey: "groups.organiserOnly" },
+  MEMBERS_ONLY: { messageKey: "groups.membersOnly" },
+  SIZE_OUT_OF_RANGE: { messageKey: "groups.sizeOutOfRange" },
+  AMOUNT_OUT_OF_RANGE: { messageKey: "groups.amountOutOfRange" },
+  DUE_DAY_OUT_OF_RANGE: { messageKey: "groups.dueDayOutOfRange" },
+  GROUP_FULL: { messageKey: "groups.full" },
+  GROUP_LIMIT_REACHED: { messageKey: "groups.limitReached" },
+  START_LIMIT_REACHED: { messageKey: "groups.startLimitReached" },
+  SEATS_NOT_FILLED: { messageKey: "groups.seatsNotFilled" },
+  NOT_EVERYONE_ACCEPTED: { messageKey: "groups.notEveryoneAccepted" },
 } as const;
 
 

@@ -15,6 +15,9 @@ const anid = identity;
 // Akossiwa's record in the mock ANID register.
 export const AKOSSIWA = { niu: "TEST-0001", legalName: "Akossiwa Afi Mensah", dateOfBirth: "1984-03-12" };
 
+// Abla's record, for tests that need a second member.
+export const ABLA = { niu: "TEST-0002", legalName: "Abla Dzifa Agbeko", dateOfBirth: "1990-07-25" };
+
 // Completes the SMS step for a phone and returns its sign-up verification token.
 export async function verifiedPhone(phone: string): Promise<string> {
   const { body } = await request(app).post("/v1/auth/otp").send({ phone, purpose: "SIGN_UP", language: "FR" });
@@ -39,14 +42,19 @@ export async function verifiedIdentity(verificationToken: string, details = AKOS
 
 // Signs a member up through the real endpoints and returns her tokens, profile
 // and the installation ID of the phone she signed up on (now trusted).
-export async function signedUpMember(phone = "+22890000001", installationId = randomUUID()) {
+export async function signedUpMember(
+  phone = "+22890000001",
+  installationId = randomUUID(),
+  details = AKOSSIWA,
+  displayName = "Akossiwa",
+) {
   const verificationToken = await verifiedPhone(phone);
-  const identityToken = await verifiedIdentity(verificationToken);
+  const identityToken = await verifiedIdentity(verificationToken, details);
   const res = await request(app).post("/v1/auth/register").send({
     verificationToken,
     identityToken,
     pin: "4829",
-    displayName: "Akossiwa",
+    displayName,
     area: "Bè",
     market: "Assigamé",
     language: "FR",

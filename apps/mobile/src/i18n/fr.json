@@ -169,5 +169,18 @@
     "niuAlreadyRegistered": "Cette pièce d'identité a déjà un compte Novi. Connectez-vous.",
     "codeInvalid": "Ce code n'est pas correct. Réessayez.",
     "codeExpired": "Ce code a expiré. Recommencez la vérification."
+  },
+  "groups": {
+    "notAllowedNow": "Ce n'est pas possible à cette étape du groupe.",
+    "organiserOnly": "Seule la personne qui organise le groupe peut faire cela.",
+    "membersOnly": "La personne qui organise accepte les règles en les proposant.",
+    "sizeOutOfRange": "Un groupe compte entre 3 et 15 membres.",
+    "amountOutOfRange": "La cotisation doit être comprise entre 100 et 1 000 000 FCFA.",
+    "dueDayOutOfRange": "Choisissez un jour de la semaine, ou une date du 1er au 28.",
+    "full": "Toutes les places de ce groupe sont prises.",
+    "limitReached": "Vous êtes déjà dans 3 groupes. Terminez-en un ou quittez-le avant d'en rejoindre un autre.",
+    "startLimitReached": "Vous pourrez lancer un troisième groupe quand un de vos groupes aura terminé son cycle.",
+    "seatsNotFilled": "Toutes les places doivent être prises avant le démarrage du groupe.",
+    "notEveryoneAccepted": "Tous les membres doivent accepter les dernières règles avant le démarrage."
   }
 }
