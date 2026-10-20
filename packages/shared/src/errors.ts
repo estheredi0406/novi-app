@@ -39,13 +39,12 @@ export const errors = {
   START_LIMIT_REACHED: { messageKey: "groups.startLimitReached" },
   SEATS_NOT_FILLED: { messageKey: "groups.seatsNotFilled" },
   NOT_EVERYONE_ACCEPTED: { messageKey: "groups.notEveryoneAccepted" },
+  RULES_CHANGED: { messageKey: "groups.rulesChanged" },
 
   // Invitations
   ALREADY_INVITED: { messageKey: "groups.alreadyInvited" },
   CANNOT_REMOVE_ORGANISER: { messageKey: "groups.cannotRemoveOrganiser" },
 } as const;
-
-
 
 // The allowed error codes, derived from the list above so the two never drift apart.
 export type ErrorCode = keyof typeof errors;

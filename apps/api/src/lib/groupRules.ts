@@ -29,7 +29,8 @@ export type RuleBreak =
   | "GROUP_LIMIT_REACHED"
   | "START_LIMIT_REACHED"
   | "SEATS_NOT_FILLED"
-  | "NOT_EVERYONE_ACCEPTED";
+  | "NOT_EVERYONE_ACCEPTED"
+  | "RULES_CHANGED"; // she answered a version of the rules that is no longer the current one
 
 export type RuleResult = { ok: true } | { ok: false; reason: RuleBreak };
 
@@ -43,7 +44,8 @@ export type GroupAction =
   | "INVITE"
   | "REMOVE_SEAT"
   | "PROPOSE" // send the rules to the invited members
-  | "RESPOND" // accept, counter or decline the rules
+  | "RESPOND" // accept the rules, or ask for a change
+  | "DECLINE" // say no, or leave before the group starts
   | "START"
   | "CANCEL";
 
@@ -58,6 +60,7 @@ const WHEN: Record<GroupAction, { states: readonly GroupState[]; by: Who }> = {
   REMOVE_SEAT: { states: ["DRAFT", "PROPOSED"], by: "ORGANISER" },
   PROPOSE: { states: ["DRAFT"], by: "ORGANISER" },
   RESPOND: { states: ["PROPOSED"], by: "MEMBER" },
+  DECLINE: { states: ["DRAFT", "PROPOSED"], by: "MEMBER" },
   START: { states: ["PROPOSED"], by: "ORGANISER" },
   CANCEL: { states: ["DRAFT", "PROPOSED"], by: "ORGANISER" },
 };
@@ -96,6 +99,13 @@ export function checkRules(rules: ProposedRules): RuleResult {
     return refused("DUE_DAY_OUT_OF_RANGE");
   }
   return allowed;
+}
+
+// She accepts or counters the exact version she read. If the organiser changed
+// the rules while she was reading, her answer is refused and she reads the
+// new version, so nobody agrees to rules she has not seen (D29).
+export function checkAnswersCurrentRules(versionSeen: number, currentVersion: number): RuleResult {
+  return versionSeen === currentVersion ? allowed : refused("RULES_CHANGED");
 }
 
 // ---------- Seats ----------

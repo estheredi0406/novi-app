@@ -1,9 +1,10 @@
 import type { GroupDetail, GroupSummary, Invitation } from "@novi/shared";
-import type { Frequency, PayoutOrder } from "../generated/prisma/enums.js";
+import type { Frequency, PayoutOrder, SeatState } from "../generated/prisma/enums.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import {
   checkAction,
+  checkAnswersCurrentRules,
   checkCanInvite,
   checkCanJoin,
   checkRules,
@@ -36,6 +37,7 @@ const STATUS: Record<RuleBreak, number> = {
   START_LIMIT_REACHED: 409,
   SEATS_NOT_FILLED: 409,
   NOT_EVERYONE_ACCEPTED: 409,
+  RULES_CHANGED: 409,
 };
 
 // Turns a refusal from the rules engine into the API error with the same code.
@@ -346,5 +348,92 @@ export async function listMyInvitations(userId: string): Promise<Invitation[]> {
       },
       seatsHeld: group.memberships.filter(holdsSeat).length,
     };
+  });
+}
+
+// ---------- Answering (S2.6) ----------
+
+// Loads a group for the person answering it: she holds a seat in it, or an
+// invitation to her verified phone number is waiting. Anyone else is told the
+// group does not exist, as in loadForMember.
+async function loadForAnswer(groupId: string, userId: string) {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { phone: true } });
+  const group = await prisma.group.findUnique({ where: { id: groupId }, include: detailQuery });
+  const seat = group?.memberships.find((s) => s.userId === userId && holdsSeat(s));
+  const invite = group?.invites.find((i) => i.phone === user.phone);
+  if (!group || (!seat && !invite)) throw new AppError("NOT_FOUND", 404);
+  return { group, invite, isOrganiser: group.organiserId === userId };
+}
+
+type Answer = {
+  state: SeatState;
+  acceptedVersion: number | null;
+  counterNote: string | null;
+  audit: "GROUP_ACCEPTED" | "GROUP_COUNTERED" | "GROUP_DECLINED";
+};
+
+// Records her answer. Her seat is created from the invitation the first time
+// she answers (D38), and the invitation is marked as used, so it no longer
+// holds a place of its own.
+async function recordAnswer(groupId: string, userId: string, inviteId: string | undefined, invitedById: string | undefined, answer: Answer) {
+  const { audit, ...seat } = answer;
+  await prisma.$transaction(async (tx) => {
+    await tx.membership.upsert({
+      where: { groupId_userId: { groupId, userId } },
+      create: { groupId, userId, invitedById, ...seat, respondedAt: new Date() },
+      update: { ...seat, respondedAt: new Date() },
+    });
+    if (inviteId) await tx.invite.update({ where: { id: inviteId }, data: { answeredAt: new Date() } });
+    await tx.auditEvent.create({ data: { userId, type: audit, details: { groupId, version: answer.acceptedVersion } } });
+  });
+}
+
+// She accepts the version of the rules she read. From now on the group counts
+// towards her 3-group limit (D26), so she must have room for it.
+export async function acceptRules(groupId: string, userId: string, versionSeen: number): Promise<GroupDetail> {
+  const { group, invite, isOrganiser } = await loadForAnswer(groupId, userId);
+  enforce(checkAction("RESPOND", group.state, isOrganiser));
+  enforce(checkAnswersCurrentRules(versionSeen, group.currentVersion));
+  enforce(checkCanJoin(await countActiveGroups(userId, groupId)));
+
+  await recordAnswer(groupId, userId, invite?.id, invite?.invitedById, {
+    state: "ACCEPTED",
+    acceptedVersion: group.currentVersion,
+    counterNote: null,
+    audit: "GROUP_ACCEPTED",
+  });
+  return getGroup(groupId, userId);
+}
+
+// She asks for a change, with a note the whole group can read ("Saturday
+// suits me better, the market is closed on Friday"). Her place is kept, but
+// the group cannot start until the organiser changes the rules and she
+// accepts the new version, or her seat is removed.
+export async function counterRules(groupId: string, userId: string, versionSeen: number, note: string): Promise<GroupDetail> {
+  const { group, invite, isOrganiser } = await loadForAnswer(groupId, userId);
+  enforce(checkAction("RESPOND", group.state, isOrganiser));
+  enforce(checkAnswersCurrentRules(versionSeen, group.currentVersion));
+
+  await recordAnswer(groupId, userId, invite?.id, invite?.invitedById, {
+    state: "COUNTERED",
+    acceptedVersion: null,
+    counterNote: note,
+    audit: "GROUP_COUNTERED",
+  });
+  return getGroup(groupId, userId);
+}
+
+// She says no, or leaves a group she had accepted, before it starts. Her
+// place is freed, and the group never sees her name: a declined seat is not
+// shown, so saying no costs her nothing with the organiser.
+export async function declineGroup(groupId: string, userId: string): Promise<void> {
+  const { group, invite, isOrganiser } = await loadForAnswer(groupId, userId);
+  enforce(checkAction("DECLINE", group.state, isOrganiser));
+
+  await recordAnswer(groupId, userId, invite?.id, invite?.invitedById, {
+    state: "DECLINED",
+    acceptedVersion: null,
+    counterNote: null,
+    audit: "GROUP_DECLINED",
   });
 }

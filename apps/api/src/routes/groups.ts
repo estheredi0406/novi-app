@@ -2,9 +2,12 @@ import { Router } from "express";
 import { z } from "zod";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
 import {
+  acceptRules,
   cancelGroup,
   cancelInvite,
+  counterRules,
   createGroup,
+  declineGroup,
   getGroup,
   inviteToGroup,
   listMyGroups,
@@ -36,6 +39,11 @@ const groupId = z.object({ id: z.string().uuid() });
 const inviteBody = z.object({ phone: z.string().regex(/^\+228\d{8}$/) }).strict();
 const inviteParams = groupId.extend({ inviteId: z.string().uuid() });
 const seatParams = groupId.extend({ memberId: z.string().uuid() });
+// The version she read is sent with her answer, so a change made while she
+// was reading is caught (D29).
+const acceptBody = z.object({ version: z.number() }).strict();
+const counterBody = z.object({ version: z.number(), note: z.string().trim().min(1).max(280) }).strict();
+const emptyBody = z.object({}).strict();
 
 groupsRouter.get("/", async (_req, res) => {
   res.json(await listMyGroups(currentMember(res).userId));
@@ -83,4 +91,26 @@ groupsRouter.post("/:id/invites/:inviteId/cancel", async (req, res) => {
 groupsRouter.post("/:id/seats/:memberId/remove", async (req, res) => {
   const { id, memberId } = seatParams.parse(req.params);
   res.json(await removeSeat(id, currentMember(res).userId, memberId));
+});
+
+// ---------- Answering (S2.6) ----------
+
+groupsRouter.post("/:id/accept", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  const { version } = acceptBody.parse(req.body);
+  res.json(await acceptRules(id, currentMember(res).userId, version));
+});
+
+groupsRouter.post("/:id/counter", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  const { version, note } = counterBody.parse(req.body);
+  res.json(await counterRules(id, currentMember(res).userId, version, note));
+});
+
+// After declining she no longer has a seat, so there is no group to send back.
+groupsRouter.post("/:id/decline", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  emptyBody.parse(req.body);
+  await declineGroup(id, currentMember(res).userId);
+  res.status(204).end();
 });

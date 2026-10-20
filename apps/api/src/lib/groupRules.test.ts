@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   checkAction,
+  checkAnswersCurrentRules,
   checkCanInvite,
   checkCanJoin,
   checkCanStartAnother,
@@ -40,6 +41,13 @@ describe("what can be done, when and by whom", () => {
     expect(checkAction("RESPOND", "PROPOSED", true)).toEqual({ ok: false, reason: "MEMBERS_ONLY" });
   });
 
+  it("lets a member say no before the group starts, even while it is a draft", () => {
+    expect(checkAction("DECLINE", "DRAFT", false)).toEqual({ ok: true });
+    expect(checkAction("DECLINE", "PROPOSED", false)).toEqual({ ok: true });
+    expect(checkAction("DECLINE", "ACTIVE", false)).toEqual({ ok: false, reason: "NOT_ALLOWED_NOW" });
+    expect(checkAction("DECLINE", "PROPOSED", true)).toEqual({ ok: false, reason: "MEMBERS_ONLY" });
+  });
+
   it("refuses cancelling a group once money may move", () => {
     expect(checkAction("CANCEL", "STARTING", true)).toEqual({ ok: false, reason: "NOT_ALLOWED_NOW" });
     expect(checkAction("CANCEL", "ACTIVE", true)).toEqual({ ok: false, reason: "NOT_ALLOWED_NOW" });
@@ -69,6 +77,13 @@ describe("the rules a group proposes", () => {
       reason: "DUE_DAY_OUT_OF_RANGE",
     });
     expect(checkRules({ ...FRIDAY_GROUP, frequency: "MONTHLY", dueDay: 28 })).toEqual({ ok: true });
+  });
+});
+
+describe("answering the rules", () => {
+  it("accepts an answer to the current version, and refuses one to an older version", () => {
+    expect(checkAnswersCurrentRules(2, 2)).toEqual({ ok: true });
+    expect(checkAnswersCurrentRules(1, 2)).toEqual({ ok: false, reason: "RULES_CHANGED" });
   });
 });
 

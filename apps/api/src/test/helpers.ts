@@ -18,6 +18,9 @@ export const AKOSSIWA = { niu: "TEST-0001", legalName: "Akossiwa Afi Mensah", da
 // Abla's record, for tests that need a second member.
 export const ABLA = { niu: "TEST-0002", legalName: "Abla Dzifa Agbeko", dateOfBirth: "1990-07-25" };
 
+// Koffi's record, for tests that need a third person.
+export const KOFFI = { niu: "TEST-0003", legalName: "Koffi Selom Amegah", dateOfBirth: "1979-01-01" };
+
 // Completes the SMS step for a phone and returns its sign-up verification token.
 export async function verifiedPhone(phone: string): Promise<string> {
   const { body } = await request(app).post("/v1/auth/otp").send({ phone, purpose: "SIGN_UP", language: "FR" });
