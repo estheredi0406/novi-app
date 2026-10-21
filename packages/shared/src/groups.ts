@@ -28,6 +28,7 @@ export type GroupSeat = {
   acceptedCurrentRules: boolean;
   counterNote: string | null;
   payoutPosition: number | null; // her turn, 1 = paid first; set when the group starts
+  maskedPhone: string | null; // organiser only: "+228 90 •• •• 56", to check the right person joined (D43)
 };
 
 // An invitation not answered yet, as the group sees it. Only part of the
@@ -70,6 +71,7 @@ export type GroupSummary = {
   mfiName: string;
   amountFcfa: number;
   frequency: Frequency;
+  dueDay: number;
   size: number;
   seatsHeld: number;
   myRole: MemberRole;

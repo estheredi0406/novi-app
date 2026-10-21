@@ -72,7 +72,7 @@ const detailQuery = {
   rulesVersions: { orderBy: { version: "desc" as const } },
   memberships: {
     orderBy: { createdAt: "asc" as const },
-    include: { user: { select: { displayName: true } } },
+    include: { user: { select: { displayName: true, phone: true } } },
   },
   invites: { where: pending, orderBy: { createdAt: "asc" as const } },
 };
@@ -118,6 +118,7 @@ function toRules(group: Pick<LoadedGroup, "id" | "currentVersion" | "rulesVersio
 }
 
 function toDetail(group: LoadedGroup, userId: string): GroupDetail {
+  const isOrganiser = group.organiserId === userId;
   return {
     id: group.id,
     name: group.name,
@@ -132,9 +133,13 @@ function toDetail(group: LoadedGroup, userId: string): GroupDetail {
       acceptedCurrentRules: seat.state === "ACCEPTED" && seat.acceptedVersion === group.currentVersion,
       counterNote: seat.counterNote,
       payoutPosition: seat.payoutPosition,
+      // The organiser typed each number herself, so part of it tells her
+      // nothing new, and lets her check that the person who accepted is the
+      // one she meant to invite (D43). Other members see names only (D15).
+      maskedPhone: isOrganiser ? maskPhone(seat.user.phone) : null,
     })),
     pendingInvites: group.invites.map((invite) => ({ id: invite.id, maskedPhone: maskPhone(invite.phone) })),
-    myRole: group.organiserId === userId ? "ORGANISER" : "MEMBER",
+    myRole: isOrganiser ? "ORGANISER" : "MEMBER",
   };
 }
 
@@ -167,6 +172,7 @@ export async function listMyGroups(userId: string): Promise<GroupSummary[]> {
       mfiName: detail.mfiName,
       amountFcfa: detail.rules.amountFcfa,
       frequency: detail.rules.frequency,
+      dueDay: detail.rules.dueDay,
       size: detail.rules.size,
       seatsHeld: detail.seats.length,
       myRole: detail.myRole,

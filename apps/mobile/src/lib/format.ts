@@ -10,3 +10,8 @@ export function formatSeconds(total: number): string {
   const seconds = total % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
+// 50000 becomes "50 000 FCFA", with the space French and Togolese usage put
+// between thousands. Written by hand so every phone shows the same thing.
+export function formatFcfa(amount: number): string {
+  return `${String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA`;
+}

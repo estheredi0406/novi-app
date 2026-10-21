@@ -54,6 +54,16 @@ describe("accepting the rules", () => {
     expect((await organiser.get(`/v1/groups/${groupId}`)).body.seats).toHaveLength(2);
   });
 
+  it("shows the organiser part of the number of each person who joined, and nobody else (D43)", async () => {
+    const { organiser, member, groupId } = await ablaInvited();
+    await member.post(`/v1/groups/${groupId}/accept`, { version: 1 });
+
+    const asOrganiser = (await organiser.get(`/v1/groups/${groupId}`)).body.seats;
+    expect(asOrganiser).toContainEqual(expect.objectContaining({ displayName: "Abla", maskedPhone: "+228 90 •• •• 02" }));
+    const asMember = (await member.get(`/v1/groups/${groupId}`)).body.seats;
+    expect(asMember.map((s: { maskedPhone: string | null }) => s.maskedPhone)).toEqual([null, null]);
+  });
+
   it("puts the group in her list of groups", async () => {
     const { member, groupId } = await ablaInvited();
     await member.post(`/v1/groups/${groupId}/accept`, { version: 1 });

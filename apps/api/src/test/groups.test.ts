@@ -57,6 +57,7 @@ describe("creating a group", () => {
         acceptedCurrentRules: true,
         counterNote: null,
         payoutPosition: null,
+        maskedPhone: "+228 90 •• •• 01",
       },
     ]);
   });
