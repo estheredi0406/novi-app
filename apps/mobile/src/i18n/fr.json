@@ -259,6 +259,48 @@
     "leaveTitle": "Quitter ce groupe ?",
     "declinePrivate": "Si vous refusez, le groupe ne voit pas votre nom."
   },
+  "money": {
+    "rounds": "Tours",
+    "roundTitle": "Tour {{number}} · le {{date}}",
+    "roundShort": "tour {{number}}",
+    "turnOf": "{{name}} reçoit la cagnotte",
+    "youPaid": "Vous avez payé",
+    "collected": "{{collected}} sur {{pot}} · {{paid}} sur {{size}} ont payé",
+    "openLedger": "Voir le registre du groupe",
+    "chooseOperator": "Payer avec",
+    "moov": "Flooz (Moov Africa)",
+    "togocel": "Mixx by Yas (T-Money)",
+    "pay": "Payer {{amount}}",
+    "ownWallet": "Novi demande le paiement uniquement depuis votre propre numéro. Vous le confirmez sur votre téléphone avec votre code mobile money ; Novi ne le voit jamais.",
+    "confirmOnPhone": "Confirmez sur votre téléphone",
+    "confirmOnPhoneHint": "Une demande de {{amount}} a été envoyée à votre téléphone. Saisissez-y votre code mobile money pour payer.",
+    "stillWaiting": "Pas encore de réponse. Si vous avez confirmé, le paiement peut mettre un moment à arriver.",
+    "checkAgain": "Vérifier à nouveau",
+    "receiptTitle": "Paiement reçu",
+    "receiptBody": "{{amount}} pour le tour {{number}}. Un reçu vous a aussi été envoyé par SMS.",
+    "receiptRef": "Référence {{ref}}",
+    "paymentFailed": "Le paiement n'est pas passé. Aucun argent n'a été prélevé. Vous pouvez réessayer.",
+    "whoPaid": "Qui a payé",
+    "paidOn": "Payé le {{date}}",
+    "status": {
+      "UNPAID": "Pas encore payé",
+      "PENDING": "Paiement en cours",
+      "FAILED": "Pas encore payé",
+      "PAID": "Payé"
+    },
+    "ledgerTitle": "Registre",
+    "ledgerLede": "Tous les paiements du groupe, du plus récent au plus ancien. Une ligne n'est jamais modifiée ni supprimée.",
+    "ledgerEmpty": "Aucun paiement pour le moment.",
+    "ledgerType": {
+      "CONTRIBUTION": "Cotisation",
+      "PAYOUT": "Versement",
+      "CORRECTION": "Correction"
+    },
+    "roundNotOpen": "Ce tour n'est pas encore ouvert. Vous pourrez le payer quand son tour viendra.",
+    "alreadyPaid": "Vous avez déjà payé ce tour.",
+    "paymentInProgress": "Une demande de paiement attend déjà sur votre téléphone. Confirmez-la, ou attendez 5 minutes pour en demander une autre.",
+    "paymentUnavailable": "Le service de paiement ne répond pas pour le moment. Aucun argent n'a été prélevé. Réessayez dans quelques minutes."
+  },
   "errors": {
     "validationFailed": "Une information manque ou n'a pas le bon format. Vérifiez et réessayez.",
     "unauthenticated": "Veuillez vous reconnecter.",

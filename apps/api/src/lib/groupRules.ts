@@ -31,7 +31,10 @@ export type RuleBreak =
   | "SEATS_NOT_FILLED"
   | "NOT_EVERYONE_ACCEPTED"
   | "RULES_CHANGED" // she answered a version of the rules that is no longer the current one
-  | "ORDER_INVALID"; // a fixed payout order that does not list every member exactly once
+  | "ORDER_INVALID" // a fixed payout order that does not list every member exactly once
+  | "ROUND_NOT_OPEN" // paying a round whose turn has not come yet
+  | "ALREADY_PAID"
+  | "PAYMENT_IN_PROGRESS"; // a request is already waiting for her confirmation
 
 export type RuleResult = { ok: true } | { ok: false; reason: RuleBreak };
 
@@ -49,9 +52,10 @@ export type GroupAction =
   | "DECLINE" // say no, or leave before the group starts
   | "SET_ORDER" // choose a fixed payout order (D41)
   | "START"
-  | "CANCEL";
+  | "CANCEL"
+  | "PAY"; // pay her contribution for a round (Sprint 3)
 
-type Who = "ORGANISER" | "MEMBER";
+type Who = "ORGANISER" | "MEMBER" | "ANYONE";
 
 // The whole state machine in one table. Anything not listed is refused.
 // Once a group is STARTING, the only thing a person can do is ask Novi to
@@ -67,6 +71,7 @@ const WHEN: Record<GroupAction, { states: readonly GroupState[]; by: Who }> = {
   SET_ORDER: { states: ["PROPOSED"], by: "ORGANISER" },
   START: { states: ["PROPOSED", "STARTING"], by: "ORGANISER" },
   CANCEL: { states: ["DRAFT", "PROPOSED"], by: "ORGANISER" },
+  PAY: { states: ["ACTIVE"], by: "ANYONE" }, // the organiser pays like everyone else
 };
 
 // Is this person allowed to do this action on a group in this state?
@@ -163,4 +168,30 @@ export function checkFixedOrder(order: readonly string[], seatHolders: readonly 
   const sameLength = order.length === seatHolders.length;
   const everyoneOnce = new Set(order).size === order.length && seatHolders.every((id) => order.includes(id));
   return sameLength && everyoneOnce ? allowed : refused("ORDER_INVALID");
+}
+
+// ---------- Paying (Sprint 3) ----------
+
+// A payment request waits this long for her confirmation on her phone before
+// she may ask again. Mobile money prompts expire after a few minutes.
+export const PAYMENT_WAIT_MS = 5 * 60 * 1000;
+
+export type PaymentAttempt = { status: "PENDING" | "PAID" | "FAILED"; requestedAt: Date };
+
+// May she pay this round now? Rounds up to the current one can be paid,
+// late ones included; a later round cannot be paid before its turn opens.
+// One payment per round: a paid round is refused, and a request still
+// waiting for her confirmation is not sent twice.
+export function checkCanPay(
+  roundNumber: number,
+  currentRound: number,
+  attempt: PaymentAttempt | null,
+  now: Date,
+): RuleResult {
+  if (roundNumber > currentRound) return refused("ROUND_NOT_OPEN");
+  if (attempt?.status === "PAID") return refused("ALREADY_PAID");
+  if (attempt?.status === "PENDING" && now.getTime() - attempt.requestedAt.getTime() < PAYMENT_WAIT_MS) {
+    return refused("PAYMENT_IN_PROGRESS");
+  }
+  return allowed;
 }

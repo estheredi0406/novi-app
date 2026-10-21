@@ -17,6 +17,7 @@ import {
   setPayoutOrder,
   startGroup,
 } from "../services/groupService.js";
+import { getRound, listLedger, listRounds, payRound } from "../services/moneyService.js";
 
 export const groupsRouter = Router();
 
@@ -47,6 +48,8 @@ const acceptBody = z.object({ version: z.number() }).strict();
 const counterBody = z.object({ version: z.number(), note: z.string().trim().min(1).max(280) }).strict();
 const emptyBody = z.object({}).strict();
 const orderBody = z.object({ memberIds: z.array(z.string().uuid()) }).strict();
+const roundParams = groupId.extend({ number: z.coerce.number().int() });
+const payBody = z.object({ operator: z.enum(["MOOV_TG", "TOGOCEL"]) }).strict();
 
 groupsRouter.get("/", async (_req, res) => {
   res.json(await listMyGroups(currentMember(res).userId));
@@ -130,4 +133,29 @@ groupsRouter.post("/:id/start", async (req, res) => {
   const { id } = groupId.parse(req.params);
   emptyBody.parse(req.body);
   res.json(await startGroup(id, currentMember(res).userId));
+});
+
+// ---------- Money in (Sprint 3) ----------
+
+groupsRouter.get("/:id/rounds", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  res.json(await listRounds(id, currentMember(res).userId));
+});
+
+groupsRouter.get("/:id/rounds/:number", async (req, res) => {
+  const { id, number } = roundParams.parse(req.params);
+  res.json(await getRound(id, currentMember(res).userId, number));
+});
+
+// Answers 202: the request is sent to her phone, and the payment is not done
+// until she confirms there and the provider tells Novi.
+groupsRouter.post("/:id/rounds/:number/pay", async (req, res) => {
+  const { id, number } = roundParams.parse(req.params);
+  const { operator } = payBody.parse(req.body);
+  res.status(202).json(await payRound(id, currentMember(res).userId, number, operator));
+});
+
+groupsRouter.get("/:id/ledger", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  res.json(await listLedger(id, currentMember(res).userId));
 });

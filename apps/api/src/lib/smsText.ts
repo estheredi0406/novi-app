@@ -48,3 +48,19 @@ export function inviteSms(
     }
   }
 }
+
+// Sent once a payment is confirmed: her proof of payment, even without data.
+export function receiptSms(
+  language: Language,
+  receipt: { amountFcfa: number; roundNumber: number; groupName: string; date: string; ref: string; mfiName: string },
+): string {
+  const amount = formatFcfa(receipt.amountFcfa);
+  const [year, month, day] = receipt.date.split("-");
+  switch (language) {
+    case "EN":
+      return `Novi: payment received. ${amount} FCFA for round ${receipt.roundNumber} of "${receipt.groupName}" on ${day}/${month}/${year}. Ref. ${receipt.ref}. Money held at ${receipt.mfiName}.`;
+    case "FR":
+    case "EE":
+      return `Novi : paiement reçu. ${amount} FCFA pour le tour ${receipt.roundNumber} de « ${receipt.groupName} » le ${day}/${month}/${year}. Réf. ${receipt.ref}. Argent conservé chez ${receipt.mfiName}.`;
+  }
+}

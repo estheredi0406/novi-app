@@ -15,3 +15,9 @@ export function formatSeconds(total: number): string {
 export function formatFcfa(amount: number): string {
   return `${String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA`;
 }
+
+// "2026-10-23" becomes "23/10/2026", the way dates are written in Togo.
+export function formatDay(isoDay: string): string {
+  const [year, month, day] = isoDay.slice(0, 10).split("-");
+  return `${day}/${month}/${year}`;
+}

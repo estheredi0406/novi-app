@@ -1,4 +1,4 @@
-import type { GroupDetail, GroupSeat } from "@novi/shared";
+import type { GroupDetail, GroupSeat, RoundSummary } from "@novi/shared";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,11 +13,13 @@ import {
   removeSeat,
   startGroup,
 } from "../../../../api/groups";
+import { listRounds } from "../../../../api/money";
 import { AnswerPanel } from "../../../../components/AnswerPanel";
 import { BackHeader } from "../../../../components/BackHeader";
 import { ErrorMessage } from "../../../../components/ErrorMessage";
 import { Field } from "../../../../components/Field";
 import { PrimaryButton } from "../../../../components/PrimaryButton";
+import { RoundCard } from "../../../../components/RoundCard";
 import { RulesCard } from "../../../../components/RulesCard";
 import { Screen } from "../../../../components/Screen";
 import { TextButton } from "../../../../components/TextButton";
@@ -35,12 +37,19 @@ export default function GroupScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { member } = useSession();
   const [group, setGroup] = useState<GroupDetail | null>(null);
+  const [rounds, setRounds] = useState<RoundSummary[]>([]);
   const [digits, setDigits] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // The group, and once it is running, its rounds (Sprint 3).
   const load = useCallback(() => {
-    getGroup(id).then(setGroup, (err: unknown) => setError(errorKey(err)));
+    getGroup(id).then((loaded) => {
+      setGroup(loaded);
+      if (loaded.state === "ACTIVE" || loaded.state === "COMPLETED") {
+        listRounds(id).then(setRounds, (err: unknown) => setError(errorKey(err)));
+      }
+    }, (err: unknown) => setError(errorKey(err)));
   }, [id]);
 
   // Reloads when she comes back from changing the rules or the order.
@@ -99,6 +108,25 @@ export default function GroupScreen() {
       </View>
 
       <RulesCard rules={rules} mfiName={group.mfiName} />
+
+      {rounds.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={[type.title, styles.ink]}>{t("money.rounds")}</Text>
+          {rounds.map((round) => (
+            <RoundCard
+              key={round.number}
+              round={round}
+              onPress={() =>
+                router.push({ pathname: "/groups/[id]/rounds/[number]", params: { id: group.id, number: String(round.number) } })
+              }
+            />
+          ))}
+          <TextButton
+            label={t("money.openLedger")}
+            onPress={() => router.push({ pathname: "/groups/[id]/ledger", params: { id: group.id } })}
+          />
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <Text style={[type.title, styles.ink]}>

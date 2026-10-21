@@ -43,6 +43,13 @@ export const errors = {
   ORDER_INVALID: { messageKey: "groups.orderInvalid" },
   MFI_UNAVAILABLE: { messageKey: "groups.mfiUnavailable" },
 
+  // Money in (Sprint 3)
+  ROUND_NOT_OPEN: { messageKey: "money.roundNotOpen" },
+  ALREADY_PAID: { messageKey: "money.alreadyPaid" },
+  PAYMENT_IN_PROGRESS: { messageKey: "money.paymentInProgress" },
+  PAYMENT_UNAVAILABLE: { messageKey: "money.paymentUnavailable" },
+  WEBHOOK_INVALID: { messageKey: "errors.validationFailed" },
+
   // Invitations
   ALREADY_INVITED: { messageKey: "groups.alreadyInvited" },
   CANNOT_REMOVE_ORGANISER: { messageKey: "groups.cannotRemoveOrganiser" },

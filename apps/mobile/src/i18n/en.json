@@ -259,6 +259,48 @@
     "leaveTitle": "Leave this group?",
     "declinePrivate": "If you say no, the group does not see your name."
   },
+  "money": {
+    "rounds": "Rounds",
+    "roundTitle": "Round {{number}} · due {{date}}",
+    "roundShort": "round {{number}}",
+    "turnOf": "{{name}} receives the pot",
+    "youPaid": "You paid",
+    "collected": "{{collected}} of {{pot}} · {{paid}} of {{size}} paid",
+    "openLedger": "See the group's ledger",
+    "chooseOperator": "Pay with",
+    "moov": "Flooz (Moov Africa)",
+    "togocel": "Mixx by Yas (T-Money)",
+    "pay": "Pay {{amount}}",
+    "ownWallet": "Novi asks for the payment from your own number only. You confirm it on your phone with your mobile money PIN; Novi never sees it.",
+    "confirmOnPhone": "Confirm on your phone",
+    "confirmOnPhoneHint": "A request for {{amount}} has been sent to your phone. Enter your mobile money PIN there to pay.",
+    "stillWaiting": "No answer yet. If you confirmed, the payment may take a moment to arrive.",
+    "checkAgain": "Check again",
+    "receiptTitle": "Payment received",
+    "receiptBody": "{{amount}} for round {{number}}. A receipt was also sent to you by SMS.",
+    "receiptRef": "Reference {{ref}}",
+    "paymentFailed": "The payment did not go through. No money was taken. You can try again.",
+    "whoPaid": "Who has paid",
+    "paidOn": "Paid {{date}}",
+    "status": {
+      "UNPAID": "Not paid yet",
+      "PENDING": "Payment on its way",
+      "FAILED": "Not paid yet",
+      "PAID": "Paid"
+    },
+    "ledgerTitle": "Ledger",
+    "ledgerLede": "Every payment of the group, newest first. A line is never changed or deleted.",
+    "ledgerEmpty": "No payment yet.",
+    "ledgerType": {
+      "CONTRIBUTION": "Contribution",
+      "PAYOUT": "Payout",
+      "CORRECTION": "Correction"
+    },
+    "roundNotOpen": "This round is not open yet. You can pay it when its turn comes.",
+    "alreadyPaid": "You have already paid this round.",
+    "paymentInProgress": "A payment request is already waiting on your phone. Confirm it there, or wait 5 minutes to ask again.",
+    "paymentUnavailable": "The payment service is not answering right now. No money was taken. Try again in a few minutes."
+  },
   "errors": {
     "validationFailed": "Something is missing or not in the right form. Please check and try again.",
     "unauthenticated": "Please log in again.",

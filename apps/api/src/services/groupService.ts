@@ -2,6 +2,7 @@ import type { GroupDetail, GroupRules, GroupSummary, Invitation } from "@novi/sh
 import type { Prisma } from "../generated/prisma/client.js";
 import type { Frequency, PayoutOrder, SeatState } from "../generated/prisma/enums.js";
 import { prisma } from "../lib/db.js";
+import { enforce } from "../lib/enforce.js";
 import { AppError } from "../lib/errors.js";
 import {
   checkAction,
@@ -15,41 +16,16 @@ import {
   countsTowardLimit,
   type GroupAction,
   holdsSeat,
-  type RuleBreak,
-  type RuleResult,
   type Seat,
 } from "../lib/groupRules.js";
 import { drawOrder } from "../lib/payoutOrder.js";
+import { dueDates } from "../lib/schedule.js";
 import { inviteSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 
 // The demo works with one partner MFI (brief, section 3). It is created the
 // first time a group needs it; with several MFIs, the organiser will choose.
 const PARTNER_MFI = { code: "FUCEC", name: "FUCEC-Togo" };
-
-// How each refusal from the rules engine is answered: 400 the request itself
-// is wrong, 403 this person may not do it, 409 the group is not in a state
-// that allows it.
-const STATUS: Record<RuleBreak, number> = {
-  NOT_ALLOWED_NOW: 409,
-  ORGANISER_ONLY: 403,
-  MEMBERS_ONLY: 403,
-  SIZE_OUT_OF_RANGE: 400,
-  AMOUNT_OUT_OF_RANGE: 400,
-  DUE_DAY_OUT_OF_RANGE: 400,
-  GROUP_FULL: 409,
-  GROUP_LIMIT_REACHED: 409,
-  START_LIMIT_REACHED: 409,
-  SEATS_NOT_FILLED: 409,
-  NOT_EVERYONE_ACCEPTED: 409,
-  RULES_CHANGED: 409,
-  ORDER_INVALID: 400,
-};
-
-// Turns a refusal from the rules engine into the API error with the same code.
-function enforce(result: RuleResult): void {
-  if (!result.ok) throw new AppError(result.reason, STATUS[result.reason]);
-}
 
 export type RulesInput = {
   amountFcfa: number;
@@ -563,11 +539,38 @@ async function openAccount(groupId: string, userId: string) {
     throw new AppError("MFI_UNAVAILABLE", 503);
   }
 
+  const startedAt = new Date();
   await prisma.$transaction(async (tx) => {
-    await tx.group.updateMany({
+    const moved = await tx.group.updateMany({
       where: { id: groupId, state: "STARTING" },
-      data: { state: "ACTIVE", mfiAccountRef: accountRef, startedAt: new Date() },
+      data: { state: "ACTIVE", mfiAccountRef: accountRef, startedAt },
     });
+    // The calendar is written once, by the request that made the group ACTIVE.
+    if (moved.count === 1) await createRounds(tx, groupId, startedAt, rules);
     await tx.auditEvent.create({ data: { userId, type: "GROUP_ACTIVE", details: { groupId } } });
   });
 }
+
+// Writes the group's calendar (Sprint 3): one round per member, round N due
+// on the Nth due day after the start (D44), and paid out to the member whose
+// payout position is N.
+async function createRounds(
+  tx: Prisma.TransactionClient,
+  groupId: string,
+  startedAt: Date,
+  rules: { frequency: Frequency; dueDay: number; size: number },
+) {
+  const seats = await tx.membership.findMany({
+    where: { groupId, payoutPosition: { not: null } },
+    orderBy: { payoutPosition: "asc" },
+  });
+  const dates = dueDates(startedAt, rules.frequency, rules.dueDay, seats.length);
+  await tx.round.createMany({
+    data: seats.map((seat, i) => ({
+      groupId,
+      number: i + 1,
+      dueDate: dates.at(i) as Date,
+      beneficiaryId: seat.userId,
+    })),
+  });
+} 

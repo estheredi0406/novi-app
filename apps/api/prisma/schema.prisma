@@ -69,6 +69,28 @@ enum MemberRole {
   MEMBER
 }
 
+// The mobile money services FedaPay can collect from in Togo (FedaPay
+// "send now" modes moov_tg and togocel). Flooz is Moov Africa's; Mixx by Yas
+// was T-Money, run by Togocel.
+enum MobileOperator {
+  MOOV_TG
+  TOGOCEL
+}
+
+// Where one payment attempt is.
+enum ContributionStatus {
+  PENDING // asked; waiting for her to confirm on her phone
+  PAID    // the provider confirmed the money moved
+  FAILED  // declined, cancelled, or not confirmed in time
+}
+
+// What a ledger line records.
+enum LedgerEntryType {
+  CONTRIBUTION // money in from one member
+  PAYOUT       // money out to the member whose turn it is (Sprint 4)
+  CORRECTION   // fixes an earlier line, which is never edited (D5)
+}
+
 // Where one seat is in its life.
 enum SeatState {
   INVITED   // invitation sent, no answer yet
@@ -113,6 +135,9 @@ model User {
   invitesSent     Membership[]   @relation("SeatInviter")
   rulesProposed   RulesVersion[]
   phoneInvites    Invite[]
+  roundsReceived  Round[]        @relation("RoundBeneficiary")
+  contributions   Contribution[]
+  ledgerEntries   LedgerEntry[]
 
   @@map("users")
 }
@@ -242,6 +267,8 @@ model Group {
   rulesVersions RulesVersion[]
   memberships   Membership[]
   invites       Invite[]
+  rounds        Round[]
+  ledgerEntries LedgerEntry[]
 
   @@index([state])
   @@map("groups")
@@ -312,4 +339,91 @@ model Invite {
   @@unique([groupId, phone]) // one invitation per number per group
   @@index([phone])           // her invitations, found by her verified number
   @@map("invites")
+}
+
+
+//----------------Money in (Sprint 3)----------------------------
+
+// One turn of the cycle: the day everyone pays, and who receives the pot.
+// A group of 10 has 10 rounds. They are created when the group becomes
+// ACTIVE; round 1 is due on the first due day after that (D44).
+model Round {
+  id            String   @id @default(uuid())
+  groupId       String
+  number        Int      // 1 for the first turn
+  dueDate       DateTime @db.Date // Togo uses GMT all year, so a date needs no time zone
+  beneficiaryId String   // the member whose payout position is this number
+  createdAt     DateTime @default(now())
+
+  group         Group          @relation(fields: [groupId], references: [id])
+  beneficiary   User           @relation("RoundBeneficiary", fields: [beneficiaryId], references: [id])
+  contributions Contribution[]
+  ledgerEntries LedgerEntry[]
+
+  @@unique([groupId, number])
+  @@map("rounds")
+}
+
+// One member's payment for one round, as a request to the payment provider.
+// This row changes (PENDING, then PAID or FAILED); the money itself is
+// recorded in the ledger, which never changes (D5).
+model Contribution {
+  id          String             @id @default(uuid())
+  roundId     String
+  userId      String
+  amountFcfa  Int                // the group's contribution in force when she paid (D4)
+  operator    MobileOperator
+  payerPhone  String             // her verified Novi number: Novi collects only from her own wallet
+  status      ContributionStatus @default(PENDING)
+  provider    String             // "mock" or "fedapay"
+  providerRef String?            @unique // the provider's transaction ID
+  requestedAt DateTime           @default(now())
+  paidAt      DateTime?
+  failedAt    DateTime?
+
+  round       Round        @relation(fields: [roundId], references: [id])
+  user        User         @relation(fields: [userId], references: [id])
+  ledgerEntry LedgerEntry?
+
+  @@unique([roundId, userId]) // one payment per member per round
+  @@map("contributions")
+}
+
+// The group's shared record of money (D5). Lines are only ever added: the
+// database itself refuses to update or delete one (see the migration
+// money_in). A mistake is fixed by a CORRECTION line pointing at it.
+model LedgerEntry {
+  id             String          @id @default(uuid())
+  groupId        String
+  roundId        String?
+  userId         String?         // whose money it is: the payer, or the payout's receiver
+  type           LedgerEntryType
+  amountFcfa     Int
+  contributionId String?         @unique // a payment is written to the ledger once only
+  correctsId     String?         @unique
+  note           String?
+  createdAt      DateTime        @default(now())
+
+  group        Group         @relation(fields: [groupId], references: [id])
+  round        Round?        @relation(fields: [roundId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
+  contribution Contribution? @relation(fields: [contributionId], references: [id])
+  corrects     LedgerEntry?  @relation("Correction", fields: [correctsId], references: [id])
+  correctedBy  LedgerEntry?  @relation("Correction")
+
+  @@index([groupId, createdAt])
+  @@map("ledger_entries")
+}
+
+// Every webhook a payment provider sent, kept as received. The same
+// delivery sent twice has the same body, so it is recognised and ignored.
+model PaymentEvent {
+  id          String   @id @default(uuid())
+  provider    String
+  bodyHash    String   @unique // SHA-256 of the raw body
+  providerRef String?
+  body        Json
+  receivedAt  DateTime @default(now())
+
+  @@map("payment_events")
 }

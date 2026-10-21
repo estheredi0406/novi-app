@@ -4,6 +4,7 @@ import {
   checkAnswersCurrentRules,
   checkCanInvite,
   checkCanJoin,
+  checkCanPay,
   checkCanStartAnother,
   checkFixedOrder,
   checkReadyToStart,
@@ -158,5 +159,38 @@ describe("a fixed payout order (D41)", () => {
     expect(checkFixedOrder(["abla", "koffi"], SEATS)).toEqual(invalid);
     expect(checkFixedOrder(["abla", "abla", "koffi"], SEATS)).toEqual(invalid);
     expect(checkFixedOrder(["abla", "koffi", "efua"], SEATS)).toEqual(invalid);
+  });
+});
+
+describe("paying a round (Sprint 3)", () => {
+  const now = new Date("2026-10-23T09:00:00Z");
+  const minutesAgo = (m: number) => new Date(now.getTime() - m * 60 * 1000);
+
+  it("lets anyone in an active group pay, the organiser included, and nobody before it starts", () => {
+    expect(checkAction("PAY", "ACTIVE", true)).toEqual({ ok: true });
+    expect(checkAction("PAY", "ACTIVE", false)).toEqual({ ok: true });
+    expect(checkAction("PAY", "PROPOSED", false)).toEqual({ ok: false, reason: "NOT_ALLOWED_NOW" });
+  });
+
+  it("accepts the current round and late ones, and refuses a round not open yet", () => {
+    expect(checkCanPay(2, 2, null, now)).toEqual({ ok: true });
+    expect(checkCanPay(1, 2, null, now)).toEqual({ ok: true });
+    expect(checkCanPay(3, 2, null, now)).toEqual({ ok: false, reason: "ROUND_NOT_OPEN" });
+  });
+
+  it("refuses a round already paid", () => {
+    expect(checkCanPay(1, 1, { status: "PAID", requestedAt: minutesAgo(60) }, now)).toEqual({
+      ok: false,
+      reason: "ALREADY_PAID",
+    });
+  });
+
+  it("does not send a second request while one waits, but allows a new one after 5 minutes or a failure", () => {
+    expect(checkCanPay(1, 1, { status: "PENDING", requestedAt: minutesAgo(1) }, now)).toEqual({
+      ok: false,
+      reason: "PAYMENT_IN_PROGRESS",
+    });
+    expect(checkCanPay(1, 1, { status: "PENDING", requestedAt: minutesAgo(6) }, now)).toEqual({ ok: true });
+    expect(checkCanPay(1, 1, { status: "FAILED", requestedAt: minutesAgo(1) }, now)).toEqual({ ok: true });
   });
 });
