@@ -4,6 +4,10 @@
 export type MobileOperator = "MOOV_TG" | "TOGOCEL";
 export type ContributionStatus = "PENDING" | "PAID" | "FAILED";
 
+// Where a round's pot is (Sprint 4). NOT_DUE: its day has not come yet.
+// HELD: the day has passed but someone has not paid; nothing is sent short.
+export type PayoutStatus = "NOT_DUE" | "HELD" | "SENDING" | "SENT" | "PAID" | "FAILED";
+
 // Her own payment for one round, as she sees it while paying and after.
 export type ContributionView = {
   id: string;
@@ -27,6 +31,8 @@ export type RoundSummary = {
   collectedFcfa: number; // paid so far
   potFcfa: number; // what the round collects once everyone has paid
   myStatus: ContributionStatus | "UNPAID";
+  payoutStatus: PayoutStatus;
+  paidOutAt: string | null; // when the pot reached the member whose turn it is
 };
 
 // One member's payment in a round. Every member of the group sees every

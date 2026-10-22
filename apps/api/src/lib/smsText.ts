@@ -64,3 +64,19 @@ export function receiptSms(
       return `Novi : paiement reçu. ${amount} FCFA pour le tour ${receipt.roundNumber} de « ${receipt.groupName} » le ${day}/${month}/${year}. Réf. ${receipt.ref}. Argent conservé chez ${receipt.mfiName}.`;
   }
 }
+
+// Sent once the MFI confirms the pot reached her wallet.
+export function payoutSms(
+  language: Language,
+  payout: { amountFcfa: number; roundNumber: number; groupName: string; date: string; mfiName: string },
+): string {
+  const amount = formatFcfa(payout.amountFcfa);
+  const [year, month, day] = payout.date.split("-");
+  switch (language) {
+    case "EN":
+      return `Novi: you have received ${amount} FCFA, the pot of round ${payout.roundNumber} of "${payout.groupName}", on ${day}/${month}/${year}. Sent by ${payout.mfiName}.`;
+    case "FR":
+    case "EE":
+      return `Novi : vous avez reçu ${amount} FCFA, la cagnotte du tour ${payout.roundNumber} de « ${payout.groupName} », le ${day}/${month}/${year}. Envoyé par ${payout.mfiName}.`;
+  }
+}

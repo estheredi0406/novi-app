@@ -8,6 +8,7 @@ import { checkAction, checkCanPay, holdsSeat, PAYMENT_WAIT_MS } from "../lib/gro
 import { currentRoundNumber, isoDay } from "../lib/schedule.js";
 import { receiptSms } from "../lib/smsText.js";
 import { payments, sms } from "../providers/index.js";
+import { runPayouts } from "./payoutService.js";
 import type { CollectionStatus } from "../providers/payment/PaymentProvider.js";
 
 // Money in (Sprint 3). A payment goes through three stages:
@@ -32,7 +33,7 @@ async function loadForMember(groupId: string, userId: string) {
       memberships: { include: { user: { select: { displayName: true } } }, orderBy: { payoutPosition: "asc" } },
       rounds: {
         orderBy: { number: "asc" },
-        include: { beneficiary: { select: { displayName: true } }, contributions: true },
+        include: { beneficiary: { select: { displayName: true } }, contributions: true, payout: true },
       },
     },
   });
@@ -64,6 +65,8 @@ function toSummary(loaded: Loaded, round: LoadedRound, userId: string): RoundSum
     collectedFcfa: paid.reduce((sum, c) => sum + c.amountFcfa, 0),
     potFcfa: loaded.rules.amountFcfa * loaded.rules.size,
     myStatus: mine?.status ?? "UNPAID",
+    payoutStatus: round.payout?.status ?? "NOT_DUE",
+    paidOutAt: round.payout?.paidAt?.toISOString() ?? null,
   };
 }
 
@@ -266,6 +269,11 @@ async function settle(contributionId: string, answer: CollectionStatus): Promise
   });
 
   if (credited) {
+    // The last payment of a round whose day has passed releases its held pot
+    // at once, instead of waiting for the next run of the job (D48).
+    await runPayouts(new Date(), contribution.round.groupId).catch((err: unknown) =>
+      console.error("Payout after a payment failed:", err),
+    );
     const group = contribution.round.group;
     await sms.send(
       contribution.payerPhone,
