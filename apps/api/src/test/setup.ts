@@ -12,7 +12,7 @@ beforeEach(async () => {
     throw new Error("Refusing to empty a database that is not novi_test.");
   }
   await prisma.$executeRawUnsafe(
-    "TRUNCATE TABLE users, devices, sessions, otp_challenges, identity_checks, consents, audit_events, mfis, groups, rules_versions, memberships, invites, rounds, contributions, ledger_entries, payment_events, payouts CASCADE",
+    "TRUNCATE TABLE users, devices, sessions, otp_challenges, identity_checks, consents, audit_events, mfis, groups, rules_versions, memberships, invites, rounds, contributions, ledger_entries, payment_events, payouts, record_shares, record_views CASCADE",
   );
   if (sms instanceof MockSmsProvider) sms.sent.length = 0;
 

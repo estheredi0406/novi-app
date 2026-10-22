@@ -146,6 +146,7 @@ model User {
   phoneInvites    Invite[]
   roundsReceived  Round[]        @relation("RoundBeneficiary")
   payoutsReceived Payout[]
+  recordShares    RecordShare[]
   contributions   Contribution[]
   ledgerEntries   LedgerEntry[]
 
@@ -465,4 +466,40 @@ model PaymentEvent {
   receivedAt  DateTime @default(now())
 
   @@map("payment_events")
+}
+
+
+//----------------Savings record (ACEV, Sprint 6)----------------------------
+
+// A signed snapshot of her savings record that she chose to share with a
+// lender (D33, D50). The exact text that was signed is kept, so the
+// signature can be checked again at any time; a single changed number makes
+// it fail. She can withdraw it, and it stops working after 30 days.
+model RecordShare {
+  id          String    @id @default(uuid()) // also the code in the QR: 122 random bits, not guessable
+  userId      String
+  payloadText String    // the record as signed, JSON
+  signature   String    // Ed25519 signature of payloadText, base64url
+  issuedAt    DateTime  @default(now())
+  expiresAt   DateTime
+  revokedAt   DateTime?
+
+  user  User         @relation(fields: [userId], references: [id])
+  views RecordView[]
+
+  @@index([userId, issuedAt])
+  @@map("record_shares")
+}
+
+// Every time a shared record is opened (D37): she can see when her record
+// was looked at. No details of the viewer are kept.
+model RecordView {
+  id       String   @id @default(uuid())
+  shareId  String
+  viewedAt DateTime @default(now())
+
+  share RecordShare @relation(fields: [shareId], references: [id])
+
+  @@index([shareId, viewedAt])
+  @@map("record_views")
 }
