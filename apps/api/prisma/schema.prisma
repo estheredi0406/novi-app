@@ -84,6 +84,15 @@ enum ContributionStatus {
   FAILED  // declined, cancelled, or not confirmed in time
 }
 
+// Where one round's payout is (Sprint 4).
+enum PayoutStatus {
+  HELD    // due, but the pot is not full: nothing is sent short (D48)
+  SENDING // Novi has asked the MFI to send it
+  SENT    // the MFI accepted the instruction; waiting for its confirmation
+  PAID    // the MFI confirmed the money reached her wallet
+  FAILED  // the MFI refused or did not answer; tried again on the next run
+}
+
 // What a ledger line records.
 enum LedgerEntryType {
   CONTRIBUTION // money in from one member
@@ -136,6 +145,7 @@ model User {
   rulesProposed   RulesVersion[]
   phoneInvites    Invite[]
   roundsReceived  Round[]        @relation("RoundBeneficiary")
+  payoutsReceived Payout[]
   contributions   Contribution[]
   ledgerEntries   LedgerEntry[]
 
@@ -359,6 +369,7 @@ model Round {
   beneficiary   User           @relation("RoundBeneficiary", fields: [beneficiaryId], references: [id])
   contributions Contribution[]
   ledgerEntries LedgerEntry[]
+  payout        Payout?
 
   @@unique([groupId, number])
   @@map("rounds")
@@ -400,6 +411,7 @@ model LedgerEntry {
   type           LedgerEntryType
   amountFcfa     Int
   contributionId String?         @unique // a payment is written to the ledger once only
+  payoutId       String?         @unique // a payout too
   correctsId     String?         @unique
   note           String?
   createdAt      DateTime        @default(now())
@@ -408,11 +420,38 @@ model LedgerEntry {
   round        Round?        @relation(fields: [roundId], references: [id])
   user         User?         @relation(fields: [userId], references: [id])
   contribution Contribution? @relation(fields: [contributionId], references: [id])
+  payout       Payout?       @relation(fields: [payoutId], references: [id])
   corrects     LedgerEntry?  @relation("Correction", fields: [correctsId], references: [id])
   correctedBy  LedgerEntry?  @relation("Correction")
 
   @@index([groupId, createdAt])
   @@map("ledger_entries")
+}
+
+// One round's pot, sent by the MFI to the member whose turn it is. Novi only
+// instructs; the MFI holds the money and sends it (D2, D34). One payout per
+// round, so a pot can never be sent twice (D49).
+model Payout {
+  id            String       @id @default(uuid())
+  roundId       String       @unique
+  beneficiaryId String
+  amountFcfa    Int          // the full pot: contribution x members
+  status        PayoutStatus
+  phone         String       // her verified Novi number: the pot goes only to her own wallet
+  operator      MobileOperator
+  mfiRef        String?      // the MFI's reference for the transfer
+  heldSince     DateTime?
+  requestedAt   DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  round       Round        @relation(fields: [roundId], references: [id])
+  beneficiary User         @relation(fields: [beneficiaryId], references: [id])
+  ledgerEntry LedgerEntry?
+
+  @@index([status])
+  @@map("payouts")
 }
 
 // Every webhook a payment provider sent, kept as received. The same
