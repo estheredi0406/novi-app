@@ -76,4 +76,15 @@ export type GroupSummary = {
   seatsHeld: number;
   myRole: MemberRole;
   mySeatState: SeatState;
+  currentRound: CurrentRound | null; // only while the group is running
+};
+
+// What matters to her this week in a running group: does she still owe her
+// contribution, and is it her turn to receive the pot? Shown on home.
+export type CurrentRound = {
+  number: number;
+  dueDate: string; // "YYYY-MM-DD"
+  myStatus: "UNPAID" | "PENDING" | "PAID" | "FAILED";
+  isMyTurn: boolean;
+  potFcfa: number;
 };

@@ -226,6 +226,22 @@ describe("what can and cannot be paid", () => {
 });
 
 describe("what each person sees", () => {
+  it("tells each member on home what she owes this round, and whose turn it is", async () => {
+    const { abla, groupId, ids } = await activeGroup();
+    const before = (await abla.get("/v1/groups")).body.find((g: { id: string }) => g.id === groupId);
+    const round1 = await prisma.round.findFirstOrThrow({ where: { groupId, number: 1 } });
+    expect(before.currentRound).toMatchObject({
+      number: 1,
+      myStatus: "UNPAID",
+      potFcfa: 15000,
+      isMyTurn: round1.beneficiaryId === ids.abla,
+    });
+
+    await payAndConfirm(abla, groupId);
+    const after = (await abla.get("/v1/groups")).body.find((g: { id: string }) => g.id === groupId);
+    expect(after.currentRound.myStatus).toBe("PAID");
+  });
+
   it("shows every member every payment in the round, by display name", async () => {
     const { abla, koffi, groupId } = await activeGroup();
     await payAndConfirm(abla, groupId);

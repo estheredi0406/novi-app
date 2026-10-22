@@ -1,4 +1,4 @@
-import type { GroupDetail, GroupRules, GroupSummary, Invitation } from "@novi/shared";
+import type { CurrentRound, GroupDetail, GroupRules, GroupSummary, Invitation } from "@novi/shared";
 import type { Prisma } from "../generated/prisma/client.js";
 import type { Frequency, PayoutOrder, SeatState } from "../generated/prisma/enums.js";
 import { prisma } from "../lib/db.js";
@@ -19,7 +19,7 @@ import {
   type Seat,
 } from "../lib/groupRules.js";
 import { drawOrder } from "../lib/payoutOrder.js";
-import { dueDates } from "../lib/schedule.js";
+import { currentRoundNumber, dueDates, isoDay } from "../lib/schedule.js";
 import { inviteSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 
@@ -139,7 +139,7 @@ export async function listMyGroups(userId: string): Promise<GroupSummary[]> {
     orderBy: { createdAt: "desc" },
     include: { group: { include: detailQuery } },
   });
-  return seats.map(({ group, state }) => {
+  return Promise.all(seats.map(async ({ group, state }) => {
     const detail = toDetail(group, userId);
     return {
       id: detail.id,
@@ -153,8 +153,32 @@ export async function listMyGroups(userId: string): Promise<GroupSummary[]> {
       seatsHeld: detail.seats.length,
       myRole: detail.myRole,
       mySeatState: state,
+      currentRound: group.state === "ACTIVE" ? await currentRoundFor(group.id, userId, detail.rules) : null,
     };
+  }));
+}
+
+// The round open for payment today in a running group, seen from her side:
+// whether she has paid it, and whether its pot is hers.
+async function currentRoundFor(
+  groupId: string,
+  userId: string,
+  rules: { amountFcfa: number; size: number },
+): Promise<CurrentRound | null> {
+  const rounds = await prisma.round.findMany({
+    where: { groupId },
+    orderBy: { number: "asc" },
+    include: { contributions: { where: { userId } } },
   });
+  const round = rounds.at(currentRoundNumber(rounds.map((r) => r.dueDate), new Date()) - 1);
+  if (!round) return null;
+  return {
+    number: round.number,
+    dueDate: isoDay(round.dueDate),
+    myStatus: round.contributions.at(0)?.status ?? "UNPAID",
+    isMyTurn: round.beneficiaryId === userId,
+    potFcfa: rules.amountFcfa * rules.size,
+  };
 }
 
 // How many of her seats count towards the 3-group limit (D26), not counting
