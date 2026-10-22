@@ -6,10 +6,12 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
 import { listMyGroups, listMyInvitations } from "../../api/groups";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { LanguageSwitch } from "../../components/LanguageSwitch";
 import { ListenButton } from "../../components/ListenButton";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
 import { TextButton } from "../../components/TextButton";
+import { formatDay, formatFcfa } from "../../lib/format";
 import { rulesSummary, stateLabel } from "../../lib/rulesText";
 import { useSession } from "../../session/SessionProvider";
 import { colors } from "../../theme/colors";
@@ -108,20 +110,57 @@ export default function HomeScreen() {
               </View>
               <Text style={[type.small, styles.muted]}>{rulesSummary(t, group)}</Text>
               {group.myRole === "ORGANISER" ? <Text style={styles.tag}>{t("home.youOrganise")}</Text> : null}
+              <ThisWeek group={group} />
             </Pressable>
           ))}
         </View>
       ) : null}
 
-      {empty ? <Text style={[type.body, styles.muted]}>{t("home.empty")}</Text> : null}
+      {empty ? (
+        <View style={styles.section}>
+          <Text style={[type.body, styles.muted]}>{t("home.empty")}</Text>
+          <Text style={[type.title, styles.ink]}>{t("home.howTitle")}</Text>
+          {["home.step1", "home.step2", "home.step3"].map((key, index) => (
+            <View key={key} style={styles.step}>
+              <Text style={styles.stepNumber}>{index + 1}</Text>
+              <Text style={[type.body, styles.stepText]}>{t(key)}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.footer}>
         <PrimaryButton label={t("home.create")} onPress={() => router.push("/groups/new")} />
+        <LanguageSwitch />
         {/* Development only: the ID card barcode test (D35). */}
         {__DEV__ ? <TextButton label={t("idScan.title")} onPress={() => router.push("/id-scan-test")} /> : null}
         <TextButton label={t("home.logout")} onPress={() => void logOut()} />
       </View>
     </Screen>
+  );
+}
+
+// The line that matters this week in a running group: what she still owes,
+// and whether the pot is hers. Saffron marks only "your turn" (colors.ts).
+function ThisWeek({ group }: { group: GroupSummary }) {
+  const { t } = useTranslation();
+  const round = group.currentRound;
+  if (!round) return null;
+  const date = formatDay(round.dueDate);
+
+  return (
+    <View style={styles.week}>
+      {round.isMyTurn ? (
+        <Text style={styles.turn}>{t("home.yourTurn", { pot: formatFcfa(round.potFcfa), date })}</Text>
+      ) : null}
+      {round.myStatus === "PAID" ? (
+        <Text style={styles.paid}>{t("home.paidRound", { number: round.number })}</Text>
+      ) : round.myStatus === "PENDING" ? (
+        <Text style={styles.tag}>{t("home.paying")}</Text>
+      ) : (
+        <Text style={styles.owe}>{t("home.owe", { amount: formatFcfa(group.amountFcfa), date })}</Text>
+      )}
+    </View>
   );
 }
 
@@ -138,5 +177,32 @@ const styles = StyleSheet.create({
   state: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.indigo },
   tag: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.muted },
   cta: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.action },
-  footer: { marginTop: "auto", gap: 8 },
+  footer: { marginTop: "auto", gap: 12 },
+  week: { gap: 6, marginTop: 4 },
+  turn: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: colors.yourTurn,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  paid: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.paid },
+  owe: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.indigo },
+  step: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    overflow: "hidden",
+    textAlign: "center",
+    lineHeight: 28,
+    backgroundColor: colors.mist,
+    fontFamily: fonts.bodyBold,
+    color: colors.indigo,
+  },
+  stepText: { flex: 1, color: colors.ink },
 });

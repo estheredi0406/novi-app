@@ -14,7 +14,7 @@
   "language": {
     "title": "Choose your language",
     "lede": "Choose the language Novi speaks to you in. Tap the speaker to hear it.",
-    "later": "You can change this later in Me.",
+    "later": "You can change this later on your home screen.",
     "en": "English",
     "fr": "Français",
     "ee": "Eʋegbe",
@@ -142,7 +142,16 @@
     "youOrganise": "You organise this group",
     "empty": "You are not in a group yet. Create one, or ask an organiser to invite your number.",
     "create": "Create a group",
-    "logout": "Log out"
+    "logout": "Log out",
+    "howTitle": "How a Novi group works",
+    "step1": "Create a group, or wait for an organiser to invite your number.",
+    "step2": "Everyone reads the same rules and accepts them. The money is held by a microfinance institution, never by Novi.",
+    "step3": "Pay your share on each due day with mobile money. On your turn, you receive the whole pot.",
+    "language": "Language",
+    "owe": "You owe {{amount}} by {{date}}",
+    "paidRound": "Paid for round {{number}}",
+    "paying": "Your payment is on its way",
+    "yourTurn": "Your turn: you receive {{pot}} on {{date}}"
   },
   "days": {
     "1": "Monday",
@@ -192,7 +201,8 @@
     "monthDayLabel": "Day of the month (1 to 28)",
     "sizeLabel": "How many members, you included",
     "orderLabel": "Order of turns",
-    "potHint": "Each turn, one member receives {{pot}}."
+    "potHint": "Each turn, one member receives {{pot}}.",
+    "namePlaceholder": "e.g. Friday traders"
   },
   "newGroup": {
     "title": "New group",

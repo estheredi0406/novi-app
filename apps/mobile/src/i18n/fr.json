@@ -14,7 +14,7 @@
   "language": {
     "title": "Choisissez votre langue",
     "lede": "Choisissez la langue dans laquelle Novi vous parle. Touchez le haut-parleur pour l'écouter.",
-    "later": "Vous pourrez la changer plus tard dans Moi.",
+    "later": "Vous pourrez la changer plus tard sur votre écran d'accueil.",
     "en": "English",
     "fr": "Français",
     "ee": "Eʋegbe",
@@ -142,7 +142,16 @@
     "youOrganise": "Vous organisez ce groupe",
     "empty": "Vous n'êtes dans aucun groupe pour le moment. Créez-en un, ou demandez à la personne qui organise d'inviter votre numéro.",
     "create": "Créer un groupe",
-    "logout": "Se déconnecter"
+    "logout": "Se déconnecter",
+    "howTitle": "Comment fonctionne un groupe Novi",
+    "step1": "Créez un groupe, ou attendez qu'une personne qui organise invite votre numéro.",
+    "step2": "Tout le monde lit les mêmes règles et les accepte. L'argent est conservé par une institution de microfinance, jamais par Novi.",
+    "step3": "Payez votre part à chaque échéance par mobile money. À votre tour, vous recevez toute la cagnotte.",
+    "language": "Langue",
+    "owe": "Vous devez {{amount}} avant le {{date}}",
+    "paidRound": "Tour {{number}} payé",
+    "paying": "Votre paiement est en cours",
+    "yourTurn": "Votre tour : vous recevez {{pot}} le {{date}}"
   },
   "days": {
     "1": "lundi",
@@ -192,7 +201,8 @@
     "monthDayLabel": "Jour du mois (1 à 28)",
     "sizeLabel": "Combien de membres, vous comprise ou compris",
     "orderLabel": "Ordre des tours",
-    "potHint": "À chaque tour, un membre reçoit {{pot}}."
+    "potHint": "À chaque tour, un membre reçoit {{pot}}.",
+    "namePlaceholder": "ex. Vendeuses du vendredi"
   },
   "newGroup": {
     "title": "Nouveau groupe",

@@ -65,7 +65,7 @@ export function RulesForm({
   return (
     <View style={styles.form}>
       {withName ? (
-        <Field label={t("rules.name")} value={name} onChangeText={setName} maxLength={60} placeholder="Pagnes Assigamé" />
+        <Field label={t("rules.name")} value={name} onChangeText={setName} maxLength={60} placeholder={t("rules.namePlaceholder")} />
       ) : null}
 
       <Field
