@@ -117,6 +117,8 @@ export default function HomeScreen() {
 
       <View style={styles.footer}>
         <PrimaryButton label={t("home.create")} onPress={() => router.push("/groups/new")} />
+        {/* Development only: the ID card barcode test (D35). */}
+        {__DEV__ ? <TextButton label={t("idScan.title")} onPress={() => router.push("/id-scan-test")} /> : null}
         <TextButton label={t("home.logout")} onPress={() => void logOut()} />
       </View>
     </Screen>

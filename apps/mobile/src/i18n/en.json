@@ -301,6 +301,28 @@
     "paymentInProgress": "A payment request is already waiting on your phone. Confirm it there, or wait 5 minutes to ask again.",
     "paymentUnavailable": "The payment service is not answering right now. No money was taken. Try again in a few minutes."
   },
+  "idScan": {
+    "title": "ID card barcode test (development)",
+    "privacy": "Shows only how the code is laid out, never what it says. Nothing is stored or sent.",
+    "allowCamera": "Allow the camera",
+    "aim": "Hold the back of the card about 25 cm away, flat and steady, then zoom until the code fills the frame. Avoid reflections on the card.",
+    "length": "Characters",
+    "readable": "Readable",
+    "lines": "Lines",
+    "separators": "Separators",
+    "none": "none",
+    "digitRun": "Longest run of digits",
+    "dates": "Pieces that look like a date",
+    "capitalWords": "Words in capitals",
+    "hintAamva": "Starts like the AAMVA standard used on many driving licences.",
+    "hintMrz": "Contains '<<', like the machine-readable lines of a passport.",
+    "hintEncoded": "Mostly unreadable: the data is probably encoded or signed.",
+    "again": "Scan again",
+    "type": "Code type",
+    "zoom": "Zoom",
+    "torchOn": "Turn the light on",
+    "torchOff": "Turn the light off"
+  },
   "errors": {
     "validationFailed": "Something is missing or not in the right form. Please check and try again.",
     "unauthenticated": "Please log in again.",

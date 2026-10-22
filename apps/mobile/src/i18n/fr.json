@@ -301,6 +301,28 @@
     "paymentInProgress": "Une demande de paiement attend déjà sur votre téléphone. Confirmez-la, ou attendez 5 minutes pour en demander une autre.",
     "paymentUnavailable": "Le service de paiement ne répond pas pour le moment. Aucun argent n'a été prélevé. Réessayez dans quelques minutes."
   },
+  "idScan": {
+    "title": "Test du code de la carte d'identité (développement)",
+    "privacy": "Affiche seulement la forme du code, jamais son contenu. Rien n'est enregistré ni envoyé.",
+    "allowCamera": "Autoriser l'appareil photo",
+    "aim": "Tenez le dos de la carte à environ 25 cm, à plat et sans bouger, puis zoomez jusqu'à ce que le code remplisse le cadre. Évitez les reflets sur la carte.",
+    "length": "Caractères",
+    "readable": "Lisible",
+    "lines": "Lignes",
+    "separators": "Séparateurs",
+    "none": "aucun",
+    "digitRun": "Plus longue suite de chiffres",
+    "dates": "Éléments qui ressemblent à une date",
+    "capitalWords": "Mots en majuscules",
+    "hintAamva": "Commence comme la norme AAMVA de nombreux permis de conduire.",
+    "hintMrz": "Contient « << », comme les lignes lisibles par machine d'un passeport.",
+    "hintEncoded": "Surtout illisible : les données sont probablement encodées ou signées.",
+    "again": "Scanner à nouveau",
+    "type": "Type de code",
+    "zoom": "Zoom",
+    "torchOn": "Allumer la lumière",
+    "torchOff": "Éteindre la lumière"
+  },
   "errors": {
     "validationFailed": "Une information manque ou n'a pas le bon format. Vérifiez et réessayez.",
     "unauthenticated": "Veuillez vous reconnecter.",
