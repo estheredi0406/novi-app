@@ -151,7 +151,8 @@
     "owe": "You owe {{amount}} by {{date}}",
     "paidRound": "Paid for round {{number}}",
     "paying": "Your payment is on its way",
-    "yourTurn": "Your turn: you receive {{pot}} on {{date}}"
+    "yourTurn": "Your turn: you receive {{pot}} on {{date}}",
+    "record": "My savings record"
   },
   "days": {
     "1": "Monday",
@@ -336,6 +337,34 @@
     "zoom": "Zoom",
     "torchOn": "Turn the light on",
     "torchOff": "Turn the light off"
+  },
+  "record": {
+    "title": "My savings record",
+    "lede": "What your saving shows, in facts: no score. Only you see it, until you share it with a lender.",
+    "memberSince": "Member since",
+    "groups": "Groups",
+    "groupsValue": "{{joined}} ({{completed}} completed)",
+    "payments": "Payments made",
+    "onTime": "On time",
+    "late": "Late",
+    "missed": "Missed",
+    "saved": "Total saved",
+    "received": "Pots received",
+    "receivedValue": "{{count}} ({{amount}})",
+    "asOf": "As of {{date}}",
+    "groupLine": "{{mfi}} · {{amount}} · {{paid}} of {{due}} paid, {{onTime}} on time",
+    "completed": "cycle completed",
+    "shareTitle": "Share with a lender",
+    "shareHint": "The lender scans the code to see these facts, signed by Novi so they cannot be changed. It works for 30 days, and you can withdraw it at any time.",
+    "share": "Create a code for a lender",
+    "qrLabel": "Code for a lender to scan",
+    "validUntil": "Valid until {{date}}",
+    "notViewed": "Not opened yet",
+    "viewed_one": "Opened {{count}} time, last on {{date}}",
+    "viewed_other": "Opened {{count}} times, last on {{date}}",
+    "revoke": "Withdraw",
+    "revokeTitle": "Withdraw this code?",
+    "revokeMessage": "The lender will no longer see your record with it."
   },
   "errors": {
     "validationFailed": "Something is missing or not in the right form. Please check and try again.",

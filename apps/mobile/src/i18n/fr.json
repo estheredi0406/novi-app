@@ -151,7 +151,8 @@
     "owe": "Vous devez {{amount}} avant le {{date}}",
     "paidRound": "Tour {{number}} payé",
     "paying": "Votre paiement est en cours",
-    "yourTurn": "Votre tour : vous recevez {{pot}} le {{date}}"
+    "yourTurn": "Votre tour : vous recevez {{pot}} le {{date}}",
+    "record": "Mon relevé d'épargne"
   },
   "days": {
     "1": "lundi",
@@ -336,6 +337,34 @@
     "zoom": "Zoom",
     "torchOn": "Allumer la lumière",
     "torchOff": "Éteindre la lumière"
+  },
+  "record": {
+    "title": "Mon relevé d'épargne",
+    "lede": "Ce que montre votre épargne, en faits : aucune note. Vous seule ou seul le voyez, jusqu'à ce que vous le partagiez avec un prêteur.",
+    "memberSince": "Membre depuis",
+    "groups": "Groupes",
+    "groupsValue": "{{joined}} ({{completed}} terminés)",
+    "payments": "Paiements effectués",
+    "onTime": "À l'heure",
+    "late": "En retard",
+    "missed": "Manqués",
+    "saved": "Total épargné",
+    "received": "Cagnottes reçues",
+    "receivedValue": "{{count}} ({{amount}})",
+    "asOf": "Au {{date}}",
+    "groupLine": "{{mfi}} · {{amount}} · {{paid}} sur {{due}} payés, {{onTime}} à l'heure",
+    "completed": "cycle terminé",
+    "shareTitle": "Partager avec un prêteur",
+    "shareHint": "Le prêteur scanne le code pour voir ces faits, signés par Novi pour qu'ils ne puissent pas être modifiés. Il fonctionne 30 jours, et vous pouvez le retirer à tout moment.",
+    "share": "Créer un code pour un prêteur",
+    "qrLabel": "Code à scanner par un prêteur",
+    "validUntil": "Valable jusqu'au {{date}}",
+    "notViewed": "Pas encore ouvert",
+    "viewed_one": "Ouvert {{count}} fois, la dernière le {{date}}",
+    "viewed_other": "Ouvert {{count}} fois, la dernière le {{date}}",
+    "revoke": "Retirer",
+    "revokeTitle": "Retirer ce code ?",
+    "revokeMessage": "Le prêteur ne verra plus votre relevé avec ce code."
   },
   "errors": {
     "validationFailed": "Une information manque ou n'a pas le bon format. Vérifiez et réessayez.",
