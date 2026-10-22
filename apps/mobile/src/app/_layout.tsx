@@ -1,8 +1,10 @@
 import "../i18n";
 import { NotoSans_400Regular, NotoSans_600SemiBold, NotoSans_700Bold, useFonts } from "@expo-google-fonts/noto-sans";
 import { NotoSansDisplay_800ExtraBold } from "@expo-google-fonts/noto-sans-display";
+import { setAudioModeAsync } from "expo-audio";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import { SessionProvider, useSession } from "../session/SessionProvider";
 import { colors } from "../theme/colors";
 
@@ -41,6 +43,13 @@ export default function RootLayout() {
     NotoSans_700Bold,
     NotoSansDisplay_800ExtraBold,
   });
+  // Lets the Listen button speak even when the phone is on silent: a trader
+  // at the market often keeps her ringer off, and Listen is how some members
+  // read Novi. It plays only when she taps it.
+  useEffect(() => {
+    void setAudioModeAsync({ playsInSilentMode: true });
+  }, []);
+
   if (!fontsLoaded) return null;
 
   return (
