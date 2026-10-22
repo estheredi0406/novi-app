@@ -5,8 +5,8 @@ import { formatDay, formatFcfa } from "../lib/format";
 import { colors } from "../theme/colors";
 import { fonts, type } from "../theme/typography";
 
-// One round of the cycle: when it is due, whose turn it is, and how much is
-// in. Saffron marks the member whose turn it is, and only that (colors.ts);
+// One round of the cycle: when it is due, whose turn it is, how much is in,
+// and where the pot is once its day has come (Sprint 4). Saffron marks the member whose turn it is, and only that (colors.ts);
 // green marks only a payment that went through.
 export function RoundCard({ round, onPress }: { round: RoundSummary; onPress: () => void }) {
   const { t } = useTranslation();
@@ -32,6 +32,15 @@ export function RoundCard({ round, onPress }: { round: RoundSummary; onPress: ()
       <View style={styles.bar}>
         <View style={[styles.fill, { width: `${Math.round(share * 100)}%` }]} />
       </View>
+      {round.payoutStatus === "PAID" && round.paidOutAt ? (
+        <Text style={styles.paid}>
+          {t("money.payoutPaid", { name: round.beneficiaryName, date: formatDay(round.paidOutAt) })}
+        </Text>
+      ) : round.payoutStatus === "HELD" ? (
+        <Text style={styles.held}>{t("money.payoutHeld", { count: round.size - round.paidCount })}</Text>
+      ) : round.payoutStatus !== "NOT_DUE" ? (
+        <Text style={styles.label}>{t("money.payoutSending")}</Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -42,6 +51,7 @@ const styles = StyleSheet.create({
   top: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },
   paid: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.paid },
+  held: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.indigo },
   turn: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: colors.yourTurn },
   ink: { color: colors.ink },
   muted: { color: colors.muted },

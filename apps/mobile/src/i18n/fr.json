@@ -299,7 +299,11 @@
     "roundNotOpen": "Ce tour n'est pas encore ouvert. Vous pourrez le payer quand son tour viendra.",
     "alreadyPaid": "Vous avez déjà payé ce tour.",
     "paymentInProgress": "Une demande de paiement attend déjà sur votre téléphone. Confirmez-la, ou attendez 5 minutes pour en demander une autre.",
-    "paymentUnavailable": "Le service de paiement ne répond pas pour le moment. Aucun argent n'a été prélevé. Réessayez dans quelques minutes."
+    "paymentUnavailable": "Le service de paiement ne répond pas pour le moment. Aucun argent n'a été prélevé. Réessayez dans quelques minutes.",
+    "payoutPaid": "Cagnotte envoyée à {{name}} le {{date}}",
+    "payoutHeld_one": "Cagnotte retenue : il manque {{count}} paiement",
+    "payoutHeld_other": "Cagnotte retenue : il manque {{count}} paiements",
+    "payoutSending": "Cagnotte en cours d'envoi par l'IMF"
   },
   "idScan": {
     "title": "Test du code de la carte d'identité (développement)",

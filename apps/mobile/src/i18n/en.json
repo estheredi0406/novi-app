@@ -299,7 +299,11 @@
     "roundNotOpen": "This round is not open yet. You can pay it when its turn comes.",
     "alreadyPaid": "You have already paid this round.",
     "paymentInProgress": "A payment request is already waiting on your phone. Confirm it there, or wait 5 minutes to ask again.",
-    "paymentUnavailable": "The payment service is not answering right now. No money was taken. Try again in a few minutes."
+    "paymentUnavailable": "The payment service is not answering right now. No money was taken. Try again in a few minutes.",
+    "payoutPaid": "Pot sent to {{name}} on {{date}}",
+    "payoutHeld_one": "Pot held: waiting for {{count}} payment",
+    "payoutHeld_other": "Pot held: waiting for {{count}} payments",
+    "payoutSending": "Pot on its way through the MFI"
   },
   "idScan": {
     "title": "ID card barcode test (development)",
