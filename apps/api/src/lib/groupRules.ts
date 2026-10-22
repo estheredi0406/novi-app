@@ -195,3 +195,19 @@ export function checkCanPay(
   }
   return allowed;
 }
+
+// ---------- Paying out (Sprint 4) ----------
+
+export type PayoutDecision = "WAIT" | "HOLD" | "SEND";
+
+// What to do with a round's pot today (D48):
+// - WAIT before the due date: members expect the pot on the agreed day.
+// - SEND on or after the due date once every member has paid.
+// - HOLD on or after the due date while the pot is not full: nothing is sent
+//   short, and the payout leaves as soon as the last payment arrives.
+export function decidePayout(dueDate: Date, today: Date, paidCount: number, size: number): PayoutDecision {
+  const dueDay = Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate());
+  const day = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  if (day < dueDay) return "WAIT";
+  return paidCount >= size ? "SEND" : "HOLD";
+}

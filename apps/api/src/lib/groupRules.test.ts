@@ -7,6 +7,7 @@ import {
   checkCanPay,
   checkCanStartAnother,
   checkFixedOrder,
+  decidePayout,
   checkReadyToStart,
   checkRules,
   countsTowardLimit,
@@ -192,5 +193,22 @@ describe("paying a round (Sprint 3)", () => {
     });
     expect(checkCanPay(1, 1, { status: "PENDING", requestedAt: minutesAgo(6) }, now)).toEqual({ ok: true });
     expect(checkCanPay(1, 1, { status: "FAILED", requestedAt: minutesAgo(1) }, now)).toEqual({ ok: true });
+  });
+});
+
+describe("paying out a round (Sprint 4, D48)", () => {
+  const friday = new Date("2026-10-23T00:00:00Z");
+
+  it("waits until the due date, even when the pot is already full", () => {
+    expect(decidePayout(friday, new Date("2026-10-22T18:00:00Z"), 3, 3)).toBe("WAIT");
+  });
+
+  it("sends on the due date once every member has paid", () => {
+    expect(decidePayout(friday, new Date("2026-10-23T07:00:00Z"), 3, 3)).toBe("SEND");
+    expect(decidePayout(friday, new Date("2026-10-26T07:00:00Z"), 3, 3)).toBe("SEND");
+  });
+
+  it("holds a pot that is not full, instead of sending it short", () => {
+    expect(decidePayout(friday, new Date("2026-10-23T07:00:00Z"), 2, 3)).toBe("HOLD");
   });
 });
