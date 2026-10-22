@@ -6,6 +6,7 @@ import { groupsRouter } from "./routes/groups.js";
 import { healthRouter } from "./routes/health.js";
 import { invitationsRouter } from "./routes/invitations.js";
 import { meRouter } from "./routes/me.js";
+import { verifyApiRouter, verifyPageRouter } from "./routes/verify.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 
 // Builds the Express application without starting it,
@@ -25,6 +26,9 @@ app.use("/v1/me", meRouter);
 app.use("/v1/groups", groupsRouter);
 app.use("/v1/invitations", invitationsRouter);
 app.use("/v1/contributions", contributionsRouter);
+app.use("/v1/verify", verifyApiRouter);
+// The page a lender opens by scanning a shared record's QR code (D50).
+app.use("/verify", verifyPageRouter);
 
 // Must come last: turns every error into the standard error response.
 app.use(errorHandler);

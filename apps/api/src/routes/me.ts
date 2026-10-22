@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
 import { getProfile, updateProfile } from "../services/memberService.js";
+import { buildRecord, listShares, revokeShare, shareRecord } from "../services/recordService.js";
 
 export const meRouter = Router();
 
@@ -26,4 +27,25 @@ meRouter.get("/", async (_req, res) => {
 meRouter.patch("/", async (req, res) => {
   const changes = profileChanges.parse(req.body);
   res.json(await updateProfile(currentMember(res).userId, changes));
+});
+
+// ---------- Her savings record, the ACEV (Sprint 6) ----------
+
+// Only she sees her own record (D33).
+meRouter.get("/record", async (_req, res) => {
+  res.json(await buildRecord(currentMember(res).userId));
+});
+
+meRouter.get("/record/shares", async (_req, res) => {
+  res.json(await listShares(currentMember(res).userId));
+});
+
+// She shares it with a lender: a signed snapshot, valid 30 days (D50).
+meRouter.post("/record/shares", async (_req, res) => {
+  res.status(201).json(await shareRecord(currentMember(res).userId));
+});
+
+meRouter.post("/record/shares/:shareId/revoke", async (req, res) => {
+  const { shareId } = z.object({ shareId: z.string().uuid() }).parse(req.params);
+  res.json(await revokeShare(currentMember(res).userId, shareId));
 });
