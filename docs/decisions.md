@@ -136,6 +136,14 @@ D5 is enforced by PostgreSQL, not only by the code: a trigger on ledger_entries 
 ### D47. FedaPay is called directly, not through its Node library (21 Oct 2026)
 FedaPay's official Node library (fedapay 1.2.5) depends on axios 0.28, for which npm audit reports several high-severity advisories. Novi calls FedaPay's REST API with Node's built-in fetch instead (create the transaction, get a token, "send now" with mode moov_tg or togocel, read the status back), using the request and response shapes from the library's own tests. The adapter sits behind PaymentProvider (D3) and is selected with PAYMENT_PROVIDER=fedapay; it has not yet been run against the sandbox, which needs a FedaPay account and keys. Tests and the laptop use a mock that signs its webhooks the same way.
 
+## Sprint 4: Money out
+
+### D48. A pot is sent on its due date, and only when it is full (22 Oct 2026)
+On a round's due date Novi instructs the MFI to send the pot to the member whose turn it is. Before the due date nothing is sent, even if everyone has paid early: members expect the pot on the agreed day. If the day has passed and someone has not paid, the payout is HELD, never sent short, and every member sees "Pot held: waiting for 1 payment". The moment the last payment is confirmed, the held pot is released without waiting for the next run of the payout job. Considered: paying out a partial pot on time (rejected: the member whose turn it is would be short-changed by someone else's lateness, and the group would owe her the rest); a further hold rule from the brief, a payout number changed in the last 7 days, does not apply yet because a member's payout number is her verified Novi number, which cannot be changed in the app.
+
+### D49. Novi instructs, the MFI sends, each pot once, to her own number (22 Oct 2026)
+Novi never holds or moves the money (D2): it sends the MFI an instruction (the group's account, the amount, her verified number and her mobile money service), and the MFI sends the pot. Each round has one payout row, claimed before the MFI is called, so two runs of the job at the same moment cannot both instruct it; the MFI treats the same payout ID as the same transfer, and only a failed transfer is attempted again. A transfer the MFI accepts for later is checked on the next run. When the MFI confirms, one PAYOUT line is added to the ledger (D46) and she receives an SMS. When every round has been paid out, the group becomes COMPLETED, which is what lets its members start a third group (D27). To send a pot the MFI must receive the receiving member's number: the one personal detail it is given, and only for that purpose (D33). The job runs every minute while the API is up.
+
 ## Partners, money and data (20 Oct 2026)
 
 ### D33. The MFI sees group totals, not individual members; the ACEV is shared only at her request (20 Oct 2026)
