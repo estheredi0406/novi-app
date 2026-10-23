@@ -5,7 +5,9 @@ import { app } from "../app.js";
 import { prisma } from "../lib/db.js";
 import { payments } from "../providers/index.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
+import { base32Decode, codeForStep, totpStep } from "../lib/totp.js";
 import { runPayouts } from "../services/payoutService.js";
+import { createStaff } from "../services/staffService.js";
 import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
 
 if (!(payments instanceof MockPaymentProvider)) throw new Error("Tests require the mock payment provider.");
@@ -192,5 +194,71 @@ describe("sharing it with a lender (D50)", () => {
     expect(page.text).toContain("Relevé authentique et valide");
     expect(page.text).toContain("Abla &lt;script&gt;");
     expect(page.text).not.toContain("<script>alert(1)</script>");
+  });
+});
+
+// A logged-in officer of the given MFI, for records shared by name.
+async function officer(mfiCode: string, email: string) {
+  await prisma.mfi.upsert({ where: { code: mfiCode }, create: { code: mfiCode, name: `${mfiCode}-Togo` }, update: {} });
+  const { password, totpSecret } = await createStaff({ mfiCode, email, name: "Mawuli Adzo" });
+  const code = codeForStep(base32Decode(totpSecret), totpStep(Date.now()));
+  const login = await request(app).post("/v1/staff/login").send({ email, password, code });
+  return { client: as(login.body.accessToken), staffId: login.body.staff.id as string };
+}
+
+describe("sharing it with one MFI by name (D54)", () => {
+  it("lists the MFIs she can choose", async () => {
+    const { tokens } = await signedUpMember();
+    await prisma.mfi.create({ data: { code: "FUCEC", name: "FUCEC-Togo" } });
+    const lenders = (await as(tokens.accessToken).get("/v1/me/record/lenders")).body;
+    expect(lenders).toEqual([{ code: "FUCEC", name: "FUCEC-Togo" }]);
+  });
+
+  it("lets that MFI's officer open it in the console, and her see it was opened", async () => {
+    const { tokens } = await signedUpMember();
+    const akossiwa = as(tokens.accessToken);
+    const fucec = await officer("FUCEC", "mawuli@fucec.example");
+    const share = (await akossiwa.post("/v1/me/record/shares", { mfiCode: "FUCEC" })).body;
+    expect(share.sharedWith).toEqual({ code: "FUCEC", name: "FUCEC-Togo" });
+
+    const listed = (await fucec.client.get("/v1/console/records")).body;
+    expect(listed).toEqual([expect.objectContaining({ shareId: share.id, legalName: "Akossiwa Afi Mensah", views: 0 })]);
+    const opened = (await fucec.client.get(`/v1/console/records/${share.id}`)).body;
+    expect(opened).toMatchObject({ status: "VALID", record: { legalName: "Akossiwa Afi Mensah" } });
+
+    const [mine] = (await akossiwa.get("/v1/me/record/shares")).body;
+    expect(mine.views).toBe(1);
+    const view = await prisma.recordView.findFirstOrThrow({ where: { shareId: share.id } });
+    expect(view.staffId).toBe(fucec.staffId);
+  });
+
+  it("shows nothing to anyone else, even with the code", async () => {
+    const { tokens } = await signedUpMember();
+    await officer("FUCEC", "mawuli@fucec.example");
+    const wages = await officer("WAGES", "officer@wages.example");
+    const share = (await as(tokens.accessToken).post("/v1/me/record/shares", { mfiCode: "FUCEC" })).body;
+
+    const publicCheck = (await request(app).get(`/v1/verify/${share.id}`)).body;
+    expect(publicCheck).toMatchObject({ status: "PRIVATE", sharedWith: "FUCEC-Togo", record: null });
+    expect((await wages.client.get(`/v1/console/records/${share.id}`)).status).toBe(404);
+    expect((await wages.client.get("/v1/console/records")).body).toEqual([]);
+    expect(await prisma.recordView.count()).toBe(0);
+  });
+
+  it("disappears from the console once she withdraws it", async () => {
+    const { tokens } = await signedUpMember();
+    const akossiwa = as(tokens.accessToken);
+    const fucec = await officer("FUCEC", "mawuli@fucec.example");
+    const share = (await akossiwa.post("/v1/me/record/shares", { mfiCode: "FUCEC" })).body;
+    await akossiwa.post(`/v1/me/record/shares/${share.id}/revoke`);
+
+    expect((await fucec.client.get("/v1/console/records")).body).toEqual([]);
+    expect((await fucec.client.get(`/v1/console/records/${share.id}`)).body).toMatchObject({ status: "REVOKED", record: null });
+  });
+
+  it("refuses an MFI that does not exist", async () => {
+    const { tokens } = await signedUpMember();
+    const res = await as(tokens.accessToken).post("/v1/me/record/shares", { mfiCode: "NOPE" });
+    expect(res.status).toBe(404);
   });
 });

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
 import { getProfile, updateProfile } from "../services/memberService.js";
-import { buildRecord, listShares, revokeShare, shareRecord } from "../services/recordService.js";
+import { buildRecord, listLenders, listShares, revokeShare, shareRecord } from "../services/recordService.js";
 
 export const meRouter = Router();
 
@@ -40,9 +40,18 @@ meRouter.get("/record/shares", async (_req, res) => {
   res.json(await listShares(currentMember(res).userId));
 });
 
-// She shares it with a lender: a signed snapshot, valid 30 days (D50).
-meRouter.post("/record/shares", async (_req, res) => {
-  res.status(201).json(await shareRecord(currentMember(res).userId));
+// The MFIs she can share with by name (D54).
+meRouter.get("/record/lenders", async (_req, res) => {
+  res.json(await listLenders());
+});
+
+// She shares it: a signed snapshot, valid 30 days (D50), with one MFI by its
+// code (D54), or as a code for any lender when mfiCode is left out.
+const shareBody = z.object({ mfiCode: z.string().min(1).max(20).optional() }).strict();
+
+meRouter.post("/record/shares", async (req, res) => {
+  const { mfiCode } = shareBody.parse(req.body ?? {});
+  res.status(201).json(await shareRecord(currentMember(res).userId, mfiCode));
 });
 
 meRouter.post("/record/shares/:shareId/revoke", async (req, res) => {

@@ -39,6 +39,7 @@ const STATUS_TEXT: Record<RecordVerification["status"], string> = {
   EXPIRED: "Ce partage a expiré / This share has expired",
   REVOKED: "Ce partage a été retiré par son titulaire / Withdrawn by its holder",
   TAMPERED: "Signature invalide : ne pas utiliser / Invalid signature: do not rely on it",
+  PRIVATE: "Partagé avec une seule institution / Shared with one institution only",
 };
 
 function renderPage(check: RecordVerification): string {
@@ -72,6 +73,7 @@ table{width:100%;border-collapse:collapse;margin-top:16px}td{padding:8px 0;borde
 small{color:#4B5070}</style></head><body>
 <h1>Novi : relevé d'épargne / savings record</h1>
 <p class="status">${escape(STATUS_TEXT[check.status])}</p>
+${check.status === "PRIVATE" && check.sharedWith ? `<p>${escape(check.sharedWith)} : consultable par son personnel dans la console Novi / its staff can open it in the Novi console.</p>` : ""}
 ${rows.length ? `<table>${rows.map(([k, v]) => `<tr><td>${escape(k)}</td><td>${escape(v)}</td></tr>`).join("")}</table>` : ""}
 ${groups ? `<h2>Groupes / Groups</h2><ul>${groups}</ul>` : ""}
 <p><small>Émis le / issued ${escape(day(check.issuedAt))} · valable jusqu'au / valid until ${escape(day(check.expiresAt))} · signé par Novi (Ed25519). Faits seulement, aucun score. Facts only, no score.</small></p>

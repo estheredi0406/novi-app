@@ -1,4 +1,4 @@
-import type { RecordGroup, RecordShareView, RecordVerification, SavingsRecord } from "@novi/shared";
+import type { ConsoleSharedRecord, Lender, RecordGroup, RecordShareView, RecordVerification, SavingsRecord } from "@novi/shared";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { publicKeyPem, signRecord, verifyRecord } from "../lib/recordSigning.js";
@@ -99,12 +99,20 @@ export async function buildRecord(userId: string, now = new Date()): Promise<Sav
 
 // ---------- Sharing (D50) ----------
 
-type ShareRow = { id: string; issuedAt: Date; expiresAt: Date; revokedAt: Date | null; views: { viewedAt: Date }[] };
+type ShareRow = {
+  id: string;
+  issuedAt: Date;
+  expiresAt: Date;
+  revokedAt: Date | null;
+  mfi: { code: string; name: string } | null;
+  views: { viewedAt: Date }[];
+};
 
 function toShareView(share: ShareRow): RecordShareView {
   const last = share.views.at(0);
   return {
     id: share.id,
+    sharedWith: share.mfi && { code: share.mfi.code, name: share.mfi.name },
     issuedAt: share.issuedAt.toISOString(),
     expiresAt: share.expiresAt.toISOString(),
     revokedAt: share.revokedAt?.toISOString() ?? null,
@@ -113,10 +121,22 @@ function toShareView(share: ShareRow): RecordShareView {
   };
 }
 
-const withViews = { views: { orderBy: { viewedAt: "desc" as const }, select: { viewedAt: true } } };
+const withViews = {
+  views: { orderBy: { viewedAt: "desc" as const }, select: { viewedAt: true } },
+  mfi: { select: { code: true, name: true } },
+};
 
-// She shares her record: Novi freezes it as it is today and signs it.
-export async function shareRecord(userId: string): Promise<RecordShareView> {
+// The institutions she can share with by name: Novi's partner MFIs (D36).
+export async function listLenders(): Promise<Lender[]> {
+  return prisma.mfi.findMany({ select: { code: true, name: true }, orderBy: { name: "asc" } });
+}
+
+// She shares her record: Novi freezes it as it is today and signs it. With an
+// MFI's code, only that MFI's staff can open it, in the console (D54);
+// without, it is a code any lender she hands it to can open (D50).
+export async function shareRecord(userId: string, mfiCode?: string): Promise<RecordShareView> {
+  const mfi = mfiCode ? await prisma.mfi.findUnique({ where: { code: mfiCode } }) : null;
+  if (mfiCode && !mfi) throw new AppError("NOT_FOUND", 404);
   const now = new Date();
   const payloadText = JSON.stringify(await buildRecord(userId, now));
   const share = await prisma.recordShare.create({
@@ -126,10 +146,13 @@ export async function shareRecord(userId: string): Promise<RecordShareView> {
       signature: signRecord(payloadText),
       issuedAt: now,
       expiresAt: new Date(now.getTime() + SHARE_DAYS * DAY_MS),
+      mfiId: mfi?.id ?? null,
     },
     include: withViews,
   });
-  await prisma.auditEvent.create({ data: { userId, type: "RECORD_SHARED", details: { shareId: share.id } } });
+  await prisma.auditEvent.create({
+    data: { userId, type: "RECORD_SHARED", details: { shareId: share.id, mfi: mfi?.code ?? null } },
+  });
   return toShareView(share);
 }
 
@@ -147,19 +170,57 @@ export async function revokeShare(userId: string, shareId: string): Promise<Reco
   return toShareView(await prisma.recordShare.findUniqueOrThrow({ where: { id: shareId }, include: withViews }));
 }
 
+// Who is opening a record shared with an MFI: one of its officers (D54).
+type StaffViewer = { staffId: string; mfiId: string };
+
 // A lender opens a shared record. Every opening is logged, so she can see it
 // was looked at (D37). The facts are shown only while the share is valid and
-// its signature still matches.
-export async function verifyShare(shareId: string, now = new Date()): Promise<RecordVerification> {
-  const share = await prisma.recordShare.findUnique({ where: { id: shareId } });
+// its signature still matches. A record shared with one MFI shows nothing to
+// anyone else, not even with its code: only "shared with FUCEC-Togo" (D54).
+export async function verifyShare(shareId: string, now = new Date(), viewer?: StaffViewer): Promise<RecordVerification> {
+  const share = await prisma.recordShare.findUnique({ where: { id: shareId }, include: { mfi: true } });
   if (!share) throw new AppError("NOT_FOUND", 404);
-  await prisma.recordView.create({ data: { shareId } });
 
-  const base = { issuer: "Novi" as const, issuedAt: share.issuedAt.toISOString(), expiresAt: share.expiresAt.toISOString() };
+  const base = {
+    issuer: "Novi" as const,
+    issuedAt: share.issuedAt.toISOString(),
+    expiresAt: share.expiresAt.toISOString(),
+    sharedWith: share.mfi?.name ?? null,
+  };
+  if (share.mfiId && share.mfiId !== viewer?.mfiId) return { ...base, status: "PRIVATE", record: null };
+  await prisma.recordView.create({ data: { shareId, staffId: viewer?.staffId ?? null } });
+
   if (!verifyRecord(share.payloadText, share.signature)) return { ...base, status: "TAMPERED", record: null };
   if (share.revokedAt) return { ...base, status: "REVOKED", record: null };
   if (share.expiresAt <= now) return { ...base, status: "EXPIRED", record: null };
   return { ...base, status: "VALID", record: JSON.parse(share.payloadText) as SavingsRecord };
+}
+
+// ---------- In the MFI console (D54) ----------
+
+// Records members shared with this MFI by name and have not withdrawn,
+// newest first. Expired ones stay listed, so the officer sees why one stopped.
+export async function listSharedWithMfi(mfiId: string): Promise<ConsoleSharedRecord[]> {
+  const shares = await prisma.recordShare.findMany({
+    where: { mfiId, revokedAt: null },
+    orderBy: { issuedAt: "desc" },
+    include: { _count: { select: { views: true } } },
+  });
+  return shares.map((share) => ({
+    shareId: share.id,
+    legalName: (JSON.parse(share.payloadText) as SavingsRecord).legalName,
+    issuedAt: share.issuedAt.toISOString(),
+    expiresAt: share.expiresAt.toISOString(),
+    views: share._count.views,
+  }));
+}
+
+// An officer opens one: the same check as the public page, but as this MFI.
+// A share for another MFI answers 404, as if it did not exist.
+export async function openSharedRecord(viewer: StaffViewer, shareId: string): Promise<RecordVerification> {
+  const share = await prisma.recordShare.findUnique({ where: { id: shareId }, select: { mfiId: true } });
+  if (!share || share.mfiId !== viewer.mfiId) throw new AppError("NOT_FOUND", 404);
+  return verifyShare(shareId, new Date(), viewer);
 }
 
 export { publicKeyPem };
