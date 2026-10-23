@@ -29,9 +29,13 @@ export type SavingsRecord = {
   groups: RecordGroup[];
 };
 
+// An institution she can share her record with by name (D54).
+export type Lender = { code: string; name: string };
+
 // A signed snapshot she shared with a lender (D50).
 export type RecordShareView = {
   id: string; // also the code in the QR
+  sharedWith: Lender | null; // one MFI only (D54), or null for a code any lender can open
   issuedAt: string;
   expiresAt: string;
   revokedAt: string | null;
@@ -41,7 +45,9 @@ export type RecordShareView = {
 
 // What a lender sees when checking a shared record.
 export type RecordVerification = {
-  status: "VALID" | "EXPIRED" | "REVOKED" | "TAMPERED";
+  // PRIVATE: shared with one MFI only, and this viewer is not its staff (D54).
+  status: "VALID" | "EXPIRED" | "REVOKED" | "TAMPERED" | "PRIVATE";
+  sharedWith: string | null; // the MFI's name, for a record shared with one
   issuer: "Novi";
   issuedAt: string;
   expiresAt: string;
