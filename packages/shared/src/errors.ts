@@ -53,6 +53,12 @@ export const errors = {
   // Invitations
   ALREADY_INVITED: { messageKey: "groups.alreadyInvited" },
   CANNOT_REMOVE_ORGANISER: { messageKey: "groups.cannotRemoveOrganiser" },
+
+  // MFI console (Sprint 5). One code for any wrong email, password or
+  // authenticator code, so a failed login never says which part was wrong.
+  STAFF_LOGIN_FAILED: { messageKey: "staff.loginFailed" },
+  STAFF_LOCKED: { messageKey: "staff.locked" },
+  STAFF_ONLY: { messageKey: "staff.staffOnly" },
 } as const;
 
 // The allowed error codes, derived from the list above so the two never drift apart.

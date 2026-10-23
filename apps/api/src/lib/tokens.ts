@@ -70,3 +70,32 @@ export async function verifyStepToken(token: string, purpose: StepPurpose): Prom
     return null;
   }
 }
+// ---------- MFI staff (Sprint 5) ----------
+
+const STAFF_AUDIENCE = "novi-staff";
+
+export type StaffClaims = { staffId: string; sessionId: string };
+
+// A console token: its own audience, so a staff token can never be used on a
+// member route, nor a member token on the console (D52). It lasts a working
+// day; the session row lets logout end it earlier.
+export async function createStaffToken(claims: StaffClaims, expiresAt: Date): Promise<string> {
+  return new SignJWT({ sid: claims.sessionId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(claims.staffId)
+    .setIssuer(ISSUER)
+    .setAudience(STAFF_AUDIENCE)
+    .setIssuedAt()
+    .setExpirationTime(Math.floor(expiresAt.getTime() / 1000))
+    .sign(secret);
+}
+
+export async function verifyStaffToken(token: string): Promise<StaffClaims | null> {
+  try {
+    const { payload } = await jwtVerify(token, secret, { issuer: ISSUER, audience: STAFF_AUDIENCE });
+    if (typeof payload.sub !== "string" || typeof payload.sid !== "string") return null;
+    return { staffId: payload.sub, sessionId: payload.sid };
+  } catch {
+    return null;
+  }
+}

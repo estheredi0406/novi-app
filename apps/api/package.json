@@ -10,7 +10,8 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate dev && prisma generate",
-    "demo:group": "tsx src/scripts/demoGroup.ts"
+    "demo:group": "tsx src/scripts/demoGroup.ts",
+    "staff:create": "tsx src/scripts/createStaff.ts"
   },
   "devDependencies": {
     "@novi/shared": "*",

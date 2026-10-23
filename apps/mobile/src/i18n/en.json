@@ -366,6 +366,11 @@
     "revokeTitle": "Withdraw this code?",
     "revokeMessage": "The lender will no longer see your record with it."
   },
+  "staff": {
+    "loginFailed": "Email, password or code not recognised.",
+    "locked": "Too many tries. Try again later.",
+    "staffOnly": "For MFI staff only."
+  },
   "errors": {
     "validationFailed": "Something is missing or not in the right form. Please check and try again.",
     "unauthenticated": "Please log in again.",

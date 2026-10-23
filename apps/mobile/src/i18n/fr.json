@@ -366,6 +366,11 @@
     "revokeTitle": "Retirer ce code ?",
     "revokeMessage": "Le prêteur ne verra plus votre relevé avec ce code."
   },
+  "staff": {
+    "loginFailed": "E-mail, mot de passe ou code non reconnu.",
+    "locked": "Trop d'essais. Réessayez plus tard.",
+    "staffOnly": "Réservé au personnel de l'IMF."
+  },
   "errors": {
     "validationFailed": "Une information manque ou n'a pas le bon format. Vérifiez et réessayez.",
     "unauthenticated": "Veuillez vous reconnecter.",

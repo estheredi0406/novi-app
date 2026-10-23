@@ -6,6 +6,7 @@ import { groupsRouter } from "./routes/groups.js";
 import { healthRouter } from "./routes/health.js";
 import { invitationsRouter } from "./routes/invitations.js";
 import { meRouter } from "./routes/me.js";
+import { staffRouter } from "./routes/staff.js";
 import { verifyApiRouter, verifyPageRouter } from "./routes/verify.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 
@@ -26,6 +27,8 @@ app.use("/v1/me", meRouter);
 app.use("/v1/groups", groupsRouter);
 app.use("/v1/invitations", invitationsRouter);
 app.use("/v1/contributions", contributionsRouter);
+// The MFI console (Sprint 5): staff only, with their own tokens (D52).
+app.use("/v1/staff", staffRouter);
 app.use("/v1/verify", verifyApiRouter);
 // The page a lender opens by scanning a shared record's QR code (D50).
 app.use("/verify", verifyPageRouter);
