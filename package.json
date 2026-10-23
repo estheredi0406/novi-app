@@ -13,6 +13,7 @@
     "test": "npm run build:shared && npm run test --workspaces --if-present",
     "dev:api": "npm run build:shared && npm run dev --workspace @novi/api",
     "dev:mobile": "npm run build:shared && npm run start --workspace @novi/mobile",
+    "dev:console": "npm run build:shared && npm run dev --workspace @novi/console",
     "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present"
   },
   "dependencies": {
