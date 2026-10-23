@@ -355,8 +355,8 @@
     "groupLine": "{{mfi}} · {{amount}} · {{paid}} sur {{due}} payés, {{onTime}} à l'heure",
     "completed": "cycle terminé",
     "shareTitle": "Partager avec un prêteur",
-    "shareHint": "Le prêteur scanne le code pour voir ces faits, signés par Novi pour qu'ils ne puissent pas être modifiés. Il fonctionne 30 jours, et vous pouvez le retirer à tout moment.",
-    "share": "Créer un code pour un prêteur",
+    "shareHint": "Signé par Novi. Valable 30 jours. Vous pouvez le retirer.",
+    "share": "Code QR pour un autre prêteur",
     "qrLabel": "Code à scanner par un prêteur",
     "validUntil": "Valable jusqu'au {{date}}",
     "notViewed": "Pas encore ouvert",
@@ -364,7 +364,9 @@
     "viewed_other": "Ouvert {{count}} fois, la dernière le {{date}}",
     "revoke": "Retirer",
     "revokeTitle": "Retirer ce code ?",
-    "revokeMessage": "Le prêteur ne verra plus votre relevé avec ce code."
+    "revokeMessage": "Le prêteur ne verra plus votre relevé avec ce code.",
+    "shareWith": "Partager avec {{name}}",
+    "sharedWith": "Partagé avec {{name}}"
   },
   "staff": {
     "loginFailed": "E-mail, mot de passe ou code non reconnu.",

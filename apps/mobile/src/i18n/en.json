@@ -355,8 +355,8 @@
     "groupLine": "{{mfi}} · {{amount}} · {{paid}} of {{due}} paid, {{onTime}} on time",
     "completed": "cycle completed",
     "shareTitle": "Share with a lender",
-    "shareHint": "The lender scans the code to see these facts, signed by Novi so they cannot be changed. It works for 30 days, and you can withdraw it at any time.",
-    "share": "Create a code for a lender",
+    "shareHint": "Signed by Novi. Lasts 30 days. You can withdraw it.",
+    "share": "QR code for another lender",
     "qrLabel": "Code for a lender to scan",
     "validUntil": "Valid until {{date}}",
     "notViewed": "Not opened yet",
@@ -364,7 +364,9 @@
     "viewed_other": "Opened {{count}} times, last on {{date}}",
     "revoke": "Withdraw",
     "revokeTitle": "Withdraw this code?",
-    "revokeMessage": "The lender will no longer see your record with it."
+    "revokeMessage": "The lender will no longer see your record with it.",
+    "shareWith": "Share with {{name}}",
+    "sharedWith": "Shared with {{name}}"
   },
   "staff": {
     "loginFailed": "Email, password or code not recognised.",

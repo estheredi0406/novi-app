@@ -1,9 +1,9 @@
-import type { RecordShareView, SavingsRecord } from "@novi/shared";
+import type { Lender, RecordShareView, SavingsRecord } from "@novi/shared";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
-import { getRecord, listShares, revokeShare, shareRecord, verifyUrl } from "../../api/record";
+import { getRecord, listLenders, listShares, revokeShare, shareRecord, verifyUrl } from "../../api/record";
 import { BackHeader } from "../../components/BackHeader";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { PrimaryButton } from "../../components/PrimaryButton";
@@ -15,28 +15,31 @@ import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
 
 // Her savings record, the ACEV (Sprint 6): facts, never a score. Only she
-// sees it until she shares it with a lender (D33). A share is a signed
-// snapshot the lender checks by scanning the QR code; it lasts 30 days, she
-// can withdraw it, and she sees each time it was opened (D50).
+// sees it until she shares it (D33). She can share it with one MFI by name,
+// whose staff then see it in their console (D54), or create a QR code for any
+// lender (D50). Each share lasts 30 days, can be withdrawn, and she sees each
+// time it was opened.
 export default function RecordScreen() {
   const { t } = useTranslation();
   const [record, setRecord] = useState<SavingsRecord | null>(null);
   const [shares, setShares] = useState<RecordShareView[]>([]);
+  const [lenders, setLenders] = useState<Lender[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     getRecord().then(setRecord, (err: unknown) => setError(errorKey(err)));
     listShares().then(setShares, (err: unknown) => setError(errorKey(err)));
+    listLenders().then(setLenders, (err: unknown) => setError(errorKey(err)));
   }, []);
 
   useEffect(load, [load]);
 
-  async function share() {
+  async function share(mfiCode?: string) {
     setBusy(true);
     setError(null);
     try {
-      await shareRecord();
+      await shareRecord(mfiCode);
       load();
     } catch (err) {
       setError(errorKey(err));
@@ -117,7 +120,11 @@ export default function RecordScreen() {
         <Text style={[type.small, styles.muted]}>{t("record.shareHint")}</Text>
         {active.map((s) => (
           <View key={s.id} style={styles.card}>
-            <QrCode value={verifyUrl(s.id)} label={t("record.qrLabel")} />
+            {s.sharedWith ? (
+              <Text style={[type.title, styles.ink]}>{t("record.sharedWith", { name: s.sharedWith.name })}</Text>
+            ) : (
+              <QrCode value={verifyUrl(s.id)} label={t("record.qrLabel")} />
+            )}
             <Text style={[type.small, styles.ink]}>{t("record.validUntil", { date: formatDay(s.expiresAt) })}</Text>
             <Text style={[type.small, styles.muted]}>
               {s.views === 0
@@ -127,7 +134,15 @@ export default function RecordScreen() {
             <TextButton label={t("record.revoke")} onPress={() => confirmRevoke(s.id)} />
           </View>
         ))}
-        <PrimaryButton label={t("record.share")} onPress={() => void share()} disabled={busy} />
+        {lenders.map((lender) => (
+          <PrimaryButton
+            key={lender.code}
+            label={t("record.shareWith", { name: lender.name })}
+            onPress={() => void share(lender.code)}
+            disabled={busy}
+          />
+        ))}
+        <TextButton label={t("record.share")} onPress={() => void share()} />
       </View>
     </Screen>
   );
