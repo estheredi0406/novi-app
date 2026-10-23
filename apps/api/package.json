@@ -9,7 +9,8 @@
     "test": "vitest run",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "db:migrate": "prisma migrate dev && prisma generate"
+    "db:migrate": "prisma migrate dev && prisma generate",
+    "demo:group": "tsx src/scripts/demoGroup.ts"
   },
   "devDependencies": {
     "@novi/shared": "*",

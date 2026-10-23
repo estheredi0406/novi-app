@@ -22,6 +22,15 @@ const MODES: Record<MobileOperator, string> = { MOOV_TG: "moov_tg", TOGOCEL: "to
 
 type FedaPayTransaction = { id: number; status: string; amount: number };
 
+// Sandbox only. FedaPay's sandbox publishes test numbers for Benin only
+// (MTN 66000001, Moov 64000001 succeed), and it refuses a Togolese number
+// with "Opération non autorisée". With this set, the payment request (step 3)
+// goes to that test number instead of the member's own, so a full payment can
+// be watched end to end. With mode "page", no request is sent to a phone:
+// the API prints FedaPay's payment page instead. Never used in live mode, where she pays from her own
+// verified number (D49).
+export type SandboxPayer = { mode: string; country: string; number: string };
+
 export class FedaPayProvider implements PaymentProvider {
   readonly name = "fedapay";
 
@@ -29,7 +38,10 @@ export class FedaPayProvider implements PaymentProvider {
     private readonly secretKey: string,
     private readonly webhookSecret: string,
     private readonly baseUrl = "https://sandbox-api.fedapay.com",
-  ) {}
+    private readonly sandboxPayer?: SandboxPayer,
+  ) {
+    if (sandboxPayer && !baseUrl.includes("sandbox")) throw new Error("A sandbox test payer cannot be used in live mode.");
+  }
 
   private async call<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
     const res = await fetch(`${this.baseUrl}/v1${path}`, {
@@ -38,12 +50,21 @@ export class FedaPayProvider implements PaymentProvider {
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(15_000),
     });
-    if (!res.ok) throw new Error(`FedaPay ${method} ${path} answered ${res.status}`);
+    if (!res.ok) {
+      // FedaPay explains a refusal in the body (for example which field it
+      // rejected). It is kept in the error, cut short, so the API log says
+      // why; the body never contains the secret key.
+      const reason = (await res.text()).slice(0, 500);
+      throw new Error(`FedaPay ${method} ${path} answered ${res.status}: ${reason}`);
+    }
     return (await res.json()) as T;
   }
 
   async requestCollection(request: CollectionRequest): Promise<{ providerRef: string }> {
-    const phoneNumber = { number: request.phone, country: "tg" };
+    // In the sandbox with a test payer, the customer gets the test number too:
+    // FedaPay's payment page locks the country to the customer's.
+    const test = this.sandboxPayer?.number ? this.sandboxPayer : undefined;
+    const phoneNumber = test ? { number: test.number, country: test.country } : { number: request.phone, country: "tg" };
     const created = await this.call<{ "v1/transaction": FedaPayTransaction }>("POST", "/transactions", {
       description: request.description,
       amount: request.amountFcfa,
@@ -59,8 +80,19 @@ export class FedaPayProvider implements PaymentProvider {
     });
     const transaction = created["v1/transaction"];
 
-    const { token } = await this.call<{ token: string }>("POST", `/transactions/${transaction.id}/token`);
-    await this.call("POST", `/${MODES[request.operator]}`, { token, phone_number: phoneNumber });
+    const { token, url } = await this.call<{ token: string; url?: string }>("POST", `/transactions/${transaction.id}/token`);
+    if (this.sandboxPayer?.mode === "page") {
+      // Sandbox only: skips the request to a phone and prints FedaPay's own
+      // payment page instead. Paying there with a test number completes the
+      // transaction, and Novi then sees it as paid when it checks the status.
+      console.warn(`[fedapay sandbox] open this page to pay with a test number: ${url ?? "(no url returned)"}`);
+    } else if (this.sandboxPayer) {
+      const { mode, country, number } = this.sandboxPayer;
+      console.warn(`[fedapay sandbox] payment request sent to test number ${number} (${mode}), not ${request.phone}`);
+      await this.call("POST", `/${mode}`, { token, phone_number: { number, country } });
+    } else {
+      await this.call("POST", `/${MODES[request.operator]}`, { token, phone_number: phoneNumber });
+    }
     return { providerRef: String(transaction.id) };
   }
 

@@ -23,7 +23,14 @@ function choosePayments(): PaymentProvider {
     if (!FEDAPAY_SECRET_KEY || !FEDAPAY_WEBHOOK_SECRET) {
       throw new Error("PAYMENT_PROVIDER=fedapay needs FEDAPAY_SECRET_KEY and FEDAPAY_WEBHOOK_SECRET in .env.");
     }
-    return new FedaPayProvider(FEDAPAY_SECRET_KEY, FEDAPAY_WEBHOOK_SECRET);
+    // Optional, sandbox only: FEDAPAY_SANDBOX_PAYER="moov:bj:64000001" sends
+    // every payment request to that FedaPay test number (see SandboxPayer).
+    const [mode, country, number] = (process.env.FEDAPAY_SANDBOX_PAYER ?? "").split(":");
+    // FEDAPAY_SANDBOX_PAYER="page:bj:66000001" prints FedaPay's payment page
+    // instead, set up for that test number.
+    const sandboxPayer =
+      mode === "page" && !number ? { mode, country: "", number: "" } : mode && country && number ? { mode, country, number } : undefined;
+    return new FedaPayProvider(FEDAPAY_SECRET_KEY, FEDAPAY_WEBHOOK_SECRET, undefined, sandboxPayer);
   }
   const delayMs = Number(MOCK_PAYMENTS_CONFIRM_MS);
   return new MockPaymentProvider(
