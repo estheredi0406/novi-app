@@ -252,8 +252,9 @@ model Mfi {
   name      String   // shown to members on every money screen
   createdAt DateTime @default(now())
 
-  groups Group[]
-  staff  StaffUser[]
+  groups       Group[]
+  staff        StaffUser[]
+  recordShares RecordShare[]
 
   @@map("mfis")
 }
@@ -484,22 +485,28 @@ model RecordShare {
   issuedAt    DateTime  @default(now())
   expiresAt   DateTime
   revokedAt   DateTime?
+  mfiId       String? // shared with this MFI only (D54); empty for a code any lender can open
 
   user  User         @relation(fields: [userId], references: [id])
+  mfi   Mfi?         @relation(fields: [mfiId], references: [id])
   views RecordView[]
 
   @@index([userId, issuedAt])
+  @@index([mfiId, issuedAt])
   @@map("record_shares")
 }
 
 // Every time a shared record is opened (D37): she can see when her record
-// was looked at. No details of the viewer are kept.
+// was looked at. For a record shared with an MFI, the officer who opened it
+// is kept too (D54); for a code, no details of the viewer are kept.
 model RecordView {
   id       String   @id @default(uuid())
   shareId  String
+  staffId  String?
   viewedAt DateTime @default(now())
 
   share RecordShare @relation(fields: [shareId], references: [id])
+  staff StaffUser?  @relation(fields: [staffId], references: [id])
 
   @@index([shareId, viewedAt])
   @@map("record_views")
@@ -531,8 +538,9 @@ model StaffUser {
   lastLoginAt    DateTime?
   createdAt      DateTime  @default(now())
 
-  mfi      Mfi            @relation(fields: [mfiId], references: [id])
-  sessions StaffSession[]
+  mfi         Mfi            @relation(fields: [mfiId], references: [id])
+  sessions    StaffSession[]
+  recordViews RecordView[]
 
   @@map("staff_users")
 }
