@@ -253,6 +253,7 @@ model Mfi {
   createdAt DateTime @default(now())
 
   groups Group[]
+  staff  StaffUser[]
 
   @@map("mfis")
 }
@@ -502,4 +503,50 @@ model RecordView {
 
   @@index([shareId, viewedAt])
   @@map("record_views")
+}
+
+//----------------MFI staff (Sprint 5)----------------------------
+
+// What a staff member may do in the console. Every staff member sees only
+// their own MFI's groups (D52).
+enum StaffRole {
+  OFFICER // sees groups, held and failed payouts, shared records; retries failed transfers
+  ADMIN // the same, and later manages the MFI's staff accounts
+}
+
+// An officer of a partner MFI who uses the console. Logs in with email,
+// password and a code from an authenticator app (D52). Not a member: staff
+// accounts and member accounts never share a table or a token.
+model StaffUser {
+  id             String    @id @default(uuid())
+  mfiId          String
+  email          String    @unique // stored in lower case
+  name           String
+  role           StaffRole @default(OFFICER)
+  passwordHash   String // the password itself is never stored
+  totpSecret     String // base32 secret shared with the authenticator app
+  lastTotpStep   Int? // the last 30-second step used, so a code works only once
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  mfi      Mfi            @relation(fields: [mfiId], references: [id])
+  sessions StaffSession[]
+
+  @@map("staff_users")
+}
+
+// One console login, valid for a working day. Logging out revokes it at once.
+model StaffSession {
+  id        String    @id @default(uuid())
+  staffId   String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  staff StaffUser @relation(fields: [staffId], references: [id])
+
+  @@index([staffId])
+  @@map("staff_sessions")
 }
