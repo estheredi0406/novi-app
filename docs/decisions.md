@@ -157,6 +157,9 @@ A partner MFI's officers use a web console, not the member app. Each staff accou
 ### D53. An officer sees a held pot but cannot release it short (23 Oct 2026)
 A pot held because it is not full (D48) appears in the console with how many payments are missing and since when, but not who is missing (D33). The officer cannot send it short: following up a late payment stays within the group, as in a tontine, and the pot leaves on its own as soon as the last payment arrives. The officer can retry a transfer that failed (D49), since that is the MFI's own operation. Considered: letting the officer release a held pot short, for example if a member is ill (rejected: it breaks D48, the receiving member gets less without the group agreeing, and the MFI would be judging members' situations).
 
+### D54. She can share her record with one MFI by name, seen only in its console (23 Oct 2026)
+Answers the limitation in D50. When she shares her savings record, she can choose a partner MFI (for example FUCEC-Togo) instead of creating a QR code. A record shared by name shows nothing on the public page, even to someone holding its code: only that it was shared with FUCEC-Togo. FUCEC's staff, logged in to the console (D52), see it in their list and can open it; another MFI's staff get 404. Each opening is logged with the officer who opened it, and she sees how many times it was opened. Like any share, it lasts 30 days and she can withdraw it, after which it leaves the console list. The QR code for any lender stays as a second choice, for lenders that are not Novi partners. Limitation: the signature covers the facts, not the name of the MFI they were shared with, which is stored beside them; changing it would need access to Novi's database.
+
 ## Partners, money and data (20 Oct 2026)
 
 ### D33. The MFI sees group totals, not individual members; the ACEV is shared only at her request (20 Oct 2026)
