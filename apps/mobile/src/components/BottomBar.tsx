@@ -1,32 +1,24 @@
 import { type Href, router } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
+import { Cowrie } from "./art/Cowrie";
 
 // The bar at the bottom of home, record and me (option B, 25 Oct): white,
-// fine navy line, the active tab sitting on an orange leaf. (Href: "/me" is
-// typed once Expo regenerates its route list.)
+// fine navy line, the active tab sitting on an orange cowrie. It fills the
+// space under it down to the phone's edge. (Href: "/me" is typed once Expo
+// regenerates its route list.)
 type Tab = "home" | "record" | "me";
 const ROUTES = { home: "/home", record: "/record", me: "/me" } as const;
 
-function Leaf() {
-  return (
-    <Path
-      d="M4 30 C6 12 20 3 40 3 C38 20 26 31 4 30 Z"
-      fill={colors.accent}
-      stroke={colors.indigo}
-      strokeWidth={1.4}
-      strokeLinejoin="round"
-    />
-  );
-}
-
 function Icon({ tab, active }: { tab: Tab; active: boolean }) {
   return (
-    <Svg width={44} height={34} viewBox="0 0 44 34">
-      {active ? <Leaf /> : null}
+    <Svg width={48} height={36} viewBox="-2 -1 48 36">
+      {/* The active tab sits on an orange cowrie, as the leaf did before. */}
+      {active ? <Cowrie cx={19} cy={19} rx={10} ry={17} rotate={70} strokeWidth={1.3} /> : null}
       {tab === "home" ? (
         <>
           <Path
@@ -62,14 +54,7 @@ function Icon({ tab, active }: { tab: Tab; active: boolean }) {
             strokeLinejoin="round"
           />
           <Circle cx={22} cy={14} r={8} stroke={colors.indigo} strokeWidth={1.5} fill={colors.shell} />
-          <Circle
-            cx={22}
-            cy={14}
-            r={4}
-            fill={active ? colors.teal : colors.accent}
-            stroke={colors.indigo}
-            strokeWidth={1.3}
-          />
+          <Circle cx={22} cy={14} r={4} fill={colors.accent} stroke={colors.indigo} strokeWidth={1.3} />
         </>
       ) : (
         <>
@@ -90,8 +75,9 @@ function Icon({ tab, active }: { tab: Tab; active: boolean }) {
 
 export function BottomBar({ active }: { active: Tab }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.bar} accessibilityRole="tablist">
+    <View style={[styles.bar, { paddingBottom: Math.max(4, insets.bottom) }]} accessibilityRole="tablist">
       {(["home", "record", "me"] as const).map((tab) => {
         const on = tab === active;
         return (
@@ -118,9 +104,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.indigo,
     paddingTop: 6,
-    paddingBottom: 4,
   },
-  tab: { flex: 1, alignItems: "center", gap: 2, minHeight: 56, justifyContent: "center" },
+  tab: { flex: 1, alignItems: "center", gap: 0, minHeight: 56, justifyContent: "center" },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.muted },
   on: { fontFamily: fonts.bodyBold, color: colors.indigo },
 });

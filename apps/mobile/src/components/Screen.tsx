@@ -19,7 +19,9 @@ export function Screen({
   bar?: ReactNode;
 }) {
   return (
-    <SafeAreaView style={[styles.safe, dark && styles.dark]}>
+    // With a tab bar, the bar itself fills the space under it down to the
+    // phone's edge, so the bottom stays white.
+    <SafeAreaView style={[styles.safe, dark && styles.dark]} edges={bar ? ["top", "left", "right"] : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {top}
         <View style={styles.content}>{children}</View>

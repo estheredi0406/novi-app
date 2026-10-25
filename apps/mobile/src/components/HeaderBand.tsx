@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { G, Path } from "react-native-svg";
 import { colors } from "../theme/colors";
+import { Cowrie } from "./art/Cowrie";
 
-// The lavender band at the top of home, record and me: crackle lines like
-// the dye cracks of a wax print, with one orange and one teal leaf. Drawn
-// for this app from the fabric's language, not copied from a design.
+// The lavender band at the top of record and me: crackle lines like the dye
+// cracks of a wax print, with cowrie shells, Novi's motif for savings.
 export function HeaderBand({ children }: { children: ReactNode }) {
   return (
     <View style={styles.band}>
@@ -16,10 +16,8 @@ export function HeaderBand({ children }: { children: ReactNode }) {
           <Path d="M100 0 C110 40 86 80 108 120 S120 160 102 170" />
           <Path d="M250 0 C240 50 266 90 246 130 S238 160 254 170" />
         </G>
-        <G stroke={colors.indigo} strokeWidth={1.6} strokeLinejoin="round">
-          <Path d="M330 -10 C380 0 404 50 396 100 C364 82 334 56 330 -10 Z" fill={colors.accent} />
-          <Path d="M-30 150 C30 126 90 150 110 210 C50 220 0 200 -30 150 Z" fill={colors.teal} />
-        </G>
+        <Cowrie cx={364} cy={34} rx={30} ry={46} rotate={30} />
+        <Cowrie cx={22} cy={160} rx={24} ry={36} rotate={70} fill={colors.teal} />
       </Svg>
       <View style={styles.inner}>{children}</View>
     </View>

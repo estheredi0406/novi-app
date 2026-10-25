@@ -4,7 +4,7 @@ import type { TFunction } from "i18next";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Circle, G, Path, Rect } from "react-native-svg";
+import Svg, { Circle, G, Rect } from "react-native-svg";
 import { errorKey } from "../../api/client";
 import { listMyGroups, listMyInvitations } from "../../api/groups";
 import { BottomBar } from "../../components/BottomBar";
@@ -13,6 +13,8 @@ import { HomeBand } from "../../components/HomeBand";
 import { ListenButton } from "../../components/ListenButton";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
+import { Cowrie } from "../../components/art/Cowrie";
+import { CowrieString } from "../../components/art/CowrieString";
 import { Glyph } from "../../components/art/Glyph";
 import { PotJar } from "../../components/art/PotJar";
 import { daysUntil, formatDay, formatFcfa } from "../../lib/format";
@@ -61,7 +63,10 @@ export default function HomeScreen() {
   if (!member) return null;
 
   const empty = loaded && invitations.length === 0 && groups.length === 0;
-  const today = new Date().toLocaleDateString(i18n.language, { weekday: "long", day: "numeric", month: "long" });
+  // Today's date in the same language as the texts: Ewe screens still show
+  // French texts (until a native speaker reviews them), so the date follows.
+  const dateLanguage = i18n.language === "ee" ? "fr" : i18n.language;
+  const today = new Date().toLocaleDateString(dateLanguage, { weekday: "long", day: "numeric", month: "long" });
   // This week's card: a running group where she still owes, otherwise the
   // first running group.
   const running = groups.filter((g) => g.currentRound);
@@ -82,19 +87,29 @@ export default function HomeScreen() {
       top={
         <HomeBand>
           <View style={styles.header}>
-            <View style={styles.hello}>
-              <Text style={styles.date}>{today}</Text>
-              <Text style={styles.helloSmall}>{t("home.hello")}</Text>
-              <Text style={styles.name}>{member.displayName}</Text>
-            </View>
+            <Text style={styles.wordmark}>Novi</Text>
             <ListenButton
               text={`${t("home.greeting", { name: member.displayName })}. ${today}. ${empty ? t("home.empty") : ""}`}
             />
           </View>
-          {hero ? <WeekCard group={hero} /> : null}
+          {hero ? (
+            <WeekCard group={hero} />
+          ) : (
+            // No running group yet: the pot alone, as the picture of what a
+            // tontine builds. Decoration only, so screen readers skip it.
+            <View style={styles.potAlone} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+              <PotJar paid={3} size={110} label="" />
+            </View>
+          )}
         </HomeBand>
       }
     >
+      <View>
+        <Text style={styles.date}>{today}</Text>
+        <Text style={styles.name}>{t("home.greeting", { name: member.displayName })}</Text>
+      </View>
+      <CowrieString />
+
       <ErrorMessage messageKey={error} />
 
       {hero && heroOwes ? (
@@ -207,7 +222,7 @@ function WeekCard({ group }: { group: GroupSummary }) {
   );
 }
 
-// One group as a short row: a leaf tile, its name, and her turn or where the
+// One group as a short row: a cowrie tile, its name, and her turn or where the
 // group is in its set-up.
 function GroupRow({ group }: { group: GroupSummary }) {
   const { t } = useTranslation();
@@ -234,14 +249,7 @@ function GroupRow({ group }: { group: GroupSummary }) {
     >
       <Svg width={56} height={56} viewBox="0 0 56 56">
         <Rect width={56} height={56} rx={16} fill={colors.mist} />
-        <Path
-          d="M6 50 C10 20 30 8 54 6 C50 30 34 48 6 50 Z"
-          fill={colors.accent}
-          stroke={colors.indigo}
-          strokeWidth={1.6}
-          strokeLinejoin="round"
-        />
-        <Path d="M12 44 C24 32 36 20 50 10" stroke={colors.indigo} strokeWidth={1.2} fill="none" />
+        <Cowrie cx={24} cy={26} rx={12} ry={18} rotate={40} strokeWidth={1.4} />
         <G fill={colors.indigo}>
           <Circle cx={40} cy={42} r={2.4} />
           <Circle cx={46} cy={38} r={2.4} />
@@ -272,8 +280,8 @@ function whenText(t: TFunction, days: number): string {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 4 },
-  hello: { flex: 1 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  wordmark: { fontFamily: fonts.display, fontSize: 26, color: colors.indigo },
   date: {
     fontFamily: fonts.bodyBold,
     fontSize: 13,
@@ -281,8 +289,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     color: colors.muted,
   },
-  helloSmall: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },
   name: { fontFamily: fonts.display, fontSize: 28, lineHeight: 34, color: colors.indigo },
+  potAlone: { alignItems: "center" },
   weekWrap: { paddingRight: 4, paddingBottom: 4 },
   weekShadow: {
     position: "absolute",
