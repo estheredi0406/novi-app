@@ -80,3 +80,25 @@ export function payoutSms(
       return `Novi : vous avez reçu ${amount} FCFA, la cagnotte du tour ${payout.roundNumber} de « ${payout.groupName} », le ${day}/${month}/${year}. Envoyé par ${payout.mfiName}.`;
   }
 }
+
+// A reminder before a due date (F16). Short, with the amount and the day, so
+// it is useful even on a basic phone without the app.
+export function reminderSms(
+  language: Language,
+  reminder: { groupName: string; amountFcfa: number; date: string; dueToday: boolean },
+): string {
+  const amount = formatFcfa(reminder.amountFcfa);
+  const [year, month, day] = reminder.date.split("-");
+  const date = `${day}/${month}/${year}`;
+  switch (language) {
+    case "EN":
+      return reminder.dueToday
+        ? `Novi: today is the day for "${reminder.groupName}". Your ${amount} FCFA is due today.`
+        : `Novi: reminder, your ${amount} FCFA for "${reminder.groupName}" is due tomorrow, ${date}.`;
+    case "FR":
+    case "EE":
+      return reminder.dueToday
+        ? `Novi : c'est aujourd'hui pour « ${reminder.groupName} ». Vos ${amount} FCFA sont à payer aujourd'hui.`
+        : `Novi : rappel, vos ${amount} FCFA pour « ${reminder.groupName} » sont à payer demain, le ${date}.`;
+  }
+}

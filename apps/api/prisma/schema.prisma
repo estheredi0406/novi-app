@@ -147,6 +147,7 @@ model User {
   roundsReceived  Round[]        @relation("RoundBeneficiary")
   payoutsReceived Payout[]
   recordShares    RecordShare[]
+  reminders       Reminder[]
   contributions   Contribution[]
   ledgerEntries   LedgerEntry[]
 
@@ -373,6 +374,7 @@ model Round {
   contributions Contribution[]
   ledgerEntries LedgerEntry[]
   payout        Payout?
+  reminders     Reminder[]
 
   @@unique([groupId, number])
   @@map("rounds")
@@ -557,4 +559,28 @@ model StaffSession {
 
   @@index([staffId])
   @@map("staff_sessions")
+}
+
+//----------------Reminders (F16)----------------------------
+
+// Which reminder an SMS was: the day before a due date, or the morning of it.
+enum ReminderKind {
+  DAY_BEFORE
+  DUE_DAY
+}
+
+// One reminder sent to one member for one round. The unique key means a
+// reminder is sent once, however often the job runs.
+model Reminder {
+  id      String       @id @default(uuid())
+  roundId String
+  userId  String
+  kind    ReminderKind
+  sentAt  DateTime     @default(now())
+
+  round Round @relation(fields: [roundId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([roundId, userId, kind])
+  @@map("reminders")
 }
