@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate dev && prisma generate",
     "demo:group": "tsx src/scripts/demoGroup.ts",
-    "staff:create": "tsx src/scripts/createStaff.ts"
+    "staff:create": "tsx src/scripts/createStaff.ts",
+    "demo:payout": "tsx src/scripts/demoPayout.ts"
   },
   "devDependencies": {
     "@novi/shared": "*",

@@ -12,7 +12,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.estheredi.novi"
+      "bundleIdentifier": "com.estheredi.novi",
+      "infoPlist": {}
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +23,14 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.estheredi.novi"
+      "package": "com.estheredi.novi",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -40,6 +48,17 @@
           "cameraPermission": "Novi uses the camera only to read the code on your ID card."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "5d462fe8-2261-454f-8448-8791f0959e94"
+      }
+    },
+    "owner": "edi0406"
   }
 }

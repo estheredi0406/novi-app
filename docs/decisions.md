@@ -185,6 +185,9 @@ Supersedes D59. Azure for Students could not be activated on this account ("not 
 ### D61. The online pilot shows one-time codes in the app (25 Oct 2026)
 While SMS is still a mock, testers could not receive their sign-up, identity or new-phone codes: they only appeared in the server logs. Real SMS to Togo through Twilio costs about 0.49 USD per message (Twilio's Togo price list, Oct 2026), so about 100 USD for twenty testers. With PILOT_SHOW_CODES set to "true" (only in render.yaml), the API returns the code that was "sent" and the app shows it on the code screen, labelled "Pilot: this code normally arrives by SMS". The SMS flow itself is unchanged and stays behind its provider interface (D3). Trade-off: anyone holding a tester's phone number could sign up as them, which is acceptable for a closed pilot with demo identities and must be switched off before real use. A local provider (for example Africa's Talking, whose sandbox simulates SMS for free) is the next step.
 
+### D62. A demonstration command pays out a pot before its due date (25 Oct 2026)
+Pots leave on their round's due date (D34), so a payout could not be shown during a test or the defence without waiting for that day. `npm run demo:payout -- "Group name"`, run only from the server's shell, runs the normal payout service for that group's next round as if today were its due date. Every other rule still applies: the pot is held unless everyone has paid, goes only to the member whose turn it is, to her own number, once (D49). It is not reachable from the app or the console, so no member or officer can move a pot early.
+
 ## Partners, money and data (20 Oct 2026)
 
 ### D33. The MFI sees group totals, not individual members; the ACEV is shared only at her request (20 Oct 2026)
