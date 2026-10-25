@@ -171,6 +171,11 @@ After testing on her phone, the member app had too much explanatory text for tra
 ### D57. Two reminders by SMS, in daytime only (25 Oct 2026)
 A member who has not paid gets an SMS the day before a due date and another on the morning of it, in her language, with the group, the amount and the date. SMS rather than a phone notification, because it reaches basic phones and phones without data. Nothing is sent before 08:00 or after 19:00 in Lomé (GMT all year), and each reminder is recorded, so it goes out once however often the job runs. A member who has paid, or whose payment is on its way, gets nothing. Considered: one reminder only (kept two: market days are busy, and the morning text is the one that prompts payment); push notifications (later, as an addition for smartphones).
 
+## Deployment
+
+### D58. One server on Railway, built from a Dockerfile, serving the API and the console (25 Oct 2026)
+Novi goes online early, before real users test it, so problems that only appear on a host show up while the app is small. The API and the MFI console run as one service on Railway with a managed PostgreSQL database; the console's built files are served by the API at /console, from the same address, so no cross-origin settings are needed. The image is built from a Dockerfile (Node 24, OpenSSL for Prisma), which makes the build the same on any host; each start applies pending migrations, and Railway checks /health. Behind Railway's proxy the API trusts one proxy hop, so per-address rate limits see each member's real address. Secrets are typed into Railway's variables, never committed, and are new values, not the ones used on the laptop. The phone app is not part of the server: in development it stays in Expo Go and points at the public address. Considered: Railway's automatic build without a Dockerfile (rejected: less predictable for an npm workspace with Prisma); a separate host for the console (rejected: a second service and cross-origin settings for no gain). Limitation: SMS, identity, MFI and payments are still mock providers online (D3), so codes appear in the server logs; real users need at least real SMS and a pilot sign-up mode first.
+
 ## Partners, money and data (20 Oct 2026)
 
 ### D33. The MFI sees group totals, not individual members; the ACEV is shared only at her request (20 Oct 2026)
