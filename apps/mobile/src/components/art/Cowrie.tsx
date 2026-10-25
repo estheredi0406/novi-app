@@ -22,29 +22,33 @@ export function Cowrie({
   fill?: string;
   strokeWidth?: number;
 }) {
-  // An egg-shaped shell, fuller at the top, with a dark toothed slit and a
-  // soft highlight on one side.
-  const shell = `M${cx} ${cy - ry} C${cx + rx * 1.25} ${cy - ry} ${cx + rx * 1.05} ${cy + ry} ${cx} ${cy + ry} C${cx - rx * 1.05} ${cy + ry} ${cx - rx * 1.25} ${cy - ry} ${cx} ${cy - ry} Z`;
-  const b = rx * 0.12;
-  const slit = `M${cx} ${cy - ry * 0.8} C${cx + b} ${cy - ry * 0.3} ${cx + b} ${cy + ry * 0.3} ${cx} ${cy + ry * 0.82} C${cx - b} ${cy + ry * 0.3} ${cx - b} ${cy - ry * 0.3} ${cx} ${cy - ry * 0.8} Z`;
-  const teeth = [-0.55, -0.4, -0.25, -0.1, 0.05, 0.2, 0.35, 0.5, 0.65]
-    .map((k) => `M${cx - b * 2.2} ${cy + ry * k} H${cx + b * 2.2}`)
+  // An egg-shaped shell with a dark slit down the middle; the fine teeth
+  // sit inside the slit, in the shell's colour, and a soft gold line marks
+  // the rounded back.
+  const shell = `M${cx} ${cy - ry} C${cx + rx * 1.32} ${cy - ry} ${cx + rx * 1.2} ${cy + ry} ${cx} ${cy + ry} C${cx - rx * 1.2} ${cy + ry} ${cx - rx * 1.32} ${cy - ry} ${cx} ${cy - ry} Z`;
+  const b = rx * 0.2;
+  const slit = `M${cx} ${cy - ry * 0.8} C${cx + b} ${cy - ry * 0.35} ${cx + b} ${cy + ry * 0.35} ${cx} ${cy + ry * 0.82} C${cx - b} ${cy + ry * 0.35} ${cx - b} ${cy - ry * 0.35} ${cx} ${cy - ry * 0.8} Z`;
+  const teeth = [-0.5, -0.36, -0.22, -0.08, 0.06, 0.2, 0.34, 0.48]
+    .map((k) => {
+      const half = b * 0.85 * (1 - k * k * 1.6);
+      return `M${cx - half} ${cy + ry * k} H${cx - b * 0.15} M${cx + b * 0.15} ${cy + ry * (k + 0.05)} H${cx + half}`;
+    })
     .join(" ");
-  const highlight = `M${cx - rx * 0.55} ${cy - ry * 0.55} C${cx - rx * 0.75} ${cy - ry * 0.1} ${cx - rx * 0.7} ${cy + ry * 0.3} ${cx - rx * 0.5} ${cy + ry * 0.6}`;
+  const back = `M${cx - rx * 0.62} ${cy - ry * 0.5} C${cx - rx * 0.85} ${cy} ${cx - rx * 0.75} ${cy + ry * 0.4} ${cx - rx * 0.5} ${cy + ry * 0.7}`;
 
   return (
     <G rotation={rotate} origin={`${cx}, ${cy}`}>
       <Path d={shell} fill={fill} stroke={colors.indigo} strokeWidth={strokeWidth} strokeLinejoin="round" />
       <Path
-        d={highlight}
-        stroke={colors.shell}
-        strokeWidth={strokeWidth * 1.4}
+        d={back}
+        stroke={colors.goldDeep}
+        strokeWidth={strokeWidth * 1.6}
         fill="none"
         strokeLinecap="round"
-        opacity={0.7}
+        opacity={0.55}
       />
-      <Path d={teeth} stroke={colors.indigo} strokeWidth={strokeWidth * 0.8} strokeLinecap="round" />
       <Path d={slit} fill={colors.indigo} />
+      <Path d={teeth} stroke={fill} strokeWidth={strokeWidth * 0.8} strokeLinecap="round" />
     </G>
   );
 }
