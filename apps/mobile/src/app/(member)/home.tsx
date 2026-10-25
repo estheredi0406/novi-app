@@ -6,11 +6,12 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
 import { listMyGroups, listMyInvitations } from "../../api/groups";
 import { ErrorMessage } from "../../components/ErrorMessage";
-import { LanguageSwitch } from "../../components/LanguageSwitch";
+import { BottomBar } from "../../components/BottomBar";
+import { HeaderBand } from "../../components/HeaderBand";
 import { ListenButton } from "../../components/ListenButton";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
-import { TextButton } from "../../components/TextButton";
+import { WaxCard } from "../../components/WaxCard";
 import { Beads } from "../../components/art/Beads";
 import { Glyph } from "../../components/art/Glyph";
 import { PagneBand } from "../../components/art/PagneBand";
@@ -29,8 +30,8 @@ import { fonts, type } from "../../theme/typography";
 // pot filling, what she owes or that she paid, a countdown to her turn and her
 // on-time streak as beads. Explanations live in Listen, not on the screen.
 export default function HomeScreen() {
-  const { t } = useTranslation();
-  const { member, lock } = useSession();
+  const { t, i18n } = useTranslation();
+  const { member } = useSession();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -62,24 +63,24 @@ export default function HomeScreen() {
 
   if (!member) return null;
 
-  // Logging out locks Novi on this phone, then opens the PIN screen. Going
-  // there directly, instead of letting the app fall back to whatever screen
-  // came before home, means she never lands back inside sign-up.
-  async function logOut() {
-    await lock();
-    router.replace("/login");
-  }
-
   const greeting = t("home.greeting", { name: member.displayName });
   const empty = loaded && invitations.length === 0 && groups.length === 0;
+  // Today's date at the top, in her language: "dimanche 25 octobre".
+  const today = new Date().toLocaleDateString(i18n.language, { weekday: "long", day: "numeric", month: "long" });
 
   return (
-    <Screen>
-      <View style={styles.top}>
-        <ListenButton text={`${greeting}. ${empty ? t("home.empty") : ""}`} />
-      </View>
-
-      <Text style={[type.title, styles.indigo]}>{greeting}</Text>
+    <Screen
+      bar={<BottomBar active="home" />}
+      top={
+        <HeaderBand>
+          <View style={styles.top}>
+            <Text style={styles.date}>{today}</Text>
+            <ListenButton text={`${greeting}. ${today}. ${empty ? t("home.empty") : ""}`} />
+          </View>
+          <Text style={styles.greeting}>{greeting}</Text>
+        </HeaderBand>
+      }
+    >
       <ErrorMessage messageKey={error} />
 
       {invitations.length > 0 ? (
@@ -130,11 +131,6 @@ export default function HomeScreen() {
 
       <View style={styles.footer}>
         <PrimaryButton label={t("home.create")} onPress={() => router.push("/groups/new")} />
-        <TextButton label={t("home.record")} onPress={() => router.push("/record")} />
-        <LanguageSwitch />
-        {/* Development only: the ID card barcode test (D35). */}
-        {__DEV__ ? <TextButton label={t("idScan.title")} onPress={() => router.push("/id-scan-test")} /> : null}
-        <TextButton label={t("home.logout")} onPress={() => void logOut()} />
       </View>
     </Screen>
   );
@@ -148,57 +144,65 @@ function GroupCard({ group }: { group: GroupSummary }) {
   const open = () => router.push({ pathname: "/groups/[id]", params: { id: group.id } });
 
   return (
-    <Pressable accessibilityRole="button" onPress={open} style={styles.card}>
-      <PagneBand seed={group.id} />
-      <View style={styles.inner}>
-        <View style={styles.cardTop}>
-          <Text style={[type.body, styles.name]}>{group.name}</Text>
-          {group.state !== "ACTIVE" ? <Text style={styles.state}>{stateLabel(t, group.state)}</Text> : null}
-        </View>
+    <Pressable accessibilityRole="button" onPress={open}>
+      <WaxCard>
+        <PagneBand seed={group.id} />
+        <View style={styles.inner}>
+          <View style={styles.cardTop}>
+            <Text style={[type.body, styles.name]}>{group.name}</Text>
+            {group.state !== "ACTIVE" ? <Text style={styles.state}>{stateLabel(t, group.state)}</Text> : null}
+          </View>
 
-        {round ? (
-          <>
-            <View style={styles.week}>
-              <PotJar
-                share={group.size > 0 ? round.paidCount / group.size : 0}
-                tone={round.isMyTurn ? "turn" : "paid"}
-                label={t("home.potCount", { paid: round.paidCount, size: group.size })}
-              />
-              <View style={styles.weekText}>
-                {round.myStatus === "PAID" ? (
-                  <View style={styles.inline}>
-                    <Glyph name="check" color={colors.paid} />
-                    <Text style={styles.paid}>{t("home.paidShort", { number: round.number })}</Text>
-                  </View>
-                ) : round.myStatus === "PENDING" ? (
-                  <View style={styles.inline}>
-                    <Glyph name="clock" color={colors.muted} />
-                    <Text style={styles.tag}>{t("home.paying")}</Text>
-                  </View>
-                ) : (
-                  <>
-                    <Text style={styles.amount}>{formatFcfa(group.amountFcfa)}</Text>
-                    <Text style={styles.due}>{t("home.toPay", { date: formatDay(round.dueDate), number: round.number })}</Text>
-                  </>
-                )}
-                <Text style={[type.small, styles.muted]}>{t("home.potCount", { paid: round.paidCount, size: group.size })}</Text>
+          {round ? (
+            <>
+              <View style={styles.week}>
+                <PotJar
+                  slots={group.size}
+                  share={group.size > 0 ? round.paidCount / group.size : 0}
+                  tone={round.isMyTurn ? "turn" : "paid"}
+                  label={t("home.potCount", { paid: round.paidCount, size: group.size })}
+                />
+                <View style={styles.weekText}>
+                  {round.myStatus === "PAID" ? (
+                    <View style={styles.inline}>
+                      <Glyph name="check" color={colors.paid} />
+                      <Text style={styles.paid}>{t("home.paidShort", { number: round.number })}</Text>
+                    </View>
+                  ) : round.myStatus === "PENDING" ? (
+                    <View style={styles.inline}>
+                      <Glyph name="clock" color={colors.muted} />
+                      <Text style={styles.tag}>{t("home.paying")}</Text>
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={styles.amount}>{formatFcfa(group.amountFcfa)}</Text>
+                      <Text style={styles.due}>
+                        {t("home.toPay", { date: formatDay(round.dueDate), number: round.number })}
+                      </Text>
+                      <Text style={styles.countdown}>{whenText(t, daysUntil(round.dueDate))}</Text>
+                    </>
+                  )}
+                  <Text style={[type.small, styles.muted]}>
+                    {t("home.potCount", { paid: round.paidCount, size: group.size })}
+                  </Text>
+                </View>
               </View>
-            </View>
-            <TurnLine group={group} />
-            {round.onTimeStreak > 0 ? (
-              <View style={styles.inline}>
-                <Beads count={round.onTimeStreak} label={t("home.streak", { count: round.onTimeStreak })} />
-                <Text style={styles.tag}>{t("home.streak", { count: round.onTimeStreak })}</Text>
-              </View>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <Text style={[type.small, styles.muted]}>{rulesSummary(t, group)}</Text>
-            {group.myRole === "ORGANISER" ? <Text style={styles.tag}>{t("home.youOrganise")}</Text> : null}
-          </>
-        )}
-      </View>
+              <TurnLine group={group} />
+              {round.onTimeStreak > 0 ? (
+                <View style={styles.inline}>
+                  <Beads count={round.onTimeStreak} label={t("home.streak", { count: round.onTimeStreak })} />
+                  <Text style={styles.tag}>{t("home.streak", { count: round.onTimeStreak })}</Text>
+                </View>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <Text style={[type.small, styles.muted]}>{rulesSummary(t, group)}</Text>
+              {group.myRole === "ORGANISER" ? <Text style={styles.tag}>{t("home.youOrganise")}</Text> : null}
+            </>
+          )}
+        </View>
+      </WaxCard>
     </Pressable>
   );
 }
@@ -243,15 +247,7 @@ function TurnLine({ group }: { group: GroupSummary }) {
       </View>
     );
   }
-  const days = daysUntil(mine.dueDate);
-  const when =
-    days <= 0
-      ? t("home.today")
-      : days === 1
-        ? t("home.tomorrow")
-        : days < 14
-          ? t("home.inDays", { count: days })
-          : t("home.inWeeks", { count: Math.round(days / 7) });
+  const when = whenText(t, daysUntil(mine.dueDate));
   return (
     <View style={styles.inline}>
       <Glyph name="turn" />
@@ -260,15 +256,32 @@ function TurnLine({ group }: { group: GroupSummary }) {
   );
 }
 
+// "today", "tomorrow", "in 6 days", "in 3 weeks".
+function whenText(t: (key: string, options?: Record<string, unknown>) => string, days: number): string {
+  if (days <= 0) return t("home.today");
+  if (days === 1) return t("home.tomorrow");
+  if (days < 14) return t("home.inDays", { count: days });
+  return t("home.inWeeks", { count: Math.round(days / 7) });
+}
+
 const styles = StyleSheet.create({
-  top: { flexDirection: "row", justifyContent: "flex-end" },
+  top: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  date: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.muted, textTransform: "capitalize" },
+  greeting: { fontFamily: fonts.display, fontSize: 28, lineHeight: 34, color: colors.indigo },
+  countdown: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.accent },
   indigo: { color: colors.indigo },
   ink: { color: colors.ink },
   muted: { color: colors.muted },
   section: { gap: 12 },
-  card: { borderRadius: 20, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card, overflow: "hidden" },
+  card: {
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.indigo,
+    backgroundColor: colors.card,
+    overflow: "hidden",
+  },
   inner: { gap: 10, padding: 18 },
-  invitation: { borderColor: colors.action },
+  invitation: { borderColor: colors.accent, borderWidth: 2 },
   cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
   name: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 19, color: colors.ink },
   state: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.indigo },

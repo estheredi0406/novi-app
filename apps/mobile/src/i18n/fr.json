@@ -433,5 +433,16 @@
     "mfiUnavailable": "L'IMF n'a pas pu ouvrir le compte du groupe pour le moment. Réessayez dans quelques minutes : l'ordre des tours est conservé.",
     "alreadyInvited": "Ce numéro est déjà invité dans le groupe, ou y a déjà une place.",
     "cannotRemoveOrganiser": "La place de la personne qui organise ne peut pas être retirée. Annulez plutôt le groupe."
+  },
+  "nav": {
+    "home": "Accueil",
+    "record": "Relevé",
+    "me": "Moi"
+  },
+  "me": {
+    "language": "Langue"
+  },
+  "pilot": {
+    "label": "Pilote : ce code arrive normalement par SMS"
   }
 }

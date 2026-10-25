@@ -433,5 +433,16 @@
     "mfiUnavailable": "The MFI could not open the group's account just now. Try again in a few minutes: the payout order is kept.",
     "alreadyInvited": "This number is already invited to the group, or already has a seat in it.",
     "cannotRemoveOrganiser": "The organiser's seat cannot be removed. Cancel the group instead."
+  },
+  "nav": {
+    "home": "Home",
+    "record": "Record",
+    "me": "Me"
+  },
+  "me": {
+    "language": "Language"
+  },
+  "pilot": {
+    "label": "Pilot: this code normally arrives by SMS"
   }
 }

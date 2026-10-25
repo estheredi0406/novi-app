@@ -5,7 +5,8 @@ import { Alert, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
 import { getRecord, listLenders, listShares, revokeShare, shareRecord, verifyUrl } from "../../api/record";
 import { Badge } from "../../components/art/Badge";
-import { BackHeader } from "../../components/BackHeader";
+import { BottomBar } from "../../components/BottomBar";
+import { ListenButton } from "../../components/ListenButton";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { QrCode } from "../../components/QrCode";
@@ -52,14 +53,20 @@ export default function RecordScreen() {
   function confirmRevoke(shareId: string) {
     Alert.alert(t("record.revokeTitle"), t("record.revokeMessage"), [
       { text: t("common.back"), style: "cancel" },
-      { text: t("record.revoke"), style: "destructive", onPress: () => void revokeShare(shareId).then(load, (err: unknown) => setError(errorKey(err))) },
+      {
+        text: t("record.revoke"),
+        style: "destructive",
+        onPress: () => void revokeShare(shareId).then(load, (err: unknown) => setError(errorKey(err))),
+      },
     ]);
   }
 
   if (!record) {
     return (
-      <Screen>
-        <BackHeader listenText={t("record.title")} />
+      <Screen bar={<BottomBar active="record" />}>
+        <View style={styles.top}>
+          <ListenButton text={t("record.title")} />
+        </View>
         <ErrorMessage messageKey={error} />
       </Screen>
     );
@@ -73,15 +80,20 @@ export default function RecordScreen() {
     [t("record.late"), String(record.paidLate)],
     [t("record.missed"), String(record.missed)],
     [t("record.saved"), formatFcfa(record.totalSavedFcfa)],
-    [t("record.received"), t("record.receivedValue", { count: record.potsReceived, amount: formatFcfa(record.totalReceivedFcfa) })],
+    [
+      t("record.received"),
+      t("record.receivedValue", { count: record.potsReceived, amount: formatFcfa(record.totalReceivedFcfa) }),
+    ],
   ];
   const now = Date.now();
   const active = shares.filter((s) => !s.revokedAt && Date.parse(s.expiresAt) > now);
   const listen = `${t("record.title")}. ${t("record.lede")} ${facts.map(([k, v]) => `${k}: ${v}`).join(". ")}`;
 
   return (
-    <Screen>
-      <BackHeader listenText={listen} />
+    <Screen bar={<BottomBar active="record" />}>
+      <View style={styles.top}>
+        <ListenButton text={listen} />
+      </View>
       <View style={styles.intro}>
         <Text style={[type.display, styles.indigo]}>{t("record.title")}</Text>
         <Text style={[type.body, styles.muted]}>{t("record.lede")}</Text>
@@ -156,16 +168,31 @@ export default function RecordScreen() {
 }
 
 const styles = StyleSheet.create({
+  top: { flexDirection: "row", justifyContent: "flex-end" },
   intro: { gap: 10 },
   badges: { flexDirection: "row", justifyContent: "space-between" },
   indigo: { color: colors.indigo },
   ink: { color: colors.ink },
   muted: { color: colors.muted },
   section: { gap: 12 },
-  card: { gap: 10, padding: 18, borderRadius: 18, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card },
+  card: {
+    gap: 10,
+    padding: 18,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+  },
   row: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted, flexShrink: 1 },
   value: { color: colors.ink, fontFamily: fonts.bodySemiBold },
-  group: { gap: 4, padding: 14, borderRadius: 14, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card },
+  group: {
+    gap: 4,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+  },
   name: { fontFamily: fonts.bodySemiBold, color: colors.ink },
 });
