@@ -71,7 +71,7 @@ export function getProfile() {
 
 // Changes what she may change about herself: display name, area, market,
 // language. Never her legal name (D15).
-export function updateProfile(changes: { language?: AppLanguage }) {
+export function updateProfile(changes: { language?: AppLanguage; displayName?: string }) {
   return memberRequest<MemberProfile>("PATCH", "/v1/me", changes);
 }
 

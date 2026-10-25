@@ -21,6 +21,7 @@ type SessionState = {
 type Session = SessionState & {
   open: (auth: AuthResponse, phone: string) => Promise<void>;
   lock: () => Promise<void>;
+  setMember: (member: MemberProfile) => Promise<void>;
 };
 
 const SessionContext = createContext<Session | null>(null);
@@ -62,7 +63,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setState((current) => ({ ...current, status: "locked", member: null }));
   }, []);
 
-  return <SessionContext.Provider value={{ ...state, open, lock }}>{children}</SessionContext.Provider>;
+  // After she changes her profile (for example the name her groups see).
+  const setMember = useCallback(
+    async (member: MemberProfile) => {
+      setState((current) => ({ ...current, member, displayName: member.displayName }));
+      if (state.phone) await saveMember(state.phone, member.displayName);
+    },
+    [state.phone],
+  );
+
+  return <SessionContext.Provider value={{ ...state, open, lock, setMember }}>{children}</SessionContext.Provider>;
 }
 
 export function useSession(): Session {

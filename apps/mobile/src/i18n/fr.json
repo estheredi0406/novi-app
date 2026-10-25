@@ -448,9 +448,36 @@
     "me": "Moi"
   },
   "me": {
-    "language": "Langue"
+    "language": "Langue",
+    "name": "Nom affiché à mes groupes",
+    "nameHint": "Vos groupes voient ce nom. Le nom de votre carte d'identité ne change pas.",
+    "save": "Enregistrer",
+    "pin": "Changer mon code PIN",
+    "pinTitle": "Changer votre code PIN",
+    "pinBody": "Nous vous envoyons un code par SMS, puis vous choisissez un nouveau code PIN et vous vous connectez avec.",
+    "pinGo": "Continuer",
+    "agreed": "Ce que j'ai accepté"
   },
   "pilot": {
     "label": "Pilote : ce code arrive normalement par SMS"
+  },
+  "groupView": {
+    "youOwe": "Vous devez encore ce tour",
+    "youPaid": "Vous avez payé ce tour",
+    "by": "avant le {{date}} · {{when}}",
+    "payNow": "Payer maintenant",
+    "whoPaid": "Tour {{number}} · qui a payé",
+    "count": "{{paid}} sur {{size}}",
+    "you": "Vous",
+    "paidAt": "Payé le {{date}}",
+    "notYet": "Pas encore",
+    "paid": "Payé",
+    "onItsWay": "En route",
+    "toPay": "À payer",
+    "waiting": "En attente",
+    "whoReceives": "Qui reçoit la cagnotte",
+    "round": "Tour {{number}}",
+    "roundNow": "Tour {{number}} · en cours",
+    "received": "Reçue"
   }
 }

@@ -17,14 +17,15 @@ import { listRounds } from "../../../../api/money";
 import { AnswerPanel } from "../../../../components/AnswerPanel";
 import { BackHeader } from "../../../../components/BackHeader";
 import { ErrorMessage } from "../../../../components/ErrorMessage";
+import { GroupRoundView } from "../../../../components/GroupRoundView";
+import { HeaderBand } from "../../../../components/HeaderBand";
 import { Field } from "../../../../components/Field";
 import { PrimaryButton } from "../../../../components/PrimaryButton";
-import { RoundCard } from "../../../../components/RoundCard";
 import { RulesCard } from "../../../../components/RulesCard";
 import { Screen } from "../../../../components/Screen";
 import { TextButton } from "../../../../components/TextButton";
 import { formatPhone } from "../../../../lib/format";
-import { seatLabel, stateLabel } from "../../../../lib/rulesText";
+import { rulesSummary, seatLabel, stateLabel } from "../../../../lib/rulesText";
 import { useSession } from "../../../../session/SessionProvider";
 import { colors } from "../../../../theme/colors";
 import { fonts, type } from "../../../../theme/typography";
@@ -44,12 +45,15 @@ export default function GroupScreen() {
 
   // The group, and once it is running, its rounds (Sprint 3).
   const load = useCallback(() => {
-    getGroup(id).then((loaded) => {
-      setGroup(loaded);
-      if (loaded.state === "ACTIVE" || loaded.state === "COMPLETED") {
-        listRounds(id).then(setRounds, (err: unknown) => setError(errorKey(err)));
-      }
-    }, (err: unknown) => setError(errorKey(err)));
+    getGroup(id).then(
+      (loaded) => {
+        setGroup(loaded);
+        if (loaded.state === "ACTIVE" || loaded.state === "COMPLETED") {
+          listRounds(id).then(setRounds, (err: unknown) => setError(errorKey(err)));
+        }
+      },
+      (err: unknown) => setError(errorKey(err)),
+    );
   }, [id]);
 
   // Reloads when she comes back from changing the rules or the order.
@@ -99,28 +103,21 @@ export default function GroupScreen() {
   const listen = `${group.name}. ${stateLabel(t, state)}. ${t("group.places", { taken: placesTaken, size: rules.size })}`;
 
   return (
-    <Screen>
-      <BackHeader listenText={listen} />
-
-      <View style={styles.intro}>
-        <Text style={[type.display, styles.indigo]}>{group.name}</Text>
-        <Text style={styles.state}>{stateLabel(t, state)}</Text>
-      </View>
+    <Screen
+      top={
+        <HeaderBand>
+          <BackHeader listenText={listen} />
+          <Text style={styles.bandName}>{group.name}</Text>
+          <Text style={styles.bandSub}>{rounds.length > 0 ? rulesSummary(t, rules) : stateLabel(t, state)}</Text>
+        </HeaderBand>
+      }
+    >
+      {rounds.length > 0 ? <GroupRoundView group={group} rounds={rounds} memberId={member.id} /> : null}
 
       <RulesCard rules={rules} mfiName={group.mfiName} />
 
       {rounds.length > 0 ? (
         <View style={styles.section}>
-          <Text style={[type.title, styles.ink]}>{t("money.rounds")}</Text>
-          {rounds.map((round) => (
-            <RoundCard
-              key={round.number}
-              round={round}
-              onPress={() =>
-                router.push({ pathname: "/groups/[id]/rounds/[number]", params: { id: group.id, number: String(round.number) } })
-              }
-            />
-          ))}
           <TextButton
             label={t("money.openLedger")}
             onPress={() => router.push({ pathname: "/groups/[id]/ledger", params: { id: group.id } })}
@@ -208,7 +205,11 @@ export default function GroupScreen() {
 
       {isOrganiser && state === "DRAFT" ? (
         <View style={styles.section}>
-          <PrimaryButton label={t("group.propose")} disabled={busy} onPress={() => void run(() => proposeGroup(group.id))} />
+          <PrimaryButton
+            label={t("group.propose")}
+            disabled={busy}
+            onPress={() => void run(() => proposeGroup(group.id))}
+          />
           <Text style={[type.small, styles.muted]}>{t("group.proposeHint")}</Text>
         </View>
       ) : null}
@@ -234,14 +235,20 @@ export default function GroupScreen() {
               )
             }
           />
-          <Text style={[type.small, styles.muted]}>{full && everyoneAccepted ? t("group.startReady") : t("group.startHint")}</Text>
+          <Text style={[type.small, styles.muted]}>
+            {full && everyoneAccepted ? t("group.startReady") : t("group.startHint")}
+          </Text>
         </View>
       ) : null}
 
       {isOrganiser && state === "STARTING" ? (
         <View style={styles.section}>
           <Text style={[type.body, styles.ink]}>{t("group.starting", { mfi: group.mfiName })}</Text>
-          <PrimaryButton label={t("common.tryAgain")} disabled={busy} onPress={() => void run(() => startGroup(group.id))} />
+          <PrimaryButton
+            label={t("common.tryAgain")}
+            disabled={busy}
+            onPress={() => void run(() => startGroup(group.id))}
+          />
         </View>
       ) : null}
 
@@ -283,7 +290,9 @@ export default function GroupScreen() {
           <TextButton
             label={t("group.cancel")}
             disabled={busy}
-            onPress={() => confirm(t("group.cancelTitle"), t("group.cancelMessage"), t("group.cancel"), () => cancelGroup(group.id))}
+            onPress={() =>
+              confirm(t("group.cancelTitle"), t("group.cancelMessage"), t("group.cancel"), () => cancelGroup(group.id))
+            }
           />
         </View>
       ) : null}
@@ -320,7 +329,8 @@ function byTurn(a: GroupSeat, b: GroupSeat): number {
 }
 
 const styles = StyleSheet.create({
-  intro: { gap: 6 },
+  bandName: { fontFamily: fonts.display, fontSize: 26, lineHeight: 32, color: colors.indigo },
+  bandSub: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },
   indigo: { color: colors.indigo },
   ink: { color: colors.ink },
   muted: { color: colors.muted },
@@ -331,9 +341,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: colors.line,
+    borderColor: colors.indigo,
     backgroundColor: colors.card,
   },
   rowText: { flex: 1, gap: 2 },

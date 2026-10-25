@@ -26,6 +26,15 @@ export function BackHeader({ listenText }: { listenText: string }) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  back: { width: 44, height: 44, justifyContent: "center" },
-  backText: { fontSize: 36, lineHeight: 40, color: colors.indigo },
+  back: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: colors.indigo,
+    backgroundColor: colors.shell,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backText: { fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.indigo },
 });

@@ -448,9 +448,36 @@
     "me": "Me"
   },
   "me": {
-    "language": "Language"
+    "language": "Language",
+    "name": "Name shown to my groups",
+    "nameHint": "Your groups see this name. Your name on your ID card does not change.",
+    "save": "Save",
+    "pin": "Change my PIN",
+    "pinTitle": "Change your PIN",
+    "pinBody": "We will send you an SMS code, then you choose a new PIN and log in with it.",
+    "pinGo": "Continue",
+    "agreed": "What I agreed to"
   },
   "pilot": {
     "label": "Pilot: this code normally arrives by SMS"
+  },
+  "groupView": {
+    "youOwe": "You still owe this round",
+    "youPaid": "You have paid this round",
+    "by": "by {{date}} · {{when}}",
+    "payNow": "Pay now",
+    "whoPaid": "Round {{number}} · who has paid",
+    "count": "{{paid}} of {{size}}",
+    "you": "You",
+    "paidAt": "Paid {{date}}",
+    "notYet": "Not yet",
+    "paid": "Paid",
+    "onItsWay": "On its way",
+    "toPay": "To pay",
+    "waiting": "Waiting",
+    "whoReceives": "Who receives the pot",
+    "round": "Round {{number}}",
+    "roundNow": "Round {{number}} · now",
+    "received": "Received"
   }
 }
