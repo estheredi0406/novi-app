@@ -1,13 +1,15 @@
 import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
+import { AppError } from "../lib/errors.js";
 import { decidePayout } from "../lib/groupRules.js";
 import { isoDay } from "../lib/schedule.js";
 import { payoutSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import type { PayoutAnswer } from "../providers/mfi/MfiAdapter.js";
 
-// Money out (Sprint 4). On a round's due date, Novi instructs the MFI to send
-// the pot to the member whose turn it is. Novi never holds the money: the MFI
+// Money out (Sprint 4, D63). On a round's due date, a full pot becomes READY;
+// the MFI officer then releases it from the console, and only then does Novi
+// instruct the MFI to send it to the member whose turn it is. Novi never holds the money: the MFI
 // does, and sends it (D2, D34). This runs as a job every minute, and also
 // right after a payment is confirmed, so a held pot leaves as soon as it is
 // full. Running it twice at the same moment is safe: each pot is sent once,
@@ -66,26 +68,89 @@ async function handleRound(round: DueRound, now: Date) {
 
   if (decision === "HOLD") {
     if (!round.payout) {
-      await createPayoutOnce({ roundId: round.id, beneficiaryId: round.beneficiaryId, status: "HELD", heldSince: now, ...details });
+      await createPayoutOnce({
+        roundId: round.id,
+        beneficiaryId: round.beneficiaryId,
+        status: "HELD",
+        heldSince: now,
+        ...details,
+      });
     }
     return;
   }
 
-  // SEND: claims the payout first, so two runs at the same moment cannot
-  // both instruct the MFI.
-  const payoutId = await claimForSending(round, now, details);
-  if (!payoutId) return;
+  // Full and due: the pot waits for the officer's release (D63). A held pot
+  // that has just filled up becomes ready the same way.
+  if (!round.payout) {
+    await createPayoutOnce({ roundId: round.id, beneficiaryId: round.beneficiaryId, status: "READY", ...details });
+    return;
+  }
+  if (round.payout.status === "HELD") {
+    await prisma.payout.updateMany({
+      where: { id: round.payout.id, status: "HELD" },
+      data: { status: "READY", ...details },
+    });
+    return;
+  }
+  if (round.payout.status === "READY") return;
 
-  if (!round.group.mfiAccountRef) throw new Error(`group ${round.groupId} has no MFI account`);
+  // Released earlier but refused, or stuck without an answer: try again.
+  // Claimed first, so two runs at the same moment cannot both instruct the MFI.
+  const payoutId = await claimForSending(round, now, details);
+  if (payoutId) await sendToMfi(payoutId, round.group.mfiAccountRef, details);
+}
+
+// The officer's release (D63): claims a READY pot, records who released it,
+// then instructs the MFI. Returns false if the pot was not ready to release.
+export async function releasePayout(payoutId: string, staffId: string | null, now = new Date()): Promise<boolean> {
+  const claimed = await prisma.payout.updateMany({
+    where: { id: payoutId, status: "READY" },
+    data: { status: "SENDING", requestedAt: now, releasedAt: now, releasedById: staffId },
+  });
+  if (claimed.count === 0) return false;
+
+  const payout = await prisma.payout.findUniqueOrThrow({
+    where: { id: payoutId },
+    include: { round: { include: { group: true } } },
+  });
+  await sendToMfi(payoutId, payout.round.group.mfiAccountRef, {
+    amountFcfa: payout.amountFcfa,
+    phone: payout.phone,
+    operator: payout.operator,
+  });
+  return true;
+}
+
+async function sendToMfi(payoutId: string, accountRef: string | null, details: PayoutDetails) {
+  if (!accountRef) throw new Error(`payout ${payoutId}: the group has no MFI account`);
   let answer: PayoutAnswer;
   try {
-    answer = await mfi.sendPayout({ payoutId, accountRef: round.group.mfiAccountRef, ...details });
+    answer = await mfi.sendPayout({ payoutId, accountRef, ...details });
   } catch (err) {
     console.error(`MFI did not accept payout ${payoutId}:`, err);
     await prisma.payout.update({ where: { id: payoutId }, data: { status: "FAILED" } });
     return;
   }
   await applyAnswer(payoutId, answer);
+}
+
+// Her answer once the pot has arrived (D63): received, or not. Only the
+// member who received it may answer, once, and only after the MFI paid it.
+export async function answerReceipt(userId: string, payoutId: string, received: boolean, now = new Date()) {
+  const payout = await prisma.payout.findUnique({ where: { id: payoutId } });
+  if (!payout || payout.beneficiaryId !== userId) throw new AppError("NOT_FOUND", 404);
+  if (payout.status !== "PAID" || payout.receiptConfirmedAt || payout.receiptDisputedAt) {
+    throw new AppError("NOT_ALLOWED_NOW", 409);
+  }
+  await prisma.$transaction([
+    prisma.payout.update({
+      where: { id: payoutId },
+      data: received ? { receiptConfirmedAt: now } : { receiptDisputedAt: now },
+    }),
+    prisma.auditEvent.create({
+      data: { userId, type: received ? "PAYOUT_RECEIPT_CONFIRMED" : "PAYOUT_RECEIPT_DISPUTED", details: { payoutId } },
+    }),
+  ]);
 }
 
 type PayoutDetails = { amountFcfa: number; phone: string; operator: "MOOV_TG" | "TOGOCEL" };
@@ -105,16 +170,11 @@ async function createPayoutOnce(data: Prisma.PayoutUncheckedCreateInput): Promis
 // already sending it or it is done.
 async function claimForSending(round: DueRound, now: Date, details: PayoutDetails): Promise<string | null> {
   const sending = { status: "SENDING" as const, requestedAt: now, ...details };
-  if (!round.payout) {
-    return createPayoutOnce({ roundId: round.id, beneficiaryId: round.beneficiaryId, ...sending });
-  }
+  if (!round.payout) return null;
   const claimed = await prisma.payout.updateMany({
     where: {
       id: round.payout.id,
-      OR: [
-        { status: { in: ["HELD", "FAILED"] } },
-        { status: "SENDING", requestedAt: { lt: new Date(now.getTime() - STUCK_AFTER_MS) } },
-      ],
+      OR: [{ status: "FAILED" }, { status: "SENDING", requestedAt: { lt: new Date(now.getTime() - STUCK_AFTER_MS) } }],
     },
     data: sending,
   });

@@ -6,7 +6,7 @@ import { prisma } from "../lib/db.js";
 import { payments } from "../providers/index.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
 import { base32Decode, codeForStep, totpStep } from "../lib/totp.js";
-import { runPayouts } from "../services/payoutService.js";
+import { releasePayout, runPayouts } from "../services/payoutService.js";
 import { createStaff } from "../services/staffService.js";
 import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
 
@@ -105,6 +105,8 @@ describe("her savings record", () => {
     for (const member of [akossiwa, abla, koffi]) await pay(member, groupId, 1);
     await setDue(groupId, 1, LONG_AGO);
     await runPayouts();
+    const ready = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 1 } } });
+    await releasePayout(ready.id, null); // the officer's release (D63)
 
     const round = await prisma.round.findFirstOrThrow({ where: { groupId, number: 1 }, include: { beneficiary: true } });
     const receiver = [akossiwa, abla, koffi].at(["Akossiwa", "Abla", "Koffi"].indexOf(round.beneficiary.displayName)) as Member;

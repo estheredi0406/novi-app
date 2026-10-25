@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
 
@@ -22,10 +22,17 @@ export function Screen({
     // With a tab bar, the bar itself fills the space under it down to the
     // phone's edge, so the bottom stays white.
     <SafeAreaView style={[styles.safe, dark && styles.dark]} edges={bar ? ["top", "left", "right"] : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {top}
-        <View style={styles.content}>{children}</View>
-      </ScrollView>
+      {/* Keeps the field she is typing in above the keyboard. */}
+      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+        >
+          {top}
+          <View style={styles.content}>{children}</View>
+        </ScrollView>
+      </KeyboardAvoidingView>
       {bar}
     </SafeAreaView>
   );
@@ -34,6 +41,7 @@ export function Screen({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.shell },
   dark: { backgroundColor: colors.indigo },
+  fill: { flex: 1 },
   scroll: { flexGrow: 1 },
   content: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 16, gap: 20 },
 });

@@ -67,6 +67,8 @@ function toSummary(loaded: Loaded, round: LoadedRound, userId: string): RoundSum
     myStatus: mine?.status ?? "UNPAID",
     payoutStatus: round.payout?.status ?? "NOT_DUE",
     paidOutAt: round.payout?.paidAt?.toISOString() ?? null,
+    payoutId: round.payout?.id ?? null,
+    receipt: round.payout?.receiptConfirmedAt ? "CONFIRMED" : round.payout?.receiptDisputedAt ? "DISPUTED" : null,
   };
 }
 

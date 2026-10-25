@@ -3,7 +3,7 @@ import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { currentRoundNumber, isoDay } from "../lib/schedule.js";
-import { runPayouts } from "./payoutService.js";
+import { releasePayout, runPayouts } from "./payoutService.js";
 
 // What an MFI officer sees and does in the console (Sprint 5.2). Every query
 // is limited to the officer's own MFI: another MFI's group is answered with
@@ -101,7 +101,13 @@ export async function getConsoleGroup(mfiId: string, groupId: string): Promise<C
 // Held and failed payouts at this MFI, oldest first: what needs a look.
 export async function listAttention(mfiId: string): Promise<AttentionItem[]> {
   const payouts = await prisma.payout.findMany({
-    where: { status: { in: ["HELD", "FAILED"] }, round: { group: { mfiId } } },
+    where: {
+      round: { group: { mfiId } },
+      OR: [
+        { status: { in: ["READY", "HELD", "FAILED"] } },
+        { status: "PAID", receiptDisputedAt: { not: null } },
+      ],
+    },
     include: {
       round: {
         include: {
@@ -123,11 +129,13 @@ export async function listAttention(mfiId: string): Promise<AttentionItem[]> {
       groupName: round.group.name,
       roundNumber: round.number,
       dueDate: isoDay(round.dueDate),
-      status: payout.status as AttentionItem["status"],
+      status: (payout.status === "PAID" ? "DISPUTED" : payout.status) as AttentionItem["status"],
       amountFcfa: round.contributions.reduce((total, c) => total + c.amountFcfa, 0),
       paymentsMissing: Math.max(0, expected - round.contributions.length),
       since: (payout.heldSince ?? payout.requestedAt ?? payout.createdAt).toISOString(),
       canRetry: payout.status === "FAILED",
+      canRelease: payout.status === "READY",
+      receiverTurn: round.number,
     };
   });
 }
@@ -146,7 +154,26 @@ export async function getOverview(mfiId: string): Promise<ConsoleOverview> {
     balanceFcfa: summaries.reduce((total, g) => total + g.balanceFcfa, 0),
     held: attention.filter((a) => a.status === "HELD").length,
     failed: attention.filter((a) => a.status === "FAILED").length,
+    ready: attention.filter((a) => a.status === "READY").length,
+    disputed: attention.filter((a) => a.status === "DISPUTED").length,
   };
+}
+
+// The officer releases a full, due pot (D63): only then does Novi instruct
+// the MFI to send it. Logged with her name, like every officer action.
+export async function releaseRoundPayout(mfiId: string, staffId: string, payoutId: string): Promise<AttentionItem[]> {
+  const payout = await prisma.payout.findFirst({
+    where: { id: payoutId, round: { group: { mfiId } } },
+    include: { round: { select: { number: true } } },
+  });
+  if (!payout) throw new AppError("NOT_FOUND", 404);
+  if (payout.status !== "READY") throw new AppError("NOT_ALLOWED_NOW", 409);
+
+  await prisma.auditEvent.create({
+    data: { type: "STAFF_PAYOUT_RELEASED", details: { staffId, payoutId, round: payout.round.number } },
+  });
+  await releasePayout(payoutId, staffId);
+  return listAttention(mfiId);
 }
 
 // The officer asks for a failed transfer to be tried again now, instead of

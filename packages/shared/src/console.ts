@@ -35,19 +35,22 @@ export type ConsoleRound = {
 
 export type ConsoleGroupDetail = ConsoleGroup & { roundList: ConsoleRound[] };
 
-// A payout the officer should look at: held (not full on its due date, D48)
-// or failed (the transfer was refused, D49).
+// A payout the officer should look at: ready to release (D63), held (not
+// full on its due date, D48), failed (the transfer was refused, D49), or
+// disputed (the member says the money did not arrive, D63).
 export type AttentionItem = {
   payoutId: string;
   groupId: string;
   groupName: string;
   roundNumber: number;
   dueDate: string;
-  status: "HELD" | "FAILED";
+  status: "READY" | "HELD" | "FAILED" | "DISPUTED";
   amountFcfa: number; // what the pot holds so far
   paymentsMissing: number; // how many, never who (D53)
   since: string; // when it was held, or when the transfer was asked
   canRetry: boolean; // only a failed transfer can be retried by the officer
+  canRelease: boolean; // only a full, due pot can be released (D63)
+  receiverTurn: number; // whose turn: her place in the order, never her name (D33)
 };
 
 export type ConsoleOverview = {
@@ -57,6 +60,8 @@ export type ConsoleOverview = {
   balanceFcfa: number; // across every group at this MFI
   held: number;
   failed: number;
+  ready: number; // pots waiting for the officer's release (D63)
+  disputed: number; // members who said the money did not arrive (D63)
 };
 
 // A savings record a member shared with this MFI by name (D54).

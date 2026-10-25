@@ -15,3 +15,7 @@ export const payRound = (groupId: string, number: number, operator: MobileOperat
 // Asks the provider directly whether the money has moved.
 export const checkContribution = (contributionId: string) =>
   memberRequest<ContributionView>("POST", `/v1/contributions/${contributionId}/check`, {});
+
+// D63: her answer once the pot reached her.
+export const answerReceipt = (payoutId: string, received: boolean) =>
+  memberRequest<void>("POST", `/v1/me/payouts/${payoutId}/receipt`, { received });

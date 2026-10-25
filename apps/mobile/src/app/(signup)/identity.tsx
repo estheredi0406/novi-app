@@ -1,7 +1,7 @@
 import { Redirect, router } from "expo-router";
-import { useState } from "react";
+import { type ComponentRef, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, View } from "react-native";
+import { Keyboard, StyleSheet, Text, type TextInput, View } from "react-native";
 import { startIdentityCheck } from "../../api/auth";
 import { ApiError, errorKey } from "../../api/client";
 import { ErrorMessage } from "../../components/ErrorMessage";
@@ -35,6 +35,10 @@ export default function IdentityScreen() {
   const [year, setYear] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // The date moves on by itself: two digits for the day, then the month,
+  // then four for the year, so she never has to close the keyboard.
+  const monthRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const yearRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   if (!draft.verificationToken) return <Redirect href="/phone" />;
   const { verificationToken } = draft;
@@ -82,7 +86,13 @@ export default function IdentityScreen() {
         </View>
       ) : null}
 
-      <Field label={t("idDetails.niu")} value={niu} onChangeText={setNiu} autoCapitalize="characters" autoCorrect={false} />
+      <Field
+        label={t("idDetails.niu")}
+        value={niu}
+        onChangeText={setNiu}
+        autoCapitalize="characters"
+        autoCorrect={false}
+      />
       <Field
         label={t("idDetails.legalName")}
         value={legalName}
@@ -95,13 +105,45 @@ export default function IdentityScreen() {
         <Text style={styles.label}>{t("idDetails.dateOfBirth")}</Text>
         <View style={styles.dobRow}>
           <View style={styles.dobSmall}>
-            <Field label={t("idDetails.day")} value={day} onChangeText={(v) => setDay(v.replace(/\D/g, ""))} keyboardType="number-pad" maxLength={2} />
+            <Field
+              label={t("idDetails.day")}
+              value={day}
+              onChangeText={(v) => {
+                const next = v.replace(/\D/g, "");
+                setDay(next);
+                if (next.length === 2) monthRef.current?.focus();
+              }}
+              keyboardType="number-pad"
+              maxLength={2}
+            />
           </View>
           <View style={styles.dobSmall}>
-            <Field label={t("idDetails.month")} value={month} onChangeText={(v) => setMonth(v.replace(/\D/g, ""))} keyboardType="number-pad" maxLength={2} />
+            <Field
+              ref={monthRef}
+              label={t("idDetails.month")}
+              value={month}
+              onChangeText={(v) => {
+                const next = v.replace(/\D/g, "");
+                setMonth(next);
+                if (next.length === 2) yearRef.current?.focus();
+              }}
+              keyboardType="number-pad"
+              maxLength={2}
+            />
           </View>
           <View style={styles.dobLarge}>
-            <Field label={t("idDetails.year")} value={year} onChangeText={(v) => setYear(v.replace(/\D/g, ""))} keyboardType="number-pad" maxLength={4} />
+            <Field
+              ref={yearRef}
+              label={t("idDetails.year")}
+              value={year}
+              onChangeText={(v) => {
+                const next = v.replace(/\D/g, "");
+                setYear(next);
+                if (next.length === 4) Keyboard.dismiss();
+              }}
+              keyboardType="number-pad"
+              maxLength={4}
+            />
           </View>
         </View>
       </View>

@@ -6,10 +6,14 @@ import { mfi, payments, sms } from "../providers/index.js";
 import { MockMfiAdapter } from "../providers/mfi/MockMfiAdapter.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
 import { MockSmsProvider } from "../providers/sms/MockSmsProvider.js";
-import { runPayouts } from "../services/payoutService.js";
+import { releasePayout, runPayouts } from "../services/payoutService.js";
 import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
 
-if (!(mfi instanceof MockMfiAdapter) || !(payments instanceof MockPaymentProvider) || !(sms instanceof MockSmsProvider)) {
+if (
+  !(mfi instanceof MockMfiAdapter) ||
+  !(payments instanceof MockPaymentProvider) ||
+  !(sms instanceof MockSmsProvider)
+) {
   throw new Error("Tests require the mock MFI, payment and SMS providers.");
 }
 const mockMfi = mfi;
@@ -17,14 +21,26 @@ const mockPayments = payments;
 const outbox = sms.sent;
 
 // Akossiwa's group of 3: 5 000 FCFA every Friday, so each pot is 15 000 FCFA.
-const SMALL_GROUP = { name: "Pagnes Assigamé", amountFcfa: 5000, frequency: "WEEKLY", dueDay: 5, size: 3, payoutOrder: "DRAWN" };
+const SMALL_GROUP = {
+  name: "Pagnes Assigamé",
+  amountFcfa: 5000,
+  frequency: "WEEKLY",
+  dueDay: 5,
+  size: 3,
+  payoutOrder: "DRAWN",
+};
 const PAST = new Date("2026-01-02T00:00:00Z");
 
 function as(accessToken: string) {
   const auth = (req: request.Test) => req.set("Authorization", `Bearer ${accessToken}`);
   return {
     get: (path: string) => auth(request(app).get(path)),
-    post: (path: string, body?: object) => auth(request(app).post(path).send(body ?? {})),
+    post: (path: string, body?: object) =>
+      auth(
+        request(app)
+          .post(path)
+          .send(body ?? {}),
+      ),
   };
 }
 
@@ -65,6 +81,12 @@ async function pay(member: Member, groupId: string, round: number) {
 const makeDue = (groupId: string, number: number) =>
   prisma.round.update({ where: { groupId_number: { groupId, number } }, data: { dueDate: PAST } });
 
+// The MFI officer releases a round's ready pot (D63).
+async function release(groupId: string, number = 1) {
+  const payout = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number } } });
+  return releasePayout(payout.id, null);
+}
+
 async function roundOne(groupId: string) {
   return prisma.round.findUniqueOrThrow({
     where: { groupId_number: { groupId, number: 1 } },
@@ -81,15 +103,36 @@ describe("sending a round's pot", () => {
     expect((await roundOne(groupId)).payout).toBeNull();
   });
 
-  it("sends the full pot on the due date to the member whose turn it is, on her own number", async () => {
+  it("makes a full pot ready on its due date, and sends nothing before the officer releases it (D63)", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    await makeDue(groupId, 1);
+    const before = mockMfi.payouts.size;
+    await runPayouts();
+    await runPayouts();
+
+    expect((await roundOne(groupId)).payout?.status).toBe("READY");
+    expect(mockMfi.payouts.size).toBe(before);
+  });
+
+  it("once released, sends the full pot to the member whose turn it is, on her own number", async () => {
     const { groupId, members } = await activeGroup();
     for (const member of members) await pay(member, groupId, 1);
     await makeDue(groupId, 1);
     await runPayouts();
+    expect(await release(groupId)).toBe(true);
 
     const round = await roundOne(groupId);
-    expect(round.payout).toMatchObject({ status: "PAID", amountFcfa: 15000, phone: round.beneficiary.phone, operator: "TOGOCEL" });
-    expect(mockMfi.payouts.get(round.payout?.id as string)).toMatchObject({ amountFcfa: 15000, phone: round.beneficiary.phone });
+    expect(round.payout).toMatchObject({
+      status: "PAID",
+      amountFcfa: 15000,
+      phone: round.beneficiary.phone,
+      operator: "TOGOCEL",
+    });
+    expect(mockMfi.payouts.get(round.payout?.id as string)).toMatchObject({
+      amountFcfa: 15000,
+      phone: round.beneficiary.phone,
+    });
   });
 
   it("writes a PAYOUT line to the ledger and tells her by SMS", async () => {
@@ -97,6 +140,7 @@ describe("sending a round's pot", () => {
     for (const member of members) await pay(member, groupId, 1);
     await makeDue(groupId, 1);
     await runPayouts();
+    await release(groupId);
 
     const round = await roundOne(groupId);
     const line = await prisma.ledgerEntry.findFirstOrThrow({ where: { groupId, type: "PAYOUT" } });
@@ -112,7 +156,9 @@ describe("sending a round's pot", () => {
     await makeDue(groupId, 1);
     const before = mockMfi.payouts.size;
     await Promise.all([runPayouts(), runPayouts(), runPayouts()]);
+    const released = await Promise.all([release(groupId), release(groupId), release(groupId)]);
 
+    expect(released.filter(Boolean)).toHaveLength(1);
     expect(mockMfi.payouts.size - before).toBe(1);
     expect(await prisma.ledgerEntry.count({ where: { groupId, type: "PAYOUT" } })).toBe(1);
   });
@@ -131,7 +177,7 @@ describe("holding a pot that is not full (D48)", () => {
     expect(seen[0]).toMatchObject({ payoutStatus: "HELD", paidCount: 2 });
   });
 
-  it("releases the pot as soon as the last payment arrives", async () => {
+  it("makes the pot ready for release as soon as the last payment arrives", async () => {
     const { groupId, members } = await activeGroup();
     await pay(members.at(0) as Member, groupId, 1);
     await pay(members.at(1) as Member, groupId, 1);
@@ -139,7 +185,9 @@ describe("holding a pot that is not full (D48)", () => {
     await runPayouts();
 
     await pay(members.at(2) as Member, groupId, 1); // no job run needed
-    expect((await roundOne(groupId)).payout).toMatchObject({ status: "PAID", amountFcfa: 15000 });
+    expect((await roundOne(groupId)).payout).toMatchObject({ status: "READY", amountFcfa: 15000 });
+    await release(groupId);
+    expect((await roundOne(groupId)).payout?.status).toBe("PAID");
   });
 });
 
@@ -150,6 +198,7 @@ describe("when the MFI is slow or refuses", () => {
     await makeDue(groupId, 1);
     mockMfi.nextPayout = "SENT";
     await runPayouts();
+    await release(groupId);
 
     const sent = (await roundOne(groupId)).payout;
     expect(sent?.status).toBe("SENT");
@@ -166,6 +215,7 @@ describe("when the MFI is slow or refuses", () => {
     await makeDue(groupId, 1);
     mockMfi.nextPayout = "FAILED";
     await runPayouts();
+    await release(groupId);
     expect((await roundOne(groupId)).payout?.status).toBe("FAILED");
 
     await runPayouts();
@@ -181,11 +231,45 @@ describe("the end of the cycle", () => {
       for (const member of members) await pay(member, groupId, number);
       await makeDue(groupId, number);
       await runPayouts();
+      await release(groupId, number);
     }
 
     const group = (await akossiwa.get(`/v1/groups/${groupId}`)).body;
     expect(group.state).toBe("COMPLETED");
     const ledger = (await akossiwa.get(`/v1/groups/${groupId}/ledger`)).body;
     expect(ledger.filter((line: { type: string }) => line.type === "PAYOUT")).toHaveLength(3);
+  });
+});
+
+describe("her answer once the pot arrives (D63)", () => {
+  // activeGroup() returns Akossiwa, Abla and Koffi in this order.
+  const NAMES = ["Akossiwa", "Abla", "Koffi"];
+
+  async function paidOut() {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    await makeDue(groupId, 1);
+    await runPayouts();
+    await release(groupId);
+    const round = await roundOne(groupId);
+    const receiver = members[NAMES.indexOf(round.beneficiary.displayName)] as Member;
+    return { groupId, members, round, receiver };
+  }
+
+  it("lets the member who received it confirm, once", async () => {
+    const { groupId, round, receiver } = await paidOut();
+    const payoutId = round.payout?.id as string;
+
+    expect((await receiver.post(`/v1/me/payouts/${payoutId}/receipt`, { received: true })).status).toBe(204);
+    expect((await receiver.post(`/v1/me/payouts/${payoutId}/receipt`, { received: false })).status).toBe(409);
+    const seen = (await receiver.get(`/v1/groups/${groupId}/rounds`)).body;
+    expect(seen[0]).toMatchObject({ payoutId, receipt: "CONFIRMED" });
+  });
+
+  it("lets nobody else answer for her", async () => {
+    const { members, round } = await paidOut();
+    const other = members.find((_, i) => i !== NAMES.indexOf(round.beneficiary.displayName)) as Member;
+    const res = await other.post(`/v1/me/payouts/${round.payout?.id}/receipt`, { received: true });
+    expect(res.status).toBe(404);
   });
 });

@@ -112,7 +112,7 @@ export default function GroupScreen() {
         </HeaderBand>
       }
     >
-      {rounds.length > 0 ? <GroupRoundView group={group} rounds={rounds} memberId={member.id} /> : null}
+      {rounds.length > 0 ? <GroupRoundView group={group} rounds={rounds} memberId={member.id} onChanged={load} /> : null}
 
       <RulesCard rules={rules} mfiName={group.mfiName} />
 

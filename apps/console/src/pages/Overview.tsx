@@ -20,15 +20,37 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
   );
   const [retrying, setRetrying] = useState<string | null>(null);
 
-  async function retry(payoutId: string) {
+  async function act(payoutId: string, action: "retry" | "release") {
     setRetrying(payoutId);
     try {
-      await api("POST", `/v1/console/payouts/${payoutId}/retry`);
+      await api("POST", `/v1/console/payouts/${payoutId}/${action}`);
     } finally {
       setRetrying(null);
       reload();
     }
   }
+
+  // D63: the officer confirms before a pot leaves the MFI.
+  function release(item: AttentionItem) {
+    if (window.confirm(t.releaseConfirm(fcfa(item.amountFcfa)))) void act(item.payoutId, "release");
+  }
+
+  const meta = (item: AttentionItem) =>
+    item.status === "READY"
+      ? t.readyHint(item.receiverTurn)
+      : item.status === "DISPUTED"
+        ? t.disputedHint
+        : item.status === "HELD"
+          ? t.missing(item.paymentsMissing)
+          : t.failed;
+  const label = (item: AttentionItem) =>
+    item.status === "READY"
+      ? t.ready
+      : item.status === "DISPUTED"
+        ? t.disputed
+        : item.status === "HELD"
+          ? t.held
+          : t.failed;
 
   if (failed) return <p className="error">{t.errors.default}</p>;
   if (!data) return null;
@@ -49,11 +71,15 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
             {overview.completedGroups} {t.completed}
           </span>
         </div>
-        <div className={`tile ${overview.held + overview.failed > 0 ? "tile-alert" : ""}`}>
+        <div
+          className={`tile ${overview.held + overview.failed + overview.ready + overview.disputed > 0 ? "tile-alert" : ""}`}
+        >
           <span className="tile-label">{t.toLook}</span>
-          <span className="tile-number">{overview.held + overview.failed}</span>
+          <span className="tile-number">{overview.held + overview.failed + overview.ready + overview.disputed}</span>
           <span className="tile-hint">
-            {overview.held} {t.held.toLowerCase()} · {overview.failed} {t.failed.toLowerCase()}
+            {overview.ready} {t.ready.toLowerCase()} · {overview.held} {t.held.toLowerCase()} · {overview.failed}{" "}
+            {t.failed.toLowerCase()}
+            {overview.disputed > 0 ? ` · ${overview.disputed} ${t.disputed.toLowerCase()}` : ""}
           </span>
         </div>
       </section>
@@ -70,13 +96,22 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
                   {item.groupName} · {t.round} {item.roundNumber}
                 </a>
                 <span className="flag-meta">
-                  {item.status === "HELD" ? t.missing(item.paymentsMissing) : t.failed} · {t.since(day(item.since))}
+                  {meta(item)} · {t.since(day(item.since))}
                 </span>
               </div>
               <span className="flag-amount">{fcfa(item.amountFcfa)}</span>
-              <span className={`chip chip-${item.status.toLowerCase()}`}>{item.status === "HELD" ? t.held : t.failed}</span>
+              <span className={`chip chip-${item.status.toLowerCase()}`}>{label(item)}</span>
+              {item.canRelease && (
+                <button className="primary small" disabled={retrying === item.payoutId} onClick={() => release(item)}>
+                  {t.release}
+                </button>
+              )}
               {item.canRetry && (
-                <button className="primary small" disabled={retrying === item.payoutId} onClick={() => void retry(item.payoutId)}>
+                <button
+                  className="primary small"
+                  disabled={retrying === item.payoutId}
+                  onClick={() => void act(item.payoutId, "retry")}
+                >
                   {t.retry}
                 </button>
               )}

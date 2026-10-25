@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
 import { getProfile, updateProfile } from "../services/memberService.js";
+import { answerReceipt } from "../services/payoutService.js";
 import { buildRecord, listLenders, listShares, revokeShare, shareRecord } from "../services/recordService.js";
 
 export const meRouter = Router();
@@ -57,4 +58,15 @@ meRouter.post("/record/shares", async (req, res) => {
 meRouter.post("/record/shares/:shareId/revoke", async (req, res) => {
   const { shareId } = z.object({ shareId: z.string().uuid() }).parse(req.params);
   res.json(await revokeShare(currentMember(res).userId, shareId));
+});
+
+// ---------- A pot she received (D63) ----------
+
+// "I received it" or "I did not receive it", once the MFI has paid her pot.
+// A "not received" answer goes to the officer's console.
+meRouter.post("/payouts/:payoutId/receipt", async (req, res) => {
+  const { received } = z.object({ received: z.boolean() }).strict().parse(req.body);
+  const payoutId = z.string().uuid().parse(req.params.payoutId);
+  await answerReceipt(currentMember(res).userId, payoutId, received);
+  res.status(204).end();
 });

@@ -87,6 +87,7 @@ enum ContributionStatus {
 // Where one round's payout is (Sprint 4).
 enum PayoutStatus {
   HELD    // due, but the pot is not full: nothing is sent short (D48)
+  READY   // due and full: waiting for the MFI officer to release it (D63)
   SENDING // Novi has asked the MFI to send it
   SENT    // the MFI accepted the instruction; waiting for its confirmation
   PAID    // the MFI confirmed the money reached her wallet
@@ -448,6 +449,11 @@ model Payout {
   heldSince     DateTime?
   requestedAt   DateTime?
   paidAt        DateTime?
+  // D63: the officer who released the pot, and her answer once it arrived.
+  releasedById       String?
+  releasedAt         DateTime?
+  receiptConfirmedAt DateTime? // "I received it"
+  receiptDisputedAt  DateTime? // "I did not receive it": shown to the officer
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 

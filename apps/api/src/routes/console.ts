@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { currentStaff, requireStaff } from "../middleware/requireStaff.js";
-import { getConsoleGroup, getOverview, listAttention, listConsoleGroups, retryPayout } from "../services/consoleService.js";
+import { getConsoleGroup, getOverview, listAttention, listConsoleGroups, releaseRoundPayout, retryPayout } from "../services/consoleService.js";
 import { listSharedWithMfi, openSharedRecord } from "../services/recordService.js";
 
 // The MFI console's data (Sprint 5.2). Staff only; every answer is limited
@@ -25,6 +25,12 @@ consoleRouter.get("/groups/:groupId", async (req, res) => {
 
 consoleRouter.get("/attention", async (_req, res) => {
   res.status(200).json(await listAttention(currentStaff(res).mfiId));
+});
+
+// D63: a full, due pot leaves only when the officer releases it.
+consoleRouter.post("/payouts/:payoutId/release", async (req, res) => {
+  const staff = currentStaff(res);
+  res.status(200).json(await releaseRoundPayout(staff.mfiId, staff.staffId, id.parse(req.params.payoutId)));
 });
 
 consoleRouter.post("/payouts/:payoutId/retry", async (req, res) => {

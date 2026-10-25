@@ -92,15 +92,11 @@ export default function HomeScreen() {
               text={`${t("home.greeting", { name: member.displayName })}. ${today}. ${empty ? t("home.empty") : ""}`}
             />
           </View>
-          {hero ? (
-            <WeekCard group={hero} />
-          ) : (
-            // No running group yet: the pot alone, as the picture of what a
-            // tontine builds. Decoration only, so screen readers skip it.
-            <View style={styles.potAlone} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-              <PotJar paid={3} size={110} label="" />
-            </View>
-          )}
+          {/* The pot as the band's centre piece: a picture of what a tontine
+              builds. Decoration only, so screen readers skip it. */}
+          <View style={styles.potAlone} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            <PotJar paid={3} size={110} label="" />
+          </View>
         </HomeBand>
       }
     >
@@ -109,6 +105,8 @@ export default function HomeScreen() {
         <Text style={styles.name}>{t("home.greeting", { name: member.displayName })}</Text>
       </View>
       <CowrieString />
+      {/* This week's card sits under the band, so the print stays whole. */}
+      {hero ? <WeekCard group={hero} /> : null}
 
       <ErrorMessage messageKey={error} />
 

@@ -6,7 +6,7 @@ import { base32Decode, codeForStep, totpStep } from "../lib/totp.js";
 import { mfi, payments } from "../providers/index.js";
 import { MockMfiAdapter } from "../providers/mfi/MockMfiAdapter.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
-import { runPayouts } from "../services/payoutService.js";
+import { releasePayout, runPayouts } from "../services/payoutService.js";
 import { createStaff } from "../services/staffService.js";
 import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
 
@@ -16,14 +16,26 @@ if (!(mfi instanceof MockMfiAdapter) || !(payments instanceof MockPaymentProvide
 const mockMfi = mfi;
 const mockPayments = payments;
 
-const SMALL_GROUP = { name: "Pagnes Assigamé", amountFcfa: 5000, frequency: "WEEKLY", dueDay: 5, size: 3, payoutOrder: "DRAWN" };
+const SMALL_GROUP = {
+  name: "Pagnes Assigamé",
+  amountFcfa: 5000,
+  frequency: "WEEKLY",
+  dueDay: 5,
+  size: 3,
+  payoutOrder: "DRAWN",
+};
 const PAST = new Date("2026-01-02T00:00:00Z");
 
 function as(accessToken: string) {
   const auth = (req: request.Test) => req.set("Authorization", `Bearer ${accessToken}`);
   return {
     get: (path: string) => auth(request(app).get(path)),
-    post: (path: string, body?: object) => auth(request(app).post(path).send(body ?? {})),
+    post: (path: string, body?: object) =>
+      auth(
+        request(app)
+          .post(path)
+          .send(body ?? {}),
+      ),
   };
 }
 type Client = ReturnType<typeof as>;
@@ -73,6 +85,8 @@ describe("the console's view of groups", () => {
     for (const member of members) await pay(member, groupId, 1);
     await makeDue(groupId, 1);
     await runPayouts();
+    const ready = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 1 } } });
+    await releasePayout(ready.id, null); // the officer's release (D63)
     await pay(members[0] as Client, groupId, 2);
 
     const groups = (await (await officer()).get("/v1/console/groups")).body;
@@ -95,7 +109,13 @@ describe("the console's view of groups", () => {
 
     const res = await (await officer()).get(`/v1/console/groups/${groupId}`);
     expect(res.status).toBe(200);
-    expect(res.body.roundList[0]).toMatchObject({ number: 1, expectedFcfa: 15000, collectedFcfa: 5000, paymentsReceived: 1, paymentsExpected: 3 });
+    expect(res.body.roundList[0]).toMatchObject({
+      number: 1,
+      expectedFcfa: 15000,
+      collectedFcfa: 5000,
+      paymentsReceived: 1,
+      paymentsExpected: 3,
+    });
     const text = JSON.stringify(res.body);
     for (const name of ["Akossiwa", "Abla", "Koffi", "+2289000000"]) expect(text).not.toContain(name);
   });
@@ -125,7 +145,15 @@ describe("payouts that need a look (D53)", () => {
 
     const items = (await (await officer()).get("/v1/console/attention")).body;
     expect(items).toEqual([
-      expect.objectContaining({ groupId, roundNumber: 1, status: "HELD", amountFcfa: 10000, paymentsMissing: 1, canRetry: false }),
+      expect.objectContaining({
+        groupId,
+        roundNumber: 1,
+        status: "HELD",
+        amountFcfa: 10000,
+        paymentsMissing: 1,
+        canRetry: false,
+        canRelease: false,
+      }),
     ]);
     expect(JSON.stringify(items)).not.toContain("Koffi");
   });
@@ -147,9 +175,11 @@ describe("payouts that need a look (D53)", () => {
     const { groupId, members } = await activeGroup();
     for (const member of members) await pay(member, groupId, 1);
     await makeDue(groupId, 1);
-    mockMfi.nextPayout = "FAILED";
     await runPayouts();
     const desk = await officer();
+    const [ready] = (await desk.get("/v1/console/attention")).body;
+    mockMfi.nextPayout = "FAILED";
+    await desk.post(`/v1/console/payouts/${ready.payoutId}/release`);
     const [failed] = (await desk.get("/v1/console/attention")).body;
     expect(failed).toMatchObject({ status: "FAILED", canRetry: true });
 
@@ -161,6 +191,44 @@ describe("payouts that need a look (D53)", () => {
     expect(await prisma.auditEvent.count({ where: { type: "STAFF_PAYOUT_RETRY" } })).toBe(1);
   });
 
+  it("lists a full, due pot as ready, and sends it only when the officer releases it (D63)", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    await makeDue(groupId, 1);
+    await runPayouts();
+    const desk = await officer();
+    const [ready] = (await desk.get("/v1/console/attention")).body;
+    expect(ready).toMatchObject({ groupId, status: "READY", canRelease: true, receiverTurn: 1, amountFcfa: 15000 });
+    expect(JSON.stringify(ready)).not.toMatch(/Akossiwa|Abla|Koffi/);
+
+    const res = await desk.post(`/v1/console/payouts/${ready.payoutId}/release`);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+    const round = await members[0]?.get(`/v1/groups/${groupId}/rounds/1`);
+    expect(round?.body.payoutStatus).toBe("PAID");
+    expect(await prisma.auditEvent.count({ where: { type: "STAFF_PAYOUT_RELEASED" } })).toBe(1);
+    expect((await desk.post(`/v1/console/payouts/${ready.payoutId}/release`)).status).toBe(409);
+  });
+
+  it("shows the officer a pot its member says she did not receive (D63)", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    await makeDue(groupId, 1);
+    await runPayouts();
+    const desk = await officer();
+    const [ready] = (await desk.get("/v1/console/attention")).body;
+    await desk.post(`/v1/console/payouts/${ready.payoutId}/release`);
+
+    const payout = await prisma.payout.findUniqueOrThrow({ where: { id: ready.payoutId } });
+    const receiver = (await Promise.all(members.map(async (m) => ({ m, me: (await m.get("/v1/me")).body.id })))).find(
+      (x) => x.me === payout.beneficiaryId,
+    );
+    await receiver?.m.post(`/v1/me/payouts/${payout.id}/receipt`, { received: false });
+
+    const [disputed] = (await desk.get("/v1/console/attention")).body;
+    expect(disputed).toMatchObject({ payoutId: payout.id, status: "DISPUTED", canRelease: false, canRetry: false });
+  });
+
   it("sums it all up on the overview", async () => {
     const { groupId, members } = await activeGroup();
     await pay(members[0] as Client, groupId, 1);
@@ -168,6 +236,15 @@ describe("payouts that need a look (D53)", () => {
     await runPayouts();
 
     const overview = (await (await officer()).get("/v1/console/overview")).body;
-    expect(overview).toEqual({ mfiName: "FUCEC-Togo", activeGroups: 1, completedGroups: 0, balanceFcfa: 5000, held: 1, failed: 0 });
+    expect(overview).toEqual({
+      mfiName: "FUCEC-Togo",
+      activeGroups: 1,
+      completedGroups: 0,
+      balanceFcfa: 5000,
+      held: 1,
+      failed: 0,
+      ready: 0,
+      disputed: 0,
+    });
   });
 });

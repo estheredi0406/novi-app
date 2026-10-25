@@ -478,6 +478,11 @@
     "whoReceives": "Qui reçoit la cagnotte",
     "round": "Tour {{number}}",
     "roundNow": "Tour {{number}} · en cours",
-    "received": "Reçue"
+    "received": "Reçue",
+    "receiptTitle": "Avez-vous reçu {{amount}} ? (cagnotte du tour {{number}})",
+    "receiptHint": "{{mfi}} l'a envoyée sur votre mobile money. Dites à votre groupe qu'elle est arrivée.",
+    "receiptYes": "Oui, je l'ai reçue",
+    "receiptNo": "Non, elle n'est pas arrivée",
+    "disputed": "Non reçue"
   }
 }

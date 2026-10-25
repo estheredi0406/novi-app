@@ -3,9 +3,9 @@ import { router } from "expo-router";
 import type { TFunction } from "i18next";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Ellipse } from "react-native-svg";
-import { getRound } from "../api/money";
+import { answerReceipt, getRound } from "../api/money";
 import { daysUntil, formatDay, formatFcfa } from "../lib/format";
 import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
@@ -19,12 +19,15 @@ export function GroupRoundView({
   group,
   rounds,
   memberId,
+  onChanged,
 }: {
   group: GroupDetail;
   rounds: RoundSummary[];
   memberId: string;
+  onChanged: () => void;
 }) {
   const { t } = useTranslation();
+  const [answering, setAnswering] = useState(false);
   const current = rounds.find((r) => r.isCurrent);
   const [detail, setDetail] = useState<RoundDetail | null>(null);
 
@@ -38,8 +41,44 @@ export function GroupRoundView({
   // Round n's pot goes to the member whose payout position is n.
   const receiver = (number: number) => group.seats.find((s) => s.payoutPosition === number);
 
+  // D63: her pot reached her wallet; she says whether the money arrived.
+  const toConfirm = rounds.find(
+    (r) => r.payoutStatus === "PAID" && r.receipt === null && r.payoutId && receiver(r.number)?.memberId === memberId,
+  );
+  async function answer(received: boolean) {
+    if (!toConfirm?.payoutId) return;
+    setAnswering(true);
+    try {
+      await answerReceipt(toConfirm.payoutId, received);
+    } finally {
+      setAnswering(false);
+      onChanged();
+    }
+  }
+
   return (
     <View style={styles.wrap}>
+      {toConfirm ? (
+        <View style={styles.cardWrap}>
+          <View style={styles.cardShadow} />
+          <View style={[styles.card, styles.receiptCard]}>
+            <Text style={styles.cardTitle}>
+              {t("groupView.receiptTitle", { amount: formatFcfa(toConfirm.collectedFcfa), number: toConfirm.number })}
+            </Text>
+            <Text style={styles.by}>{t("groupView.receiptHint", { mfi: group.mfiName })}</Text>
+            <PrimaryButton label={t("groupView.receiptYes")} disabled={answering} onPress={() => void answer(true)} />
+            <Pressable
+              accessibilityRole="button"
+              disabled={answering}
+              onPress={() => void answer(false)}
+              style={styles.noButton}
+            >
+              <Text style={styles.noText}>{t("groupView.receiptNo")}</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
       {current ? (
         <OweCard t={t} round={current} amount={group.rules.amountFcfa} onPay={() => openRound(current.number)} />
       ) : null}
@@ -96,7 +135,11 @@ export function GroupRoundView({
                 <Text style={[styles.medalName, mine && styles.onAccent]} numberOfLines={1}>
                   {mine ? t("groupView.you") : (seat?.displayName ?? r.beneficiaryName)}
                 </Text>
-                {received ? (
+                {received && r.receipt === "DISPUTED" ? (
+                  <Text style={[styles.medalDate, styles.disputed, mine && styles.onAccent]}>
+                    {t("groupView.disputed")}
+                  </Text>
+                ) : received ? (
                   <View style={styles.inline}>
                     <Glyph name="check" color={mine ? colors.white : colors.paid} />
                     <Text style={[styles.medalDate, styles.received, mine && styles.onAccent]}>
@@ -257,5 +300,17 @@ const styles = StyleSheet.create({
   medalName: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.ink },
   medalDate: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.indigo },
   received: { color: colors.paid },
+  disputed: { color: colors.problem },
+  receiptCard: { backgroundColor: colors.mist },
+  noButton: {
+    minHeight: 48,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.indigo,
+    backgroundColor: colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  noText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.indigo },
   onAccent: { color: colors.white },
 });

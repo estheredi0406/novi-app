@@ -1,16 +1,24 @@
+import type { ComponentRef, Ref } from "react";
 import { StyleSheet, Text, TextInput, type TextInputProps, View } from "react-native";
 import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
 
 // A labelled text input. The optional prefix shows fixed text before the
 // input, such as +228 before a phone number.
-export function Field({ label, prefix, style, ...input }: { label: string; prefix?: string } & TextInputProps) {
+export function Field({
+  label,
+  prefix,
+  style,
+  ref,
+  ...input
+}: { label: string; prefix?: string; ref?: Ref<ComponentRef<typeof TextInput>> } & TextInputProps) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.box}>
         {prefix ? <Text style={styles.prefix}>{prefix}</Text> : null}
         <TextInput
+          ref={ref}
           accessibilityLabel={label}
           placeholderTextColor={colors.muted}
           style={[styles.input, style]}

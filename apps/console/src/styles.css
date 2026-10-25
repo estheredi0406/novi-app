@@ -102,11 +102,13 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; }
 /* What needs a look */
 .attention { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .flag {
-  display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 16px;
+  display: grid; grid-template-columns: 1fr auto auto auto auto; align-items: center; gap: 16px;
   background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px 18px;
 }
 .flag-held { box-shadow: inset 6px 0 0 var(--saffron); }
 .flag-failed { box-shadow: inset 6px 0 0 var(--problem); }
+.flag-ready { box-shadow: inset 6px 0 0 var(--paid); }
+.flag-disputed { box-shadow: inset 6px 0 0 var(--problem); }
 .flag-title { font-weight: 700; text-decoration: none; display: block; }
 .flag-meta { font-size: 14px; color: var(--muted); }
 .flag-amount { font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -114,6 +116,8 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; }
 .chip { justify-self: start; display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--mist); color: var(--indigo); text-transform: uppercase; letter-spacing: 0.4px; }
 .chip-held { background: #fcebcc; color: #7a4b05; }
 .chip-failed { background: #f6d6d2; color: #8a1f17; }
+.chip-ready { background: #d6ecdf; color: var(--paid); }
+.chip-disputed { background: #f6d6d2; color: #8a1f17; }
 .chip-paid { background: #d6ecdf; color: var(--paid); }
 
 /* Group cards */

@@ -188,6 +188,9 @@ While SMS is still a mock, testers could not receive their sign-up, identity or 
 ### D62. A demonstration command pays out a pot before its due date (25 Oct 2026)
 Pots leave on their round's due date (D34), so a payout could not be shown during a test or the defence without waiting for that day. `npm run demo:payout -- "Group name"`, run only from the server's shell, runs the normal payout service for that group's next round as if today were its due date. Every other rule still applies: the pot is held unless everyone has paid, goes only to the member whose turn it is, to her own number, once (D49). It is not reachable from the app or the console, so no member or officer can move a pot early.
 
+### D63. A pot leaves only when the MFI officer releases it, and its member confirms receipt (25 Oct 2026)
+Until now a full pot was sent automatically on its due date. Two people now take part, as in any financial control. On the due date a full pot becomes READY and appears in the MFI console; the officer checks it and presses "Release the pot", which Novi logs with her name, and only then is the MFI instructed to send it. Once the MFI confirms the transfer, the member whose turn it was answers "I received it" or "It has not arrived"; a "not arrived" answer appears in the console as a dispute for the officer. Novi still never holds the money (D2): the officer acts in the MFI's own console. A transfer that was released and then refused is still retried automatically (D49), and a held pot (D48) becomes ready as soon as it is full. Trade-off: a pot can leave later than its due date if no officer is at the console; reminders to the officer are a later step. The record (ACEV) can now distinguish pots confirmed by the member who received them.
+
 ## Partners, money and data (20 Oct 2026)
 
 ### D33. The MFI sees group totals, not individual members; the ACEV is shared only at her request (20 Oct 2026)

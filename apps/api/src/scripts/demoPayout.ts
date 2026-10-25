@@ -1,9 +1,10 @@
 import { prisma } from "../lib/db.js";
 import { runPayouts } from "../services/payoutService.js";
 
-// Demonstration only (D62): pays out a group's next pot now, as if today
-// were that round's due date, so a payout can be shown during a test or the
-// defence without waiting until the due day.
+// Demonstration only (D62): treats a group's next round as due today, so a
+// payout can be shown during a test or the defence without waiting for the
+// due day. A full pot then waits in the console for the officer's release
+// (D63), exactly as it would on the real day.
 //
 //   npm run demo:payout -- "Pagnes Assigamé"
 //
@@ -35,7 +36,7 @@ async function main() {
   const payout = await prisma.payout.findUnique({ where: { roundId: round.id } });
   console.log(
     payout
-      ? `Payout: ${payout.status}, ${payout.amountFcfa} FCFA.`
+      ? `Payout: ${payout.status}, ${payout.amountFcfa} FCFA.${payout.status === "READY" ? " Release it from the MFI console." : ""}`
       : "No payout yet: not every member has paid, so the pot is held.",
   );
 }

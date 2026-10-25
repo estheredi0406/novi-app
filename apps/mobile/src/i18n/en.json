@@ -478,6 +478,11 @@
     "whoReceives": "Who receives the pot",
     "round": "Round {{number}}",
     "roundNow": "Round {{number}} · now",
-    "received": "Received"
+    "received": "Received",
+    "receiptTitle": "Did you receive {{amount}}? (round {{number}} pot)",
+    "receiptHint": "{{mfi}} sent it to your mobile money. Tell your group it arrived.",
+    "receiptYes": "Yes, I received it",
+    "receiptNo": "No, it has not arrived",
+    "disputed": "Not received"
   }
 }

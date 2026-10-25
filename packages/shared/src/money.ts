@@ -6,7 +6,8 @@ export type ContributionStatus = "PENDING" | "PAID" | "FAILED";
 
 // Where a round's pot is (Sprint 4). NOT_DUE: its day has not come yet.
 // HELD: the day has passed but someone has not paid; nothing is sent short.
-export type PayoutStatus = "NOT_DUE" | "HELD" | "SENDING" | "SENT" | "PAID" | "FAILED";
+// READY: due and full, waiting for the MFI officer to release it (D63).
+export type PayoutStatus = "NOT_DUE" | "HELD" | "READY" | "SENDING" | "SENT" | "PAID" | "FAILED";
 
 // Her own payment for one round, as she sees it while paying and after.
 export type ContributionView = {
@@ -33,6 +34,9 @@ export type RoundSummary = {
   myStatus: ContributionStatus | "UNPAID";
   payoutStatus: PayoutStatus;
   paidOutAt: string | null; // when the pot reached the member whose turn it is
+  payoutId: string | null;
+  // D63: her answer once the pot reached her: received, or not received.
+  receipt: "CONFIRMED" | "DISPUTED" | null;
 };
 
 // One member's payment in a round. Every member of the group sees every
