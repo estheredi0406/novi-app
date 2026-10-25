@@ -12,8 +12,8 @@ talks to the server's public address.
    see the `estheredi0406/novi-app` repository.
 2. **New › Blueprint**, pick the repository. Render reads `render.yaml` and
    proposes a PostgreSQL database (`novi-db`) and a web service (`novi-api`),
-   both on the smallest paid plans (about 13 USD a month together; check
-   Render's pricing page).
+   both on the smallest paid plans in Frankfurt (about 14.50 USD a month
+   together, with 5 GB of database storage; check Render's pricing page).
 3. It asks for `ACEV_PRIVATE_KEY`: paste a new key made with the command in
    `apps/api/src/lib/recordSigning.ts`. Render generates `JWT_SECRET` and
    `NIU_HASH_KEY` itself and fills in `DATABASE_URL` from the database.

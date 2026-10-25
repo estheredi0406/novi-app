@@ -5,16 +5,23 @@ databases:
   - name: novi-db
     databaseName: novi
     user: novi
-    # The smallest paid database: it does not expire like the free one.
-    plan: basic-256mb
+    # Frankfurt is Render's closest region to Lome. It cannot be changed
+    # later, and the database and the server must share it.
+    region: frankfurt
+    # The smallest paid database (about 6 USD a month): it does not expire
+    # like the free one. 5 GB of storage (0.30 USD per GB) is plenty for
+    # the pilot; it can grow later but never shrink.
+    plan: 0.1c-256mb
+    diskSizeGB: 5
 
 services:
   - type: web
     name: novi-api
     runtime: docker
-    # The smallest paid instance: it never sleeps, so the payout and
-    # reminder jobs keep running (D60).
-    plan: starter
+    region: frankfurt
+    # The smallest paid instance (about 7 USD a month): it never sleeps,
+    # so the payout and reminder jobs keep running (D60).
+    plan: 0.5c-512mb
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:
