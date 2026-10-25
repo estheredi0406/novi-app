@@ -174,8 +174,8 @@ export async function login(input: { phone: string; pin: string; installationId:
     where: { userId_installationId: { userId: user.id, installationId: input.installationId } },
   });
   if (!device) {
-    const challengeId = await sendDeviceCode(user.phone, user.language);
-    throw new AppError("NEW_DEVICE", 409, undefined, challengeId);
+    const device = await sendDeviceCode(user.phone, user.language);
+    throw new AppError("NEW_DEVICE", 409, undefined, device.challengeId, device.pilotCode);
   }
 
   return prisma.$transaction(async (tx) => {

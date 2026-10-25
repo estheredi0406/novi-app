@@ -10,6 +10,7 @@ export class AppError extends Error {
     readonly status: number,
     readonly retryAfterSec?: number,
     readonly challengeId?: string,
+    readonly pilotCode?: string, // pilot mode only (D61)
   ) {
     super(code);
   }

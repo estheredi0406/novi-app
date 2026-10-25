@@ -13,6 +13,7 @@ import { formatPhone, formatSeconds } from "../../lib/format";
 import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
+import { PilotCode } from "../../components/PilotCode";
 
 // Screen A3: the 6-digit SMS code. Checked as soon as the sixth digit is typed.
 export default function CodeScreen() {
@@ -69,6 +70,7 @@ export default function CodeScreen() {
   return (
     <Screen>
       <StepHeader step={2} listenText={`${t("code.title")}. ${t("code.sentTo", { phone: formatPhone(phone) })}`} />
+      <PilotCode />
 
       <View style={styles.intro}>
         <Text style={styles.eyebrow}>{t("code.step")}</Text>

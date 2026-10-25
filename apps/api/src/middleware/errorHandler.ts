@@ -13,6 +13,7 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
         messageKey: errors[err.code].messageKey,
         retryAfterSec: err.retryAfterSec,
         challengeId: err.challengeId,
+        pilotCode: err.pilotCode,
       },
     };
     res.status(err.status).json(body);

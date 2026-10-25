@@ -15,6 +15,7 @@ import { formatPhone } from "../lib/format";
 import { useSession } from "../session/SessionProvider";
 import { colors } from "../theme/colors";
 import { fonts, type } from "../theme/typography";
+import { PilotCode } from "../components/PilotCode";
 
 // The steps of a PIN reset (D20):
 // - phone: which number to reset
@@ -140,6 +141,7 @@ export default function ForgotPinScreen() {
     return (
       <Screen>
         <StepHeader listenText={`${t("code.title")}. ${t("code.sentTo", { phone: formatPhone(phone) })}`} />
+        <PilotCode />
         <View style={styles.intro}>
           <Text style={[type.display, styles.indigo]}>{t("code.title")}</Text>
           <Text style={[type.body, styles.muted]}>{t("code.sentTo", { phone: formatPhone(phone) })}</Text>

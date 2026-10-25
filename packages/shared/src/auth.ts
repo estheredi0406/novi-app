@@ -19,7 +19,8 @@ export type MemberProfile = {
 export type AuthResponse = { tokens: AuthTokens; member: MemberProfile };
 
 // Answers of the sign-up steps that come before the account exists.
-export type OtpChallenge = { challengeId: string; expiresInSec: number; resendInSec: number };
+// pilotCode: only in the online pilot (D61), the code that was "sent" by SMS.
+export type OtpChallenge = { challengeId: string; expiresInSec: number; resendInSec: number; pilotCode?: string };
 export type PhoneVerification = { verificationToken: string; expiresInSec: number };
-export type IdentityStarted = { pendingToken: string; maskedPhone: string; expiresInSec: number };
+export type IdentityStarted = { pendingToken: string; maskedPhone: string; expiresInSec: number; pilotCode?: string };
 export type IdentityConfirmed = { identityToken: string; legalName: string; expiresInSec: number };

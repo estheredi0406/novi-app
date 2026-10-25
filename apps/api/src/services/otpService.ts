@@ -5,6 +5,7 @@ import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { hashSecret, verifySecret } from "../lib/hashing.js";
 import { alreadyRegisteredSms, otpSms } from "../lib/smsText.js";
+import { pilotCode } from "../lib/pilot.js";
 import { createStepToken } from "../lib/tokens.js";
 import { sms } from "../providers/index.js";
 
@@ -72,20 +73,26 @@ export async function requestOtp(input: {
   // verifying behaves the same for every number.
   const { challengeId, code } = await newChallenge(phone, purpose);
 
+  let sent: string | undefined;
   if (purpose === "SIGN_UP") {
     await sms.send(phone, hasAccount ? alreadyRegisteredSms(language) : otpSms(language, code));
+    if (!hasAccount) sent = code;
   } else if (hasAccount) {
     await sms.send(phone, otpSms(language, code));
+    sent = code;
   }
 
-  return { challengeId, expiresInSec: CODE_LIFETIME_SEC, resendInSec: RESEND_WAIT_SEC };
+  return { challengeId, expiresInSec: CODE_LIFETIME_SEC, resendInSec: RESEND_WAIT_SEC, ...pilotCode(sent) };
 }
 
 // Sends a code to confirm a new phone. Called by login only after the right PIN.
-export async function sendDeviceCode(phone: string, language: Language): Promise<string> {
+export async function sendDeviceCode(
+  phone: string,
+  language: Language,
+): Promise<{ challengeId: string; pilotCode?: string }> {
   const { challengeId, code } = await newChallenge(phone, "NEW_DEVICE");
   await sms.send(phone, otpSms(language, code));
-  return challengeId;
+  return { challengeId, ...pilotCode(code) };
 }
 
 // Checks a code. On success the challenge is used up and a 10-minute

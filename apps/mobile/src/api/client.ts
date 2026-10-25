@@ -1,4 +1,5 @@
 import type { ApiError as ApiErrorBody, AuthTokens } from "@novi/shared";
+import { pilotCodeStore } from "../lib/pilotCode";
 import { clearTokens, getTokens, saveTokens } from "../lib/storage";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -47,9 +48,16 @@ async function send(path: string, method: Method, body?: unknown, accessToken?: 
 
 // Turns a response into its data, or into an ApiError carrying the API's message key.
 async function parse<T>(res: Response): Promise<T> {
-  if (res.ok) return (res.status === 204 ? undefined : await res.json()) as T;
+  if (res.ok) {
+    const data = res.status === 204 ? undefined : await res.json();
+    // Pilot mode (D61): keep a code the server returned, for the code screens.
+    const code = (data as { pilotCode?: string } | undefined)?.pilotCode;
+    if (code) pilotCodeStore.set(code);
+    return data as T;
+  }
   try {
     const { error } = (await res.json()) as ApiErrorBody;
+    if (error.pilotCode) pilotCodeStore.set(error.pilotCode);
     throw new ApiError(res.status, error.code, error.messageKey, error.retryAfterSec, error.challengeId);
   } catch (err) {
     if (err instanceof ApiError) throw err;

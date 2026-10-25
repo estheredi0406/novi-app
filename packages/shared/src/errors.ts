@@ -71,5 +71,6 @@ export type ApiError = {
     messageKey: string;
     retryAfterSec?: number; // when the member may try again, for lockouts and limits
     challengeId?: string; // with NEW_DEVICE: the SMS code to verify on this phone
+    pilotCode?: string; // pilot mode only (D61)
   };
 };

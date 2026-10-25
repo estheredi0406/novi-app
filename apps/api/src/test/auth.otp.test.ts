@@ -1,5 +1,5 @@
 import request from "supertest";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { app } from "../app.js";
 import { prisma } from "../lib/db.js";
 import { sms } from "../providers/index.js";
@@ -30,12 +30,27 @@ describe("SMS codes", () => {
     outbox.length = 0;
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("sends a sign-up code to a new number", async () => {
     const res = await askForCode();
     expect(res.status).toBe(201);
     expect(res.body.challengeId).toBeTypeOf("string");
     expect(outbox).toHaveLength(1);
     expect(outbox[0]?.to).toBe(NEW_NUMBER);
+  });
+
+  it("keeps the code out of the response outside pilot mode", async () => {
+    const res = await askForCode();
+    expect(res.body.pilotCode).toBeUndefined();
+  });
+
+  it("returns the code in pilot mode (D61)", async () => {
+    vi.stubEnv("PILOT_SHOW_CODES", "true");
+    const res = await askForCode();
+    expect(res.body.pilotCode).toBe(lastCode());
   });
 
   it("refuses a second code within 60 seconds", async () => {

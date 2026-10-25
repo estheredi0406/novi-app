@@ -13,6 +13,7 @@ import { formatPhone, formatSeconds } from "../lib/format";
 import { useSession } from "../session/SessionProvider";
 import { colors } from "../theme/colors";
 import { fonts, type } from "../theme/typography";
+import { PilotCode } from "../components/PilotCode";
 
 // The three things this screen can show:
 // - pin: she types her PIN (and her number, on a phone Novi does not know)
@@ -128,6 +129,7 @@ export default function LoginScreen() {
         <View style={styles.top}>
           <ListenButton text={`${t("newDevice.title")}. ${t("newDevice.lede", { phone: formatPhone(phone) })}`} />
         </View>
+        <PilotCode />
         <View style={styles.intro}>
           <Text style={[type.display, styles.indigo]}>{t("newDevice.title")}</Text>
           <Text style={[type.body, styles.muted]}>{t("newDevice.lede", { phone: formatPhone(phone) })}</Text>

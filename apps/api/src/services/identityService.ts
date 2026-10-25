@@ -5,6 +5,8 @@ import { niuKeyedHash } from "../lib/hashing.js";
 import { createStepToken, verifyStepToken } from "../lib/tokens.js";
 import { identity } from "../providers/index.js";
 import type { IdentityConfirmed, IdentityStarted } from "@novi/shared";
+import { pilotCode } from "../lib/pilot.js";
+import { MockAnidProvider } from "../providers/identity/MockAnidProvider.js";
 
 const MAX_FAILURES = 3;
 const BLOCK_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -71,7 +73,9 @@ export async function startIdentityCheck(input: {
     legalName,
     idConsentAt: new Date().toISOString(),
   });
-  return { pendingToken, maskedPhone: result.maskedPhone, expiresInSec: PENDING_MINUTES * 60 };
+  // Pilot mode (D61): the mock ANID keeps the code it "sent", to show it on screen.
+  const sentCode = identity instanceof MockAnidProvider ? identity.sentCodes.get(result.transactionId) : undefined;
+  return { pendingToken, maskedPhone: result.maskedPhone, expiresInSec: PENDING_MINUTES * 60, ...pilotCode(sentCode) };
 }
 
 // Step 2: checks the ANID code. On success, issues the proof that sign-up

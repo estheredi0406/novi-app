@@ -12,6 +12,7 @@ import { StepHeader } from "../../components/StepHeader";
 import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
+import { PilotCode } from "../../components/PilotCode";
 
 // Screen A6: the code ANID sent to the phone on her ID record. Proves she owns this identity.
 export default function AnidCodeScreen() {
@@ -56,6 +57,7 @@ export default function AnidCodeScreen() {
   return (
     <Screen>
       <StepHeader step={4} listenText={`${t("anidCode.title")}. ${sentTo}`} />
+      <PilotCode />
 
       <View style={styles.intro}>
         <Text style={[type.display, styles.indigo]}>{t("anidCode.title")}</Text>
