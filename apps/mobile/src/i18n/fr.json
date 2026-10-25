@@ -164,7 +164,15 @@
     "inWeeks_one": "dans {{count}} semaine",
     "inWeeks_other": "dans {{count}} semaines",
     "turnHeld": "Votre cagnotte (tour {{number}}) attend que tout le monde ait payé",
-    "turnSending": "Votre cagnotte (tour {{number}}) est en route"
+    "turnSending": "Votre cagnotte (tour {{number}}) est en route",
+    "hello": "Bonjour",
+    "thisWeek": "Cette semaine · tour {{number}}",
+    "byDate": "FCFA · avant le {{date}}",
+    "pay": "Payer {{amount}}",
+    "newGroup": "+ Nouveau groupe",
+    "potLine": "{{paid}} sur {{size}} ont payé · {{group}}",
+    "paidThisWeek": "Payé cette semaine",
+    "myTurnShort": "Votre tour {{when}}"
   },
   "days": {
     "1": "lundi",

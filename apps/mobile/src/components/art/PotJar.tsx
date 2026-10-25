@@ -1,61 +1,73 @@
-import Svg, { Ellipse, Path } from "react-native-svg";
+import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path, Rect } from "react-native-svg";
 import { colors } from "../../theme/colors";
 
-// The pot of a round: a clay jar (canari) with one coin per member who has
-// paid, stacked from the bottom. Empty places are dotted outlines, so she can
-// count at a glance who is still missing. A held payout shows grey coins.
+// The pot of a round: a clay jar (canari) with an orange lid, holding one
+// coin per member who has paid this round. Grey coins while a payout is held.
 const JAR =
-  "M18 6 H46 V12 C46 14 44 15 44 17 C56 22 60 34 60 46 C60 62 48 72 32 72 C16 72 4 62 4 46 C4 34 8 22 20 17 C20 15 18 14 18 12 Z";
+  "M30 14 H62 V22 C62 25 59 26 59 29 C78 36 86 52 86 66 C86 88 68 100 46 100 C24 100 6 88 6 66 C6 52 14 36 33 29 C33 26 30 25 30 22 Z";
+// Where coins land, from the bottom of the jar upwards.
+const COINS: [number, number][] = [
+  [36, 93],
+  [58, 94],
+  [46, 88],
+  [40, 83],
+  [56, 82],
+  [46, 77],
+  [36, 72],
+  [56, 71],
+];
 
 export function PotJar({
-  share,
-  slots = 6,
-  size = 72,
+  paid,
+  size = 78,
   tone = "paid",
   label,
 }: {
-  share: number; // 0 to 1
-  slots?: number; // coins when full (the group size, up to 8)
+  paid: number; // members who have paid this round
   size?: number;
-  tone?: "paid" | "held" | "turn";
+  tone?: "paid" | "held";
   label: string;
 }) {
-  const places = Math.max(1, Math.min(8, slots));
-  const filled = Math.round(Math.max(0, Math.min(1, share)) * places);
-  const face = tone === "held" ? colors.line : colors.gold;
-  const edge = tone === "held" ? colors.crackle : colors.goldDeep;
-  // Coins stack from y=64 upwards inside the jar's body (y 22 to 70).
-  const step = Math.min(6, 40 / places);
+  const shown = Math.max(0, Math.min(COINS.length, paid));
+  const deep = tone === "held" ? colors.crackle : colors.goldDeep;
+  const light = tone === "held" ? colors.line : colors.gold;
 
   return (
     <Svg
       width={size}
-      height={(size * 76) / 64}
-      viewBox="0 0 64 76"
+      height={(size * 104) / 92}
+      viewBox="0 0 92 104"
       accessibilityRole="image"
       accessibilityLabel={label}
     >
-      <Path d={JAR} fill={tone === "turn" ? colors.mist : colors.card} />
-      {Array.from({ length: places }, (_, i) => {
-        const y = 64 - i * step;
-        return i < filled ? (
-          <Ellipse key={i} cx={32} cy={y} rx={15} ry={4.5} fill={face} stroke={edge} strokeWidth={1.2} />
-        ) : (
+      <Defs>
+        <ClipPath id="jar">
+          <Path d={JAR} />
+        </ClipPath>
+      </Defs>
+      <Path d={JAR} fill={colors.white} />
+      <G clipPath="url(#jar)">
+        {COINS.slice(0, shown).map(([cx, cy], i) => (
           <Ellipse
-            key={i}
-            cx={32}
-            cy={y}
-            rx={15}
+            key={`${cx}-${cy}`}
+            cx={cx}
+            cy={cy}
+            rx={13}
             ry={4.5}
-            fill="none"
-            stroke={colors.crackle}
-            strokeWidth={1}
-            strokeDasharray="2 2"
+            fill={i % 3 === 2 ? light : deep}
+            stroke={colors.indigo}
+            strokeWidth={1.4}
           />
-        );
-      })}
-      <Path d={JAR} fill="none" stroke={colors.indigo} strokeWidth={1.8} strokeLinejoin="round" />
-      <Path d="M16 6 H48" stroke={colors.indigo} strokeWidth={3} strokeLinecap="round" />
+        ))}
+        <G fill={colors.indigo}>
+          <Circle cx={30} cy={56} r={2.5} />
+          <Circle cx={40} cy={52} r={2.5} />
+          <Circle cx={50} cy={56} r={2.5} />
+          <Circle cx={60} cy={52} r={2.5} />
+        </G>
+      </G>
+      <Path d={JAR} fill="none" stroke={colors.indigo} strokeWidth={2.6} strokeLinejoin="round" />
+      <Rect x={24} y={7} width={44} height={9} rx={4.5} fill={colors.accent} stroke={colors.indigo} strokeWidth={2} />
     </Svg>
   );
 }

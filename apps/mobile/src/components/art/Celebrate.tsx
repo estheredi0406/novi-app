@@ -16,7 +16,7 @@ function Coin() {
   );
 }
 
-export function Celebrate({ share, label }: { share: number; label: string }) {
+export function Celebrate({ paid, label }: { paid: number; label: string }) {
   const drops = useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export function Celebrate({ share, label }: { share: number; label: string }) {
           </Animated.View>
         ))}
       </View>
-      <PotJar share={share} size={96} label={label} />
+      <PotJar paid={paid} size={96} label={label} />
     </View>
   );
 }

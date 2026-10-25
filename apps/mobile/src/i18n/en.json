@@ -164,7 +164,15 @@
     "inWeeks_one": "in {{count}} week",
     "inWeeks_other": "in {{count}} weeks",
     "turnHeld": "Your pot (round {{number}}) waits until everyone has paid",
-    "turnSending": "Your pot (round {{number}}) is on its way"
+    "turnSending": "Your pot (round {{number}}) is on its way",
+    "hello": "Hello",
+    "thisWeek": "This week · round {{number}}",
+    "byDate": "FCFA · by {{date}}",
+    "pay": "Pay {{amount}}",
+    "newGroup": "+ New group",
+    "potLine": "{{paid}} of {{size}} paid · {{group}}",
+    "paidThisWeek": "Paid this week",
+    "myTurnShort": "Your turn {{when}}"
   },
   "days": {
     "1": "Monday",

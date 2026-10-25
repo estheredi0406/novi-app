@@ -11,7 +11,6 @@ import { fonts, type } from "../theme/typography";
 // green marks only a payment that went through.
 export function RoundCard({ round, onPress }: { round: RoundSummary; onPress: () => void }) {
   const { t } = useTranslation();
-  const share = round.size > 0 ? round.paidCount / round.size : 0;
 
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={[styles.card, round.isCurrent && styles.current]}>
@@ -23,7 +22,7 @@ export function RoundCard({ round, onPress }: { round: RoundSummary; onPress: ()
         <Text style={[type.body, styles.ink]}>{t("money.turnOf", { name: round.beneficiaryName })}</Text>
       </View>
       <View style={styles.potRow}>
-        <PotJar share={share} size={56} label={t("home.potCount", { paid: round.paidCount, size: round.size })} />
+        <PotJar paid={round.paidCount} size={56} label={t("home.potCount", { paid: round.paidCount, size: round.size })} />
         <View style={styles.potText}>
           <Text style={styles.collected}>{formatFcfa(round.collectedFcfa)}</Text>
           <Text style={[type.small, styles.muted]}>

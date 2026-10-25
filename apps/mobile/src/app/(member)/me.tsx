@@ -10,7 +10,7 @@ import { TextButton } from "../../components/TextButton";
 import { formatPhone } from "../../lib/format";
 import { useSession } from "../../session/SessionProvider";
 import { colors } from "../../theme/colors";
-import { fonts, type } from "../../theme/typography";
+import { fonts } from "../../theme/typography";
 
 // Me: who she is in Novi, her language, and logging out. Moved here from
 // home in the redesign (25 Oct) so home only shows her money.
@@ -49,7 +49,6 @@ export default function MeScreen() {
         </HeaderBand>
       }
     >
-      <Text style={[type.small, styles.section]}>{t("me.language")}</Text>
       <LanguageSwitch />
 
       <View style={styles.footer}>
@@ -78,6 +77,5 @@ const styles = StyleSheet.create({
   whoText: { flex: 1, gap: 2 },
   name: { fontFamily: fonts.display, fontSize: 24, lineHeight: 30, color: colors.indigo },
   detail: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },
-  section: { color: colors.muted, textTransform: "uppercase", letterSpacing: 0.4 },
   footer: { marginTop: "auto", gap: 12 },
 });

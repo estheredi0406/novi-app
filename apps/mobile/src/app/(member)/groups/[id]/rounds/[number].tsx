@@ -120,7 +120,7 @@ export default function RoundScreen() {
       {payment?.status === "PAID" || (round.myStatus === "PAID" && payment === null) ? (
         <View style={styles.receipt} accessibilityLiveRegion="polite">
           {payment?.status === "PAID" ? (
-            <Celebrate share={round.size > 0 ? round.paidCount / round.size : 1} label={t("money.receiptTitle")} />
+            <Celebrate paid={round.paidCount} label={t("money.receiptTitle")} />
           ) : null}
           <Text style={[type.title, styles.paid]}>{t("money.receiptTitle")}</Text>
           <Text style={[type.body, styles.ink]}>{t("money.receiptBody", { amount, number: round.number })}</Text>
