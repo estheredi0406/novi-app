@@ -1,0 +1,10 @@
+# Kept out of the server image: installed packages (reinstalled inside),
+# build output, the phone app's caches, and every secret file.
+**/node_modules
+**/dist
+**/.expo
+**/.env
+**/.env.*
+!**/.env.example
+.git
+apps/api/src/generated

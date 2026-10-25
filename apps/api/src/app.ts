@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { authRouter } from "./routes/auth.js";
@@ -14,6 +16,12 @@ import { webhooksRouter } from "./routes/webhooks.js";
 // Builds the Express application without starting it,
 // so tests can send requests to it without opening a network port.
 export const app = express();
+
+// Online, requests reach the API through the host's proxy (Railway). Trusting
+// that one proxy makes req.ip the member's real address, which the
+// per-address rate limits rely on; otherwise every request would seem to
+// come from the proxy and share one limit.
+if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 
 // Payment webhooks read their raw body to check its signature, so they are
 // mounted before the JSON parser.
@@ -34,6 +42,12 @@ app.use("/v1/console", consoleRouter);
 app.use("/v1/verify", verifyApiRouter);
 // The page a lender opens by scanning a shared record's QR code (D50).
 app.use("/verify", verifyPageRouter);
+
+// The MFI console's built web app (apps/console/dist), served from the same
+// address as the API so it needs no cross-origin settings (D55, D58). Only
+// present once the console has been built, as it is online.
+const consoleDist = fileURLToPath(new URL("../../console/dist", import.meta.url));
+if (existsSync(consoleDist)) app.use("/console", express.static(consoleDist));
 
 // Must come last: turns every error into the standard error response.
 app.use(errorHandler);

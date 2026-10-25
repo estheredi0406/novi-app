@@ -6,6 +6,8 @@ import { defineConfig } from "vite";
 // one address and the API needs no cross-origin settings.
 export default defineConfig({
   plugins: [react()],
+  // Online, the API serves the built console at /console (D58).
+  base: "/console/",
   server: {
     port: 5173,
     proxy: { "/v1": "http://localhost:3000" },
