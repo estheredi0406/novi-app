@@ -1,6 +1,8 @@
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { app } from "../app.js";
+import { runPayouts } from "../services/payoutService.js";
+import { listMyGroups } from "../services/groupService.js";
 import { prisma } from "../lib/db.js";
 import { firstDueDate, isoDay } from "../lib/schedule.js";
 import { payments, sms } from "../providers/index.js";
@@ -239,7 +241,31 @@ describe("what each person sees", () => {
 
     await payAndConfirm(abla, groupId);
     const after = (await abla.get("/v1/groups")).body.find((g: { id: string }) => g.id === groupId);
-    expect(after.currentRound.myStatus).toBe("PAID");
+    expect(after.currentRound).toMatchObject({ myStatus: "PAID", paidCount: 1, onTimeStreak: 1 });
+  });
+
+  it("shows her own pot as held, not received, when its day passed without everyone paying", async () => {
+    const { groupId } = await activeGroup();
+    const round1 = await prisma.round.update({
+      where: { groupId_number: { groupId, number: 1 } },
+      data: { dueDate: new Date("2026-01-02T00:00:00Z") },
+    });
+    await runPayouts();
+
+    const group = (await listMyGroups(round1.beneficiaryId)).find((g) => g.id === groupId);
+    expect(group?.currentRound?.myTurn).toMatchObject({ number: 1, payoutStatus: "HELD" });
+  });
+
+  it("tells her which round's pot is hers, so home can count down to it", async () => {
+    const { abla, groupId, ids } = await activeGroup();
+    const hers = await prisma.round.findFirstOrThrow({ where: { groupId, beneficiaryId: ids.abla } });
+
+    const group = (await abla.get("/v1/groups")).body.find((g: { id: string }) => g.id === groupId);
+    expect(group.currentRound.myTurn).toEqual({
+      number: hers.number,
+      dueDate: hers.dueDate.toISOString().slice(0, 10),
+      payoutStatus: "NOT_DUE",
+    });
   });
 
   it("shows every member every payment in the round, by display name", async () => {

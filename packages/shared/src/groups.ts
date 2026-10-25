@@ -1,3 +1,4 @@
+import type { PayoutStatus } from "./money.js";
 // What the app receives about savings groups. The values of each list match
 // the API's database, so a new state added there must be added here too.
 
@@ -87,4 +88,9 @@ export type CurrentRound = {
   myStatus: "UNPAID" | "PENDING" | "PAID" | "FAILED";
   isMyTurn: boolean;
   potFcfa: number;
+  paidCount: number; // how many members have paid this round: the pot filling
+  // The round whose pot is hers, and where that pot is: not due yet, held,
+  // on its way, or received (PAID).
+  myTurn: { number: number; dueDate: string; payoutStatus: PayoutStatus } | null;
+  onTimeStreak: number; // her payments on time in a row in this group, up to now
 };

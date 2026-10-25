@@ -20,6 +20,7 @@ import {
 } from "../lib/groupRules.js";
 import { drawOrder } from "../lib/payoutOrder.js";
 import { currentRoundNumber, dueDates, isoDay } from "../lib/schedule.js";
+import { onTimeStreak } from "../lib/streak.js";
 import { inviteSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 
@@ -168,16 +169,37 @@ async function currentRoundFor(
   const rounds = await prisma.round.findMany({
     where: { groupId },
     orderBy: { number: "asc" },
-    include: { contributions: { where: { userId } } },
+    include: { contributions: { where: { userId } }, payout: { select: { status: true } } },
   });
-  const round = rounds.at(currentRoundNumber(rounds.map((r) => r.dueDate), new Date()) - 1);
+  const now = new Date();
+  const round = rounds.at(currentRoundNumber(rounds.map((r) => r.dueDate), now) - 1);
   if (!round) return null;
+
+  const mine = rounds.find((r) => r.beneficiaryId === userId);
+  const paidCount = await prisma.contribution.count({ where: { roundId: round.id, status: "PAID" } });
+  const day = (date: Date) => Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  const upToNow = rounds.filter((r) => r.number <= round.number);
+  const streak = onTimeStreak(
+    upToNow.map((r) => {
+      const paid = r.contributions.find((c) => c.status === "PAID");
+      return { dueDay: day(r.dueDate), paidDay: paid?.paidAt ? day(paid.paidAt) : null };
+    }),
+    day(now),
+  );
+
   return {
     number: round.number,
     dueDate: isoDay(round.dueDate),
     myStatus: round.contributions.at(0)?.status ?? "UNPAID",
     isMyTurn: round.beneficiaryId === userId,
     potFcfa: rules.amountFcfa * rules.size,
+    paidCount,
+    // Where her own pot is comes from its payout, never from the date alone:
+    // a round whose day has passed may still be held (D48).
+    myTurn: mine
+      ? { number: mine.number, dueDate: isoDay(mine.dueDate), payoutStatus: mine.payout?.status ?? "NOT_DUE" }
+      : null,
+    onTimeStreak: streak,
   };
 }
 
