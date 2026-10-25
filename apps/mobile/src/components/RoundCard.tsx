@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatDay, formatFcfa } from "../lib/format";
 import { colors } from "../theme/colors";
+import { PotJar } from "./art/PotJar";
 import { fonts, type } from "../theme/typography";
 
 // One round of the cycle: when it is due, whose turn it is, how much is in,
@@ -21,16 +22,19 @@ export function RoundCard({ round, onPress }: { round: RoundSummary; onPress: ()
       <View style={styles.turn}>
         <Text style={[type.body, styles.ink]}>{t("money.turnOf", { name: round.beneficiaryName })}</Text>
       </View>
-      <Text style={[type.small, styles.muted]}>
-        {t("money.collected", {
-          collected: formatFcfa(round.collectedFcfa),
-          pot: formatFcfa(round.potFcfa),
-          paid: round.paidCount,
-          size: round.size,
-        })}
-      </Text>
-      <View style={styles.bar}>
-        <View style={[styles.fill, { width: `${Math.round(share * 100)}%` }]} />
+      <View style={styles.potRow}>
+        <PotJar share={share} size={56} label={t("home.potCount", { paid: round.paidCount, size: round.size })} />
+        <View style={styles.potText}>
+          <Text style={styles.collected}>{formatFcfa(round.collectedFcfa)}</Text>
+          <Text style={[type.small, styles.muted]}>
+            {t("money.collected", {
+              collected: formatFcfa(round.collectedFcfa),
+              pot: formatFcfa(round.potFcfa),
+              paid: round.paidCount,
+              size: round.size,
+            })}
+          </Text>
+        </View>
       </View>
       {round.payoutStatus === "PAID" && round.paidOutAt ? (
         <Text style={styles.paid}>
@@ -46,7 +50,7 @@ export function RoundCard({ round, onPress }: { round: RoundSummary; onPress: ()
 }
 
 const styles = StyleSheet.create({
-  card: { gap: 8, padding: 18, borderRadius: 18, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.white },
+  card: { gap: 10, padding: 18, borderRadius: 20, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card },
   current: { borderColor: colors.action },
   top: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },
@@ -55,6 +59,7 @@ const styles = StyleSheet.create({
   turn: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: colors.yourTurn },
   ink: { color: colors.ink },
   muted: { color: colors.muted },
-  bar: { height: 8, borderRadius: 4, backgroundColor: colors.mist, overflow: "hidden" },
-  fill: { height: 8, backgroundColor: colors.paid },
+  potRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  potText: { flex: 1, gap: 2 },
+  collected: { fontFamily: fonts.display, fontSize: 24, color: colors.indigo },
 });

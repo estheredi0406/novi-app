@@ -21,3 +21,9 @@ export function formatDay(isoDay: string): string {
   const [year, month, day] = isoDay.slice(0, 10).split("-");
   return `${day}/${month}/${year}`;
 }
+
+// Whole days from today (Lomé time is GMT all year) to a "YYYY-MM-DD" date.
+export function daysUntil(isoDay: string, now = new Date()): number {
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return Math.round((Date.parse(`${isoDay.slice(0, 10)}T00:00:00Z`) - today) / 86_400_000);
+}

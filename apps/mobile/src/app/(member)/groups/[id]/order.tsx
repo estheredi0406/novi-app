@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1.5,
     borderColor: colors.line,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   name: { flex: 1, fontFamily: fonts.bodySemiBold, color: colors.ink },
   footer: { marginTop: "auto" },

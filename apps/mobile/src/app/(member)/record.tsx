@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
 import { getRecord, listLenders, listShares, revokeShare, shareRecord, verifyUrl } from "../../api/record";
+import { Badge } from "../../components/art/Badge";
 import { BackHeader } from "../../components/BackHeader";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { PrimaryButton } from "../../components/PrimaryButton";
@@ -86,6 +87,12 @@ export default function RecordScreen() {
         <Text style={[type.body, styles.muted]}>{t("record.lede")}</Text>
       </View>
 
+      <View style={styles.badges}>
+        <Badge mark="coin" label={t("record.badgeFirstPayment")} earned={record.paymentsMade > 0} />
+        <Badge mark="pot" label={t("record.badgeFirstPot")} earned={record.potsReceived > 0} />
+        <Badge mark="circle" label={t("record.badgeCycle")} earned={record.groupsCompleted > 0} />
+      </View>
+
       <View style={styles.card}>
         <Text style={[type.title, styles.ink]}>{record.legalName}</Text>
         {facts.map(([label, value]) => (
@@ -150,14 +157,15 @@ export default function RecordScreen() {
 
 const styles = StyleSheet.create({
   intro: { gap: 10 },
+  badges: { flexDirection: "row", justifyContent: "space-between" },
   indigo: { color: colors.indigo },
   ink: { color: colors.ink },
   muted: { color: colors.muted },
   section: { gap: 12 },
-  card: { gap: 10, padding: 18, borderRadius: 18, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.white },
+  card: { gap: 10, padding: 18, borderRadius: 18, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card },
   row: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted, flexShrink: 1 },
   value: { color: colors.ink, fontFamily: fonts.bodySemiBold },
-  group: { gap: 4, padding: 14, borderRadius: 14, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.white },
+  group: { gap: 4, padding: 14, borderRadius: 14, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card },
   name: { fontFamily: fonts.bodySemiBold, color: colors.ink },
 });

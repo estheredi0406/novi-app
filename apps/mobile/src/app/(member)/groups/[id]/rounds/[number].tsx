@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../../../../api/client";
 import { checkContribution, getRound, payRound } from "../../../../../api/money";
+import { Celebrate } from "../../../../../components/art/Celebrate";
 import { BackHeader } from "../../../../../components/BackHeader";
 import { Chip } from "../../../../../components/Chip";
 import { ErrorMessage } from "../../../../../components/ErrorMessage";
@@ -118,6 +119,9 @@ export default function RoundScreen() {
 
       {payment?.status === "PAID" || (round.myStatus === "PAID" && payment === null) ? (
         <View style={styles.receipt} accessibilityLiveRegion="polite">
+          {payment?.status === "PAID" ? (
+            <Celebrate share={round.size > 0 ? round.paidCount / round.size : 1} label={t("money.receiptTitle")} />
+          ) : null}
           <Text style={[type.title, styles.paid]}>{t("money.receiptTitle")}</Text>
           <Text style={[type.body, styles.ink]}>{t("money.receiptBody", { amount, number: round.number })}</Text>
           {payment?.receiptRef ? <Text style={[type.small, styles.muted]}>{t("money.receiptRef", { ref: payment.receiptRef })}</Text> : null}
@@ -170,7 +174,7 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.ink },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   note: { gap: 8, padding: 16, borderRadius: 14, backgroundColor: colors.mist },
-  receipt: { gap: 6, padding: 16, borderRadius: 14, borderWidth: 2, borderColor: colors.paid, backgroundColor: colors.white },
+  receipt: { gap: 6, padding: 16, borderRadius: 14, borderWidth: 2, borderColor: colors.paid, backgroundColor: colors.card },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -179,7 +183,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1.5,
     borderColor: colors.line,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   name: { fontFamily: fonts.bodySemiBold, color: colors.ink },
   paidLabel: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.paid },

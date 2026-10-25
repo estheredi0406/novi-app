@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1.5,
     borderColor: colors.line,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     justifyContent: "center",
   },
   selected: { backgroundColor: colors.indigo, borderColor: colors.indigo },

@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1.5,
     borderColor: colors.line,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   rowText: { flex: 1, gap: 2 },
   name: { fontFamily: fonts.bodySemiBold, color: colors.ink },

@@ -35,7 +35,7 @@ export function RulesCard({ rules, mfiName }: { rules: GroupRules; mfiName: stri
 }
 
 const styles = StyleSheet.create({
-  card: { gap: 12, padding: 18, borderRadius: 18, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.white },
+  card: { gap: 12, padding: 18, borderRadius: 18, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card },
   version: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.muted },
   row: { gap: 2 },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },

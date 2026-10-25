@@ -52,6 +52,6 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted },
   ink: { color: colors.ink },
   eyebrow: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.action },
-  card: { gap: 8, padding: 18, borderRadius: 18, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.white },
+  card: { gap: 8, padding: 18, borderRadius: 18, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card },
   note: { padding: 16, borderRadius: 14, backgroundColor: colors.mist },
 });

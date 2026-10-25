@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1.5,
     borderColor: colors.line,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   rowTicked: { borderColor: colors.action, backgroundColor: colors.mist },
   box: {
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: colors.line,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     alignItems: "center",
     justifyContent: "center",
   },

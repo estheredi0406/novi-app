@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   cameraBox: { gap: 10 },
   camera: { height: 320, borderRadius: 14, overflow: "hidden" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  result: { gap: 10, padding: 16, borderRadius: 14, backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.line },
+  result: { gap: 10, padding: 16, borderRadius: 14, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.line },
   row: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted, flexShrink: 1 },
 });

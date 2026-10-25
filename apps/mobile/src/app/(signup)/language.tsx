@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1.5,
     borderColor: colors.line,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   optionSelected: { borderColor: colors.action, backgroundColor: colors.mist },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.line },
