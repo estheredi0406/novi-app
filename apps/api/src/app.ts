@@ -17,7 +17,7 @@ import { webhooksRouter } from "./routes/webhooks.js";
 // so tests can send requests to it without opening a network port.
 export const app = express();
 
-// Online, requests reach the API through the host's proxy (Railway). Trusting
+// Online, requests reach the API through the host's proxy (Render). Trusting
 // that one proxy makes req.ip the member's real address, which the
 // per-address rate limits rely on; otherwise every request would seem to
 // come from the proxy and share one limit.

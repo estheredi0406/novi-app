@@ -1,4 +1,4 @@
-# Builds the Novi server for hosting (Railway, D58): the API, which also
+# Builds the Novi server for hosting (Render, D58, D60): the API, which also
 # serves the MFI console. The mobile app is not part of this image; members
 # use the app on their phones, which talks to this server.
 FROM node:24-slim

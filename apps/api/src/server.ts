@@ -2,7 +2,7 @@ import { app } from "./app.js";
 import { startPayoutJob } from "./services/payoutService.js";
 import { startReminderJob } from "./services/reminderService.js";
 
-// Hosting platforms such as Railway assign the port through the PORT
+// Hosting platforms such as Render assign the port through the PORT
 // environment variable; 3000 is the local default.
 const port = Number(process.env.PORT ?? 3000);
 

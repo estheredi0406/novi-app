@@ -1,17 +1,20 @@
-# Render Blueprint (D58): the same server as railway.json, for Render.
+# Render Blueprint (D58, D60): Novi's server and database on Render.
 # Render reads this file when you create a "Blueprint" from the repository,
 # and creates the database and the web service together.
 databases:
   - name: novi-db
     databaseName: novi
     user: novi
-    plan: free
+    # The smallest paid database: it does not expire like the free one.
+    plan: basic-256mb
 
 services:
   - type: web
     name: novi-api
     runtime: docker
-    plan: free
+    # The smallest paid instance: it never sleeps, so the payout and
+    # reminder jobs keep running (D60).
+    plan: starter
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:
