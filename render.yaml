@@ -41,6 +41,9 @@ services:
         sync: false
       - key: MOCK_PAYMENTS_CONFIRM_MS
         value: "4000"
+      # D71: group meetings on Daily. Set in Render's dashboard, never here.
+      - key: DAILY_API_KEY
+        sync: false
       # Pilot mode (D61): one-time codes are shown in the app while SMS is
       # a mock. Remove this once a real SMS provider is connected.
       - key: PILOT_SHOW_CODES

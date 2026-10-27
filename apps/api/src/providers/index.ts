@@ -5,6 +5,9 @@ import { MockMfiAdapter } from "./mfi/MockMfiAdapter.js";
 import { FedaPayProvider } from "./payment/FedaPayProvider.js";
 import { MockPaymentProvider } from "./payment/MockPaymentProvider.js";
 import type { PaymentProvider } from "./payment/PaymentProvider.js";
+import { DailyMeetingProvider } from "./meeting/DailyMeetingProvider.js";
+import type { MeetingProvider } from "./meeting/MeetingProvider.js";
+import { MockMeetingProvider } from "./meeting/MockMeetingProvider.js";
 import type { SmsProvider } from "./sms/SmsProvider.js";
 import { MockSmsProvider } from "./sms/MockSmsProvider.js";
 
@@ -39,3 +42,13 @@ function choosePayments(): PaymentProvider {
 }
 
 export const payments: PaymentProvider = choosePayments();
+
+// Group meetings (D71): Daily when DAILY_API_KEY is set in .env; otherwise
+// the mock, whose rooms lead nowhere. Tests always use the mock.
+function chooseMeetings(): MeetingProvider {
+  const key = process.env.DAILY_API_KEY;
+  if (key && process.env.NODE_ENV !== "test") return new DailyMeetingProvider(key);
+  return new MockMeetingProvider();
+}
+
+export const meetings: MeetingProvider = chooseMeetings();

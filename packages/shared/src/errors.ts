@@ -32,7 +32,11 @@ export const errors = {
   DEBT_OUTSTANDING: { messageKey: "groups.debtOutstanding" }, // D69: a covered share not yet repaid
   ACCOUNT_CLOSED: { messageKey: "auth.accountClosed" }, // D69: recorded deceased by the MFI
   NEXT_OF_KIN_MISSING: { messageKey: "errors.nextOfKinMissing" }, // D69: console, no number to pay after a death
-  NEXT_OF_KIN_SELF: { messageKey: "kin.notYours" }, // D69: her own number cannot be her next of kin's
+  NEXT_OF_KIN_SELF: { messageKey: "kin.notYours" },
+  MEETING_TIME_INVALID: { messageKey: "meetings.timeInvalid" }, // D71: in the past, too far ahead, or overlapping
+  MEETING_LIMIT: { messageKey: "meetings.limit" }, // D71: too many meetings already planned
+  MEETING_NOT_OPEN: { messageKey: "meetings.notOpen" }, // D71: the room opens 10 minutes before
+  MEETING_UNAVAILABLE: { messageKey: "meetings.unavailable" }, // D71: the video provider did not answer // D69: her own number cannot be her next of kin's
   ORGANISER_ONLY: { messageKey: "groups.organiserOnly" },
   MEMBERS_ONLY: { messageKey: "groups.membersOnly" },
   SIZE_OUT_OF_RANGE: { messageKey: "groups.sizeOutOfRange" },

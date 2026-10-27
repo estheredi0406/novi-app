@@ -112,8 +112,9 @@ export type ChatMessage = {
   authorName: string | null; // her display name, as her group sees it
   mine: boolean;
   body: string | null; // null when hidden, or for an EVENT
-  event: "PAID" | "POT_PAID" | null;
+  event: "PAID" | "POT_PAID" | "MEETING_SCHEDULED" | "MEETING_CANCELLED" | null;
   round: number | null;
+  meeting: { id: string; title: string; startsAt: string } | null; // D71
   hidden: boolean;
   canHide: boolean; // she wrote it, or she is the organiser
   createdAt: string; // ISO
@@ -123,4 +124,27 @@ export type ChatPage = {
   messages: ChatMessage[]; // oldest first
   hasEarlier: boolean;
   canWrite: boolean; // false once she has left, or the group was cancelled
+};
+
+// ---------- Group meetings (D71) ----------
+
+export type MeetingState = "UPCOMING" | "OPEN" | "ENDED" | "CANCELLED";
+
+export type GroupMeetingView = {
+  id: string;
+  title: string;
+  agenda: string | null;
+  startsAt: string; // ISO
+  endsAt: string; // ISO
+  durationMin: number;
+  state: MeetingState; // OPEN from 10 minutes before the start until the end
+  createdByName: string;
+  joined: string[]; // display names of the members who joined
+  canCancel: boolean; // the organiser, before it ends
+};
+
+export type MeetingsPage = {
+  upcoming: GroupMeetingView[]; // soonest first, including one open now
+  past: GroupMeetingView[]; // most recent first, the last 30 days
+  canSchedule: boolean;
 };

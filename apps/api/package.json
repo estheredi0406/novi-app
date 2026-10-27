@@ -15,7 +15,8 @@
     "demo:group": "tsx src/scripts/demoGroup.ts",
     "staff:create": "tsx src/scripts/createStaff.ts",
     "demo:payout": "tsx src/scripts/demoPayout.ts",
-    "fedapay:probe": "tsx src/scripts/fedapayProbe.ts"
+    "fedapay:probe": "tsx src/scripts/fedapayProbe.ts",
+    "daily:probe": "tsx src/scripts/dailyProbe.ts"
   },
   "devDependencies": {
     "@novi/shared": "*",

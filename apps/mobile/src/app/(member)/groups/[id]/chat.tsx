@@ -1,5 +1,5 @@
 import type { ChatMessage } from "@novi/shared";
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
+import { type Href, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as Speech from "expo-speech";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,6 +23,7 @@ import { BackHeader } from "../../../../components/BackHeader";
 import { ErrorMessage } from "../../../../components/ErrorMessage";
 import { HeaderBand } from "../../../../components/HeaderBand";
 import { Cowrie } from "../../../../components/art/Cowrie";
+import { meetingWhen } from "../../../../lib/meetingTime";
 import { colors } from "../../../../theme/colors";
 import { fonts } from "../../../../theme/typography";
 
@@ -137,6 +138,14 @@ export default function ChatScreen() {
 
   function eventText(m: ChatMessage): string {
     const who = m.authorName ?? "";
+    if (m.event === "MEETING_SCHEDULED" || m.event === "MEETING_CANCELLED") {
+      const when = m.meeting ? meetingWhen(m.meeting.startsAt, i18n.language) : "";
+      return t(m.event === "MEETING_SCHEDULED" ? "chat.meetingScheduled" : "chat.meetingCancelled", {
+        name: who,
+        title: m.meeting?.title ?? "",
+        when,
+      });
+    }
     return m.event === "POT_PAID"
       ? t("chat.potPaid", { round: m.round, name: who })
       : t("chat.paid", { round: m.round, name: who });
@@ -154,9 +163,21 @@ export default function ChatScreen() {
     if (item.kind === "EVENT") {
       const text = eventText(item);
       return (
-        <Pressable onPress={() => say(text)} style={styles.event} accessibilityRole="button" accessibilityLabel={text}>
+        <Pressable
+          onPress={() => (item.meeting ? router.push(`/groups/${id}/meetings` as Href) : say(text))}
+          onLongPress={() => say(text)}
+          style={styles.event}
+          accessibilityRole="button"
+          accessibilityLabel={text}
+        >
           <Svg width={16} height={20} viewBox="0 0 40 52">
-            <Cowrie cx={20} cy={26} rx={16} ry={22} fill={item.event === "POT_PAID" ? colors.gold : colors.teal} />
+            <Cowrie
+              cx={20}
+              cy={26}
+              rx={16}
+              ry={22}
+              fill={item.event === "POT_PAID" ? colors.gold : item.meeting ? colors.accent : colors.teal}
+            />
           </Svg>
           <Text style={styles.eventText}>{text}</Text>
           <Text style={styles.eventTime}>{time(item.createdAt)}</Text>

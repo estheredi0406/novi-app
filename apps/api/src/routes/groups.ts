@@ -18,6 +18,7 @@ import {
   startGroup,
 } from "../services/groupService.js";
 import { hideMessage, listMessages, MAX_LENGTH, postMessage } from "../services/chatService.js";
+import { cancelMeeting, joinMeeting, listMeetings, scheduleMeeting } from "../services/meetingService.js";
 import { getRound, listLedger, listRounds, payRound } from "../services/moneyService.js";
 
 export const groupsRouter = Router();
@@ -183,4 +184,39 @@ groupsRouter.post("/:id/messages", async (req, res) => {
 groupsRouter.post("/:id/messages/:messageId/hide", async (req, res) => {
   const { id, messageId } = messageParams.parse(req.params);
   res.json(await hideMessage(id, currentMember(res).userId, messageId));
+});
+
+// ---------- Group meetings (D71) ----------
+
+const meetingBody = z
+  .object({
+    title: z.string().trim().min(3).max(80),
+    agenda: z.string().trim().max(300).nullable().optional(),
+    startsAt: z.string().datetime({ offset: true }),
+    durationMin: z.number().int(),
+  })
+  .strict();
+const meetingParams = groupId.extend({ meetingId: z.string().uuid() });
+
+groupsRouter.get("/:id/meetings", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  res.json(await listMeetings(id, currentMember(res).userId));
+});
+
+groupsRouter.post("/:id/meetings", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  const body = meetingBody.parse(req.body);
+  res
+    .status(201)
+    .json(await scheduleMeeting(id, currentMember(res).userId, { ...body, startsAt: new Date(body.startsAt) }));
+});
+
+groupsRouter.post("/:id/meetings/:meetingId/cancel", async (req, res) => {
+  const { id, meetingId } = meetingParams.parse(req.params);
+  res.json(await cancelMeeting(id, currentMember(res).userId, meetingId));
+});
+
+groupsRouter.post("/:id/meetings/:meetingId/join", async (req, res) => {
+  const { id, meetingId } = meetingParams.parse(req.params);
+  res.json(await joinMeeting(id, currentMember(res).userId, meetingId));
 });

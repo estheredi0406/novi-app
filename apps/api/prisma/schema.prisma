@@ -172,6 +172,8 @@ model User {
   reserveReturns  ReserveReturn[]
   messages        GroupMessage[]  @relation("MessageAuthor")
   messagesHidden  GroupMessage[]  @relation("MessageHider")
+  meetingsCreated GroupMeeting[]
+  meetingsJoined  MeetingAttendance[]
 
   @@map("users")
 }
@@ -308,6 +310,7 @@ model Group {
   ledgerEntries LedgerEntry[]
   reserveReturns ReserveReturn[]
   messages       GroupMessage[]
+  meetings       GroupMeeting[]
 
   @@index([state])
   @@map("groups")
@@ -680,8 +683,9 @@ model GroupMessage {
   userId     String?     // the author; for an EVENT, the member it is about
   kind       MessageKind @default(TEXT)
   body       String?     // TEXT only, at most 500 characters
-  event      String?     // EVENT only: PAID or POT_PAID
+  event      String?     // EVENT only: PAID, POT_PAID, MEETING_SCHEDULED or MEETING_CANCELLED
   round      Int?        // EVENT only: the round number
+  meetingId  String?     // EVENT only: the meeting it is about (D71)
   hiddenAt   DateTime?
   hiddenById String?
   createdAt  DateTime    @default(now())
@@ -689,7 +693,50 @@ model GroupMessage {
   group    Group @relation(fields: [groupId], references: [id])
   author   User? @relation("MessageAuthor", fields: [userId], references: [id])
   hiddenBy User? @relation("MessageHider", fields: [hiddenById], references: [id])
+  meeting  GroupMeeting? @relation(fields: [meetingId], references: [id])
 
   @@index([groupId, createdAt])
   @@map("group_messages")
+}
+
+//----------------Group meetings (D71)----------------------------
+
+// A meeting the organiser schedules: an audio or video call for the whole
+// group, held in a private room at the video provider (Daily). The room
+// opens 10 minutes before and closes at the end; only the group's members
+// get a pass to it. Nothing is recorded.
+model GroupMeeting {
+  id          String    @id @default(uuid())
+  groupId     String
+  createdById String
+  title       String
+  agenda      String?
+  startsAt    DateTime
+  durationMin Int       // 15 to 60
+  roomName    String?   @unique
+  roomUrl     String?
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  group       Group               @relation(fields: [groupId], references: [id])
+  createdBy   User                @relation(fields: [createdById], references: [id])
+  attendances MeetingAttendance[]
+  messages    GroupMessage[]
+
+  @@index([groupId, startsAt])
+  @@map("group_meetings")
+}
+
+// Who took a pass to a meeting, for the group to see who came.
+model MeetingAttendance {
+  id            String   @id @default(uuid())
+  meetingId     String
+  userId        String
+  firstJoinedAt DateTime @default(now())
+
+  meeting GroupMeeting @relation(fields: [meetingId], references: [id])
+  user    User         @relation(fields: [userId], references: [id])
+
+  @@unique([meetingId, userId])
+  @@map("meeting_attendances")
 }

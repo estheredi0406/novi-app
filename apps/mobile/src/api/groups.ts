@@ -1,4 +1,14 @@
-import type { ChatMessage, ChatPage, Frequency, GroupDetail, GroupSummary, Invitation, PayoutOrder } from "@novi/shared";
+import type {
+  ChatMessage,
+  ChatPage,
+  Frequency,
+  GroupDetail,
+  GroupMeetingView,
+  GroupSummary,
+  Invitation,
+  MeetingsPage,
+  PayoutOrder,
+} from "@novi/shared";
 import { memberRequest } from "./client";
 
 // The group endpoints, typed with the shapes from @novi/shared. There is no
@@ -51,3 +61,14 @@ export const postMessage = (id: string, body: string) =>
   memberRequest<ChatMessage>("POST", `/v1/groups/${id}/messages`, { body });
 export const hideMessage = (id: string, messageId: string) =>
   memberRequest<ChatMessage>("POST", `/v1/groups/${id}/messages/${messageId}/hide`, {});
+
+// Group meetings (D71).
+export const listMeetings = (id: string) => memberRequest<MeetingsPage>("GET", `/v1/groups/${id}/meetings`);
+export const scheduleMeeting = (
+  id: string,
+  input: { title: string; agenda: string | null; startsAt: string; durationMin: number },
+) => memberRequest<GroupMeetingView>("POST", `/v1/groups/${id}/meetings`, input);
+export const cancelMeeting = (id: string, meetingId: string) =>
+  memberRequest<MeetingsPage>("POST", `/v1/groups/${id}/meetings/${meetingId}/cancel`, {});
+export const joinMeeting = (id: string, meetingId: string) =>
+  memberRequest<{ url: string }>("POST", `/v1/groups/${id}/meetings/${meetingId}/join`, {});

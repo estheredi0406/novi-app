@@ -1,4 +1,4 @@
-import type { GroupDetail, GroupSeat, RoundSummary } from "@novi/shared";
+import type { GroupDetail, GroupSeat, MeetingsPage, RoundSummary } from "@novi/shared";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import {
   cancelInvite,
   getGroup,
   invite,
+  listMeetings,
   proposeGroup,
   removeSeat,
   startGroup,
@@ -29,6 +30,7 @@ import { rulesSummary, seatLabel, stateLabel } from "../../../../lib/rulesText";
 import { useSession } from "../../../../session/SessionProvider";
 import { colors } from "../../../../theme/colors";
 import { ChatEntry } from "../../../../components/ChatEntry";
+import { MeetingsCard } from "../../../../components/MeetingsCard";
 import { fonts, type } from "../../../../theme/typography";
 
 // One group, as its members see it: rules, members, and the actions this
@@ -39,6 +41,7 @@ export default function GroupScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { member } = useSession();
   const [group, setGroup] = useState<GroupDetail | null>(null);
+  const [meetings, setMeetings] = useState<MeetingsPage | null>(null);
   const [rounds, setRounds] = useState<RoundSummary[]>([]);
   const [digits, setDigits] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +54,9 @@ export default function GroupScreen() {
         setGroup(loaded);
         if (loaded.state === "ACTIVE" || loaded.state === "COMPLETED") {
           listRounds(id).then(setRounds, (err: unknown) => setError(errorKey(err)));
+        }
+        if (loaded.state !== "DRAFT" && loaded.state !== "CANCELLED") {
+          listMeetings(id).then(setMeetings, () => setMeetings(null));
         }
       },
       (err: unknown) => setError(errorKey(err)),
@@ -116,6 +122,7 @@ export default function GroupScreen() {
       {rounds.length > 0 ? <GroupRoundView group={group} rounds={rounds} memberId={member.id} onChanged={load} /> : null}
 
       {state !== "DRAFT" && state !== "CANCELLED" ? <ChatEntry groupId={group.id} unread={group.unreadMessages} /> : null}
+      {state !== "DRAFT" && state !== "CANCELLED" ? <MeetingsCard groupId={group.id} page={meetings} /> : null}
 
       <RulesCard rules={rules} mfiName={group.mfiName} />
 

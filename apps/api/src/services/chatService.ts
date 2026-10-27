@@ -35,7 +35,13 @@ function canWrite(seat: Awaited<ReturnType<typeof seatOf>>): boolean {
   return seat.group.state !== "CANCELLED" && seat.exitReason === null && seat.user.closedAt === null;
 }
 
-type Loaded = GroupMessage & { author: { displayName: string } | null };
+type Loaded = GroupMessage & {
+  author: { displayName: string } | null;
+  meeting: { id: string; title: string; startsAt: Date } | null;
+};
+const EVENTS = ["PAID", "POT_PAID", "MEETING_SCHEDULED", "MEETING_CANCELLED"] as const;
+type ChatEvent = (typeof EVENTS)[number];
+const isEvent = (e: string | null): e is ChatEvent => EVENTS.includes(e as ChatEvent);
 
 function toMessage(m: Loaded, userId: string, isOrganiser: boolean): ChatMessage {
   const hidden = m.hiddenAt !== null;
@@ -46,8 +52,9 @@ function toMessage(m: Loaded, userId: string, isOrganiser: boolean): ChatMessage
     authorName: m.author?.displayName ?? null,
     mine: m.kind === "TEXT" && m.userId === userId,
     body: hidden ? null : m.body,
-    event: m.event === "PAID" || m.event === "POT_PAID" ? m.event : null,
+    event: isEvent(m.event) ? m.event : null,
     round: m.round,
+    meeting: m.meeting ? { id: m.meeting.id, title: m.meeting.title, startsAt: m.meeting.startsAt.toISOString() } : null,
     hidden,
     canHide: m.kind === "TEXT" && !hidden && (m.userId === userId || isOrganiser),
     createdAt: m.createdAt.toISOString(),
@@ -69,7 +76,7 @@ export async function listMessages(
     : null;
   if (anchorId && !anchor) throw new AppError("NOT_FOUND", 404);
 
-  const include = { author: { select: { displayName: true } } };
+  const include = { author: { select: { displayName: true } }, meeting: { select: { id: true, title: true, startsAt: true } } };
   let rows: Loaded[];
   let hasEarlier = false;
   if (cursor.after && anchor) {
@@ -109,7 +116,7 @@ export async function postMessage(groupId: string, userId: string, text: string)
 
   const message = await prisma.groupMessage.create({
     data: { groupId, userId, kind: "TEXT", body },
-    include: { author: { select: { displayName: true } } },
+    include: { author: { select: { displayName: true } }, meeting: { select: { id: true, title: true, startsAt: true } } },
   });
   await prisma.membership.update({ where: { id: seat.id }, data: { chatReadAt: message.createdAt } });
   return toMessage(message, userId, seat.group.organiserId === userId);
@@ -128,7 +135,7 @@ export async function hideMessage(groupId: string, userId: string, messageId: st
   const hidden = await prisma.groupMessage.update({
     where: { id: messageId },
     data: { hiddenAt: message.hiddenAt ?? new Date(), hiddenById: message.hiddenById ?? userId },
-    include: { author: { select: { displayName: true } } },
+    include: { author: { select: { displayName: true } }, meeting: { select: { id: true, title: true, startsAt: true } } },
   });
   await prisma.auditEvent.create({
     data: { userId, type: "CHAT_MESSAGE_HIDDEN", details: { groupId, messageId, ownMessage: message.userId === userId } },
