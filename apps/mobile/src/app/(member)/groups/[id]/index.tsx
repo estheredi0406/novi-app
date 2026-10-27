@@ -28,6 +28,7 @@ import { formatPhone } from "../../../../lib/format";
 import { rulesSummary, seatLabel, stateLabel } from "../../../../lib/rulesText";
 import { useSession } from "../../../../session/SessionProvider";
 import { colors } from "../../../../theme/colors";
+import { ChatEntry } from "../../../../components/ChatEntry";
 import { fonts, type } from "../../../../theme/typography";
 
 // One group, as its members see it: rules, members, and the actions this
@@ -113,6 +114,8 @@ export default function GroupScreen() {
       }
     >
       {rounds.length > 0 ? <GroupRoundView group={group} rounds={rounds} memberId={member.id} onChanged={load} /> : null}
+
+      {state !== "DRAFT" && state !== "CANCELLED" ? <ChatEntry groupId={group.id} unread={group.unreadMessages} /> : null}
 
       <RulesCard rules={rules} mfiName={group.mfiName} />
 

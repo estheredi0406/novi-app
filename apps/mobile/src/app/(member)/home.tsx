@@ -21,6 +21,7 @@ import { daysUntil, formatDay, formatFcfa } from "../../lib/format";
 import { rulesSummary, stateLabel } from "../../lib/rulesText";
 import { useSession } from "../../session/SessionProvider";
 import { colors } from "../../theme/colors";
+import { UnreadDot } from "../../components/ChatEntry";
 import { fonts, type } from "../../theme/typography";
 
 // Home, as on the approved "Home: wax" board (25 Oct). The wax band carries
@@ -281,6 +282,7 @@ function GroupRow({ group }: { group: GroupSummary }) {
         </Text>
         {group.myRole === "ORGANISER" && !round ? <Text style={styles.rowSub}>{t("home.youOrganise")}</Text> : null}
       </View>
+      <UnreadDot count={group.unreadMessages} />
       <Glyph name="chevron" color={colors.indigo} />
     </Pressable>
   );

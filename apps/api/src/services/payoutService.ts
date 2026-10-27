@@ -6,6 +6,7 @@ import { isoDay } from "../lib/schedule.js";
 import { payoutSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import type { PayoutAnswer } from "../providers/mfi/MfiAdapter.js";
+import { postEvent } from "./chatService.js";
 import { coverMissing, repayFromPot, returnReserve } from "./reserveService.js";
 
 // Money out (Sprint 4, D63). On a round's due date, a full pot becomes READY;
@@ -281,6 +282,8 @@ async function settlePayout(payoutId: string, mfiRef: string) {
   if (done) {
     // D68: the last pot closed the cycle; what is left in the reserve goes back.
     await returnReserve(done.round.groupId).catch((err: unknown) => console.error("Reserve return failed:", err));
+    // D70: the group's chat shows whose pot was paid.
+    await postEvent(done.round.groupId, "POT_PAID", done.beneficiaryId, done.round.number);
     const round = await prisma.round.findUniqueOrThrow({
       where: { id: done.roundId },
       include: { group: { include: { mfi: true } }, beneficiary: { select: { language: true } } },

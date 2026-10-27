@@ -1,4 +1,4 @@
-import type { Frequency, GroupDetail, GroupSummary, Invitation, PayoutOrder } from "@novi/shared";
+import type { ChatMessage, ChatPage, Frequency, GroupDetail, GroupSummary, Invitation, PayoutOrder } from "@novi/shared";
 import { memberRequest } from "./client";
 
 // The group endpoints, typed with the shapes from @novi/shared. There is no
@@ -41,3 +41,13 @@ export const declineGroup = (id: string) => memberRequest<void>("POST", `/v1/gro
 export const setPayoutOrder = (id: string, memberIds: string[]) =>
   memberRequest<GroupDetail>("POST", `/v1/groups/${id}/order`, { memberIds });
 export const startGroup = (id: string) => memberRequest<GroupDetail>("POST", `/v1/groups/${id}/start`, {});
+
+// The group's chat (D70).
+export const listMessages = (id: string, cursor: { after?: string; before?: string } = {}) => {
+  const query = cursor.after ? `?after=${cursor.after}` : cursor.before ? `?before=${cursor.before}` : "";
+  return memberRequest<ChatPage>("GET", `/v1/groups/${id}/messages${query}`);
+};
+export const postMessage = (id: string, body: string) =>
+  memberRequest<ChatMessage>("POST", `/v1/groups/${id}/messages`, { body });
+export const hideMessage = (id: string, messageId: string) =>
+  memberRequest<ChatMessage>("POST", `/v1/groups/${id}/messages/${messageId}/hide`, {});

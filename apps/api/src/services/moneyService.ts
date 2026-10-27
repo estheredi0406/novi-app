@@ -10,6 +10,7 @@ import { receiptSms } from "../lib/smsText.js";
 import { payments, sms } from "../providers/index.js";
 import { runPayouts } from "./payoutService.js";
 import { creditReserve } from "./reserveService.js";
+import { postEvent } from "./chatService.js";
 import type { CollectionStatus } from "../providers/payment/PaymentProvider.js";
 
 // Money in (Sprint 3). A payment goes through three stages:
@@ -304,6 +305,8 @@ async function settle(contributionId: string, answer: CollectionStatus): Promise
     await runPayouts(new Date(), contribution.round.groupId).catch((err: unknown) =>
       console.error("Payout after a payment failed:", err),
     );
+    // D70: the group's chat shows that she paid.
+    await postEvent(contribution.round.groupId, "PAID", contribution.userId, contribution.round.number);
     const group = contribution.round.group;
     await sms.send(
       contribution.payerPhone,

@@ -54,6 +54,7 @@ export type GroupDetail = {
   // balanceFcfa: what the group has in the MFI's solidarity fund; fundFcfa:
   // the whole fund, across the MFI's groups, which is what can cover a share.
   reserve: { percent: number; balanceFcfa: number; fundFcfa: number; owedFcfa: number; coversOpen: number } | null;
+  unreadMessages: number; // D70: chat lines since she last opened the chat
 };
 
 // An invitation as the invited person sees it: enough to decide whether to
@@ -83,6 +84,7 @@ export type GroupSummary = {
   myRole: MemberRole;
   mySeatState: SeatState;
   currentRound: CurrentRound | null; // only while the group is running
+  unreadMessages: number; // D70: chat messages since she last opened it
 };
 
 // What matters to her this week in a running group: does she still owe her
@@ -98,4 +100,27 @@ export type CurrentRound = {
   // on its way, or received (PAID).
   myTurn: { number: number; dueDate: string; payoutStatus: PayoutStatus } | null;
   onTimeStreak: number; // her payments on time in a row in this group, up to now
+};
+// ---------- The group's chat (D70) ----------
+
+// One line of the chat. A TEXT was written by a member; an EVENT was written
+// by Novi when money moved, and the app words it in the reader's language.
+export type ChatMessage = {
+  id: string;
+  kind: "TEXT" | "EVENT";
+  authorId: string | null;
+  authorName: string | null; // her display name, as her group sees it
+  mine: boolean;
+  body: string | null; // null when hidden, or for an EVENT
+  event: "PAID" | "POT_PAID" | null;
+  round: number | null;
+  hidden: boolean;
+  canHide: boolean; // she wrote it, or she is the organiser
+  createdAt: string; // ISO
+};
+
+export type ChatPage = {
+  messages: ChatMessage[]; // oldest first
+  hasEarlier: boolean;
+  canWrite: boolean; // false once she has left, or the group was cancelled
 };

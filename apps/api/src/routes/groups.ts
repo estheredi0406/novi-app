@@ -17,6 +17,7 @@ import {
   setPayoutOrder,
   startGroup,
 } from "../services/groupService.js";
+import { hideMessage, listMessages, MAX_LENGTH, postMessage } from "../services/chatService.js";
 import { getRound, listLedger, listRounds, payRound } from "../services/moneyService.js";
 
 export const groupsRouter = Router();
@@ -158,4 +159,28 @@ groupsRouter.post("/:id/rounds/:number/pay", async (req, res) => {
 groupsRouter.get("/:id/ledger", async (req, res) => {
   const { id } = groupId.parse(req.params);
   res.json(await listLedger(id, currentMember(res).userId));
+});
+
+// ---------- The group's chat (D70) ----------
+
+const chatQuery = z
+  .object({ after: z.string().uuid().optional(), before: z.string().uuid().optional() })
+  .strict()
+  .refine((q) => !(q.after && q.before));
+const chatBody = z.object({ body: z.string().trim().min(1).max(MAX_LENGTH) }).strict();
+const messageParams = groupId.extend({ messageId: z.string().uuid() });
+
+groupsRouter.get("/:id/messages", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  res.json(await listMessages(id, currentMember(res).userId, chatQuery.parse(req.query)));
+});
+
+groupsRouter.post("/:id/messages", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  res.status(201).json(await postMessage(id, currentMember(res).userId, chatBody.parse(req.body).body));
+});
+
+groupsRouter.post("/:id/messages/:messageId/hide", async (req, res) => {
+  const { id, messageId } = messageParams.parse(req.params);
+  res.json(await hideMessage(id, currentMember(res).userId, messageId));
 });

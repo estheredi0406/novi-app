@@ -170,6 +170,8 @@ model User {
   ledgerEntries   LedgerEntry[]
   reserveCovers   ReserveCover[]
   reserveReturns  ReserveReturn[]
+  messages        GroupMessage[]  @relation("MessageAuthor")
+  messagesHidden  GroupMessage[]  @relation("MessageHider")
 
   @@map("users")
 }
@@ -305,6 +307,7 @@ model Group {
   rounds        Round[]
   ledgerEntries LedgerEntry[]
   reserveReturns ReserveReturn[]
+  messages       GroupMessage[]
 
   @@index([state])
   @@map("groups")
@@ -349,6 +352,7 @@ model Membership {
   exitReason      ExitReason?
   exitedAt        DateTime?
   exitPayoutPhone String?
+  chatReadAt      DateTime?  // D70: the last time she opened the group's chat
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
@@ -658,4 +662,34 @@ model ReserveReturn {
 
   @@unique([groupId, userId])
   @@map("reserve_returns")
+}
+
+//----------------Group chat (D70)----------------------------
+
+enum MessageKind {
+  TEXT  // written by a member
+  EVENT // written by Novi when money moves, shown in each reader's language
+}
+
+// One message in a group's chat. Only the group's members read it: never the
+// MFI, never the console (D33). A message is never edited; the organiser or
+// its author can hide it, and the group then sees that a message was hidden.
+model GroupMessage {
+  id         String      @id @default(uuid())
+  groupId    String
+  userId     String?     // the author; for an EVENT, the member it is about
+  kind       MessageKind @default(TEXT)
+  body       String?     // TEXT only, at most 500 characters
+  event      String?     // EVENT only: PAID or POT_PAID
+  round      Int?        // EVENT only: the round number
+  hiddenAt   DateTime?
+  hiddenById String?
+  createdAt  DateTime    @default(now())
+
+  group    Group @relation(fields: [groupId], references: [id])
+  author   User? @relation("MessageAuthor", fields: [userId], references: [id])
+  hiddenBy User? @relation("MessageHider", fields: [hiddenById], references: [id])
+
+  @@index([groupId, createdAt])
+  @@map("group_messages")
 }

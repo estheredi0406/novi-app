@@ -522,5 +522,27 @@
     "reminderTitle": "Qui reçoit votre argent s'il vous arrive quelque chose ?",
     "reminderBody": "Choisissez une personne de confiance. Cela prend une minute.",
     "reminderGo": "Choisir ma personne de confiance"
+  },
+  "chat": {
+    "title": "Discussion du groupe",
+    "entryHint": "Se rappeler, s'encourager, s'entendre, ensemble",
+    "unread_one": "{{count}} nouveau message",
+    "unread_other": "{{count}} nouveaux messages",
+    "safety": "Novi et votre IMF ne vous demanderont jamais votre code PIN ni un code SMS, ici ou ailleurs. Ne les donnez jamais, même à un membre du groupe.",
+    "empty": "Pas encore de message. Dites bonjour à votre groupe.",
+    "earlier": "Voir les messages plus anciens",
+    "placeholder": "Écrire au groupe",
+    "send": "Envoyer",
+    "you": "Vous",
+    "hidden": "Message masqué",
+    "holdToHide": "Appuyez longuement pour masquer ce message",
+    "hideTitle": "Masquer ce message ?",
+    "hideMine": "Le groupe verra que vous avez masqué un message.",
+    "hideOther": "En tant qu'organisatrice, vous pouvez le masquer. Le groupe verra qu'un message a été masqué.",
+    "hide": "Masquer",
+    "keep": "Garder",
+    "readOnly": "Vous avez quitté ce groupe : vous pouvez lire la discussion, pas y écrire.",
+    "paid": "{{name}} a payé le tour {{round}}",
+    "potPaid": "Cagnotte du tour {{round}} versée à {{name}}"
   }
 }

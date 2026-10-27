@@ -522,5 +522,27 @@
     "reminderTitle": "Who receives your money if something happens to you?",
     "reminderBody": "Name a person you trust. It takes one minute.",
     "reminderGo": "Name my next of kin"
+  },
+  "chat": {
+    "title": "Group chat",
+    "entryHint": "Remind, encourage, agree, together",
+    "unread_one": "{{count}} new message",
+    "unread_other": "{{count}} new messages",
+    "safety": "Novi and your MFI will never ask for your PIN or an SMS code, here or anywhere. Never share them, even with a member of your group.",
+    "empty": "No messages yet. Say hello to your group.",
+    "earlier": "Show earlier messages",
+    "placeholder": "Write to your group",
+    "send": "Send",
+    "you": "You",
+    "hidden": "Message hidden",
+    "holdToHide": "Hold to hide this message",
+    "hideTitle": "Hide this message?",
+    "hideMine": "Your group will see that you hid a message.",
+    "hideOther": "As organiser you can hide it. The group will see that a message was hidden.",
+    "hide": "Hide",
+    "keep": "Keep",
+    "readOnly": "You left this group: you can read the chat, not write in it.",
+    "paid": "{{name}} paid round {{round}}",
+    "potPaid": "Round {{round}} pot paid to {{name}}"
   }
 }

@@ -25,6 +25,7 @@ import { currentRoundNumber, dueDates, isoDay } from "../lib/schedule.js";
 import { onTimeStreak } from "../lib/streak.js";
 import { inviteSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
+import { unreadCount } from "./chatService.js";
 import { owedCovers } from "./memberService.js";
 import { reserveSummary } from "./reserveService.js";
 
@@ -129,6 +130,7 @@ function toDetail(group: LoadedGroup, userId: string): GroupDetail {
     pendingInvites: group.invites.map((invite) => ({ id: invite.id, maskedPhone: maskPhone(invite.phone) })),
     myRole: isOrganiser ? "ORGANISER" : "MEMBER",
     reserve: null, // filled in by getGroup once the group has started (D68)
+    unreadMessages: 0, // filled in by getGroup (D70)
   };
 }
 
@@ -141,8 +143,8 @@ function placesTaken(group: Pick<LoadedGroup, "memberships" | "invites">): Seat[
 }
 
 export async function getGroup(groupId: string, userId: string): Promise<GroupDetail> {
-  const { group } = await loadForMember(groupId, userId);
-  const detail = toDetail(group, userId);
+  const { group, mySeat } = await loadForMember(groupId, userId);
+  const detail = { ...toDetail(group, userId), unreadMessages: await unreadCount(group.id, userId, mySeat.chatReadAt) };
   if (group.state !== "ACTIVE" && group.state !== "COMPLETED") return detail;
   return { ...detail, reserve: { percent: RESERVE_PERCENT, ...(await reserveSummary(group.id, group.mfiId)) } };
 }
@@ -155,7 +157,7 @@ export async function listMyGroups(userId: string): Promise<GroupSummary[]> {
     include: { group: { include: detailQuery } },
   });
   return Promise.all(
-    seats.map(async ({ group, state }) => {
+    seats.map(async ({ group, state, chatReadAt }) => {
       const detail = toDetail(group, userId);
       return {
         id: detail.id,
@@ -170,6 +172,7 @@ export async function listMyGroups(userId: string): Promise<GroupSummary[]> {
         myRole: detail.myRole,
         mySeatState: state,
         currentRound: group.state === "ACTIVE" ? await currentRoundFor(group.id, userId, detail.rules) : null,
+        unreadMessages: await unreadCount(group.id, userId, chatReadAt),
       };
     }),
   );
