@@ -601,5 +601,8 @@
     "notNow": "Pas maintenant",
     "openNext": "Ouvrir le cycle {{number}}",
     "organiserCan": "Votre organisatrice peut relancer un cycle avec les mêmes membres."
+  },
+  "splash": {
+    "tagline": "Épargner ensemble, en confiance"
   }
 }

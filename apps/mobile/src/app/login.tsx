@@ -14,6 +14,9 @@ import { useSession } from "../session/SessionProvider";
 import { colors } from "../theme/colors";
 import { fonts, type } from "../theme/typography";
 import { PilotCode } from "../components/PilotCode";
+import { AuthBand } from "../components/AuthBand";
+import { PinCowries } from "../components/PinCowries";
+import { NoviMark } from "../components/art/NoviMark";
 
 // The three things this screen can show:
 // - pin: she types her PIN (and her number, on a phone Novi does not know)
@@ -108,6 +111,7 @@ export default function LoginScreen() {
           <ListenButton text={`${t("locked.title")}. ${t("locked.lede")} ${t("locked.longer")}`} />
         </View>
         <View style={styles.center}>
+          <NoviMark size={96} />
           <Text style={[type.display, styles.onDark, styles.centerText]}>{t("locked.title")}</Text>
           <Text style={[type.body, styles.onDarkMuted, styles.centerText]}>{t("locked.lede")}</Text>
           <Text style={[type.small, styles.onDarkMuted]}>{t("locked.tryAgainIn")}</Text>
@@ -125,15 +129,16 @@ export default function LoginScreen() {
   if (mode.kind === "code") {
     const { challengeId } = mode;
     return (
-      <Screen>
-        <View style={styles.top}>
-          <ListenButton text={`${t("newDevice.title")}. ${t("newDevice.lede", { phone: formatPhone(phone) })}`} />
-        </View>
+      <Screen
+        top={
+          <AuthBand
+            title={t("newDevice.title")}
+            lede={t("newDevice.lede", { phone: formatPhone(phone) })}
+            listenText={`${t("newDevice.title")}. ${t("newDevice.lede", { phone: formatPhone(phone) })}`}
+          />
+        }
+      >
         <PilotCode />
-        <View style={styles.intro}>
-          <Text style={[type.display, styles.indigo]}>{t("newDevice.title")}</Text>
-          <Text style={[type.body, styles.muted]}>{t("newDevice.lede", { phone: formatPhone(phone) })}</Text>
-        </View>
         <Field
           label={t("newDevice.codeLabel")}
           value={code}
@@ -156,18 +161,11 @@ export default function LoginScreen() {
   const lede = knownPhone ? t("unlock.lede") : t("login.lede");
 
   return (
-    <Screen>
-      <View style={styles.top}>
-        <ListenButton text={`${title}. ${lede} ${t("unlock.lockWarning")}`} />
-      </View>
-
-      <View style={styles.intro}>
-        <Text style={[type.display, styles.indigo]}>{title}</Text>
-        <Text style={[type.body, styles.muted]}>{lede}</Text>
-      </View>
-
+    <Screen
+      top={<AuthBand mark title={title} lede={lede} listenText={`${title}. ${lede} ${t("unlock.lockWarning")}`} />}
+    >
       {knownPhone ? (
-        <Text style={[type.title, styles.ink]}>{formatPhone(knownPhone)}</Text>
+        <Text style={styles.phone}>{formatPhone(knownPhone)}</Text>
       ) : (
         <Field
           label={t("phone.label")}
@@ -181,16 +179,12 @@ export default function LoginScreen() {
         />
       )}
 
-      <Field
+      <PinCowries
         label={t("login.pinLabel")}
         value={pin}
         onChangeText={onPinChange}
-        keyboardType="number-pad"
-        secureTextEntry
-        maxLength={4}
         editable={!busy}
         autoFocus={knownPhone !== null}
-        style={styles.pinInput}
       />
 
       <ErrorMessage messageKey={error} />
@@ -232,7 +226,19 @@ const styles = StyleSheet.create({
   onDark: { color: colors.onDark },
   onDarkMuted: { color: colors.onDark, opacity: 0.8 },
   countdown: { fontFamily: fonts.display, fontSize: 56, color: colors.onDark },
-  pinInput: { fontSize: 32, letterSpacing: 16, textAlign: "center" },
+  phone: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 22,
+    color: colors.indigo,
+    alignSelf: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.indigo,
+    backgroundColor: colors.card,
+    overflow: "hidden",
+  },
   codeInput: { fontSize: 30, letterSpacing: 10, textAlign: "center" },
   footer: { marginTop: "auto", gap: 4 },
   linkButton: { minHeight: 44, alignItems: "center", justifyContent: "center" },

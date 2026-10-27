@@ -9,7 +9,8 @@ import { ErrorMessage } from "../components/ErrorMessage";
 import { Field } from "../components/Field";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
-import { StepHeader } from "../components/StepHeader";
+import { AuthBand } from "../components/AuthBand";
+import { PinCowries } from "../components/PinCowries";
 import { currentLanguage } from "../i18n";
 import { formatPhone } from "../lib/format";
 import { useSession } from "../session/SessionProvider";
@@ -125,9 +126,7 @@ export default function ForgotPinScreen() {
   // ---------- Done ----------
   if (step.kind === "done") {
     return (
-      <Screen>
-        <StepHeader listenText={t("reset.done")} />
-        <Text style={[type.title, styles.indigo]}>{t("reset.done")}</Text>
+      <Screen top={<AuthBand mark title={t("reset.done")} listenText={t("reset.done")} />}>
         <View style={styles.footer}>
           <PrimaryButton label={t("reset.login")} onPress={() => router.replace("/login")} />
         </View>
@@ -139,13 +138,16 @@ export default function ForgotPinScreen() {
   if (step.kind === "code") {
     const { challengeId } = step;
     return (
-      <Screen>
-        <StepHeader listenText={`${t("code.title")}. ${t("code.sentTo", { phone: formatPhone(phone) })}`} />
+      <Screen
+        top={
+          <AuthBand
+            title={t("code.title")}
+            lede={t("code.sentTo", { phone: formatPhone(phone) })}
+            listenText={`${t("code.title")}. ${t("code.sentTo", { phone: formatPhone(phone) })}`}
+          />
+        }
+      >
         <PilotCode />
-        <View style={styles.intro}>
-          <Text style={[type.display, styles.indigo]}>{t("code.title")}</Text>
-          <Text style={[type.body, styles.muted]}>{t("code.sentTo", { phone: formatPhone(phone) })}</Text>
-        </View>
         <Field
           label={t("code.title")}
           value={value}
@@ -168,20 +170,14 @@ export default function ForgotPinScreen() {
     const { verificationToken, first } = step;
     const title = first === null ? t("reset.title") : t("reset.confirmTitle");
     return (
-      <Screen>
-        <StepHeader listenText={`${title}. ${t("pin.tip")}`} />
-        <Text style={[type.display, styles.indigo]}>{title}</Text>
-        <Field
+      <Screen top={<AuthBand title={title} listenText={`${title}. ${t("pin.tip")}`} />}>
+        <PinCowries
           key={first === null ? "create" : "confirm"}
           label={title}
           value={value}
           onChangeText={(input) => onPinChange(verificationToken, first, input)}
-          keyboardType="number-pad"
-          secureTextEntry
-          maxLength={4}
           editable={!busy}
           autoFocus
-          style={styles.pinInput}
         />
         <ErrorMessage messageKey={error} />
         <View style={styles.note}>
@@ -193,12 +189,11 @@ export default function ForgotPinScreen() {
 
   // ---------- Phone ----------
   return (
-    <Screen>
-      <StepHeader listenText={`${t("forgot.title")}. ${t("forgot.lede")}`} />
-      <View style={styles.intro}>
-        <Text style={[type.display, styles.indigo]}>{t("forgot.title")}</Text>
-        <Text style={[type.body, styles.muted]}>{t("forgot.lede")}</Text>
-      </View>
+    <Screen
+      top={
+        <AuthBand title={t("forgot.title")} lede={t("forgot.lede")} listenText={`${t("forgot.title")}. ${t("forgot.lede")}`} />
+      }
+    >
       <Field
         label={t("phone.label")}
         prefix="+228"

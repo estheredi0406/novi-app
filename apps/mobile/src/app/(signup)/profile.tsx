@@ -9,7 +9,7 @@ import { ErrorMessage } from "../../components/ErrorMessage";
 import { Field } from "../../components/Field";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
-import { StepHeader } from "../../components/StepHeader";
+import { AuthBand } from "../../components/AuthBand";
 import { currentLanguage } from "../../i18n";
 import { useSession } from "../../session/SessionProvider";
 import { useSignUp } from "../../signup/SignUpContext";
@@ -89,9 +89,7 @@ export default function ProfileScreen() {
 
   if (expired) {
     return (
-      <Screen>
-        <StepHeader step={6} listenText={t("profile.expired")} />
-        <Text style={[type.title, styles.indigo]}>{t("profile.expired")}</Text>
+      <Screen top={<AuthBand step={6} title={t("profile.expired")} listenText={t("profile.expired")} />}>
         <View style={styles.footer}>
           <PrimaryButton label={t("profile.restart")} onPress={restart} />
         </View>
@@ -100,14 +98,16 @@ export default function ProfileScreen() {
   }
 
   return (
-    <Screen>
-      <StepHeader step={6} listenText={`${t("profile.title")}. ${t("profile.privacy")}`} />
-
-      <View style={styles.intro}>
-        <Text style={styles.eyebrow}>{t("profile.step")}</Text>
-        <Text style={[type.display, styles.indigo]}>{t("profile.title")}</Text>
-      </View>
-
+    <Screen
+      top={
+        <AuthBand
+          step={6}
+          eyebrow={t("profile.step")}
+          title={t("profile.title")}
+          listenText={`${t("profile.title")}. ${t("profile.privacy")}`}
+        />
+      }
+    >
       <Field label={t("profile.displayName")} value={displayName} onChangeText={setDisplayName} maxLength={60} />
 
       <View style={styles.group}>

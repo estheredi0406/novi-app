@@ -7,7 +7,7 @@ import { errorKey } from "../../api/client";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { Field } from "../../components/Field";
 import { Screen } from "../../components/Screen";
-import { StepHeader } from "../../components/StepHeader";
+import { AuthBand } from "../../components/AuthBand";
 import { currentLanguage } from "../../i18n";
 import { formatPhone, formatSeconds } from "../../lib/format";
 import { useSignUp } from "../../signup/SignUpContext";
@@ -68,18 +68,22 @@ export default function CodeScreen() {
   }
 
   return (
-    <Screen>
-      <StepHeader step={2} listenText={`${t("code.title")}. ${t("code.sentTo", { phone: formatPhone(phone) })}`} />
+    <Screen
+      top={
+        <AuthBand
+          step={2}
+          eyebrow={t("code.step")}
+          title={t("code.title")}
+          lede={t("code.sentTo", { phone: formatPhone(phone) })}
+          listenText={`${t("code.title")}. ${t("code.sentTo", { phone: formatPhone(phone) })}`}
+        >
+          <Pressable accessibilityRole="link" onPress={() => router.back()}>
+            <Text style={styles.link}>{t("code.change")}</Text>
+          </Pressable>
+        </AuthBand>
+      }
+    >
       <PilotCode />
-
-      <View style={styles.intro}>
-        <Text style={styles.eyebrow}>{t("code.step")}</Text>
-        <Text style={[type.display, styles.indigo]}>{t("code.title")}</Text>
-        <Text style={[type.body, styles.muted]}>{t("code.sentTo", { phone: formatPhone(phone) })}</Text>
-        <Pressable accessibilityRole="link" onPress={() => router.back()}>
-          <Text style={styles.link}>{t("code.change")}</Text>
-        </Pressable>
-      </View>
 
       <Field
         label={t("code.title")}

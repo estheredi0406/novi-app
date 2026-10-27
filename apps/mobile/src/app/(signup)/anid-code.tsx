@@ -8,7 +8,7 @@ import { ErrorMessage } from "../../components/ErrorMessage";
 import { Field } from "../../components/Field";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
-import { StepHeader } from "../../components/StepHeader";
+import { AuthBand } from "../../components/AuthBand";
 import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
@@ -55,14 +55,10 @@ export default function AnidCodeScreen() {
   const sentTo = t("anidCode.sentTo", { phone: draft.maskedPhone ?? "" });
 
   return (
-    <Screen>
-      <StepHeader step={4} listenText={`${t("anidCode.title")}. ${sentTo}`} />
+    <Screen
+      top={<AuthBand step={4} title={t("anidCode.title")} lede={sentTo} listenText={`${t("anidCode.title")}. ${sentTo}`} />}
+    >
       <PilotCode />
-
-      <View style={styles.intro}>
-        <Text style={[type.display, styles.indigo]}>{t("anidCode.title")}</Text>
-        <Text style={[type.body, styles.muted]}>{sentTo}</Text>
-      </View>
 
       {mustRestart ? null : (
         <Field

@@ -47,6 +47,14 @@
         {
           "cameraPermission": "Novi uses the camera only to read the code on your ID card."
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F05A1A",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220
+        }
       ]
     ],
     "extra": {

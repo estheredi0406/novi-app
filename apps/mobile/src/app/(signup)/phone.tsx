@@ -8,7 +8,7 @@ import { ErrorMessage } from "../../components/ErrorMessage";
 import { Field } from "../../components/Field";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
-import { StepHeader } from "../../components/StepHeader";
+import { AuthBand } from "../../components/AuthBand";
 import { currentLanguage } from "../../i18n";
 import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
@@ -40,14 +40,16 @@ export default function PhoneScreen() {
   }
 
   return (
-    <Screen>
-      <StepHeader step={1} listenText={`${t("phone.title")}. ${t("phone.safety")}`} />
-
-      <View style={styles.intro}>
-        <Text style={styles.eyebrow}>{t("phone.step")}</Text>
-        <Text style={[type.display, styles.indigo]}>{t("phone.title")}</Text>
-      </View>
-
+    <Screen
+      top={
+        <AuthBand
+          step={1}
+          eyebrow={t("phone.step")}
+          title={t("phone.title")}
+          listenText={`${t("phone.title")}. ${t("phone.safety")}`}
+        />
+      }
+    >
       <Field
         label={t("phone.label")}
         prefix="+228"

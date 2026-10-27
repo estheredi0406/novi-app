@@ -3,8 +3,10 @@ import { NotoSans_400Regular, NotoSans_600SemiBold, NotoSans_700Bold, useFonts }
 import { NotoSansDisplay_800ExtraBold } from "@expo-google-fonts/noto-sans-display";
 import { setAudioModeAsync } from "expo-audio";
 import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { SplashIntro } from "../components/SplashIntro";
 import { SessionProvider, useSession } from "../session/SessionProvider";
 import { colors } from "../theme/colors";
 
@@ -34,9 +36,16 @@ function AppStack() {
   );
 }
 
+// The phone's own splash (navy, Novi's cowries and name; app.json) stays up
+// until the fonts are loaded, then the same picture comes to life for a
+// moment (SplashIntro) and fades into the app.
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
+
 // Wraps every screen. Loads Novi's fonts before showing anything, so text never
 // appears first in a fallback font that lacks the Ewe letters.
 export default function RootLayout() {
+  const [introDone, setIntroDone] = useState(false);
+  const endIntro = useCallback(() => setIntroDone(true), []);
   const [fontsLoaded] = useFonts({
     NotoSans_400Regular,
     NotoSans_600SemiBold,
@@ -50,12 +59,17 @@ export default function RootLayout() {
     void setAudioModeAsync({ playsInSilentMode: true });
   }, []);
 
+  useEffect(() => {
+    if (fontsLoaded) void SplashScreen.hideAsync().catch(() => undefined);
+  }, [fontsLoaded]);
+
   if (!fontsLoaded) return null;
 
   return (
     <SessionProvider>
-      <StatusBar style="dark" />
+      <StatusBar style={introDone ? "dark" : "light"} />
       <AppStack />
+      {introDone ? null : <SplashIntro onDone={endIntro} />}
     </SessionProvider>
   );
 }

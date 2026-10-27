@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { ErrorMessage } from "../../components/ErrorMessage";
-import { Field } from "../../components/Field";
 import { Screen } from "../../components/Screen";
-import { StepHeader } from "../../components/StepHeader";
+import { AuthBand } from "../../components/AuthBand";
+import { PinCowries } from "../../components/PinCowries";
 import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
@@ -54,26 +54,18 @@ export default function PinScreen() {
   const title = confirming ? t("pin.confirmTitle") : t("pin.createTitle");
 
   return (
-    <Screen>
-      <StepHeader step={5} listenText={`${title}. ${t("pin.lede")} ${t("pin.tip")}`} />
-
-      <View style={styles.intro}>
-        <Text style={styles.eyebrow}>{t("pin.step")}</Text>
-        <Text style={[type.display, styles.indigo]}>{title}</Text>
-        <Text style={[type.body, styles.muted]}>{t("pin.lede")}</Text>
-      </View>
-
-      <Field
-        key={confirming ? "confirm" : "create"}
-        label={title}
-        value={value}
-        onChangeText={onChange}
-        keyboardType="number-pad"
-        secureTextEntry
-        maxLength={4}
-        autoFocus
-        style={styles.pinInput}
-      />
+    <Screen
+      top={
+        <AuthBand
+          step={5}
+          eyebrow={t("pin.step")}
+          title={title}
+          lede={t("pin.lede")}
+          listenText={`${title}. ${t("pin.lede")} ${t("pin.tip")}`}
+        />
+      }
+    >
+      <PinCowries key={confirming ? "confirm" : "create"} label={title} value={value} onChangeText={onChange} autoFocus />
 
       <ErrorMessage messageKey={error} />
       <View style={styles.note}>

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
-import { StepHeader } from "../../components/StepHeader";
+import { AuthBand } from "../../components/AuthBand";
 import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
@@ -23,14 +23,15 @@ export default function NotVerifiedScreen() {
   }
 
   return (
-    <Screen>
-      <StepHeader listenText={`${t("notVerified.title")}. ${t("notVerified.lede")} ${t("notVerified.bring")}`} />
-
-      <View style={styles.intro}>
-        <Text style={[type.display, styles.indigo]}>{t("notVerified.title")}</Text>
-        <Text style={[type.body, styles.muted]}>{t("notVerified.lede")}</Text>
-      </View>
-
+    <Screen
+      top={
+        <AuthBand
+          title={t("notVerified.title")}
+          lede={t("notVerified.lede")}
+          listenText={`${t("notVerified.title")}. ${t("notVerified.lede")} ${t("notVerified.bring")}`}
+        />
+      }
+    >
       <View style={styles.card}>
         <Text style={styles.eyebrow}>{t("notVerified.visit")}</Text>
         <Text style={[type.title, styles.ink]}>{MFI_NAME}</Text>
@@ -52,6 +53,6 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted },
   ink: { color: colors.ink },
   eyebrow: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.action },
-  card: { gap: 8, padding: 18, borderRadius: 18, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card },
+  card: { gap: 8, padding: 18, borderRadius: 18, borderWidth: 1.5, borderColor: colors.indigo, backgroundColor: colors.card },
   note: { padding: 16, borderRadius: 14, backgroundColor: colors.mist },
 });

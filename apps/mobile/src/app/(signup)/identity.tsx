@@ -8,7 +8,7 @@ import { ErrorMessage } from "../../components/ErrorMessage";
 import { Field } from "../../components/Field";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
-import { StepHeader } from "../../components/StepHeader";
+import { AuthBand } from "../../components/AuthBand";
 import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
@@ -72,14 +72,16 @@ export default function IdentityScreen() {
   }
 
   return (
-    <Screen>
-      <StepHeader step={4} listenText={`${t("idDetails.title")}. ${t("idDetails.nameHint")}`} />
-
-      <View style={styles.intro}>
-        <Text style={styles.eyebrow}>{t("idDetails.step")}</Text>
-        <Text style={[type.display, styles.indigo]}>{t("idDetails.title")}</Text>
-      </View>
-
+    <Screen
+      top={
+        <AuthBand
+          step={4}
+          eyebrow={t("idDetails.step")}
+          title={t("idDetails.title")}
+          listenText={`${t("idDetails.title")}. ${t("idDetails.nameHint")}`}
+        />
+      }
+    >
       {__DEV__ ? (
         <View style={styles.demo}>
           <Text style={[type.small, styles.ink]}>Demo record: TEST-0001 · AKOSSIWA AFI MENSAH · 12 03 1984</Text>

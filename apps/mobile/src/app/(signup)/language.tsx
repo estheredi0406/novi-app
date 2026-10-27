@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
-import { StepHeader } from "../../components/StepHeader";
+import { AuthBand } from "../../components/AuthBand";
 import { type AppLanguage, currentLanguage, setAppLanguage } from "../../i18n";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
@@ -22,15 +22,17 @@ export default function LanguageScreen() {
   const selected = currentLanguage();
 
   return (
-    <Screen>
-      <StepHeader listenText={`${t("language.title")}. ${t("language.lede")}`} />
-
-      <View style={styles.intro}>
-        <Text style={[type.display, styles.indigo]}>{t("welcome.greeting")}</Text>
-        <Text style={[type.title, styles.ink]}>{t("language.title")}</Text>
-        <Text style={[type.body, styles.muted]}>{t("language.lede")}</Text>
-      </View>
-
+    <Screen
+      top={
+        <AuthBand
+          mark
+          eyebrow={t("language.title")}
+          title={t("welcome.greeting")}
+          lede={t("language.lede")}
+          listenText={`${t("language.title")}. ${t("language.lede")}`}
+        />
+      }
+    >
       <View style={styles.options} accessibilityRole="radiogroup">
         {LANGUAGES.map(({ language, nameKey }) => {
           const isSelected = language === selected;
@@ -75,12 +77,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: colors.line,
+    borderColor: colors.indigo,
     backgroundColor: colors.card,
   },
-  optionSelected: { borderColor: colors.action, backgroundColor: colors.mist },
-  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.line },
-  radioSelected: { borderWidth: 7, borderColor: colors.action },
+  optionSelected: { backgroundColor: colors.mist, borderWidth: 2.5, borderColor: colors.accent },
+  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.indigo },
+  radioSelected: { borderWidth: 7, borderColor: colors.accent },
   optionText: { fontFamily: fonts.bodyBold, fontSize: 20, color: colors.ink },
   footer: { marginTop: "auto", gap: 12 },
   linkButton: { minHeight: 44, alignItems: "center", justifyContent: "center" },

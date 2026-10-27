@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
-import { StepHeader } from "../../components/StepHeader";
+import { AuthBand } from "../../components/AuthBand";
 import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
@@ -48,18 +48,17 @@ export default function ConsentScreen() {
   }
 
   return (
-    <Screen>
-      <StepHeader
-        step={3}
-        listenText={[t("consent.title"), t("consent.lede"), ...AGREEMENTS.map(({ textKey }) => t(textKey))].join(". ")}
-      />
-
-      <View style={styles.intro}>
-        <Text style={styles.eyebrow}>{t("consent.step")}</Text>
-        <Text style={[type.display, styles.indigo]}>{t("consent.title")}</Text>
-        <Text style={[type.body, styles.muted]}>{t("consent.lede")}</Text>
-      </View>
-
+    <Screen
+      top={
+        <AuthBand
+          step={3}
+          eyebrow={t("consent.step")}
+          title={t("consent.title")}
+          lede={t("consent.lede")}
+          listenText={[t("consent.title"), t("consent.lede"), ...AGREEMENTS.map(({ textKey }) => t(textKey))].join(". ")}
+        />
+      }
+    >
       <View style={styles.list}>
         {AGREEMENTS.map(({ field, textKey }) => {
           const isTicked = ticked[field];
@@ -104,21 +103,21 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: colors.line,
+    borderColor: colors.indigo,
     backgroundColor: colors.card,
   },
-  rowTicked: { borderColor: colors.action, backgroundColor: colors.mist },
+  rowTicked: { borderColor: colors.accent, borderWidth: 2.5, backgroundColor: colors.mist },
   box: {
     width: 28,
     height: 28,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: colors.line,
+    borderColor: colors.indigo,
     backgroundColor: colors.card,
     alignItems: "center",
     justifyContent: "center",
   },
-  boxTicked: { borderColor: colors.action, backgroundColor: colors.action },
+  boxTicked: { borderColor: colors.indigo, backgroundColor: colors.accent },
   tick: { color: colors.white, fontFamily: fonts.bodyBold, fontSize: 18, lineHeight: 22 },
   rowText: { flex: 1 },
   footer: { marginTop: "auto", gap: 12 },

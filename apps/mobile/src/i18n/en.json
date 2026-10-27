@@ -601,5 +601,8 @@
     "notNow": "Not now",
     "openNext": "Open cycle {{number}}",
     "organiserCan": "Your organiser can start the next cycle with the same members."
+  },
+  "splash": {
+    "tagline": "Saving together, with trust"
   }
 }
