@@ -7,7 +7,7 @@ import type { Text } from "../text";
 const PHONE = /^\+228\d{8}$/;
 
 // A member at the counter (D69). The officer finds her by her phone number,
-// then acts: on a death certificate, when she leaves a started group, when
+// then acts: for an estate (succession), when she leaves a started group, when
 // her phone was lost or stolen, or to make her the organiser. The money does
 // not move here: it stays in the group's account, only who receives it and
 // who may log in change. Every search and action is in the log.

@@ -9,7 +9,10 @@
   "welcome": {
     "greeting": "Welcome",
     "check": "Check the connection",
-    "foundations": "Foundations check, replaced in the next steps."
+    "foundations": "Foundations check, replaced in the next steps.",
+    "intro": "Your group's tontine, held by a licensed MFI. Novi never holds your money.",
+    "create": "Create my account",
+    "haveAccount": "I already have an account"
   },
   "language": {
     "title": "Choose your language",
@@ -25,7 +28,9 @@
     "title": "What is your phone number?",
     "label": "Mobile number",
     "safety": "We send you a code by SMS. Novi will never ask for your Mixx or Flooz PIN.",
-    "send": "Send me the code"
+    "send": "Send me the code",
+    "haveAccount": "Already have an account?",
+    "login": "Log in"
   },
   "code": {
     "step": "Step 2 · Check your SMS",
@@ -101,13 +106,18 @@
     "pinLabel": "Your 4-number PIN",
     "submit": "Log in",
     "otherNumber": "Not you? Use another number",
-    "newAccount": "No account yet? Sign up"
+    "newAccount": "No account yet? Sign up",
+    "accountOnPhone": "Account on this phone",
+    "change": "Change",
+    "noAccount": "No account yet?",
+    "createAccount": "Create an account"
   },
   "unlock": {
-    "greeting": "Welcome, {{name}}",
+    "greeting": "Welcome back, {{name}}",
     "lede": "Type your PIN to open your groups",
     "forgot": "Forgot your PIN?",
-    "lockWarning": "5 wrong tries locks Novi for 15 minutes."
+    "lockWarning": "5 wrong tries locks Novi for 15 minutes.",
+    "open": "Open Novi"
   },
   "locked": {
     "title": "Novi is locked for now",
@@ -454,7 +464,7 @@
   "nav": {
     "home": "Home",
     "record": "Record",
-    "me": "Me"
+    "me": "My account"
   },
   "me": {
     "language": "Language",
@@ -506,9 +516,9 @@
     "left": "Has left"
   },
   "kin": {
-    "title": "Next of kin",
-    "why": "If you die, the MFI pays what you are owed to this person, on a death certificate: your pot if your turn has not come, and your part of the reserve.",
-    "private": "Novi never contacts this person while you are alive. Your groups do not see who it is.",
+    "title": "Trusted person",
+    "why": "Like for a bank account, choose who can receive your Novi savings if one day you can no longer do it yourself. Your MFI handles it, on proof.",
+    "private": "This person is not told, and your group does not see who it is.",
     "name": "Full name",
     "relation": "Who they are to you",
     "relationExample": "Son, sister, husband…",
@@ -516,12 +526,12 @@
     "notYours": "Choose someone else's number: your own phone may be lost with you.",
     "remove": "Remove",
     "removeTitle": "Remove your next of kin?",
-    "removeBody": "If you die, the MFI will have to find your heirs from documents, which takes longer.",
+    "removeBody": "Without a trusted person, your MFI will have to find your family from documents, which takes longer.",
     "keep": "Keep",
     "notSet": "Not set yet",
-    "reminderTitle": "Who receives your money if something happens to you?",
-    "reminderBody": "Name a person you trust. It takes one minute.",
-    "reminderGo": "Name my next of kin"
+    "reminderTitle": "Add a trusted person",
+    "reminderBody": "Like for a bank account: someone who can receive your savings if needed.",
+    "reminderGo": "Add"
   },
   "chat": {
     "title": "Group chat",

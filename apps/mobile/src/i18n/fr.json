@@ -9,7 +9,10 @@
   "welcome": {
     "greeting": "Bienvenue",
     "check": "Vérifier la connexion",
-    "foundations": "Vérification des fondations, remplacée aux prochaines étapes."
+    "foundations": "Vérification des fondations, remplacée aux prochaines étapes.",
+    "intro": "La tontine de votre groupe, gardée par une IMF agréée. Novi ne garde jamais votre argent.",
+    "create": "Créer mon compte",
+    "haveAccount": "J'ai déjà un compte"
   },
   "language": {
     "title": "Choisissez votre langue",
@@ -25,7 +28,9 @@
     "title": "Quel est votre numéro de téléphone ?",
     "label": "Numéro de portable",
     "safety": "Nous vous envoyons un code par SMS. Novi ne vous demandera jamais votre code Mixx ou Flooz.",
-    "send": "Envoyez-moi le code"
+    "send": "Envoyez-moi le code",
+    "haveAccount": "Déjà un compte ?",
+    "login": "Se connecter"
   },
   "code": {
     "step": "Étape 2 · Vérifiez vos SMS",
@@ -101,13 +106,18 @@
     "pinLabel": "Votre PIN à 4 chiffres",
     "submit": "Se connecter",
     "otherNumber": "Ce n'est pas vous ? Utilisez un autre numéro",
-    "newAccount": "Pas encore de compte ? Inscrivez-vous"
+    "newAccount": "Pas encore de compte ? Inscrivez-vous",
+    "accountOnPhone": "Compte sur ce téléphone",
+    "change": "Changer",
+    "noAccount": "Pas encore de compte ?",
+    "createAccount": "Créer un compte"
   },
   "unlock": {
-    "greeting": "Bienvenue, {{name}}",
+    "greeting": "Bon retour, {{name}}",
     "lede": "Tapez votre PIN pour ouvrir vos groupes",
     "forgot": "PIN oublié ?",
-    "lockWarning": "5 erreurs bloquent Novi pendant 15 minutes."
+    "lockWarning": "5 erreurs bloquent Novi pendant 15 minutes.",
+    "open": "Ouvrir Novi"
   },
   "locked": {
     "title": "Novi est bloqué pour le moment",
@@ -454,7 +464,7 @@
   "nav": {
     "home": "Accueil",
     "record": "Relevé",
-    "me": "Moi"
+    "me": "Mon compte"
   },
   "me": {
     "language": "Langue",
@@ -507,8 +517,8 @@
   },
   "kin": {
     "title": "Personne de confiance",
-    "why": "Si vous décédez, l'IMF verse ce qui vous revient à cette personne, sur présentation de l'acte de décès : votre cagnotte si votre tour n'est pas passé, et votre part de la réserve.",
-    "private": "Novi ne contacte jamais cette personne de votre vivant. Vos groupes ne voient pas qui c'est.",
+    "why": "Comme pour un compte en banque, choisissez qui pourra recevoir votre épargne Novi si un jour vous ne pouvez plus le faire vous-même. Votre IMF s'en occupe, sur justificatif.",
+    "private": "Cette personne n'est pas prévenue, et votre groupe ne voit pas qui c'est.",
     "name": "Nom complet",
     "relation": "Lien avec vous",
     "relationExample": "Fils, sœur, mari…",
@@ -516,12 +526,12 @@
     "notYours": "Choisissez le numéro de quelqu'un d'autre : votre téléphone peut être perdu avec vous.",
     "remove": "Retirer",
     "removeTitle": "Retirer votre personne de confiance ?",
-    "removeBody": "En cas de décès, l'IMF devra retrouver vos ayants droit à partir des documents, ce qui prend plus de temps.",
+    "removeBody": "Sans personne de confiance, votre IMF devra retrouver vos proches à partir des documents, ce qui prend plus de temps.",
     "keep": "Garder",
     "notSet": "Pas encore choisie",
-    "reminderTitle": "Qui reçoit votre argent s'il vous arrive quelque chose ?",
-    "reminderBody": "Choisissez une personne de confiance. Cela prend une minute.",
-    "reminderGo": "Choisir ma personne de confiance"
+    "reminderTitle": "Ajoutez une personne de confiance",
+    "reminderBody": "Comme pour un compte en banque : quelqu'un qui pourra recevoir votre épargne si besoin.",
+    "reminderGo": "Ajouter"
   },
   "chat": {
     "title": "Discussion du groupe",

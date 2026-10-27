@@ -67,7 +67,15 @@ export default function PhoneScreen() {
       </View>
 
       <ErrorMessage messageKey={error} />
-      <PrimaryButton label={t("phone.send")} onPress={() => void sendCode()} disabled={!isComplete || busy} />
+      <View style={styles.footer}>
+        <PrimaryButton label={t("phone.send")} onPress={() => void sendCode()} disabled={!isComplete || busy} />
+        <Text style={styles.footerText}>
+          {t("phone.haveAccount")}{" "}
+          <Text accessibilityRole="link" onPress={() => router.replace("/login")} style={styles.footerLink}>
+            {t("phone.login")}
+          </Text>
+        </Text>
+      </View>
     </Screen>
   );
 }
@@ -78,4 +86,7 @@ const styles = StyleSheet.create({
   indigo: { color: colors.indigo },
   ink: { color: colors.ink },
   note: { padding: 16, borderRadius: 14, backgroundColor: colors.mist },
+  footer: { marginTop: "auto", gap: 14 },
+  footerText: { fontFamily: fonts.body, fontSize: 15, color: colors.muted, textAlign: "center" },
+  footerLink: { fontFamily: fonts.bodyBold, color: colors.indigo, textDecorationLine: "underline" },
 });

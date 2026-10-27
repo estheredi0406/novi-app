@@ -15,7 +15,7 @@ import { colors } from "../theme/colors";
 import { fonts, type } from "../theme/typography";
 import { PilotCode } from "../components/PilotCode";
 import { AuthBand } from "../components/AuthBand";
-import { PinCowries } from "../components/PinCowries";
+import { PinBoxes } from "../components/PinBoxes";
 import { NoviMark } from "../components/art/NoviMark";
 
 // The three things this screen can show:
@@ -156,16 +156,35 @@ export default function LoginScreen() {
     );
   }
 
-  // ---------- PIN ----------
-  const title = knownPhone && session.displayName ? t("unlock.greeting", { name: session.displayName }) : t("login.title");
-  const lede = knownPhone ? t("unlock.lede") : t("login.lede");
+  // ---------- PIN (approved design, 27 Oct) ----------
+  // On her own phone: her account in a card, so she sees why the number is
+  // there, with "Changer" to use another. On a new phone: a classic form.
+  const returning = knownPhone !== null;
+  const title = returning && session.displayName ? t("unlock.greeting", { name: session.displayName }) : t("login.title");
+  const lede = returning ? t("unlock.lede") : t("login.lede");
 
   return (
     <Screen
-      top={<AuthBand mark title={title} lede={lede} listenText={`${title}. ${lede} ${t("unlock.lockWarning")}`} />}
+      top={
+        <AuthBand mark={returning} title={title} lede={lede} listenText={`${title}. ${lede} ${t("unlock.lockWarning")}`} />
+      }
     >
-      {knownPhone ? (
-        <Text style={styles.phone}>{formatPhone(knownPhone)}</Text>
+      {returning ? (
+        <View style={styles.accountWrap}>
+          <View style={styles.accountShadow} />
+          <View style={styles.account}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{(session.displayName ?? "N").charAt(0).toUpperCase()}</Text>
+            </View>
+            <View style={styles.accountText}>
+              <Text style={styles.accountLabel}>{t("login.accountOnPhone")}</Text>
+              <Text style={styles.accountPhone}>{maskPhone(knownPhone)}</Text>
+            </View>
+            <Pressable accessibilityRole="button" onPress={() => setKnownPhone(null)} style={styles.change}>
+              <Text style={styles.link}>{t("login.change")}</Text>
+            </Pressable>
+          </View>
+        </View>
       ) : (
         <Field
           label={t("phone.label")}
@@ -179,40 +198,46 @@ export default function LoginScreen() {
         />
       )}
 
-      <PinCowries
-        label={t("login.pinLabel")}
-        value={pin}
-        onChangeText={onPinChange}
-        editable={!busy}
-        autoFocus={knownPhone !== null}
-      />
-
-      <ErrorMessage messageKey={error} />
-      <Text style={[type.small, styles.muted]}>{t("unlock.lockWarning")}</Text>
-
-      <View style={styles.footer}>
-        {knownPhone ? null : (
-          <PrimaryButton
-            label={t("login.submit")}
-            onPress={() => void submitPin(pin)}
-            disabled={!phoneComplete || pin.length !== 4 || busy}
-          />
-        )}
-        <Pressable accessibilityRole="link" onPress={() => router.push("/forgot-pin")} style={styles.linkButton}>
+      <View>
+        <PinBoxes
+          label={t("login.pinLabel")}
+          value={pin}
+          onChangeText={onPinChange}
+          editable={!busy}
+          autoFocus={returning}
+        />
+        <Pressable accessibilityRole="link" onPress={() => router.push("/forgot-pin")} style={styles.forgot}>
           <Text style={styles.link}>{t("unlock.forgot")}</Text>
         </Pressable>
-        {knownPhone ? (
-          <Pressable accessibilityRole="link" onPress={() => setKnownPhone(null)} style={styles.linkButton}>
-            <Text style={styles.link}>{t("login.otherNumber")}</Text>
-          </Pressable>
-        ) : (
-          <Pressable accessibilityRole="link" onPress={() => router.replace("/language")} style={styles.linkButton}>
-            <Text style={styles.link}>{t("login.newAccount")}</Text>
-          </Pressable>
-        )}
       </View>
+
+      <ErrorMessage messageKey={error} />
+      <PrimaryButton
+        label={returning ? t("unlock.open") : t("login.submit")}
+        onPress={() => void submitPin(pin)}
+        disabled={!phoneComplete || pin.length !== 4 || busy}
+      />
+      <Text style={[type.small, styles.muted]}>{t("unlock.lockWarning")}</Text>
+
+      {returning ? null : (
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            {t("login.noAccount")}{" "}
+            <Text accessibilityRole="link" onPress={() => router.replace("/phone")} style={styles.footerLink}>
+              {t("login.createAccount")}
+            </Text>
+          </Text>
+        </View>
+      )}
     </Screen>
   );
+}
+
+// "+22890000001" becomes "+228 90 •• •• 01": enough for her to recognise
+// her number, not enough for someone looking over her shoulder.
+function maskPhone(phone: string): string {
+  const d = phone.replace("+228", "");
+  return `+228 ${d.slice(0, 2)} •• •• ${d.slice(6, 8)}`;
 }
 
 const styles = StyleSheet.create({
@@ -240,7 +265,46 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   codeInput: { fontSize: 30, letterSpacing: 10, textAlign: "center" },
-  footer: { marginTop: "auto", gap: 4 },
+  footer: { marginTop: "auto", alignItems: "center", paddingTop: 8 },
+  footerText: { fontFamily: fonts.body, fontSize: 15, color: colors.muted, textAlign: "center" },
+  footerLink: { fontFamily: fonts.bodyBold, color: colors.indigo, textDecorationLine: "underline" },
+  forgot: { alignSelf: "flex-end", minHeight: 44, justifyContent: "center" },
+  accountWrap: { paddingRight: 4, paddingBottom: 4 },
+  accountShadow: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    right: 0,
+    bottom: 0,
+    borderRadius: 18,
+    backgroundColor: colors.indigo,
+  },
+  account: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: colors.indigo,
+    backgroundColor: colors.card,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.mist,
+    borderWidth: 1.5,
+    borderColor: colors.indigo,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: { fontFamily: fonts.display, fontSize: 22, color: colors.indigo },
+  accountText: { flex: 1, gap: 2 },
+  accountLabel: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
+  accountPhone: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.ink },
+  change: { minHeight: 44, justifyContent: "center" },
   linkButton: { minHeight: 44, alignItems: "center", justifyContent: "center" },
   link: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.action },
   // Saffron is kept for "your turn" only, so this link is underlined instead.

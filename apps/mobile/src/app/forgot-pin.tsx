@@ -10,7 +10,7 @@ import { Field } from "../components/Field";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { Screen } from "../components/Screen";
 import { AuthBand } from "../components/AuthBand";
-import { PinCowries } from "../components/PinCowries";
+import { PinBoxes } from "../components/PinBoxes";
 import { currentLanguage } from "../i18n";
 import { formatPhone } from "../lib/format";
 import { useSession } from "../session/SessionProvider";
@@ -171,7 +171,7 @@ export default function ForgotPinScreen() {
     const title = first === null ? t("reset.title") : t("reset.confirmTitle");
     return (
       <Screen top={<AuthBand title={title} listenText={`${title}. ${t("pin.tip")}`} />}>
-        <PinCowries
+        <PinBoxes
           key={first === null ? "create" : "confirm"}
           label={title}
           value={value}

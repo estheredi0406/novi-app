@@ -111,23 +111,6 @@ export default function HomeScreen() {
 
       <ErrorMessage messageKey={error} />
 
-      {/* D69: once she is in a group, or about to be, she names who receives
-          what she is owed if she dies. A reminder until she does. */}
-      {loaded && !member.nextOfKin && (groups.length > 0 || invitations.length > 0) ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push("/me-kin" as Href)}
-          style={[styles.row, styles.kin]}
-        >
-          <View style={styles.rowText}>
-            <Text style={styles.rowName}>{t("kin.reminderTitle")}</Text>
-            <Text style={styles.rowSub}>{t("kin.reminderBody")}</Text>
-            <Text style={styles.cta}>{t("kin.reminderGo")}</Text>
-          </View>
-          <Glyph name="chevron" color={colors.indigo} />
-        </Pressable>
-      ) : null}
-
       {hero && heroOwes ? (
         <PrimaryButton label={t("home.pay", { amount: formatFcfa(hero.amountFcfa) })} onPress={() => openRound(hero)} />
       ) : null}
@@ -168,6 +151,7 @@ export default function HomeScreen() {
           ))}
         </View>
       ) : null}
+
 
       {empty ? (
         <View style={styles.section}>
@@ -372,7 +356,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   invitation: { borderColor: colors.accent, borderWidth: 2 },
-  kin: { backgroundColor: colors.mist, borderColor: colors.indigo, borderWidth: 2 },
   rowText: { flex: 1, gap: 3, minWidth: 0 },
   rowName: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.ink },
   rowSub: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted },

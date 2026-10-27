@@ -6,7 +6,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { Screen } from "../../components/Screen";
 import { AuthBand } from "../../components/AuthBand";
-import { PinCowries } from "../../components/PinCowries";
+import { PinBoxes } from "../../components/PinBoxes";
 import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
@@ -65,7 +65,7 @@ export default function PinScreen() {
         />
       }
     >
-      <PinCowries key={confirming ? "confirm" : "create"} label={title} value={value} onChangeText={onChange} autoFocus />
+      <PinBoxes key={confirming ? "confirm" : "create"} label={title} value={value} onChangeText={onChange} autoFocus />
 
       <ErrorMessage messageKey={error} />
       <View style={styles.note}>
