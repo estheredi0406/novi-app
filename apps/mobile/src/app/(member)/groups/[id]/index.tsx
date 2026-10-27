@@ -31,6 +31,7 @@ import { useSession } from "../../../../session/SessionProvider";
 import { colors } from "../../../../theme/colors";
 import { ChatEntry } from "../../../../components/ChatEntry";
 import { MeetingsCard } from "../../../../components/MeetingsCard";
+import { NextCycleCard } from "../../../../components/NextCycleCard";
 import { fonts, type } from "../../../../theme/typography";
 
 // One group, as its members see it: rules, members, and the actions this
@@ -115,10 +116,15 @@ export default function GroupScreen() {
         <HeaderBand>
           <BackHeader listenText={listen} />
           <Text style={styles.bandName}>{group.name}</Text>
-          <Text style={styles.bandSub}>{rounds.length > 0 ? rulesSummary(t, rules) : stateLabel(t, state)}</Text>
+          <Text style={styles.bandSub}>
+            {group.cycleNumber > 1 ? `${t("cycle.number", { number: group.cycleNumber })} · ` : ""}
+            {rounds.length > 0 ? rulesSummary(t, rules) : stateLabel(t, state)}
+          </Text>
         </HeaderBand>
       }
     >
+      {state === "COMPLETED" ? <NextCycleCard group={group} /> : null}
+
       {rounds.length > 0 ? <GroupRoundView group={group} rounds={rounds} memberId={member.id} onChanged={load} /> : null}
 
       {state !== "DRAFT" && state !== "CANCELLED" ? <ChatEntry groupId={group.id} unread={group.unreadMessages} /> : null}

@@ -129,7 +129,7 @@ function dummyPinHash(): Promise<string> {
 
 // Checks a PIN with the lockout rules: 5 wrong tries lock the account, each
 // lock longer than the last; a right PIN clears the count and the escalation.
-async function checkPin(user: User, pin: string): Promise<void> {
+export async function checkPin(user: User, pin: string): Promise<void> {
   const now = Date.now();
   if (user.lockedUntil && user.lockedUntil.getTime() > now) {
     throw new AppError("PIN_LOCKED", 423, Math.ceil((user.lockedUntil.getTime() - now) / 1000));

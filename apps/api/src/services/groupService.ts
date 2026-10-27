@@ -1,5 +1,5 @@
 import type { CurrentRound, GroupDetail, GroupRules, GroupSummary, Invitation } from "@novi/shared";
-import type { Prisma } from "../generated/prisma/client.js";
+import { Prisma } from "../generated/prisma/client.js";
 import type { Frequency, PayoutOrder, SeatState } from "../generated/prisma/enums.js";
 import { prisma } from "../lib/db.js";
 import { enforce } from "../lib/enforce.js";
@@ -57,6 +57,7 @@ const pending = { answeredAt: null, cancelledAt: null };
 // the invitations not answered yet.
 const detailQuery = {
   mfi: true,
+  nextCycle: { select: { id: true } },
   rulesVersions: { orderBy: { version: "desc" as const } },
   memberships: {
     orderBy: { createdAt: "asc" as const },
@@ -131,6 +132,9 @@ function toDetail(group: LoadedGroup, userId: string): GroupDetail {
     myRole: isOrganiser ? "ORGANISER" : "MEMBER",
     reserve: null, // filled in by getGroup once the group has started (D68)
     unreadMessages: 0, // filled in by getGroup (D70)
+    cycleNumber: group.cycleNumber,
+    previousCycleId: group.previousGroupId,
+    nextCycleId: group.nextCycle?.id ?? null,
   };
 }
 
@@ -162,6 +166,7 @@ export async function listMyGroups(userId: string): Promise<GroupSummary[]> {
       return {
         id: detail.id,
         name: detail.name,
+        cycleNumber: detail.cycleNumber,
         state: detail.state,
         mfiName: detail.mfiName,
         amountFcfa: detail.rules.amountFcfa,
@@ -685,4 +690,62 @@ async function createRounds(
       beneficiaryId: seat.userId,
     })),
   });
+}
+
+// ---------- The next cycle (D72) ----------
+
+// A tontine rarely stops after one cycle: when the last pot is paid, the
+// same women usually go again. The organiser starts the next cycle in one
+// step: a new group with the same name and rules, linked to the one before,
+// and an invitation to every member who completed the cycle. It starts as
+// a draft, so she can change the rules first; each member then accepts the
+// new cycle herself, as consent is given per cycle (D29). Members who left
+// or died (D69) are not invited again; a member who still owes the fund is
+// invited, but cannot accept until she has repaid it.
+export async function startNextCycle(groupId: string, userId: string): Promise<GroupDetail> {
+  const { group, isOrganiser } = await loadForMember(groupId, userId);
+  if (!isOrganiser) throw new AppError("ORGANISER_ONLY", 403);
+  if (group.state !== "COMPLETED" || group.nextCycle) throw new AppError("NOT_ALLOWED_NOW", 409);
+
+  const rules = currentRules(group);
+  const created = await createGroup(userId, {
+    name: group.name,
+    amountFcfa: rules.amountFcfa,
+    frequency: rules.frequency,
+    dueDay: rules.dueDay,
+    size: rules.size,
+    payoutOrder: rules.payoutOrder,
+  });
+  try {
+    await prisma.group.update({
+      where: { id: created.id },
+      data: { previousGroupId: groupId, cycleNumber: group.cycleNumber + 1 },
+    });
+  } catch (err) {
+    // Another tap got there first: this copy is not needed.
+    await prisma.group.update({ where: { id: created.id }, data: { state: "CANCELLED", cancelledAt: new Date() } });
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      throw new AppError("NOT_ALLOWED_NOW", 409);
+    }
+    throw err;
+  }
+
+  const returning = await prisma.membership.findMany({
+    where: {
+      groupId,
+      userId: { not: userId },
+      payoutPosition: { not: null },
+      exitReason: null,
+      user: { closedAt: null },
+    },
+    orderBy: { payoutPosition: "asc" },
+    include: { user: { select: { phone: true } } },
+  });
+  for (const seat of returning) {
+    await inviteToGroup(created.id, userId, seat.user.phone);
+  }
+  await prisma.auditEvent.create({
+    data: { userId, type: "GROUP_NEXT_CYCLE", details: { from: groupId, to: created.id, invited: returning.length } },
+  });
+  return getGroup(created.id, userId);
 }

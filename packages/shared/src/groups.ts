@@ -55,6 +55,10 @@ export type GroupDetail = {
   // the whole fund, across the MFI's groups, which is what can cover a share.
   reserve: { percent: number; balanceFcfa: number; fundFcfa: number; owedFcfa: number; coversOpen: number } | null;
   unreadMessages: number; // D70: chat lines since she last opened the chat
+  // D72: which cycle of this circle of members, and the cycles before and after.
+  cycleNumber: number;
+  previousCycleId: string | null;
+  nextCycleId: string | null; // set once the organiser started the next cycle
 };
 
 // An invitation as the invited person sees it: enough to decide whether to
@@ -85,6 +89,7 @@ export type GroupSummary = {
   mySeatState: SeatState;
   currentRound: CurrentRound | null; // only while the group is running
   unreadMessages: number; // D70: chat messages since she last opened it
+  cycleNumber: number; // D72
 };
 
 // What matters to her this week in a running group: does she still owe her

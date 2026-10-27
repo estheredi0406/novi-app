@@ -589,5 +589,17 @@
     "limit": "Your group already has 5 meetings planned. Wait for one to pass.",
     "notOpen": "The room is not open: it opens 10 minutes before the meeting and closes at the end.",
     "unavailable": "The meeting service did not answer. Try again in a moment."
+  },
+  "cycle": {
+    "number": "Cycle {{number}}",
+    "done": "Cycle {{number}} complete",
+    "doneHint": "Every member received her pot. It counts on each member's savings record (ACEV).",
+    "start": "Start the next cycle",
+    "startHint": "Same name and rules, and an invitation to every member who completed this cycle. You can change the rules before sending them.",
+    "confirmTitle": "Start the next cycle?",
+    "confirmBody": "Cycle {{number}} is created as a draft and the members are invited again. Each one accepts it herself.",
+    "notNow": "Not now",
+    "openNext": "Open cycle {{number}}",
+    "organiserCan": "Your organiser can start the next cycle with the same members."
   }
 }

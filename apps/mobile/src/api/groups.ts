@@ -72,3 +72,6 @@ export const cancelMeeting = (id: string, meetingId: string) =>
   memberRequest<MeetingsPage>("POST", `/v1/groups/${id}/meetings/${meetingId}/cancel`, {});
 export const joinMeeting = (id: string, meetingId: string) =>
   memberRequest<{ url: string }>("POST", `/v1/groups/${id}/meetings/${meetingId}/join`, {});
+
+// D72: the next cycle with the same members.
+export const startNextCycle = (id: string) => memberRequest<GroupDetail>("POST", `/v1/groups/${id}/next-cycle`, {});

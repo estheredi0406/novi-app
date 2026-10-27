@@ -16,6 +16,7 @@ import {
   reviseRules,
   setPayoutOrder,
   startGroup,
+  startNextCycle,
 } from "../services/groupService.js";
 import { hideMessage, listMessages, MAX_LENGTH, postMessage } from "../services/chatService.js";
 import { cancelMeeting, joinMeeting, listMeetings, scheduleMeeting } from "../services/meetingService.js";
@@ -219,4 +220,10 @@ groupsRouter.post("/:id/meetings/:meetingId/cancel", async (req, res) => {
 groupsRouter.post("/:id/meetings/:meetingId/join", async (req, res) => {
   const { id, meetingId } = meetingParams.parse(req.params);
   res.json(await joinMeeting(id, currentMember(res).userId, meetingId));
+});
+
+// D72: the organiser starts the next cycle with the same members.
+groupsRouter.post("/:id/next-cycle", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  res.status(201).json(await startNextCycle(id, currentMember(res).userId));
 });

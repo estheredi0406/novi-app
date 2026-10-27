@@ -5,3 +5,9 @@
 export function pilotCode(code: string | undefined): { pilotCode?: string } {
   return process.env.PILOT_SHOW_CODES === "true" && code ? { pilotCode: code } : {};
 }
+
+// D73: while the USSD channel is Africa's Talking's sandbox, only the test
+// accounts may use it: a real member's PIN is typed only on her own phone.
+export function pilotMode(): boolean {
+  return process.env.PILOT_SHOW_CODES === "true";
+}

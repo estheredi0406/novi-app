@@ -298,9 +298,14 @@ model Group {
   startedAt      DateTime?
   completedAt    DateTime?
   cancelledAt    DateTime?
+  // D72: a new cycle with the same members is a new group, linked to the one before.
+  cycleNumber     Int        @default(1)
+  previousGroupId String?    @unique
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
+  previousCycle Group?         @relation("NextCycle", fields: [previousGroupId], references: [id])
+  nextCycle     Group?         @relation("NextCycle")
   mfi           Mfi            @relation(fields: [mfiId], references: [id])
   organiser     User           @relation("GroupOrganiser", fields: [organiserId], references: [id])
   rulesVersions RulesVersion[]

@@ -10,6 +10,7 @@ import { healthRouter } from "./routes/health.js";
 import { invitationsRouter } from "./routes/invitations.js";
 import { meRouter } from "./routes/me.js";
 import { staffRouter } from "./routes/staff.js";
+import { ussdRouter } from "./routes/ussd.js";
 import { verifyApiRouter, verifyPageRouter } from "./routes/verify.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 
@@ -26,6 +27,8 @@ if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 // Payment webhooks read their raw body to check its signature, so they are
 // mounted before the JSON parser.
 app.use("/v1/webhooks", webhooksRouter);
+// D73: the USSD gateway posts forms, not JSON; this router reads them itself.
+app.use("/v1/ussd", ussdRouter);
 
 // Turns JSON request bodies into objects that routes can read.
 app.use(express.json());

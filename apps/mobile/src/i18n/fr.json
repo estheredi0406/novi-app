@@ -589,5 +589,17 @@
     "limit": "Votre groupe a déjà 5 réunions prévues. Attendez qu'une soit passée.",
     "notOpen": "La salle n'est pas ouverte : elle ouvre 10 minutes avant la réunion et ferme à la fin.",
     "unavailable": "Le service de réunion n'a pas répondu. Réessayez dans un instant."
+  },
+  "cycle": {
+    "number": "Cycle {{number}}",
+    "done": "Cycle {{number}} terminé",
+    "doneHint": "Chaque membre a reçu sa cagnotte. Ce cycle compte sur le relevé d'épargne (ACEV) de chacune.",
+    "start": "Relancer un cycle",
+    "startHint": "Même nom et mêmes règles, et une invitation à chaque membre qui a terminé ce cycle. Vous pouvez modifier les règles avant de les envoyer.",
+    "confirmTitle": "Relancer un cycle ?",
+    "confirmBody": "Le cycle {{number}} est créé en brouillon et les membres sont invitées de nouveau. Chacune l'accepte elle-même.",
+    "notNow": "Pas maintenant",
+    "openNext": "Ouvrir le cycle {{number}}",
+    "organiserCan": "Votre organisatrice peut relancer un cycle avec les mêmes membres."
   }
 }
