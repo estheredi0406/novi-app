@@ -4,11 +4,12 @@ import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { enforce } from "../lib/enforce.js";
 import { AppError } from "../lib/errors.js";
-import { checkAction, checkCanPay, holdsSeat, PAYMENT_WAIT_MS } from "../lib/groupRules.js";
+import { checkAction, checkCanPay, holdsSeat, PAYMENT_WAIT_MS, potShare } from "../lib/groupRules.js";
 import { currentRoundNumber, isoDay } from "../lib/schedule.js";
 import { receiptSms } from "../lib/smsText.js";
 import { payments, sms } from "../providers/index.js";
 import { runPayouts } from "./payoutService.js";
+import { creditReserve } from "./reserveService.js";
 import type { CollectionStatus } from "../providers/payment/PaymentProvider.js";
 
 // Money in (Sprint 3). A payment goes through three stages:
@@ -33,7 +34,12 @@ async function loadForMember(groupId: string, userId: string) {
       memberships: { include: { user: { select: { displayName: true } } }, orderBy: { payoutPosition: "asc" } },
       rounds: {
         orderBy: { number: "asc" },
-        include: { beneficiary: { select: { displayName: true } }, contributions: true, payout: true },
+        include: {
+          beneficiary: { select: { displayName: true } },
+          contributions: true,
+          payout: true,
+          reserveCovers: true,
+        },
       },
     },
   });
@@ -63,12 +69,13 @@ function toSummary(loaded: Loaded, round: LoadedRound, userId: string): RoundSum
     paidCount: paid.length,
     size: loaded.rules.size,
     collectedFcfa: paid.reduce((sum, c) => sum + c.amountFcfa, 0),
-    potFcfa: loaded.rules.amountFcfa * loaded.rules.size,
+    potFcfa: potShare(loaded.rules.amountFcfa) * loaded.rules.size,
     myStatus: mine?.status ?? "UNPAID",
     payoutStatus: round.payout?.status ?? "NOT_DUE",
     paidOutAt: round.payout?.paidAt?.toISOString() ?? null,
     payoutId: round.payout?.id ?? null,
     receipt: round.payout?.receiptConfirmedAt ? "CONFIRMED" : round.payout?.receiptDisputedAt ? "DISPUTED" : null,
+    coveredCount: round.reserveCovers.length,
   };
 }
 
@@ -92,6 +99,8 @@ export async function getRound(groupId: string, userId: string, number: number):
       displayName: seat.user.displayName,
       status: contribution?.status ?? ("UNPAID" as const),
       paidAt: contribution?.paidAt?.toISOString() ?? null,
+      coveredByReserve: round.reserveCovers.some((c) => c.userId === seat.userId),
+      coverRepaid: round.reserveCovers.some((c) => c.userId === seat.userId && c.repaidAt !== null),
     };
   });
   return { ...toSummary(loaded, round, userId), payments };
@@ -152,7 +161,10 @@ export async function payRound(
   const now = new Date();
   enforce(checkCanPay(number, current, existing, now));
 
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { phone: true, displayName: true } });
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { phone: true, displayName: true },
+  });
   const attempt = {
     amountFcfa: rules.amountFcfa,
     operator,
@@ -173,7 +185,10 @@ export async function payRound(
       const claimed = await prisma.contribution.updateMany({
         where: {
           id: existing.id,
-          OR: [{ status: "FAILED" }, { status: "PENDING", requestedAt: { lt: new Date(now.getTime() - PAYMENT_WAIT_MS) } }],
+          OR: [
+            { status: "FAILED" },
+            { status: "PENDING", requestedAt: { lt: new Date(now.getTime() - PAYMENT_WAIT_MS) } },
+          ],
         },
         data: attempt,
       });
@@ -203,12 +218,19 @@ export async function payRound(
     await prisma.contribution.update({ where: { id: contributionId }, data: { providerRef: requested.providerRef } });
   } catch (err) {
     console.error(`Payment provider refused the request for contribution ${contributionId}:`, err);
-    await prisma.contribution.update({ where: { id: contributionId }, data: { status: "FAILED", failedAt: new Date() } });
+    await prisma.contribution.update({
+      where: { id: contributionId },
+      data: { status: "FAILED", failedAt: new Date() },
+    });
     throw new AppError("PAYMENT_UNAVAILABLE", 503);
   }
 
-  await prisma.auditEvent.create({ data: { userId, type: "CONTRIBUTION_REQUESTED", details: { groupId, round: number } } });
-  const view = toView(await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId }, include: { round: true } }));
+  await prisma.auditEvent.create({
+    data: { userId, type: "CONTRIBUTION_REQUESTED", details: { groupId, round: number } },
+  });
+  const view = toView(
+    await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId }, include: { round: true } }),
+  );
   return { ...view, paymentUrl };
 }
 
@@ -264,6 +286,8 @@ async function settle(contributionId: string, answer: CollectionStatus): Promise
         contributionId,
       },
     });
+    // D68: the reserve's share, and the repayment of a cover for this round.
+    await creditReserve(tx, contribution, contribution.round.groupId);
     await tx.auditEvent.create({
       data: {
         userId: contribution.userId,
@@ -330,5 +354,7 @@ export async function checkContribution(contributionId: string, userId: string):
   if (contribution.status !== "PAID" && contribution.providerRef) {
     await settle(contribution.id, await payments.getStatus(contribution.providerRef));
   }
-  return toView(await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId }, include: { round: true } }));
+  return toView(
+    await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId }, include: { round: true } }),
+  );
 }

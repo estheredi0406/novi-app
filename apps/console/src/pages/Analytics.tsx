@@ -32,6 +32,11 @@ export function Analytics({ t, onExpired }: { t: Text; onExpired: () => void }) 
           <span className="tile-hint">{t.potsHint(data.potsDisputed, percent(data.receiptConfirmedRate))}</span>
         </div>
         <div className="tile">
+          <span className="tile-label">{t.fundTitle}</span>
+          <span className="tile-number">{fcfa(data.solidarityFundFcfa)}</span>
+          <span className="tile-hint">{t.fundHint(fcfa(data.coversOpenFcfa))}</span>
+        </div>
+        <div className="tile">
           <span className="tile-label">{t.releaseWait}</span>
           <span className="tile-number">
             {data.medianReleaseHours === null ? "–" : t.hours(data.medianReleaseHours)}

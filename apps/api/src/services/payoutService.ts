@@ -1,11 +1,12 @@
 import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
-import { decidePayout } from "../lib/groupRules.js";
+import { decidePayout, potShare } from "../lib/groupRules.js";
 import { isoDay } from "../lib/schedule.js";
 import { payoutSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import type { PayoutAnswer } from "../providers/mfi/MfiAdapter.js";
+import { coverMissing, returnReserve } from "./reserveService.js";
 
 // Money out (Sprint 4, D63). On a round's due date, a full pot becomes READY;
 // the MFI officer then releases it from the console, and only then does Novi
@@ -41,6 +42,12 @@ export async function runPayouts(now = new Date(), groupId?: string): Promise<vo
   }
 }
 
+// Each member's contribution under the group's current rules.
+async function contributionOf(groupId: string): Promise<number> {
+  const group = await prisma.group.findUniqueOrThrow({ where: { id: groupId }, include: { rulesVersions: true } });
+  return group.rulesVersions.find((v) => v.version === group.currentVersion)?.amountFcfa ?? 0;
+}
+
 type DueRound = Prisma.RoundGetPayload<{
   include: { group: true; payout: true; contributions: true; beneficiary: { select: { phone: true } } };
 }>;
@@ -54,12 +61,25 @@ async function handleRound(round: DueRound, now: Date) {
 
   const paid = round.contributions.filter((c) => c.status === "PAID");
   const members = await prisma.membership.count({ where: { groupId: round.groupId, payoutPosition: { not: null } } });
-  const decision = decidePayout(round.dueDate, now, paid.length, members);
+  let covers = await prisma.reserveCover.findMany({ where: { roundId: round.id } });
+  let decision = decidePayout(round.dueDate, now, paid.length + covers.length, members);
   if (decision === "WAIT") return;
 
-  // The pot is what was actually collected, and goes to her own number, with
-  // the mobile money service she pays with in this group.
-  const amountFcfa = paid.reduce((sum, c) => sum + c.amountFcfa, 0);
+  // D68: payments are missing on the due date; the solidarity reserve pays
+  // the missing shares if it can, and the pot leaves full.
+  if (decision === "HOLD" && (!round.payout || round.payout.status === "HELD")) {
+    const amount = paid[0]?.amountFcfa ?? (await contributionOf(round.groupId));
+    if (await coverMissing(round, amount, now)) {
+      covers = await prisma.reserveCover.findMany({ where: { roundId: round.id } });
+      decision = "SEND";
+    }
+  }
+
+  // The pot is each paid contribution less the reserve's share, plus what the
+  // reserve covered. It goes to her own number, with the mobile money
+  // service she pays with in this group.
+  const amountFcfa =
+    paid.reduce((sum, c) => sum + potShare(c.amountFcfa), 0) + covers.reduce((sum, c) => sum + c.amountFcfa, 0);
   const hers = await prisma.contribution.findFirst({
     where: { userId: round.beneficiaryId, status: "PAID", round: { groupId: round.groupId } },
     orderBy: { paidAt: "desc" },
@@ -230,6 +250,8 @@ async function settlePayout(payoutId: string, mfiRef: string) {
   });
 
   if (done) {
+    // D68: the last pot closed the cycle; what is left in the reserve goes back.
+    await returnReserve(done.round.groupId).catch((err: unknown) => console.error("Reserve return failed:", err));
     const round = await prisma.round.findUniqueOrThrow({
       where: { id: done.roundId },
       include: { group: { include: { mfi: true } }, beneficiary: { select: { language: true } } },

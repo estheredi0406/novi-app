@@ -10,9 +10,11 @@ import type {
 import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
+import { potShare } from "../lib/groupRules.js";
 import { currentRoundNumber, isoDay } from "../lib/schedule.js";
 import { openApprovedGroup } from "./groupService.js";
 import { releasePayout, runPayouts } from "./payoutService.js";
+import { fundBalance, reserveBalance } from "./reserveService.js";
 
 // What an MFI officer sees and does in the console (Sprint 5.2). Every query
 // is limited to the officer's own MFI: another MFI's group is answered with
@@ -25,6 +27,7 @@ const VISIBLE_STATES = ["STARTING", "ACTIVE", "COMPLETED"] as const;
 
 const withRounds = {
   rulesVersions: true,
+  reserveReturns: true,
   rounds: { orderBy: { number: "asc" }, include: { contributions: { where: { status: "PAID" } }, payout: true } },
 } satisfies Prisma.GroupInclude;
 
@@ -34,7 +37,7 @@ function sumPaid(round: LoadedGroup["rounds"][number]) {
   return round.contributions.reduce((total, c) => total + c.amountFcfa, 0);
 }
 
-function rulesOf(group: LoadedGroup) {
+function rulesOf(group: Pick<LoadedGroup, "id" | "currentVersion" | "rulesVersions">) {
   const rules = group.rulesVersions.find((r) => r.version === group.currentVersion);
   if (!rules) throw new Error(`group ${group.id} has no rules version ${group.currentVersion}`);
   return rules;
@@ -49,6 +52,8 @@ function toConsoleGroup(group: LoadedGroup): ConsoleGroup {
     (total, r) => total + (r.payout?.status === "PAID" ? r.payout.amountFcfa : 0),
     0,
   );
+  // D68: the reserve, and what it already gave back at the end of a cycle.
+  const returnedFcfa = group.reserveReturns.reduce((total, r) => total + r.amountFcfa, 0);
   const needsAttention = group.rounds.filter(
     (r) => r.payout?.status === "HELD" || r.payout?.status === "FAILED",
   ).length;
@@ -71,7 +76,8 @@ function toConsoleGroup(group: LoadedGroup): ConsoleGroup {
     rounds: group.rounds.length,
     collectedFcfa,
     paidOutFcfa,
-    balanceFcfa: collectedFcfa - paidOutFcfa,
+    balanceFcfa: collectedFcfa - paidOutFcfa - returnedFcfa,
+    reserveFcfa: 0, // filled in by withReserve (D68)
     needsAttention,
   };
 }
@@ -84,8 +90,13 @@ function myGroups(mfiId: string) {
   });
 }
 
+// D68: each group's solidarity reserve, read from the ledger.
+async function withReserve(group: ConsoleGroup): Promise<ConsoleGroup> {
+  return { ...group, reserveFcfa: await reserveBalance(group.id) };
+}
+
 export async function listConsoleGroups(mfiId: string): Promise<ConsoleGroup[]> {
-  return (await myGroups(mfiId)).map(toConsoleGroup);
+  return Promise.all((await myGroups(mfiId)).map(toConsoleGroup).map(withReserve));
 }
 
 export async function getConsoleGroup(mfiId: string, groupId: string): Promise<ConsoleGroupDetail> {
@@ -99,7 +110,7 @@ export async function getConsoleGroup(mfiId: string, groupId: string): Promise<C
   const roundList: ConsoleRound[] = group.rounds.map((round) => ({
     number: round.number,
     dueDate: isoDay(round.dueDate),
-    expectedFcfa: rules.amountFcfa * rules.size,
+    expectedFcfa: potShare(rules.amountFcfa) * rules.size,
     collectedFcfa: sumPaid(round),
     paymentsReceived: round.contributions.length,
     paymentsExpected: rules.size,
@@ -112,7 +123,7 @@ export async function getConsoleGroup(mfiId: string, groupId: string): Promise<C
       mfiRef: round.payout.mfiRef,
     },
   }));
-  return { ...toConsoleGroup(group), roundList };
+  return { ...(await withReserve(toConsoleGroup(group))), roundList };
 }
 
 // Held and failed payouts at this MFI, oldest first: what needs a look.
@@ -126,6 +137,7 @@ export async function listAttention(mfiId: string): Promise<AttentionItem[]> {
       round: {
         include: {
           contributions: { where: { status: "PAID" } },
+          reserveCovers: true,
           group: { include: { rulesVersions: true } },
         },
       },
@@ -144,8 +156,12 @@ export async function listAttention(mfiId: string): Promise<AttentionItem[]> {
       roundNumber: round.number,
       dueDate: isoDay(round.dueDate),
       status: (payout.status === "PAID" ? "DISPUTED" : payout.status) as AttentionItem["status"],
-      amountFcfa: round.contributions.reduce((total, c) => total + c.amountFcfa, 0),
-      paymentsMissing: Math.max(0, expected - round.contributions.length),
+      // The pot as it will leave: each payment less the reserve's share, plus
+      // what the reserve covered (D68).
+      amountFcfa:
+        round.contributions.reduce((total, c) => total + potShare(c.amountFcfa), 0) +
+        round.reserveCovers.reduce((total, c) => total + c.amountFcfa, 0),
+      paymentsMissing: Math.max(0, expected - round.contributions.length - round.reserveCovers.length),
       since: (payout.heldSince ?? payout.requestedAt ?? payout.createdAt).toISOString(),
       canRetry: payout.status === "FAILED",
       canRelease: payout.status === "READY",
@@ -361,6 +377,14 @@ export async function getAnalytics(mfiId: string, now = new Date(), weeks = 8): 
       ? Math.round((answered.filter((p) => p.receiptConfirmedAt).length / answered.length) * 100)
       : null,
     byGroup,
+    solidarityFundFcfa: await fundBalance(mfiId),
+    coversOpenFcfa:
+      (
+        await prisma.reserveCover.aggregate({
+          where: { repaidAt: null, round: { group: { mfiId } } },
+          _sum: { amountFcfa: true },
+        })
+      )._sum.amountFcfa ?? 0,
     medianReleaseHours: waitHours.length
       ? Math.round(waitHours.sort((a, b) => a - b)[Math.floor(waitHours.length / 2)] as number)
       : null,

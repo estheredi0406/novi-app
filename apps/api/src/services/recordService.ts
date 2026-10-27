@@ -1,5 +1,12 @@
 import { createHash } from "node:crypto";
-import type { ConsoleSharedRecord, Lender, RecordGroup, RecordShareView, RecordVerification, SavingsRecord } from "@novi/shared";
+import type {
+  ConsoleSharedRecord,
+  Lender,
+  RecordGroup,
+  RecordShareView,
+  RecordVerification,
+  SavingsRecord,
+} from "@novi/shared";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { publicKeyPem, signRecord, verifyRecord } from "../lib/recordSigning.js";
@@ -21,7 +28,10 @@ const startOfDay = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.
 // the ledger, which nobody can change (D46); punctuality compares the day she
 // paid with the round's due date.
 export async function buildRecord(userId: string, now = new Date()): Promise<SavingsRecord> {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { legalName: true, idVerifiedAt: true } });
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { legalName: true, idVerifiedAt: true },
+  });
 
   // Groups that started, where she held a seat to the start.
   const seats = await prisma.membership.findMany({
@@ -93,7 +103,13 @@ export async function buildRecord(userId: string, now = new Date()): Promise<Sav
   const ledgerFingerprint = createHash("sha256")
     .update(lines.map((l) => `${l.id}|${l.type}|${l.amountFcfa}|${l.createdAt.toISOString()}`).join("\n"))
     .digest("hex");
-  const potsConfirmed = await prisma.payout.count({ where: { beneficiaryId: userId, receiptConfirmedAt: { not: null } } });
+  const potsConfirmed = await prisma.payout.count({
+    where: { beneficiaryId: userId, receiptConfirmedAt: { not: null } },
+  });
+  const [coveredByReserve, coversRepaid] = await Promise.all([
+    prisma.reserveCover.count({ where: { userId } }),
+    prisma.reserveCover.count({ where: { userId, repaidAt: { not: null } } }),
+  ]);
 
   return {
     legalName: user.legalName,
@@ -114,6 +130,8 @@ export async function buildRecord(userId: string, now = new Date()): Promise<Sav
     identityCheckedBy: "ANID",
     ledgerLines: lines.length,
     ledgerFingerprint,
+    coveredByReserve,
+    coversRepaid,
   };
 }
 
@@ -177,7 +195,11 @@ export async function shareRecord(userId: string, mfiCode?: string): Promise<Rec
 }
 
 export async function listShares(userId: string): Promise<RecordShareView[]> {
-  const shares = await prisma.recordShare.findMany({ where: { userId }, orderBy: { issuedAt: "desc" }, include: withViews });
+  const shares = await prisma.recordShare.findMany({
+    where: { userId },
+    orderBy: { issuedAt: "desc" },
+    include: withViews,
+  });
   return shares.map(toShareView);
 }
 
@@ -197,7 +219,11 @@ type StaffViewer = { staffId: string; mfiId: string };
 // was looked at (D37). The facts are shown only while the share is valid and
 // its signature still matches. A record shared with one MFI shows nothing to
 // anyone else, not even with its code: only "shared with FUCEC-Togo" (D54).
-export async function verifyShare(shareId: string, now = new Date(), viewer?: StaffViewer): Promise<RecordVerification> {
+export async function verifyShare(
+  shareId: string,
+  now = new Date(),
+  viewer?: StaffViewer,
+): Promise<RecordVerification> {
   const share = await prisma.recordShare.findUnique({ where: { id: shareId }, include: { mfi: true } });
   if (!share) throw new AppError("NOT_FOUND", 404);
 

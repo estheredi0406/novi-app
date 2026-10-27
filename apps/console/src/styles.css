@@ -185,7 +185,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; }
 .acev-frame { width: 100%; height: calc(100vh - 180px); min-height: 900px; border: 0; margin-top: 12px; background: #ecEAF3; border-radius: 14px; }
 
 /* Analytics and the officers' log (D67). */
-.tiles-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tiles-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 @media (max-width: 900px) { .tiles-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .chart { margin: 0; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 16px; }
 .chart svg { width: 100%; height: auto; display: block; }

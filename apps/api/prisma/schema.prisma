@@ -99,6 +99,11 @@ enum LedgerEntryType {
   CONTRIBUTION // money in from one member
   PAYOUT       // money out to the member whose turn it is (Sprint 4)
   CORRECTION   // fixes an earlier line, which is never edited (D5)
+  // The group's solidarity reserve (D68):
+  RESERVE_IN     // the reserve's share of one contribution
+  RESERVE_COVER  // the reserve pays a late member's share so the pot leaves full
+  RESERVE_REPAY  // her late payment refills the reserve
+  RESERVE_RETURN // what is left at the end of the cycle, back to a member
 }
 
 // Where one seat is in its life.
@@ -151,6 +156,8 @@ model User {
   reminders       Reminder[]
   contributions   Contribution[]
   ledgerEntries   LedgerEntry[]
+  reserveCovers   ReserveCover[]
+  reserveReturns  ReserveReturn[]
 
   @@map("users")
 }
@@ -284,6 +291,7 @@ model Group {
   invites       Invite[]
   rounds        Round[]
   ledgerEntries LedgerEntry[]
+  reserveReturns ReserveReturn[]
 
   @@index([state])
   @@map("groups")
@@ -376,6 +384,7 @@ model Round {
   ledgerEntries LedgerEntry[]
   payout        Payout?
   reminders     Reminder[]
+  reserveCovers ReserveCover[]
 
   @@unique([groupId, number])
   @@map("rounds")
@@ -589,4 +598,43 @@ model Reminder {
 
   @@unique([roundId, userId, kind])
   @@map("reminders")
+}
+
+// D68: the group's solidarity reserve paid a member's share of one round, so
+// the pot could leave full on its due date. She still owes it: her late
+// payment refills the reserve.
+model ReserveCover {
+  id         String    @id @default(uuid())
+  roundId    String
+  userId     String
+  amountFcfa Int       // her share of the pot: the contribution less the reserve's part
+  coveredAt  DateTime  @default(now())
+  repaidAt   DateTime?
+
+  round Round @relation(fields: [roundId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([roundId, userId])
+  @@map("reserve_covers")
+}
+
+// D68: at the end of the cycle, what is left in the reserve goes back to the
+// members who owe it nothing, through the MFI, to their own number.
+model ReserveReturn {
+  id         String         @id @default(uuid())
+  groupId    String
+  userId     String
+  amountFcfa Int
+  phone      String
+  operator   MobileOperator
+  status     PayoutStatus   // SENDING, then PAID or FAILED, like a pot
+  mfiRef     String?
+  paidAt     DateTime?
+  createdAt  DateTime       @default(now())
+
+  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+  @@map("reserve_returns")
 }

@@ -325,7 +325,11 @@
     "ledgerType": {
       "CONTRIBUTION": "Cotisation",
       "PAYOUT": "Versement",
-      "CORRECTION": "Correction"
+      "CORRECTION": "Correction",
+      "RESERVE_IN": "Part pour la réserve solidaire",
+      "RESERVE_COVER": "Payé par le fonds solidaire",
+      "RESERVE_REPAY": "Remboursement au fonds solidaire",
+      "RESERVE_RETURN": "Réserve rendue en fin de cycle"
     },
     "roundNotOpen": "Ce tour n'est pas encore ouvert. Vous pourrez le payer quand son tour viendra.",
     "alreadyPaid": "Vous avez déjà payé ce tour.",
@@ -485,6 +489,15 @@
     "receiptHint": "{{mfi}} l'a envoyée sur votre mobile money. Dites à votre groupe qu'elle est arrivée.",
     "receiptYes": "Oui, je l'ai reçue",
     "receiptNo": "Non, elle n'est pas arrivée",
-    "disputed": "Non reçue"
+    "disputed": "Non reçue",
+    "reserveTitle": "Réserve solidaire",
+    "reserveText": "{{percent}} % de chaque paiement vont au fonds solidaire de {{mfi}}. Si une membre a un empêchement, le fonds paie sa part et la cagnotte part complète, à l'heure.",
+    "reserveGroup": "Mis par le groupe",
+    "reserveFund": "Fonds de {{mfi}}",
+    "reserveBack": "Ce qui reste vous est rendu en fin de cycle.",
+    "coveredTag": "Couverte par le fonds",
+    "coveredLate": "Payé en retard",
+    "youOweCover": "Le fonds solidaire a payé votre part du tour {{number}} ({{amount}}). Payez dès que possible pour le rembourser.",
+    "payCover": "Rembourser maintenant"
   }
 }

@@ -20,7 +20,8 @@ const mockMfi = mfi;
 const mockPayments = payments;
 const outbox = sms.sent;
 
-// Akossiwa's group of 3: 5 000 FCFA every Friday, so each pot is 15 000 FCFA.
+// Akossiwa's group of 3: 5 000 FCFA every Friday. 2% of each payment goes to
+// the solidarity reserve (D68), so each pot is 3 x 4 900 = 14 700 FCFA.
 const SMALL_GROUP = {
   name: "Pagnes Assigamé",
   amountFcfa: 5000,
@@ -125,12 +126,12 @@ describe("sending a round's pot", () => {
     const round = await roundOne(groupId);
     expect(round.payout).toMatchObject({
       status: "PAID",
-      amountFcfa: 15000,
+      amountFcfa: 14700,
       phone: round.beneficiary.phone,
       operator: "TOGOCEL",
     });
     expect(mockMfi.payouts.get(round.payout?.id as string)).toMatchObject({
-      amountFcfa: 15000,
+      amountFcfa: 14700,
       phone: round.beneficiary.phone,
     });
   });
@@ -144,10 +145,10 @@ describe("sending a round's pot", () => {
 
     const round = await roundOne(groupId);
     const line = await prisma.ledgerEntry.findFirstOrThrow({ where: { groupId, type: "PAYOUT" } });
-    expect(line).toMatchObject({ amountFcfa: 15000, userId: round.beneficiaryId });
+    expect(line).toMatchObject({ amountFcfa: 14700, userId: round.beneficiaryId });
     const message = outbox.at(-1);
     expect(message?.to).toBe(round.beneficiary.phone);
-    expect(message?.text).toContain("15 000 FCFA");
+    expect(message?.text).toContain("14 700 FCFA");
   });
 
   it("sends a pot once only, even when two runs happen at the same moment (D49)", async () => {
@@ -185,7 +186,7 @@ describe("holding a pot that is not full (D48)", () => {
     await runPayouts();
 
     await pay(members.at(2) as Member, groupId, 1); // no job run needed
-    expect((await roundOne(groupId)).payout).toMatchObject({ status: "READY", amountFcfa: 15000 });
+    expect((await roundOne(groupId)).payout).toMatchObject({ status: "READY", amountFcfa: 14700 });
     await release(groupId);
     expect((await roundOne(groupId)).payout?.status).toBe("PAID");
   });
@@ -271,5 +272,89 @@ describe("her answer once the pot arrives (D63)", () => {
     const other = members.find((_, i) => i !== NAMES.indexOf(round.beneficiary.displayName)) as Member;
     const res = await other.post(`/v1/me/payouts/${round.payout?.id}/receipt`, { received: true });
     expect(res.status).toBe(404);
+  });
+});
+
+describe("the solidarity reserve (D68)", () => {
+  // The MFI's fund, as if other groups had already put their 2% in it.
+  async function seedFund(groupId: string, amountFcfa = 20000) {
+    await prisma.ledgerEntry.create({
+      data: { groupId, type: "RESERVE_IN", amountFcfa, note: "test: other groups' shares" },
+    });
+  }
+  const NAMES = ["Akossiwa", "Abla", "Koffi"];
+
+  it("sets 2% of each payment aside, so the pot is 3 x 4 900", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    expect(await prisma.ledgerEntry.count({ where: { groupId, type: "RESERVE_IN" } })).toBe(3);
+    const group = (await (members.at(0) as Member).get(`/v1/groups/${groupId}`)).body;
+    expect(group.reserve).toMatchObject({ percent: 2, balanceFcfa: 300, fundFcfa: 300, owedFcfa: 0 });
+  });
+
+  it("pays a late member's share from the fund, so the pot leaves full on its day", async () => {
+    const { groupId, members } = await activeGroup();
+    await seedFund(groupId);
+    await pay(members.at(0) as Member, groupId, 1);
+    await pay(members.at(1) as Member, groupId, 1);
+    await makeDue(groupId, 1);
+    await runPayouts();
+
+    expect((await roundOne(groupId)).payout).toMatchObject({ status: "READY", amountFcfa: 14700 });
+    const cover = await prisma.reserveCover.findFirstOrThrow({ where: { round: { groupId } } });
+    expect(cover).toMatchObject({ amountFcfa: 4900, repaidAt: null });
+    const round = (await (members.at(0) as Member).get(`/v1/groups/${groupId}/rounds/1`)).body;
+    const koffi = round.payments.find((p: { displayName: string }) => p.displayName === "Koffi");
+    expect(koffi).toMatchObject({ status: "UNPAID", coveredByReserve: true, coverRepaid: false });
+  });
+
+  it("refills the fund when the covered member pays late", async () => {
+    const { groupId, members } = await activeGroup();
+    await seedFund(groupId);
+    await pay(members.at(0) as Member, groupId, 1);
+    await pay(members.at(1) as Member, groupId, 1);
+    await makeDue(groupId, 1);
+    await runPayouts();
+    await pay(members.at(2) as Member, groupId, 1);
+
+    const cover = await prisma.reserveCover.findFirstOrThrow({ where: { round: { groupId } } });
+    expect(cover.repaidAt).not.toBeNull();
+    expect(await prisma.ledgerEntry.count({ where: { groupId, type: "RESERVE_REPAY", amountFcfa: 4900 } })).toBe(1);
+    // The pot was already counted with the cover: her payment is not added to it twice.
+    expect((await roundOne(groupId)).payout?.amountFcfa).toBe(14700);
+  });
+
+  it("gives what is left back at the end of the cycle, through the MFI", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const number of [1, 2, 3]) {
+      for (const member of members) await pay(member, groupId, number);
+      await makeDue(groupId, number);
+      await runPayouts();
+      await release(groupId, number);
+    }
+    const returns = await prisma.reserveReturn.findMany({ where: { groupId } });
+    expect(returns).toHaveLength(3);
+    expect(returns.every((r) => r.amountFcfa === 300 && r.status === "PAID")).toBe(true);
+    const group = (await (members.at(0) as Member).get(`/v1/groups/${groupId}`)).body;
+    expect(group.reserve.balanceFcfa).toBe(0);
+  });
+
+  it("gives nothing back to a member who still owes a covered round", async () => {
+    const { groupId, members } = await activeGroup();
+    await seedFund(groupId, 9800);
+    for (const number of [1, 2, 3]) {
+      const payers = number === 3 ? members.slice(0, 2) : members; // Koffi stops in round 3
+      for (const member of payers) await pay(member, groupId, number);
+      await makeDue(groupId, number);
+      await runPayouts();
+      await release(groupId, number);
+    }
+    const koffi = await prisma.user.findFirstOrThrow({ where: { displayName: "Koffi" } });
+    const returns = await prisma.reserveReturn.findMany({ where: { groupId } });
+    expect(returns.map((r) => r.userId)).not.toContain(koffi.id);
+    expect(returns).toHaveLength(2);
+    const record = (await (members.at(NAMES.indexOf("Koffi")) as Member).get("/v1/me/record")).body;
+    // The fund protected the group, but her record still says she missed it.
+    expect(record).toMatchObject({ coveredByReserve: 1, coversRepaid: 0, missed: 1 });
   });
 });

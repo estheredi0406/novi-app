@@ -13,7 +13,8 @@ import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
 if (!(payments instanceof MockPaymentProvider)) throw new Error("Tests require the mock payment provider.");
 const mockPayments = payments;
 
-// Akossiwa's group of 3: 5 000 FCFA every Friday, so each pot is 15 000 FCFA.
+// Akossiwa's group of 3: 5 000 FCFA every Friday. 2% of each payment goes to
+// the solidarity reserve (D68), so each pot is 3 x 4 900 = 14 700 FCFA.
 const SMALL_GROUP = {
   name: "Pagnes Assigamé",
   amountFcfa: 5000,
@@ -133,7 +134,7 @@ describe("her savings record", () => {
     const receiver = [akossiwa, abla, koffi].at(
       ["Akossiwa", "Abla", "Koffi"].indexOf(round.beneficiary.displayName),
     ) as Member;
-    expect((await receiver.get("/v1/me/record")).body).toMatchObject({ potsReceived: 1, totalReceivedFcfa: 15000 });
+    expect((await receiver.get("/v1/me/record")).body).toMatchObject({ potsReceived: 1, totalReceivedFcfa: 14700 });
   });
 
   it("contains no phone number, no NIU, and nobody else's name", async () => {
@@ -233,7 +234,7 @@ describe("sharing it with a lender (D50)", () => {
     const { abla, groupId } = await activeGroup();
     await pay(abla, groupId, 1);
     const before = (await abla.get("/v1/me/record")).body;
-    expect(before.ledgerLines).toBe(1);
+    expect(before.ledgerLines).toBe(2); // her payment and the reserve's share of it (D68)
     expect(before.ledgerFingerprint).toMatch(/^[0-9a-f]{64}$/);
 
     // Nobody can rewrite a line, not even with direct database access.

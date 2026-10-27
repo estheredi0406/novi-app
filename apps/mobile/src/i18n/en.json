@@ -325,7 +325,11 @@
     "ledgerType": {
       "CONTRIBUTION": "Contribution",
       "PAYOUT": "Payout",
-      "CORRECTION": "Correction"
+      "CORRECTION": "Correction",
+      "RESERVE_IN": "Share for the solidarity reserve",
+      "RESERVE_COVER": "Paid by the solidarity fund",
+      "RESERVE_REPAY": "Repaid to the solidarity fund",
+      "RESERVE_RETURN": "Reserve returned at the end of the cycle"
     },
     "roundNotOpen": "This round is not open yet. You can pay it when its turn comes.",
     "alreadyPaid": "You have already paid this round.",
@@ -485,6 +489,15 @@
     "receiptHint": "{{mfi}} sent it to your mobile money. Tell your group it arrived.",
     "receiptYes": "Yes, I received it",
     "receiptNo": "No, it has not arrived",
-    "disputed": "Not received"
+    "disputed": "Not received",
+    "reserveTitle": "Solidarity reserve",
+    "reserveText": "{{percent}}% of each payment goes to {{mfi}}'s solidarity fund. If a member cannot pay in time, the fund pays her share and the pot leaves full, on time.",
+    "reserveGroup": "Put in by the group",
+    "reserveFund": "{{mfi}}'s fund",
+    "reserveBack": "What is left comes back to you at the end of the cycle.",
+    "coveredTag": "Covered by the fund",
+    "coveredLate": "Paid late",
+    "youOweCover": "The solidarity fund paid your share of round {{number}} ({{amount}}). Pay as soon as you can to repay it.",
+    "payCover": "Repay now"
   }
 }

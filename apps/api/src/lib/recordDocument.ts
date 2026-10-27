@@ -55,6 +55,14 @@ export function renderRecordDocument(check: RecordVerification, meta: DocumentMe
         ["Dont à l'heure / On time", `${r.paidOnTime}`],
         ["En retard / Late", `${r.paidLate}`],
         ["Manqués / Missed", `${r.missed}`],
+        ...(r.coveredByReserve
+          ? ([
+              [
+                "Couverts par le fonds solidaire / Covered by the solidarity fund",
+                `${r.coveredByReserve} (remboursés / repaid : ${r.coversRepaid ?? 0})`,
+              ],
+            ] as [string, string][])
+          : []),
         ["Lignes du registre / Ledger lines", r.ledgerLines !== undefined ? `${r.ledgerLines}` : "n/a"],
       ]
     : [];

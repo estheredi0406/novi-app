@@ -97,8 +97,9 @@ describe("the console's view of groups", () => {
         amountFcfa: 5000,
         size: 3,
         collectedFcfa: 20000, // 3 x 5 000 for round 1, then 5 000 for round 2
-        paidOutFcfa: 15000, // round 1's pot
-        balanceFcfa: 5000,
+        paidOutFcfa: 14700, // round 1's pot, less the reserve's 2% (D68)
+        balanceFcfa: 5300, // 20 000 in, 14 700 out; it holds the 400 FCFA reserve (D68)
+        reserveFcfa: 400,
       }),
     ]);
   });
@@ -111,7 +112,7 @@ describe("the console's view of groups", () => {
     expect(res.status).toBe(200);
     expect(res.body.roundList[0]).toMatchObject({
       number: 1,
-      expectedFcfa: 15000,
+      expectedFcfa: 14700,
       collectedFcfa: 5000,
       paymentsReceived: 1,
       paymentsExpected: 3,
@@ -149,7 +150,7 @@ describe("payouts that need a look (D53)", () => {
         groupId,
         roundNumber: 1,
         status: "HELD",
-        amountFcfa: 10000,
+        amountFcfa: 9800, // two payments less the reserve's 2% (D68)
         paymentsMissing: 1,
         canRetry: false,
         canRelease: false,
@@ -198,7 +199,7 @@ describe("payouts that need a look (D53)", () => {
     await runPayouts();
     const desk = await officer();
     const [ready] = (await desk.get("/v1/console/attention")).body;
-    expect(ready).toMatchObject({ groupId, status: "READY", canRelease: true, receiverTurn: 1, amountFcfa: 15000 });
+    expect(ready).toMatchObject({ groupId, status: "READY", canRelease: true, receiverTurn: 1, amountFcfa: 14700 });
     expect(JSON.stringify(ready)).not.toMatch(/Akossiwa|Abla|Koffi/);
 
     const res = await desk.post(`/v1/console/payouts/${ready.payoutId}/release`);

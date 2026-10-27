@@ -20,6 +20,7 @@ export type ConsoleGroup = {
   paidOutFcfa: number; // every pot sent
   balanceFcfa: number; // what the account should hold: collected minus paid out
   needsAttention: number; // held or failed payouts in this group
+  reserveFcfa: number; // D68: the solidarity reserve inside that balance
 };
 
 export type ConsoleRound = {
@@ -89,6 +90,8 @@ export type ConsoleAnalytics = {
   potsDisputed: number; // receivers who said the money did not arrive (D63)
   receiptConfirmedRate: number | null; // % of answered receipts that confirmed
   medianReleaseHours: number | null; // how long a due pot waited for the officer (D63)
+  solidarityFundFcfa: number; // D68: the MFI's solidarity fund across all its groups
+  coversOpenFcfa: number; // D68: shares the fund paid and members have not repaid yet
   // One line per started group, to compare them. Still no member's name.
   byGroup: {
     groupId: string;

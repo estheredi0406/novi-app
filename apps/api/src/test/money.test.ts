@@ -16,14 +16,27 @@ if (!(payments instanceof MockPaymentProvider) || !(sms instanceof MockSmsProvid
 const mockPayments = payments;
 const outbox = sms.sent;
 
-// Akossiwa's group of 3: 5 000 FCFA every Friday, so each pot is 15 000 FCFA.
-const SMALL_GROUP = { name: "Pagnes Assigamé", amountFcfa: 5000, frequency: "WEEKLY", dueDay: 5, size: 3, payoutOrder: "DRAWN" };
+// Akossiwa's group of 3: 5 000 FCFA every Friday. 2% of each payment goes to
+// the solidarity reserve (D68), so each pot is 3 x 4 900 = 14 700 FCFA.
+const SMALL_GROUP = {
+  name: "Pagnes Assigamé",
+  amountFcfa: 5000,
+  frequency: "WEEKLY",
+  dueDay: 5,
+  size: 3,
+  payoutOrder: "DRAWN",
+};
 
 function as(accessToken: string) {
   const auth = (req: request.Test) => req.set("Authorization", `Bearer ${accessToken}`);
   return {
     get: (path: string) => auth(request(app).get(path)),
-    post: (path: string, body?: object) => auth(request(app).post(path).send(body ?? {})),
+    post: (path: string, body?: object) =>
+      auth(
+        request(app)
+          .post(path)
+          .send(body ?? {}),
+      ),
   };
 }
 
@@ -55,7 +68,11 @@ async function activeGroup() {
 
 // The webhook the provider would send once she has confirmed on her phone.
 function webhook(body: string, signature: string) {
-  return request(app).post("/v1/webhooks/payments").set("X-FEDAPAY-SIGNATURE", signature).set("Content-Type", "application/json").send(body);
+  return request(app)
+    .post("/v1/webhooks/payments")
+    .set("X-FEDAPAY-SIGNATURE", signature)
+    .set("Content-Type", "application/json")
+    .send(body);
 }
 
 async function payAndConfirm(member: ReturnType<typeof as>, groupId: string, round = 1) {
@@ -88,7 +105,7 @@ describe("the calendar of rounds", () => {
       isoDay(new Date(first.getTime() + week)),
       isoDay(new Date(first.getTime() + 2 * week)),
     ]);
-    expect(rounds[0]).toMatchObject({ isCurrent: true, potFcfa: 15000, collectedFcfa: 0, myStatus: "UNPAID" });
+    expect(rounds[0]).toMatchObject({ isCurrent: true, potFcfa: 14700, collectedFcfa: 0, myStatus: "UNPAID" });
   });
 });
 
@@ -98,7 +115,13 @@ describe("paying a contribution", () => {
     const res = await abla.post(`/v1/groups/${groupId}/rounds/1/pay`, { operator: "TOGOCEL" });
 
     expect(res.status).toBe(202);
-    expect(res.body).toMatchObject({ roundNumber: 1, amountFcfa: 5000, operator: "TOGOCEL", status: "PENDING", receiptRef: null });
+    expect(res.body).toMatchObject({
+      roundNumber: 1,
+      amountFcfa: 5000,
+      operator: "TOGOCEL",
+      status: "PENDING",
+      receiptRef: null,
+    });
     const sent = [...mockPayments.transactions.values()].at(-1);
     expect(sent).toMatchObject({ amountFcfa: 5000, phone: "+22890000002", operator: "TOGOCEL" });
   });
@@ -110,7 +133,13 @@ describe("paying a contribution", () => {
     const round = (await abla.get(`/v1/groups/${groupId}/rounds/1`)).body;
     expect(round).toMatchObject({ paidCount: 1, collectedFcfa: 5000, myStatus: "PAID" });
     const ledger = await prisma.ledgerEntry.findMany({ where: { groupId } });
-    expect(ledger).toEqual([expect.objectContaining({ type: "CONTRIBUTION", amountFcfa: 5000, userId: ids.abla })]);
+    expect(ledger).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "CONTRIBUTION", amountFcfa: 5000, userId: ids.abla }),
+        expect.objectContaining({ type: "RESERVE_IN", amountFcfa: 100, userId: ids.abla }), // D68
+      ]),
+    );
+    expect(ledger).toHaveLength(2);
 
     const receipt = outbox.at(-1);
     expect(receipt?.to).toBe("+22890000002");
@@ -127,7 +156,8 @@ describe("paying a contribution", () => {
     await webhook(delivery.body, delivery.signature);
     await abla.post(`/v1/contributions/${contributionId}/check`);
 
-    expect(await prisma.ledgerEntry.count({ where: { groupId } })).toBe(1);
+    expect(await prisma.ledgerEntry.count({ where: { groupId, type: "CONTRIBUTION" } })).toBe(1);
+    expect(await prisma.ledgerEntry.count({ where: { groupId, type: "RESERVE_IN" } })).toBe(1);
   });
 
   it("refuses a webhook with a wrong signature and credits nothing", async () => {
@@ -137,7 +167,10 @@ describe("paying a contribution", () => {
     const delivery = mockPayments.settle(contribution.providerRef as string, "PAID");
 
     // Flips the first character of the signature, so the forged one always differs.
-    const forgedSignature = delivery.signature.replace(/s=(.)/, (_m, first: string) => `s=${first === "0" ? "1" : "0"}`);
+    const forgedSignature = delivery.signature.replace(
+      /s=(.)/,
+      (_m, first: string) => `s=${first === "0" ? "1" : "0"}`,
+    );
     const forged = await webhook(delivery.body, forgedSignature);
     expect(forged.status).toBe(400);
     expect(forged.body.error.code).toBe("WEBHOOK_INVALID");
@@ -235,7 +268,7 @@ describe("what each person sees", () => {
     expect(before.currentRound).toMatchObject({
       number: 1,
       myStatus: "UNPAID",
-      potFcfa: 15000,
+      potFcfa: 14700,
       isMyTurn: round1.beneficiaryId === ids.abla,
     });
 
@@ -273,7 +306,8 @@ describe("what each person sees", () => {
     await payAndConfirm(abla, groupId);
 
     const round = (await koffi.get(`/v1/groups/${groupId}/rounds/1`)).body;
-    const statusOf = (name: string) => round.payments.find((p: { displayName: string }) => p.displayName === name)?.status;
+    const statusOf = (name: string) =>
+      round.payments.find((p: { displayName: string }) => p.displayName === name)?.status;
     expect(statusOf("Abla")).toBe("PAID");
     expect(statusOf("Koffi")).toBe("UNPAID");
     expect(round.myStatus).toBe("UNPAID");
@@ -285,8 +319,9 @@ describe("what each person sees", () => {
     await payAndConfirm(koffi, groupId);
 
     const ledger = (await abla.get(`/v1/groups/${groupId}/ledger`)).body;
-    expect(ledger.map((line: { memberName: string }) => line.memberName)).toEqual(["Koffi", "Abla"]);
-    expect(ledger[0]).toMatchObject({ type: "CONTRIBUTION", amountFcfa: 5000, roundNumber: 1 });
+    const payments = ledger.filter((line: { type: string }) => line.type === "CONTRIBUTION");
+    expect(payments.map((line: { memberName: string }) => line.memberName)).toEqual(["Koffi", "Abla"]);
+    expect(payments[0]).toMatchObject({ type: "CONTRIBUTION", amountFcfa: 5000, roundNumber: 1 });
   });
 });
 
@@ -294,7 +329,7 @@ describe("the ledger is append-only (D5)", () => {
   it("is refused by the database itself if anything tries to change or delete a line", async () => {
     const { abla, groupId } = await activeGroup();
     await payAndConfirm(abla, groupId);
-    const line = await prisma.ledgerEntry.findFirstOrThrow({ where: { groupId } });
+    const line = await prisma.ledgerEntry.findFirstOrThrow({ where: { groupId, type: "CONTRIBUTION" } });
 
     await expect(prisma.ledgerEntry.update({ where: { id: line.id }, data: { amountFcfa: 50000 } })).rejects.toThrow();
     await expect(prisma.ledgerEntry.delete({ where: { id: line.id } })).rejects.toThrow();

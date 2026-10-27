@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Ellipse } from "react-native-svg";
+import { Cowrie } from "./art/Cowrie";
 import { answerReceipt, getRound } from "../api/money";
 import { daysUntil, formatDay, formatFcfa } from "../lib/format";
 import { colors } from "../theme/colors";
@@ -56,8 +57,28 @@ export function GroupRoundView({
     }
   }
 
+  // D68: a round the fund paid for her, which she has not repaid yet.
+  // The fund pays every missing share of a round at once, so a covered round
+  // she has not paid is hers.
+  const myCover = rounds.find((r) => r.coveredCount > 0 && r.myStatus !== "PAID" && r.myStatus !== "PENDING");
+
   return (
     <View style={styles.wrap}>
+      {myCover ? (
+        <View style={styles.cardWrap}>
+          <View style={styles.cardShadow} />
+          <View style={[styles.card, styles.coverCard]}>
+            <Text style={styles.cardTitle}>
+              {t("groupView.youOweCover", {
+                number: myCover.number,
+                amount: formatFcfa(myCover.potFcfa / group.rules.size),
+              })}
+            </Text>
+            <PrimaryButton label={t("groupView.payCover")} onPress={() => openRound(myCover.number)} />
+          </View>
+        </View>
+      ) : null}
+
       {toConfirm ? (
         <View style={styles.cardWrap}>
           <View style={styles.cardShadow} />
@@ -93,28 +114,67 @@ export function GroupRoundView({
             {detail.payments.map((p, i) => {
               const paid = p.status === "PAID";
               const me = p.memberId === memberId;
+              const covered = p.coveredByReserve && !paid;
               return (
                 <View key={p.memberId} style={[styles.payRow, i < detail.payments.length - 1 && styles.line]}>
                   <Coins filled={paid} />
                   <View style={styles.payText}>
                     <Text style={styles.payName}>{me ? t("groupView.you") : p.displayName}</Text>
                     <Text style={styles.paySub}>
-                      {paid && p.paidAt ? t("groupView.paidAt", { date: formatDay(p.paidAt) }) : t("groupView.notYet")}
+                      {paid && p.paidAt
+                        ? p.coveredByReserve
+                          ? t("groupView.coveredLate")
+                          : t("groupView.paidAt", { date: formatDay(p.paidAt) })
+                        : covered
+                          ? t("groupView.coveredTag")
+                          : t("groupView.notYet")}
                     </Text>
                   </View>
-                  <Text style={[styles.tag, paid ? styles.tagPaid : me ? styles.tagMine : null]}>
-                    {paid
-                      ? t("groupView.paid")
-                      : p.status === "PENDING"
-                        ? t("groupView.onItsWay")
-                        : me
-                          ? t("groupView.toPay")
-                          : t("groupView.waiting")}
+                  <Text
+                    style={[
+                      styles.tag,
+                      paid ? styles.tagPaid : covered ? styles.tagCovered : me ? styles.tagMine : null,
+                    ]}
+                  >
+                    {covered
+                      ? t("groupView.coveredTag")
+                      : paid
+                        ? t("groupView.paid")
+                        : p.status === "PENDING"
+                          ? t("groupView.onItsWay")
+                          : me
+                            ? t("groupView.toPay")
+                            : t("groupView.waiting")}
                   </Text>
                 </View>
               );
             })}
           </View>
+        </View>
+      ) : null}
+
+      {group.reserve ? (
+        <View style={styles.reserve}>
+          <View style={styles.inline}>
+            <Svg width={30} height={20} viewBox="0 0 30 20">
+              <Cowrie cx={15} cy={10} rx={6.5} ry={12} rotate={90} strokeWidth={1.2} />
+            </Svg>
+            <Text style={styles.reserveTitle}>{t("groupView.reserveTitle")}</Text>
+          </View>
+          <Text style={styles.reserveText}>
+            {t("groupView.reserveText", { percent: group.reserve.percent, mfi: group.mfiName })}
+          </Text>
+          <View style={styles.reserveRow}>
+            <View style={styles.reserveCell}>
+              <Text style={styles.reserveLabel}>{t("groupView.reserveGroup")}</Text>
+              <Text style={styles.reserveValue}>{formatFcfa(Math.max(0, group.reserve.balanceFcfa))}</Text>
+            </View>
+            <View style={styles.reserveCell}>
+              <Text style={styles.reserveLabel}>{t("groupView.reserveFund", { mfi: group.mfiName })}</Text>
+              <Text style={styles.reserveValue}>{formatFcfa(group.reserve.fundFcfa)}</Text>
+            </View>
+          </View>
+          <Text style={styles.reserveText}>{t("groupView.reserveBack")}</Text>
         </View>
       ) : null}
 
@@ -281,6 +341,22 @@ const styles = StyleSheet.create({
   tag: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.muted },
   tagPaid: { fontFamily: fonts.bodyBold, color: colors.paid },
   tagMine: { fontFamily: fonts.bodyBold, color: colors.accent },
+  tagCovered: { fontFamily: fonts.bodyBold, color: colors.teal },
+  coverCard: { backgroundColor: colors.mist },
+  reserve: {
+    gap: 8,
+    padding: 16,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: colors.indigo,
+    backgroundColor: colors.card,
+  },
+  reserveTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.indigo },
+  reserveText: { fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.muted },
+  reserveRow: { flexDirection: "row", gap: 10 },
+  reserveCell: { flex: 1, padding: 10, borderRadius: 14, backgroundColor: colors.shell, gap: 2 },
+  reserveLabel: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.muted },
+  reserveValue: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.indigo },
   medals: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   medal: {
     flexBasis: "30%",

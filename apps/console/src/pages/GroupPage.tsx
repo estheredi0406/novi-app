@@ -38,6 +38,10 @@ export function GroupPage({ t, groupId, onExpired }: { t: Text; groupId: string;
             <dt>{t.balance}</dt>
             <dd className="strong">{fcfa(data.balanceFcfa)}</dd>
           </div>
+          <div>
+            <dt>{t.reserveLabel}</dt>
+            <dd>{fcfa(data.reserveFcfa)}</dd>
+          </div>
         </dl>
       </div>
 
@@ -49,7 +53,10 @@ export function GroupPage({ t, groupId, onExpired }: { t: Text; groupId: string;
           return (
             <div key={round.number} className={`pot ${current ? "pot-current" : ""}`}>
               <div className="jar" role="img" aria-label={`${fcfa(round.collectedFcfa)} / ${fcfa(round.expectedFcfa)}`}>
-                <div className={`jar-fill jar-${status.toLowerCase()}`} style={{ height: `${Math.round(fill * 100)}%` }} />
+                <div
+                  className={`jar-fill jar-${status.toLowerCase()}`}
+                  style={{ height: `${Math.round(fill * 100)}%` }}
+                />
               </div>
               <strong>
                 {t.round} {round.number}

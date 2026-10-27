@@ -17,12 +17,15 @@ import {
   type GroupAction,
   holdsSeat,
   type Seat,
+  potShare,
+  RESERVE_PERCENT,
 } from "../lib/groupRules.js";
 import { drawOrder } from "../lib/payoutOrder.js";
 import { currentRoundNumber, dueDates, isoDay } from "../lib/schedule.js";
 import { onTimeStreak } from "../lib/streak.js";
 import { inviteSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
+import { reserveSummary } from "./reserveService.js";
 
 // The demo works with one partner MFI (brief, section 3). It is created the
 // first time a group needs it; with several MFIs, the organiser will choose.
@@ -117,6 +120,7 @@ function toDetail(group: LoadedGroup, userId: string): GroupDetail {
     })),
     pendingInvites: group.invites.map((invite) => ({ id: invite.id, maskedPhone: maskPhone(invite.phone) })),
     myRole: isOrganiser ? "ORGANISER" : "MEMBER",
+    reserve: null, // filled in by getGroup once the group has started (D68)
   };
 }
 
@@ -130,7 +134,9 @@ function placesTaken(group: Pick<LoadedGroup, "memberships" | "invites">): Seat[
 
 export async function getGroup(groupId: string, userId: string): Promise<GroupDetail> {
   const { group } = await loadForMember(groupId, userId);
-  return toDetail(group, userId);
+  const detail = toDetail(group, userId);
+  if (group.state !== "ACTIVE" && group.state !== "COMPLETED") return detail;
+  return { ...detail, reserve: { percent: RESERVE_PERCENT, ...(await reserveSummary(group.id, group.mfiId)) } };
 }
 
 // Her groups, newest first: every group where she holds a seat.
@@ -199,7 +205,7 @@ async function currentRoundFor(
     dueDate: isoDay(round.dueDate),
     myStatus: round.contributions.at(0)?.status ?? "UNPAID",
     isMyTurn: round.beneficiaryId === userId,
-    potFcfa: rules.amountFcfa * rules.size,
+    potFcfa: potShare(rules.amountFcfa) * rules.size,
     paidCount,
     // Where her own pot is comes from its payout, never from the date alone:
     // a round whose day has passed may still be held (D48).

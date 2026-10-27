@@ -35,6 +35,9 @@ export type SavingsRecord = {
   // SHA-256 of those lines, in order: any later change to one of them no
   // longer matches this fingerprint (D65).
   ledgerFingerprint?: string;
+  // D68: rounds the group's reserve paid for her, and how many she repaid.
+  coveredByReserve?: number;
+  coversRepaid?: number;
 };
 
 // An institution she can share her record with by name (D54).

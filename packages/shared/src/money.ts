@@ -40,6 +40,7 @@ export type RoundSummary = {
   payoutId: string | null;
   // D63: her answer once the pot reached her: received, or not received.
   receipt: "CONFIRMED" | "DISPUTED" | null;
+  coveredCount: number; // D68: members whose share the reserve paid this round
 };
 
 // One member's payment in a round. Every member of the group sees every
@@ -49,6 +50,8 @@ export type RoundPayment = {
   displayName: string;
   status: ContributionStatus | "UNPAID";
   paidAt: string | null;
+  coveredByReserve: boolean; // D68: the reserve paid her share of this pot; she still owes it unless repaid
+  coverRepaid: boolean;
 };
 
 export type RoundDetail = RoundSummary & { payments: RoundPayment[] };
@@ -56,7 +59,7 @@ export type RoundDetail = RoundSummary & { payments: RoundPayment[] };
 // One line of the group's ledger, which is never edited (D5).
 export type LedgerLine = {
   id: string;
-  type: "CONTRIBUTION" | "PAYOUT" | "CORRECTION";
+  type: "CONTRIBUTION" | "PAYOUT" | "CORRECTION" | "RESERVE_IN" | "RESERVE_COVER" | "RESERVE_REPAY" | "RESERVE_RETURN";
   amountFcfa: number;
   roundNumber: number | null;
   memberName: string | null;

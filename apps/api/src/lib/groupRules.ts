@@ -196,6 +196,22 @@ export function checkCanPay(
   return allowed;
 }
 
+// ---------- The solidarity reserve (D68) ----------
+
+// The share of each contribution set aside in the group's reserve, in percent.
+export const RESERVE_PERCENT = 2;
+
+// Whole FCFA, rounded down: 100 FCFA of a 5 000 FCFA contribution.
+export function reserveShare(amountFcfa: number): number {
+  return Math.floor((amountFcfa * RESERVE_PERCENT) / 100);
+}
+
+// What one member's contribution brings to the pot once the reserve's share
+// is set aside. A full pot is this times the number of members.
+export function potShare(amountFcfa: number): number {
+  return amountFcfa - reserveShare(amountFcfa);
+}
+
 // ---------- Paying out (Sprint 4) ----------
 
 export type PayoutDecision = "WAIT" | "HOLD" | "SEND";

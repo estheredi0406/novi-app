@@ -49,6 +49,10 @@ export type GroupDetail = {
   seats: GroupSeat[];
   pendingInvites: PendingInvite[];
   myRole: MemberRole;
+  // D68: the group's solidarity reserve, once it has started.
+  // balanceFcfa: what the group has in the MFI's solidarity fund; fundFcfa:
+  // the whole fund, across the MFI's groups, which is what can cover a share.
+  reserve: { percent: number; balanceFcfa: number; fundFcfa: number; owedFcfa: number; coversOpen: number } | null;
 };
 
 // An invitation as the invited person sees it: enough to decide whether to
