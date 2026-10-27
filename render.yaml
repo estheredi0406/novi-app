@@ -45,3 +45,7 @@ services:
       # a mock. Remove this once a real SMS provider is connected.
       - key: PILOT_SHOW_CODES
         value: "true"
+      # D66: FUCEC's officer validates each group in the console before its
+      # account opens.
+      - key: MFI_GROUP_APPROVAL
+        value: "true"

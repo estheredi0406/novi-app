@@ -259,7 +259,7 @@
     "startMessage": "You are starting with {{names}}. Do you know each of them in person? Members pay for each other's turns. After this, the order is fixed, the MFI opens the account, and nobody can leave or change the rules.",
     "startReady": "Everyone is in. Ready to start.",
     "startHint": "Starts when every place is taken and accepted.",
-    "starting": "{{mfi}} is opening the group's account. The order of turns is kept.",
+    "starting": "{{mfi}} is checking the group, then opens its account. You will be told as soon as the first round starts. The order of turns is kept.",
     "youAccepted": "You accepted version {{version}} of the rules.",
     "editRules": "Change the rules",
     "cancel": "Cancel the group",

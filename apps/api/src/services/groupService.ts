@@ -140,23 +140,25 @@ export async function listMyGroups(userId: string): Promise<GroupSummary[]> {
     orderBy: { createdAt: "desc" },
     include: { group: { include: detailQuery } },
   });
-  return Promise.all(seats.map(async ({ group, state }) => {
-    const detail = toDetail(group, userId);
-    return {
-      id: detail.id,
-      name: detail.name,
-      state: detail.state,
-      mfiName: detail.mfiName,
-      amountFcfa: detail.rules.amountFcfa,
-      frequency: detail.rules.frequency,
-      dueDay: detail.rules.dueDay,
-      size: detail.rules.size,
-      seatsHeld: detail.seats.length,
-      myRole: detail.myRole,
-      mySeatState: state,
-      currentRound: group.state === "ACTIVE" ? await currentRoundFor(group.id, userId, detail.rules) : null,
-    };
-  }));
+  return Promise.all(
+    seats.map(async ({ group, state }) => {
+      const detail = toDetail(group, userId);
+      return {
+        id: detail.id,
+        name: detail.name,
+        state: detail.state,
+        mfiName: detail.mfiName,
+        amountFcfa: detail.rules.amountFcfa,
+        frequency: detail.rules.frequency,
+        dueDay: detail.rules.dueDay,
+        size: detail.rules.size,
+        seatsHeld: detail.seats.length,
+        myRole: detail.myRole,
+        mySeatState: state,
+        currentRound: group.state === "ACTIVE" ? await currentRoundFor(group.id, userId, detail.rules) : null,
+      };
+    }),
+  );
 }
 
 // The round open for payment today in a running group, seen from her side:
@@ -172,7 +174,12 @@ async function currentRoundFor(
     include: { contributions: { where: { userId } }, payout: { select: { status: true } } },
   });
   const now = new Date();
-  const round = rounds.at(currentRoundNumber(rounds.map((r) => r.dueDate), now) - 1);
+  const round = rounds.at(
+    currentRoundNumber(
+      rounds.map((r) => r.dueDate),
+      now,
+    ) - 1,
+  );
   if (!round) return null;
 
   const mine = rounds.find((r) => r.beneficiaryId === userId);
@@ -229,7 +236,14 @@ export async function createGroup(userId: string, input: { name: string } & Rule
     });
     await tx.rulesVersion.create({ data: { groupId: group.id, version: 1, proposedById: userId, ...rules } });
     await tx.membership.create({
-      data: { groupId: group.id, userId, role: "ORGANISER", state: "ACCEPTED", acceptedVersion: 1, respondedAt: new Date() },
+      data: {
+        groupId: group.id,
+        userId,
+        role: "ORGANISER",
+        state: "ACCEPTED",
+        acceptedVersion: 1,
+        respondedAt: new Date(),
+      },
     });
     await tx.auditEvent.create({ data: { userId, type: "GROUP_CREATED", details: { groupId: group.id } } });
     return group.id;
@@ -324,7 +338,10 @@ export async function inviteToGroup(groupId: string, userId: string, phone: stri
     throw new AppError("ALREADY_INVITED", 409);
   }
 
-  const organiser = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { displayName: true, language: true } });
+  const organiser = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { displayName: true, language: true },
+  });
   await prisma.$transaction(async (tx) => {
     // An earlier invitation to this number that was withdrawn or answered is reused.
     await tx.invite.upsert({
@@ -420,7 +437,13 @@ type Answer = {
 // Records her answer. Her seat is created from the invitation the first time
 // she answers (D38), and the invitation is marked as used, so it no longer
 // holds a place of its own.
-async function recordAnswer(groupId: string, userId: string, inviteId: string | undefined, invitedById: string | undefined, answer: Answer) {
+async function recordAnswer(
+  groupId: string,
+  userId: string,
+  inviteId: string | undefined,
+  invitedById: string | undefined,
+  answer: Answer,
+) {
   const { audit, ...seat } = answer;
   await prisma.$transaction(async (tx) => {
     await tx.membership.upsert({
@@ -429,7 +452,9 @@ async function recordAnswer(groupId: string, userId: string, inviteId: string | 
       update: { ...seat, respondedAt: new Date() },
     });
     if (inviteId) await tx.invite.update({ where: { id: inviteId }, data: { answeredAt: new Date() } });
-    await tx.auditEvent.create({ data: { userId, type: audit, details: { groupId, version: answer.acceptedVersion } } });
+    await tx.auditEvent.create({
+      data: { userId, type: audit, details: { groupId, version: answer.acceptedVersion } },
+    });
   });
 }
 
@@ -454,7 +479,12 @@ export async function acceptRules(groupId: string, userId: string, versionSeen: 
 // suits me better, the market is closed on Friday"). Her place is kept, but
 // the group cannot start until the organiser changes the rules and she
 // accepts the new version, or her seat is removed.
-export async function counterRules(groupId: string, userId: string, versionSeen: number, note: string): Promise<GroupDetail> {
+export async function counterRules(
+  groupId: string,
+  userId: string,
+  versionSeen: number,
+  note: string,
+): Promise<GroupDetail> {
   const { group, invite, isOrganiser } = await loadForAnswer(groupId, userId);
   enforce(checkAction("RESPOND", group.state, isOrganiser));
   enforce(checkAnswersCurrentRules(versionSeen, group.currentVersion));
@@ -530,8 +560,22 @@ async function hasCompletedCycle(userId: string): Promise<boolean> {
 export async function startGroup(groupId: string, userId: string): Promise<GroupDetail> {
   const { group } = await authorise(groupId, userId, "START");
   if (group.state === "PROPOSED") await fixOrder(group, userId);
-  await openAccount(groupId, userId);
+  // D66: when the MFI validates groups itself, the group waits in STARTING
+  // until an officer approves it in the console; only then is the account
+  // opened. Otherwise Novi asks the MFI straight away.
+  if (!mfiValidatesGroups()) await openAccount(groupId, userId);
   return getGroup(groupId, userId);
+}
+
+// D66: set per deployment while there is one partner MFI.
+export function mfiValidatesGroups(): boolean {
+  return process.env.MFI_GROUP_APPROVAL === "true";
+}
+
+// D66: an officer approved the group; the MFI opens its account and the
+// calendar starts. Refused unless the group is waiting in STARTING.
+export async function openApprovedGroup(groupId: string): Promise<void> {
+  await openAccount(groupId, null);
 }
 
 async function fixOrder(group: LoadedGroup, userId: string) {
@@ -547,7 +591,10 @@ async function fixOrder(group: LoadedGroup, userId: string) {
   await prisma.$transaction(async (tx) => {
     // Only a group still PROPOSED moves on, so two taps on "Start" at the
     // same moment cannot draw two orders.
-    const moved = await tx.group.updateMany({ where: { id: group.id, state: "PROPOSED" }, data: { state: "STARTING" } });
+    const moved = await tx.group.updateMany({
+      where: { id: group.id, state: "PROPOSED" },
+      data: { state: "STARTING" },
+    });
     if (moved.count === 0) throw new AppError("NOT_ALLOWED_NOW", 409);
     for (const [index, memberId] of order.entries()) {
       await tx.membership.update({
@@ -567,7 +614,7 @@ async function fixOrder(group: LoadedGroup, userId: string) {
 
 // Asks the MFI to open the account. The MFI is told group totals only: no
 // names, no phone numbers (D33).
-async function openAccount(groupId: string, userId: string) {
+async function openAccount(groupId: string, userId: string | null) {
   const group = await prisma.group.findUniqueOrThrow({ where: { id: groupId }, include: { rulesVersions: true } });
   const rules = currentRules(group);
 
@@ -619,4 +666,4 @@ async function createRounds(
       beneficiaryId: seat.userId,
     })),
   });
-} 
+}

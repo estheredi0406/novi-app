@@ -14,14 +14,26 @@ if (!(payments instanceof MockPaymentProvider)) throw new Error("Tests require t
 const mockPayments = payments;
 
 // Akossiwa's group of 3: 5 000 FCFA every Friday, so each pot is 15 000 FCFA.
-const SMALL_GROUP = { name: "Pagnes Assigamé", amountFcfa: 5000, frequency: "WEEKLY", dueDay: 5, size: 3, payoutOrder: "DRAWN" };
+const SMALL_GROUP = {
+  name: "Pagnes Assigamé",
+  amountFcfa: 5000,
+  frequency: "WEEKLY",
+  dueDay: 5,
+  size: 3,
+  payoutOrder: "DRAWN",
+};
 const LONG_AGO = new Date("2026-01-02T00:00:00Z");
 
 function as(accessToken: string) {
   const auth = (req: request.Test) => req.set("Authorization", `Bearer ${accessToken}`);
   return {
     get: (path: string) => auth(request(app).get(path)),
-    post: (path: string, body?: object) => auth(request(app).post(path).send(body ?? {})),
+    post: (path: string, body?: object) =>
+      auth(
+        request(app)
+          .post(path)
+          .send(body ?? {}),
+      ),
   };
 }
 
@@ -84,7 +96,13 @@ describe("her savings record", () => {
     await pay(abla, groupId, 1);
 
     const record = (await abla.get("/v1/me/record")).body;
-    expect(record).toMatchObject({ groupsJoined: 1, paymentsMade: 1, paidOnTime: 1, paidLate: 0, totalSavedFcfa: 5000 });
+    expect(record).toMatchObject({
+      groupsJoined: 1,
+      paymentsMade: 1,
+      paidOnTime: 1,
+      paidLate: 0,
+      totalSavedFcfa: 5000,
+    });
     expect(record.groups).toEqual([
       expect.objectContaining({ name: "Pagnes Assigamé", mfiName: "FUCEC-Togo", amountFcfa: 5000, paid: 1, onTime: 1 }),
     ]);
@@ -108,8 +126,13 @@ describe("her savings record", () => {
     const ready = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 1 } } });
     await releasePayout(ready.id, null); // the officer's release (D63)
 
-    const round = await prisma.round.findFirstOrThrow({ where: { groupId, number: 1 }, include: { beneficiary: true } });
-    const receiver = [akossiwa, abla, koffi].at(["Akossiwa", "Abla", "Koffi"].indexOf(round.beneficiary.displayName)) as Member;
+    const round = await prisma.round.findFirstOrThrow({
+      where: { groupId, number: 1 },
+      include: { beneficiary: true },
+    });
+    const receiver = [akossiwa, abla, koffi].at(
+      ["Akossiwa", "Abla", "Koffi"].indexOf(round.beneficiary.displayName),
+    ) as Member;
     expect((await receiver.get("/v1/me/record")).body).toMatchObject({ potsReceived: 1, totalReceivedFcfa: 15000 });
   });
 
@@ -162,7 +185,10 @@ describe("sharing it with a lender (D50)", () => {
     const { abla } = await activeGroup();
     const withdrawn = (await abla.post("/v1/me/record/shares")).body;
     await abla.post(`/v1/me/record/shares/${withdrawn.id}/revoke`);
-    expect((await request(app).get(`/v1/verify/${withdrawn.id}`)).body).toMatchObject({ status: "REVOKED", record: null });
+    expect((await request(app).get(`/v1/verify/${withdrawn.id}`)).body).toMatchObject({
+      status: "REVOKED",
+      record: null,
+    });
 
     const old = (await abla.post("/v1/me/record/shares")).body;
     await prisma.recordShare.update({ where: { id: old.id }, data: { expiresAt: LONG_AGO } });
@@ -187,15 +213,33 @@ describe("sharing it with a lender (D50)", () => {
 
   it("serves a page a loan officer can open on any phone, with every value escaped", async () => {
     const { abla } = await activeGroup();
-    await prisma.user.updateMany({ where: { displayName: "Abla" }, data: { legalName: "Abla <script>alert(1)</script>" } });
+    await prisma.user.updateMany({
+      where: { displayName: "Abla" },
+      data: { legalName: "Abla <script>alert(1)</script>" },
+    });
     const share = (await abla.post("/v1/me/record/shares")).body;
 
     const page = await request(app).get(`/verify/${share.id}`);
     expect(page.status).toBe(200);
     expect(page.headers["content-type"]).toContain("text/html");
-    expect(page.text).toContain("Relevé authentique et valide");
+    expect(page.text).toContain("Attestation authentique et valide");
+    expect(page.text).toContain(`ACEV-${share.id.slice(0, 8).toUpperCase()}`);
+    expect(page.text).toContain("<svg"); // its QR code
     expect(page.text).toContain("Abla &lt;script&gt;");
     expect(page.text).not.toContain("<script>alert(1)</script>");
+  });
+
+  it("carries a fingerprint of her ledger, whose lines the database refuses to change (D46, D65)", async () => {
+    const { abla, groupId } = await activeGroup();
+    await pay(abla, groupId, 1);
+    const before = (await abla.get("/v1/me/record")).body;
+    expect(before.ledgerLines).toBe(1);
+    expect(before.ledgerFingerprint).toMatch(/^[0-9a-f]{64}$/);
+
+    // Nobody can rewrite a line, not even with direct database access.
+    await expect(prisma.ledgerEntry.updateMany({ where: { groupId }, data: { amountFcfa: 4000 } })).rejects.toThrow();
+    const after = (await abla.get("/v1/me/record")).body;
+    expect(after.ledgerFingerprint).toBe(before.ledgerFingerprint);
   });
 });
 
@@ -224,13 +268,18 @@ describe("sharing it with one MFI by name (D54)", () => {
     expect(share.sharedWith).toEqual({ code: "FUCEC", name: "FUCEC-Togo" });
 
     const listed = (await fucec.client.get("/v1/console/records")).body;
-    expect(listed).toEqual([expect.objectContaining({ shareId: share.id, legalName: "Akossiwa Afi Mensah", views: 0 })]);
+    expect(listed).toEqual([
+      expect.objectContaining({ shareId: share.id, legalName: "Akossiwa Afi Mensah", views: 0 }),
+    ]);
     const opened = (await fucec.client.get(`/v1/console/records/${share.id}`)).body;
     expect(opened).toMatchObject({ status: "VALID", record: { legalName: "Akossiwa Afi Mensah" } });
+    const document = await fucec.client.get(`/v1/console/records/${share.id}/document`);
+    expect(document.headers["content-type"]).toContain("text/html");
+    expect(document.text).toContain("Akossiwa Afi Mensah");
 
     const [mine] = (await akossiwa.get("/v1/me/record/shares")).body;
-    expect(mine.views).toBe(1);
-    const view = await prisma.recordView.findFirstOrThrow({ where: { shareId: share.id } });
+    expect(mine.views).toBe(2); // the facts, then the document
+    const view = await prisma.recordView.findFirstOrThrow({ where: { shareId: share.id } }); // both by her officer
     expect(view.staffId).toBe(fucec.staffId);
   });
 
@@ -255,7 +304,10 @@ describe("sharing it with one MFI by name (D54)", () => {
     await akossiwa.post(`/v1/me/record/shares/${share.id}/revoke`);
 
     expect((await fucec.client.get("/v1/console/records")).body).toEqual([]);
-    expect((await fucec.client.get(`/v1/console/records/${share.id}`)).body).toMatchObject({ status: "REVOKED", record: null });
+    expect((await fucec.client.get(`/v1/console/records/${share.id}`)).body).toMatchObject({
+      status: "REVOKED",
+      record: null,
+    });
   });
 
   it("refuses an MFI that does not exist", async () => {

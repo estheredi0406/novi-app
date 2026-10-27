@@ -6,6 +6,8 @@ import { Login } from "./pages/Login";
 import { Overview } from "./pages/Overview";
 import { RecordPage, Records } from "./pages/Records";
 import { type Lang, text } from "./text";
+import { Activity } from "./pages/Activity";
+import { Analytics } from "./pages/Analytics";
 
 // The console's pages, read from the address bar after "#", so the browser's
 // back button works without a routing library: #/, #/groups/<id>,
@@ -72,6 +74,10 @@ export function App() {
       <RecordPage key={id} t={t} shareId={id} onExpired={expired} />
     ) : section === "records" ? (
       <Records t={t} onExpired={expired} />
+    ) : section === "analytics" ? (
+      <Analytics t={t} onExpired={expired} />
+    ) : section === "activity" ? (
+      <Activity t={t} onExpired={expired} />
     ) : (
       <Overview t={t} onExpired={expired} />
     );
@@ -84,11 +90,17 @@ export function App() {
             Novi <span>{t.console}</span>
           </a>
           <nav>
-            <a href="#/" className={section !== "records" ? "on" : ""}>
+            <a href="#/" className={!section || section === "groups" ? "on" : ""}>
               {t.overview}
+            </a>
+            <a href="#/analytics" className={section === "analytics" ? "on" : ""}>
+              {t.analytics}
             </a>
             <a href="#/records" className={section === "records" ? "on" : ""}>
               {t.records}
+            </a>
+            <a href="#/activity" className={section === "activity" ? "on" : ""}>
+              {t.activity}
             </a>
           </nav>
           <div className="who">

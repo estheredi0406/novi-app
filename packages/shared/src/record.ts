@@ -27,6 +27,14 @@ export type SavingsRecord = {
   potsReceived: number;
   totalReceivedFcfa: number;
   groups: RecordGroup[];
+  // Added 26 Oct (D65); absent from records shared before then.
+  onTimeRate?: number; // paid on time, as a whole percentage of payments made
+  potsConfirmed?: number; // pots whose receiver said "I received it" (D63)
+  identityCheckedBy?: string; // who confirmed her identity: "ANID"
+  ledgerLines?: number; // her lines in Novi's ledger, up to asOf
+  // SHA-256 of those lines, in order: any later change to one of them no
+  // longer matches this fingerprint (D65).
+  ledgerFingerprint?: string;
 };
 
 // An institution she can share her record with by name (D54).

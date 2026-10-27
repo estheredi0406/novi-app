@@ -180,3 +180,76 @@ main { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; }
   .who { margin-left: 0; flex-wrap: wrap; }
   .tile-number { font-size: 32px; }
 }
+
+/* The ACEV document inside the console (D65). */
+.acev-frame { width: 100%; height: calc(100vh - 180px); min-height: 900px; border: 0; margin-top: 12px; background: #ecEAF3; border-radius: 14px; }
+
+/* Analytics and the officers' log (D67). */
+.tiles-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 900px) { .tiles-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.chart { margin: 0; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 16px; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.key { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.key-navy { background: #1B1F4B; }
+.key-orange { background: #F05A1A; margin-left: 10px; }
+.log { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.log li { display: grid; grid-template-columns: 150px 1fr; gap: 16px; background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 16px; font-size: 14px; }
+.log time { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- Novi's wax-print look (27 Oct): the same language as the
+   member app. Navy outlines with a flat shadow, lavender crackle, orange
+   actions, cowrie shells (West Africa's old money) as the motif. ---------- */
+:root {
+  --indigo: #1b1f4b;
+  --action: #f05a1a;
+  --mist: #dcd8ee;
+  --cotton: #fbf7f2;
+  --card: #ffffff;
+  --line: #e6e1f2;
+  --muted: #3a3d6b;
+  --teal: #1fa3a0;
+}
+.top { background: var(--mist) url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22420%22%20height%3D%22120%22%20viewBox%3D%220%200%20420%20120%22%3E%3Cg%20stroke%3D%22%23A9A6D6%22%20stroke-width%3D%221.3%22%20fill%3D%22none%22%20opacity%3D%22.55%22%3E%3Cpath%20d%3D%22M0%2030%20C40%2018%2070%2050%20110%2032%20S180%2010%20220%2036%20S300%2058%20340%2030%20S390%2022%20420%2034%22/%3E%3Cpath%20d%3D%22M0%2090%20C40%2074%2080%20108%20120%2086%20S190%2066%20230%2096%20S310%20110%20350%2084%20S392%2078%20420%2090%22/%3E%3Cpath%20d%3D%22M90%200%20C100%2036%2078%2070%2098%20120%22/%3E%3Cpath%20d%3D%22M300%200%20C292%2040%20316%2080%20296%20120%22/%3E%3C/g%3E%3C/svg%3E") repeat; color: var(--indigo); border-bottom: 1.5px solid var(--indigo); }
+.top .link { color: var(--indigo); }
+.who span { opacity: 0.8; }
+nav a { opacity: 1; color: var(--indigo); border: 1.5px solid transparent; }
+nav a.on { background: var(--indigo); color: #fff; }
+nav a:not(.on):hover { border-color: var(--indigo); background: var(--cotton); }
+.band { height: 34px; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22150%22%20height%3D%2234%22%20viewBox%3D%220%200%20150%2034%22%3E%3Crect%20width%3D%22150%22%20height%3D%2234%22%20fill%3D%22%23DCD8EE%22/%3E%3Cpath%20d%3D%22M0%2017%20H150%22%20stroke%3D%22%231B1F4B%22%20stroke-width%3D%221.2%22/%3E%3Cpath%20d%3D%22M8%2017%20C8%203.139999999999999%2042%204.4%2042%2017%20C42%2029.6%208%2030.86%208%2017%20Z%22%20fill%3D%22%23F05A1A%22%20stroke%3D%22%231B1F4B%22%20stroke-width%3D%221.3%22/%3E%3Cpath%20d%3D%22M16.5%2010.7%20C23.3%208.6%2030.1%209.125%2035.2%2011.75%22%20stroke%3D%22%23E9B44C%22%20stroke-width%3D%221.6%22%20fill%3D%22none%22%20opacity%3D%22.55%22%20stroke-linecap%3D%22round%22/%3E%3Cpath%20d%3D%22M11.399999999999999%2017%20C19.05%2014.69%2030.95%2014.69%2038.94%2017%20C30.95%2019.31%2019.05%2019.31%2011.399999999999999%2017%20Z%22%20fill%3D%22%231B1F4B%22/%3E%3Cpath%20d%3D%22M16.5%2015.82%20V18.18%20M19.9%2015.32%20V18.68%20M23.3%2015.07%20V18.93%20M26.7%2015.07%20V18.93%20M30.1%2015.32%20V18.68%20M33.5%2015.82%20V18.18%22%20stroke%3D%22%23F05A1A%22%20stroke-width%3D%221.04%22/%3E%3Cpath%20d%3D%22M58%2017%20C58%203.139999999999999%2092%204.4%2092%2017%20C92%2029.6%2058%2030.86%2058%2017%20Z%22%20fill%3D%22%23FBF7F2%22%20stroke%3D%22%231B1F4B%22%20stroke-width%3D%221.3%22/%3E%3Cpath%20d%3D%22M66.5%2010.7%20C73.3%208.6%2080.1%209.125%2085.2%2011.75%22%20stroke%3D%22%23E9B44C%22%20stroke-width%3D%221.6%22%20fill%3D%22none%22%20opacity%3D%22.55%22%20stroke-linecap%3D%22round%22/%3E%3Cpath%20d%3D%22M61.4%2017%20C69.05%2014.69%2080.95%2014.69%2088.94%2017%20C80.95%2019.31%2069.05%2019.31%2061.4%2017%20Z%22%20fill%3D%22%231B1F4B%22/%3E%3Cpath%20d%3D%22M66.5%2015.82%20V18.18%20M69.9%2015.32%20V18.68%20M73.3%2015.07%20V18.93%20M76.7%2015.07%20V18.93%20M80.1%2015.32%20V18.68%20M83.5%2015.82%20V18.18%22%20stroke%3D%22%23FBF7F2%22%20stroke-width%3D%221.04%22/%3E%3Cpath%20d%3D%22M108%2017%20C108%203.139999999999999%20142%204.4%20142%2017%20C142%2029.6%20108%2030.86%20108%2017%20Z%22%20fill%3D%22%231FA3A0%22%20stroke%3D%22%231B1F4B%22%20stroke-width%3D%221.3%22/%3E%3Cpath%20d%3D%22M116.5%2010.7%20C123.3%208.6%20130.1%209.125%20135.2%2011.75%22%20stroke%3D%22%23E9B44C%22%20stroke-width%3D%221.6%22%20fill%3D%22none%22%20opacity%3D%22.55%22%20stroke-linecap%3D%22round%22/%3E%3Cpath%20d%3D%22M111.4%2017%20C119.05%2014.69%20130.95%2014.69%20138.94%2017%20C130.95%2019.31%20119.05%2019.31%20111.4%2017%20Z%22%20fill%3D%22%231B1F4B%22/%3E%3Cpath%20d%3D%22M116.5%2015.82%20V18.18%20M119.9%2015.32%20V18.68%20M123.3%2015.07%20V18.93%20M126.7%2015.07%20V18.93%20M130.1%2015.32%20V18.68%20M133.5%2015.82%20V18.18%22%20stroke%3D%22%231FA3A0%22%20stroke-width%3D%221.04%22/%3E%3C/svg%3E") repeat-x; border-bottom: 1.5px solid var(--indigo); }
+.wordmark { color: var(--indigo); }
+.link { color: var(--indigo); }
+.primary { background: var(--action); border: 1.5px solid var(--indigo); box-shadow: 3px 3px 0 var(--indigo); }
+.primary:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--indigo); }
+.tile, .card, .flag, .chart, .log li, .record-row, .login-card, .facts div {
+  border: 1.5px solid var(--indigo); box-shadow: 4px 4px 0 var(--indigo); background: var(--card);
+}
+.tile-alert { box-shadow: 4px 4px 0 var(--indigo), inset 8px 0 0 var(--saffron); }
+.flag-held { box-shadow: 4px 4px 0 var(--indigo), inset 8px 0 0 var(--saffron); }
+.flag-failed, .flag-disputed { box-shadow: 4px 4px 0 var(--indigo), inset 8px 0 0 var(--problem); }
+.flag-ready { box-shadow: 4px 4px 0 var(--indigo), inset 8px 0 0 var(--paid); }
+.card:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--indigo); }
+.calm { border-color: var(--crackle, #a9a6d6); background: var(--cotton); }
+h1 { position: relative; padding-left: 40px; }
+h1::before {
+  content: ""; position: absolute; left: 0; top: 50%; width: 30px; height: 20px; transform: translateY(-50%);
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2230%22%20height%3D%2220%22%20viewBox%3D%220%200%2030%2020%22%3E%3Cpath%20d%3D%22M2%2010%20C2%20-0.5600000000000005%2028%200.40000000000000036%2028%2010%20C28%2019.6%202%2020.560000000000002%202%2010%20Z%22%20fill%3D%22%23F05A1A%22%20stroke%3D%22%231B1F4B%22%20stroke-width%3D%221.5%22/%3E%3Cpath%20d%3D%22M4.6%2010%20C10.45%208.4%2019.55%208.4%2025.66%2010%20C19.55%2011.6%2010.45%2011.6%204.6%2010%20Z%22%20fill%3D%22%231B1F4B%22/%3E%3Cpath%20d%3D%22M8.5%209.184%20V10.816%20M11.1%208.83584%20V11.16416%20M13.7%208.66176%20V11.33824%20M16.3%208.66176%20V11.33824%20M18.9%208.83584%20V11.16416%20M21.5%209.184%20V10.816%22%20stroke%3D%22%23F05A1A%22%20stroke-width%3D%221.2000000000000002%22/%3E%3C/svg%3E") no-repeat center / contain;
+}
+.chip { border: 1px solid currentColor; }
+.jar { border-color: var(--indigo); border-width: 2px; }
+.jar-paid { background: repeating-linear-gradient(180deg, #e9b44c 0 9px, #f5ce6b 9px 12px); }
+.pot-current .jar { outline-color: var(--action); }
+.login { background: var(--mist) url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22420%22%20height%3D%22120%22%20viewBox%3D%220%200%20420%20120%22%3E%3Cg%20stroke%3D%22%23A9A6D6%22%20stroke-width%3D%221.3%22%20fill%3D%22none%22%20opacity%3D%22.55%22%3E%3Cpath%20d%3D%22M0%2030%20C40%2018%2070%2050%20110%2032%20S180%2010%20220%2036%20S300%2058%20340%2030%20S390%2022%20420%2034%22/%3E%3Cpath%20d%3D%22M0%2090%20C40%2074%2080%20108%20120%2086%20S190%2066%20230%2096%20S310%20110%20350%2084%20S392%2078%20420%2090%22/%3E%3Cpath%20d%3D%22M90%200%20C100%2036%2078%2070%2098%20120%22/%3E%3Cpath%20d%3D%22M300%200%20C292%2040%20316%2080%20296%20120%22/%3E%3C/g%3E%3C/svg%3E") repeat; }
+.login-card input:focus { border-color: var(--indigo); }
+.byGroup td.rate { font-weight: 700; }
+.table-card { background: var(--card); border: 1.5px solid var(--indigo); box-shadow: 4px 4px 0 var(--indigo); border-radius: 14px; overflow-x: auto; }
+.byGroup { width: 100%; border-collapse: collapse; font-size: 14px; }
+.byGroup th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); padding: 12px 14px; border-bottom: 1.5px solid var(--indigo); background: var(--mist); }
+.byGroup td { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.byGroup tr:last-child td { border-bottom: 0; }
+.byGroup .num { text-align: right; font-variant-numeric: tabular-nums; }
+.byGroup a { font-weight: 700; color: var(--indigo); }
+.byGroup .alert { color: var(--problem); font-weight: 700; }
+.meter { display: inline-flex; align-items: center; gap: 8px; }
+.meter-bar { width: 90px; height: 10px; border: 1px solid var(--indigo); border-radius: 6px; overflow: hidden; background: var(--cotton); display: inline-block; }
+.meter-bar span { display: block; height: 100%; background: var(--paid); }

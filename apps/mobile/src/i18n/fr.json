@@ -259,7 +259,7 @@
     "startMessage": "Vous démarrez avec {{names}}. Connaissez-vous chacune de ces personnes ? Les membres paient les tours les uns des autres. Ensuite, l'ordre est fixé, l'IMF ouvre le compte, et personne ne peut quitter le groupe ni modifier les règles.",
     "startReady": "Tout le monde est là. Prêt à démarrer.",
     "startHint": "Démarre quand toutes les places sont prises et acceptées.",
-    "starting": "{{mfi}} ouvre le compte du groupe. L'ordre des tours est conservé.",
+    "starting": "{{mfi}} vérifie le groupe, puis ouvre son compte. Vous serez prévenue dès que le premier tour commence. L'ordre des tours est conservé.",
     "youAccepted": "Vous avez accepté la version {{version}} des règles.",
     "editRules": "Modifier les règles",
     "cancel": "Annuler le groupe",

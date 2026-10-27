@@ -1,5 +1,5 @@
 import request from "supertest";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { app } from "../app.js";
 import { prisma } from "../lib/db.js";
 import { base32Decode, codeForStep, totpStep } from "../lib/totp.js";
@@ -246,5 +246,65 @@ describe("payouts that need a look (D53)", () => {
       ready: 0,
       disputed: 0,
     });
+  });
+});
+
+describe("validating a group before its account opens (D66)", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("keeps a started group waiting until the officer approves it", async () => {
+    vi.stubEnv("MFI_GROUP_APPROVAL", "true");
+    const { groupId, members } = await activeGroup();
+    expect((await members[0]?.get(`/v1/groups/${groupId}`))?.body.state).toBe("STARTING");
+
+    const desk = await officer();
+    const listed = (await desk.get("/v1/console/groups")).body;
+    expect(listed).toEqual([expect.objectContaining({ id: groupId, state: "STARTING" })]);
+
+    expect((await desk.post(`/v1/console/groups/${groupId}/approve`)).status).toBe(200);
+    expect((await members[0]?.get(`/v1/groups/${groupId}`))?.body.state).toBe("ACTIVE");
+    expect(await prisma.round.count({ where: { groupId } })).toBe(3);
+    expect(await prisma.auditEvent.count({ where: { type: "STAFF_GROUP_APPROVED" } })).toBe(1);
+    expect((await desk.post(`/v1/console/groups/${groupId}/approve`)).status).toBe(409);
+  });
+
+  it("lets the officer decline it with a reason, before any money moves", async () => {
+    vi.stubEnv("MFI_GROUP_APPROVAL", "true");
+    const { groupId, members } = await activeGroup();
+    const desk = await officer();
+
+    expect((await desk.post(`/v1/console/groups/${groupId}/decline`, { reason: "Pièces manquantes" })).status).toBe(
+      200,
+    );
+    expect((await members[0]?.get(`/v1/groups/${groupId}`))?.body.state).toBe("CANCELLED");
+    expect(await prisma.round.count({ where: { groupId } })).toBe(0);
+  });
+});
+
+describe("analytics and the officers' log (D67)", () => {
+  it("counts this week's money, on-time payments and members, without names", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+
+    const analytics = (await (await officer()).get("/v1/console/analytics")).body;
+    expect(analytics.weeks).toHaveLength(8);
+    expect(analytics.weeks.at(-1)).toMatchObject({ collectedFcfa: 15000, paidOutFcfa: 0, payments: 3, onTime: 3 });
+    expect(analytics).toMatchObject({ members: 3, onTimeRate: 100, groups: { active: 1 } });
+    expect(JSON.stringify(analytics)).not.toMatch(/Akossiwa|Abla|Koffi/);
+  });
+
+  it("shows which officer released a pot, and when", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    await makeDue(groupId, 1);
+    await runPayouts();
+    const desk = await officer();
+    const [ready] = (await desk.get("/v1/console/attention")).body;
+    await desk.post(`/v1/console/payouts/${ready.payoutId}/release`);
+
+    const log = (await desk.get("/v1/console/activity")).body;
+    expect(log[0]).toMatchObject({ action: "STAFF_PAYOUT_RELEASED", staffName: expect.any(String), detail: "round 1" });
   });
 });

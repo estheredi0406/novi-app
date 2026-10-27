@@ -1,8 +1,17 @@
-import type { AttentionItem, ConsoleGroup, ConsoleGroupDetail, ConsoleOverview, ConsoleRound } from "@novi/shared";
+import type {
+  AttentionItem,
+  ConsoleActivity,
+  ConsoleAnalytics,
+  ConsoleGroup,
+  ConsoleGroupDetail,
+  ConsoleOverview,
+  ConsoleRound,
+} from "@novi/shared";
 import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { currentRoundNumber, isoDay } from "../lib/schedule.js";
+import { openApprovedGroup } from "./groupService.js";
 import { releasePayout, runPayouts } from "./payoutService.js";
 
 // What an MFI officer sees and does in the console (Sprint 5.2). Every query
@@ -36,8 +45,13 @@ function toConsoleGroup(group: LoadedGroup): ConsoleGroup {
   // Money in and out comes from the rounds' own rows, which match the ledger
   // line for line (D45, D49): one PAID contribution, one CONTRIBUTION line.
   const collectedFcfa = group.rounds.reduce((total, r) => total + sumPaid(r), 0);
-  const paidOutFcfa = group.rounds.reduce((total, r) => total + (r.payout?.status === "PAID" ? r.payout.amountFcfa : 0), 0);
-  const needsAttention = group.rounds.filter((r) => r.payout?.status === "HELD" || r.payout?.status === "FAILED").length;
+  const paidOutFcfa = group.rounds.reduce(
+    (total, r) => total + (r.payout?.status === "PAID" ? r.payout.amountFcfa : 0),
+    0,
+  );
+  const needsAttention = group.rounds.filter(
+    (r) => r.payout?.status === "HELD" || r.payout?.status === "FAILED",
+  ).length;
   return {
     id: group.id,
     name: group.name,
@@ -49,7 +63,10 @@ function toConsoleGroup(group: LoadedGroup): ConsoleGroup {
     startedAt: group.startedAt?.toISOString() ?? null,
     currentRound:
       group.state === "ACTIVE" && group.rounds.length > 0
-        ? currentRoundNumber(group.rounds.map((r) => r.dueDate), new Date())
+        ? currentRoundNumber(
+            group.rounds.map((r) => r.dueDate),
+            new Date(),
+          )
         : null,
     rounds: group.rounds.length,
     collectedFcfa,
@@ -103,10 +120,7 @@ export async function listAttention(mfiId: string): Promise<AttentionItem[]> {
   const payouts = await prisma.payout.findMany({
     where: {
       round: { group: { mfiId } },
-      OR: [
-        { status: { in: ["READY", "HELD", "FAILED"] } },
-        { status: "PAID", receiptDisputedAt: { not: null } },
-      ],
+      OR: [{ status: { in: ["READY", "HELD", "FAILED"] } }, { status: "PAID", receiptDisputedAt: { not: null } }],
     },
     include: {
       round: {
@@ -192,4 +206,214 @@ export async function retryPayout(mfiId: string, staffId: string, payoutId: stri
   });
   await runPayouts(new Date(), payout.round.groupId);
   return listAttention(mfiId);
+}
+
+// ---------- Validating a group before its account opens (D66) ----------
+
+async function waitingGroup(mfiId: string, groupId: string) {
+  const group = await prisma.group.findFirst({ where: { id: groupId, mfiId } });
+  if (!group) throw new AppError("NOT_FOUND", 404);
+  if (group.state !== "STARTING") throw new AppError("NOT_ALLOWED_NOW", 409);
+  return group;
+}
+
+// The officer approves: the MFI opens the group's account and the first
+// round is scheduled. Logged with her name.
+export async function approveGroup(mfiId: string, staffId: string, groupId: string): Promise<ConsoleGroup[]> {
+  await waitingGroup(mfiId, groupId);
+  await prisma.auditEvent.create({ data: { type: "STAFF_GROUP_APPROVED", details: { staffId, groupId } } });
+  await openApprovedGroup(groupId);
+  return listConsoleGroups(mfiId);
+}
+
+// The officer declines, with a reason the organiser reads. No money has
+// moved, so the group simply stops (CANCELLED).
+export async function declineGroup(
+  mfiId: string,
+  staffId: string,
+  groupId: string,
+  reason: string,
+): Promise<ConsoleGroup[]> {
+  await waitingGroup(mfiId, groupId);
+  await prisma.$transaction([
+    prisma.group.updateMany({ where: { id: groupId, state: "STARTING" }, data: { state: "CANCELLED" } }),
+    prisma.auditEvent.create({ data: { type: "STAFF_GROUP_DECLINED", details: { staffId, groupId, reason } } }),
+  ]);
+  return listConsoleGroups(mfiId);
+}
+
+// ---------- Analytics (D67): totals only, never a member's name (D33) ----------
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Monday 00:00 UTC of the week holding this date (Lome is on GMT).
+function weekStart(date: Date): Date {
+  const day = (date.getUTCDay() + 6) % 7;
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - day));
+}
+
+export async function getAnalytics(mfiId: string, now = new Date(), weeks = 8): Promise<ConsoleAnalytics> {
+  const from = new Date(weekStart(now).getTime() - (weeks - 1) * WEEK_MS);
+  const [ledger, contributions, payouts, groups, seats] = await Promise.all([
+    prisma.ledgerEntry.findMany({
+      where: { group: { mfiId }, createdAt: { gte: from }, type: { in: ["CONTRIBUTION", "PAYOUT"] } },
+      select: { type: true, amountFcfa: true, createdAt: true },
+    }),
+    prisma.contribution.findMany({
+      where: { round: { group: { mfiId } }, status: "PAID", paidAt: { not: null } },
+      select: { paidAt: true, round: { select: { dueDate: true } } },
+    }),
+    prisma.payout.findMany({
+      where: { round: { group: { mfiId } } },
+      select: {
+        status: true,
+        releasedAt: true,
+        receiptConfirmedAt: true,
+        receiptDisputedAt: true,
+        round: { select: { dueDate: true } },
+      },
+    }),
+    prisma.group.groupBy({ by: ["state"], where: { mfiId }, _count: true }),
+    prisma.membership.findMany({
+      where: { payoutPosition: { not: null }, group: { mfiId, state: { in: ["ACTIVE", "COMPLETED"] } } },
+      select: { userId: true },
+      distinct: ["userId"],
+    }),
+  ]);
+
+  const series = Array.from({ length: weeks }, (_, i) => ({
+    weekOf: isoDay(new Date(from.getTime() + i * WEEK_MS)),
+    collectedFcfa: 0,
+    paidOutFcfa: 0,
+    payments: 0,
+    onTime: 0,
+  }));
+  const slot = (date: Date) => Math.floor((weekStart(date).getTime() - from.getTime()) / WEEK_MS);
+  for (const line of ledger) {
+    const week = series[slot(line.createdAt)];
+    if (!week) continue;
+    if (line.type === "CONTRIBUTION") week.collectedFcfa += line.amountFcfa;
+    else week.paidOutFcfa += line.amountFcfa;
+  }
+  const day = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  let onTimeAll = 0;
+  for (const c of contributions) {
+    const paidAt = c.paidAt as Date;
+    const onTime = day(paidAt) <= day(c.round.dueDate);
+    if (onTime) onTimeAll += 1;
+    const week = series[slot(paidAt)];
+    if (!week) continue;
+    week.payments += 1;
+    if (onTime) week.onTime += 1;
+  }
+
+  // How long a full pot waits for the officer after its due date (D63).
+  const released = payouts.filter((p) => p.releasedAt);
+  const waitHours = released.map((p) =>
+    Math.max(0, ((p.releasedAt as Date).getTime() - p.round.dueDate.getTime()) / 3_600_000),
+  );
+  const answered = payouts.filter((p) => p.receiptConfirmedAt || p.receiptDisputedAt);
+
+  // Per group: how regular its members are, and how far its cycle has gone.
+  const started = await prisma.group.findMany({
+    where: { mfiId, state: { in: [...VISIBLE_STATES] } },
+    orderBy: { startedAt: "desc" },
+    include: {
+      rulesVersions: true,
+      rounds: {
+        include: {
+          payout: true,
+          contributions: { where: { status: "PAID" }, select: { paidAt: true, amountFcfa: true } },
+        },
+      },
+    },
+  });
+  const byGroup = started.map((group) => {
+    const paid = group.rounds.flatMap((r) => r.contributions.map((c) => ({ c, due: r.dueDate })));
+    const onTime = paid.filter(({ c, due }) => c.paidAt && day(c.paidAt) <= day(due)).length;
+    return {
+      groupId: group.id,
+      name: group.name,
+      state: group.state as "STARTING" | "ACTIVE" | "COMPLETED",
+      members: rulesOf(group).size,
+      collectedFcfa: paid.reduce((sum, { c }) => sum + c.amountFcfa, 0),
+      onTimeRate: paid.length ? Math.round((onTime / paid.length) * 100) : null,
+      roundsPaidOut: group.rounds.filter((r) => r.payout?.status === "PAID").length,
+      rounds: group.rounds.length || rulesOf(group).size,
+      disputed: group.rounds.filter((r) => r.payout?.receiptDisputedAt).length,
+    };
+  });
+  const count = (state: string) => groups.find((g) => g.state === state)?._count ?? 0;
+
+  return {
+    weeks: series,
+    members: seats.length,
+    groups: {
+      starting: count("STARTING"),
+      active: count("ACTIVE"),
+      completed: count("COMPLETED"),
+      cancelled: count("CANCELLED"),
+    },
+    onTimeRate: contributions.length ? Math.round((onTimeAll / contributions.length) * 100) : null,
+    potsPaid: payouts.filter((p) => p.status === "PAID").length,
+    potsDisputed: payouts.filter((p) => p.receiptDisputedAt).length,
+    receiptConfirmedRate: answered.length
+      ? Math.round((answered.filter((p) => p.receiptConfirmedAt).length / answered.length) * 100)
+      : null,
+    byGroup,
+    medianReleaseHours: waitHours.length
+      ? Math.round(waitHours.sort((a, b) => a - b)[Math.floor(waitHours.length / 2)] as number)
+      : null,
+  };
+}
+
+// ---------- What the officers did (D67) ----------
+
+const ACTIVITY_LABELS = [
+  "STAFF_GROUP_APPROVED",
+  "STAFF_GROUP_DECLINED",
+  "STAFF_PAYOUT_RELEASED",
+  "STAFF_PAYOUT_RETRY",
+  "STAFF_RECORD_OPENED",
+] as const;
+
+// Every action taken by this MFI's officers, newest first: who did what and
+// when. Opening a shared record is included (each opening is logged, D54).
+export async function listActivity(mfiId: string, limit = 100): Promise<ConsoleActivity[]> {
+  const staff = await prisma.staffUser.findMany({ where: { mfiId }, select: { id: true, name: true } });
+  const names = new Map(staff.map((s) => [s.id, s.name]));
+  const [events, views] = await Promise.all([
+    prisma.auditEvent.findMany({
+      where: { type: { in: [...ACTIVITY_LABELS] } },
+      orderBy: { createdAt: "desc" },
+      take: limit * 3,
+    }),
+    prisma.recordView.findMany({
+      where: { staffId: { in: [...names.keys()] } },
+      orderBy: { viewedAt: "desc" },
+      take: limit,
+      include: { share: { select: { payloadText: true } } },
+    }),
+  ]);
+
+  const fromEvents = events.flatMap((event) => {
+    const details = (event.details ?? {}) as { staffId?: string; round?: number; groupId?: string; reason?: string };
+    const name = details.staffId ? names.get(details.staffId) : undefined;
+    if (!name) return [];
+    return [
+      {
+        at: event.createdAt.toISOString(),
+        staffName: name,
+        action: event.type as ConsoleActivity["action"],
+        detail: details.reason ?? (details.round ? `round ${details.round}` : null),
+      },
+    ];
+  });
+  const fromViews = views.map((view) => ({
+    at: view.viewedAt.toISOString(),
+    staffName: names.get(view.staffId as string) ?? "",
+    action: "STAFF_RECORD_OPENED" as const,
+    detail: (JSON.parse(view.share.payloadText) as { legalName: string }).legalName,
+  }));
+  return [...fromEvents, ...fromViews].sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
 }

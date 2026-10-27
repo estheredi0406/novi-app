@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { ConsoleSharedRecord, Lender, RecordGroup, RecordShareView, RecordVerification, SavingsRecord } from "@novi/shared";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
@@ -80,6 +81,20 @@ export async function buildRecord(userId: string, now = new Date()): Promise<Sav
 
   const paymentsMade = groups.reduce((sum, g) => sum + g.paid, 0);
   const paidOnTime = groups.reduce((sum, g) => sum + g.onTime, 0);
+
+  // D65: her ledger lines, in a fixed order, condensed into one fingerprint.
+  // The ledger is never edited (D5); if a line were changed later, Novi
+  // could no longer produce this fingerprint for this record.
+  const lines = await prisma.ledgerEntry.findMany({
+    where: { userId, createdAt: { lte: now } },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { id: true, type: true, amountFcfa: true, createdAt: true },
+  });
+  const ledgerFingerprint = createHash("sha256")
+    .update(lines.map((l) => `${l.id}|${l.type}|${l.amountFcfa}|${l.createdAt.toISOString()}`).join("\n"))
+    .digest("hex");
+  const potsConfirmed = await prisma.payout.count({ where: { beneficiaryId: userId, receiptConfirmedAt: { not: null } } });
+
   return {
     legalName: user.legalName,
     memberSince: isoDay(user.idVerifiedAt),
@@ -94,6 +109,11 @@ export async function buildRecord(userId: string, now = new Date()): Promise<Sav
     potsReceived: line("PAYOUT")?._count ?? 0,
     totalReceivedFcfa: line("PAYOUT")?._sum.amountFcfa ?? 0,
     groups,
+    onTimeRate: paymentsMade > 0 ? Math.round((paidOnTime / paymentsMade) * 100) : 0,
+    potsConfirmed,
+    identityCheckedBy: "ANID",
+    ledgerLines: lines.length,
+    ledgerFingerprint,
   };
 }
 

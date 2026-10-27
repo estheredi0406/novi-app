@@ -35,6 +35,25 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
     if (window.confirm(t.releaseConfirm(fcfa(item.amountFcfa)))) void act(item.payoutId, "release");
   }
 
+  // D66: a group members have started waits for the officer before its account opens.
+  async function decide(group: ConsoleGroup, approve: boolean) {
+    let body: { reason: string } | undefined;
+    if (approve) {
+      if (!window.confirm(t.approveConfirm(group.name))) return;
+    } else {
+      const reason = window.prompt(t.declineAsk)?.trim();
+      if (!reason || reason.length < 3) return;
+      body = { reason };
+    }
+    setRetrying(group.id);
+    try {
+      await api("POST", `/v1/console/groups/${group.id}/${approve ? "approve" : "decline"}`, body);
+    } finally {
+      setRetrying(null);
+      reload();
+    }
+  }
+
   const meta = (item: AttentionItem) =>
     item.status === "READY"
       ? t.readyHint(item.receiverTurn)
@@ -83,6 +102,40 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
           </span>
         </div>
       </section>
+
+      {groups.some((g) => g.state === "STARTING") && (
+        <>
+          <h2>{t.toValidate}</h2>
+          <p className="calm">{t.toValidateHint}</p>
+          <ul className="attention">
+            {groups
+              .filter((g) => g.state === "STARTING")
+              .map((group) => (
+                <li key={group.id} className="flag flag-ready">
+                  <div>
+                    <span className="flag-title">{group.name}</span>
+                    <span className="flag-meta">
+                      {fcfa(group.amountFcfa)} {t.perMember} · {group.frequency === "WEEKLY" ? t.weekly : t.monthly} ·{" "}
+                      {group.size} {t.members.toLowerCase()}
+                    </span>
+                  </div>
+                  <span className="flag-amount">{fcfa(group.amountFcfa * group.size)}</span>
+                  <span />
+                  <button
+                    className="primary small"
+                    disabled={retrying === group.id}
+                    onClick={() => void decide(group, true)}
+                  >
+                    {t.approve}
+                  </button>
+                  <button className="link" disabled={retrying === group.id} onClick={() => void decide(group, false)}>
+                    {t.decline}
+                  </button>
+                </li>
+              ))}
+          </ul>
+        </>
+      )}
 
       <h2>{t.toLook}</h2>
       {attention.length === 0 ? (

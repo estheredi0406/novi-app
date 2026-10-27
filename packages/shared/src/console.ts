@@ -30,7 +30,13 @@ export type ConsoleRound = {
   paymentsReceived: number;
   paymentsExpected: number;
   receiverTurn: number; // which turn in the payout order: the same as the round number
-  payout: { status: PayoutStatus; amountFcfa: number; heldSince: string | null; paidAt: string | null; mfiRef: string | null } | null;
+  payout: {
+    status: PayoutStatus;
+    amountFcfa: number;
+    heldSince: string | null;
+    paidAt: string | null;
+    mfiRef: string | null;
+  } | null;
 };
 
 export type ConsoleGroupDetail = ConsoleGroup & { roundList: ConsoleRound[] };
@@ -71,4 +77,41 @@ export type ConsoleSharedRecord = {
   issuedAt: string;
   expiresAt: string;
   views: number; // by anyone at this MFI
+};
+
+// D67: the MFI's view of its Novi portfolio over time. Totals only (D33).
+export type ConsoleAnalytics = {
+  weeks: { weekOf: string; collectedFcfa: number; paidOutFcfa: number; payments: number; onTime: number }[];
+  members: number; // different people with a seat in a started group
+  groups: { starting: number; active: number; completed: number; cancelled: number };
+  onTimeRate: number | null; // % of payments made on or before their due date
+  potsPaid: number;
+  potsDisputed: number; // receivers who said the money did not arrive (D63)
+  receiptConfirmedRate: number | null; // % of answered receipts that confirmed
+  medianReleaseHours: number | null; // how long a due pot waited for the officer (D63)
+  // One line per started group, to compare them. Still no member's name.
+  byGroup: {
+    groupId: string;
+    name: string;
+    state: "STARTING" | "ACTIVE" | "COMPLETED";
+    members: number;
+    collectedFcfa: number;
+    onTimeRate: number | null;
+    roundsPaidOut: number;
+    rounds: number;
+    disputed: number;
+  }[];
+};
+
+// D67: one action by one of this MFI's officers.
+export type ConsoleActivity = {
+  at: string;
+  staffName: string;
+  action:
+    | "STAFF_GROUP_APPROVED"
+    | "STAFF_GROUP_DECLINED"
+    | "STAFF_PAYOUT_RELEASED"
+    | "STAFF_PAYOUT_RETRY"
+    | "STAFF_RECORD_OPENED";
+  detail: string | null; // the round, the decline reason, or whose record was opened
 };
