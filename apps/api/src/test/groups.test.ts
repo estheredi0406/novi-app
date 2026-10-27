@@ -58,6 +58,7 @@ describe("creating a group", () => {
         counterNote: null,
         payoutPosition: null,
         maskedPhone: "+228 90 •• •• 01",
+        exitReason: null,
       },
     ]);
   });

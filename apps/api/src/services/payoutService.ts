@@ -6,7 +6,7 @@ import { isoDay } from "../lib/schedule.js";
 import { payoutSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import type { PayoutAnswer } from "../providers/mfi/MfiAdapter.js";
-import { coverMissing, returnReserve } from "./reserveService.js";
+import { coverMissing, repayFromPot, returnReserve } from "./reserveService.js";
 
 // Money out (Sprint 4, D63). On a round's due date, a full pot becomes READY;
 // the MFI officer then releases it from the console, and only then does Novi
@@ -78,13 +78,28 @@ async function handleRound(round: DueRound, now: Date) {
   // The pot is each paid contribution less the reserve's share, plus what the
   // reserve covered. It goes to her own number, with the mobile money
   // service she pays with in this group.
+  // Once the officer released it, what her pot repaid to the fund is no
+  // longer part of what is sent (D69).
   const amountFcfa =
-    paid.reduce((sum, c) => sum + potShare(c.amountFcfa), 0) + covers.reduce((sum, c) => sum + c.amountFcfa, 0);
+    paid.reduce((sum, c) => sum + potShare(c.amountFcfa), 0) +
+    covers.reduce((sum, c) => sum + c.amountFcfa, 0) -
+    (round.payout?.coverRepaidFcfa ?? 0);
   const hers = await prisma.contribution.findFirst({
     where: { userId: round.beneficiaryId, status: "PAID", round: { groupId: round.groupId } },
     orderBy: { paidAt: "desc" },
   });
-  const details = { amountFcfa, phone: round.beneficiary.phone, operator: hers?.operator ?? ("MOOV_TG" as const) };
+  // D69: after she left or died, the pot goes to the number the officer
+  // recorded: her next of kin's after a death.
+  const seat = await prisma.membership.findFirst({
+    where: { groupId: round.groupId, userId: round.beneficiaryId },
+    select: { exitReason: true, exitPayoutPhone: true },
+  });
+  const details = {
+    amountFcfa,
+    phone: seat?.exitPayoutPhone ?? round.beneficiary.phone,
+    operator: hers?.operator ?? ("MOOV_TG" as const),
+    toNextOfKin: seat?.exitReason === "DEATH",
+  };
 
   if (decision === "HOLD") {
     if (!round.payout) {
@@ -123,11 +138,24 @@ async function handleRound(round: DueRound, now: Date) {
 // The officer's release (D63): claims a READY pot, records who released it,
 // then instructs the MFI. Returns false if the pot was not ready to release.
 export async function releasePayout(payoutId: string, staffId: string | null, now = new Date()): Promise<boolean> {
-  const claimed = await prisma.payout.updateMany({
-    where: { id: payoutId, status: "READY" },
-    data: { status: "SENDING", requestedAt: now, releasedAt: now, releasedById: staffId },
+  const claimed = await prisma.$transaction(async (tx) => {
+    const moved = await tx.payout.updateMany({
+      where: { id: payoutId, status: "READY" },
+      data: { status: "SENDING", requestedAt: now, releasedAt: now, releasedById: staffId },
+    });
+    if (moved.count === 0) return false;
+    // D69: her own unpaid covers in this group are repaid from her pot first.
+    const payout = await tx.payout.findUniqueOrThrow({ where: { id: payoutId }, include: { round: true } });
+    const repaid = await repayFromPot(tx, payout.round.groupId, payout.beneficiaryId, payout.amountFcfa);
+    if (repaid > 0) {
+      await tx.payout.update({
+        where: { id: payoutId },
+        data: { amountFcfa: payout.amountFcfa - repaid, coverRepaidFcfa: repaid },
+      });
+    }
+    return true;
   });
-  if (claimed.count === 0) return false;
+  if (!claimed) return false;
 
   const payout = await prisma.payout.findUniqueOrThrow({
     where: { id: payoutId },
@@ -145,7 +173,8 @@ async function sendToMfi(payoutId: string, accountRef: string | null, details: P
   if (!accountRef) throw new Error(`payout ${payoutId}: the group has no MFI account`);
   let answer: PayoutAnswer;
   try {
-    answer = await mfi.sendPayout({ payoutId, accountRef, ...details });
+    const { amountFcfa, phone, operator } = details;
+    answer = await mfi.sendPayout({ payoutId, accountRef, amountFcfa, phone, operator });
   } catch (err) {
     console.error(`MFI did not accept payout ${payoutId}:`, err);
     await prisma.payout.update({ where: { id: payoutId }, data: { status: "FAILED" } });
@@ -173,7 +202,7 @@ export async function answerReceipt(userId: string, payoutId: string, received: 
   ]);
 }
 
-type PayoutDetails = { amountFcfa: number; phone: string; operator: "MOOV_TG" | "TOGOCEL" };
+type PayoutDetails = { amountFcfa: number; phone: string; operator: "MOOV_TG" | "TOGOCEL"; toNextOfKin?: boolean };
 
 // Creates the round's payout row; the unique roundId makes a second creation
 // fail, which simply means another run got there first.

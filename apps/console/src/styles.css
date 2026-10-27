@@ -253,3 +253,24 @@ h1::before {
 .meter { display: inline-flex; align-items: center; gap: 8px; }
 .meter-bar { width: 90px; height: 10px; border: 1px solid var(--indigo); border-radius: 6px; overflow: hidden; background: var(--cotton); display: inline-block; }
 .meter-bar span { display: block; height: 100%; background: var(--paid); }
+
+/* ---------- A member at the counter (D69) ---------- */
+.member-search { display: flex; gap: 12px; align-items: flex-end; margin: 16px 0; flex-wrap: wrap; }
+.member-search label { display: grid; gap: 6px; font-weight: 600; font-size: 14px; }
+.member-search input {
+  font: inherit; font-size: 18px; padding: 10px 12px; min-width: 240px;
+  border: 1.5px solid var(--indigo); border-radius: 10px; background: var(--card);
+}
+.member-search input:focus { outline: 3px solid var(--mist); }
+.member { margin-top: 8px; }
+.member-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.member-head h2 { margin: 0 0 4px; }
+.member-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.member-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 16px 0 24px; }
+.member-facts div {
+  display: grid; gap: 6px; padding: 14px 16px; border-radius: 12px;
+  border: 1.5px solid var(--indigo); box-shadow: 4px 4px 0 var(--indigo); background: var(--card);
+}
+.member-facts span { font-size: 13px; color: var(--muted); }
+.member-facts strong { font-size: 16px; color: var(--indigo); }
+.link.danger { color: var(--problem); }

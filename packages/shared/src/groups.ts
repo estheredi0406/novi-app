@@ -30,6 +30,7 @@ export type GroupSeat = {
   counterNote: string | null;
   payoutPosition: number | null; // her turn, 1 = paid first; set when the group starts
   maskedPhone: string | null; // organiser only: "+228 90 •• •• 56", to check the right person joined (D43)
+  exitReason: "DEATH" | "LEFT" | null; // D69: she left the started group early
 };
 
 // An invitation not answered yet, as the group sees it. Only part of the

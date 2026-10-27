@@ -195,6 +195,13 @@ export function GroupRoundView({
                 <Text style={[styles.medalName, mine && styles.onAccent]} numberOfLines={1}>
                   {mine ? t("groupView.you") : (seat?.displayName ?? r.beneficiaryName)}
                 </Text>
+                {/* D69: after a death the pot goes to her next of kin; after a
+                    departure, her pot first repays what the fund paid for her. */}
+                {seat?.exitReason ? (
+                  <Text style={[styles.medalDate, mine && styles.onAccent]} numberOfLines={1}>
+                    {t(seat.exitReason === "DEATH" ? "groupView.toKin" : "groupView.left")}
+                  </Text>
+                ) : null}
                 {received && r.receipt === "DISPUTED" ? (
                   <Text style={[styles.medalDate, styles.disputed, mine && styles.onAccent]}>
                     {t("groupView.disputed")}

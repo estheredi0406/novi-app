@@ -107,6 +107,12 @@ enum LedgerEntryType {
 }
 
 // Where one seat is in its life.
+// D69: why a member left a started group before the end of its cycle.
+enum ExitReason {
+  DEATH // recorded by the MFI officer, on a death certificate
+  LEFT  // she stopped taking part; what she owes stays owed
+}
+
 enum SeatState {
   INVITED   // invitation sent, no answer yet
   ACCEPTED  // said yes to a version of the rules (see acceptedVersion)
@@ -125,6 +131,11 @@ enum SeatState {
 model User {
   id                String    @id @default(uuid())
   phone             String    @unique // +228 followed by 8 digits
+  // D69: the person she trusts to receive what she is owed if she dies. Never
+  // contacted while she is alive; used only by the MFI, on a death certificate.
+  nextOfKinName     String?
+  nextOfKinPhone    String?
+  nextOfKinRelation String?
   legalName         String    // exactly as on the ID record; used on the ACEV
   displayName       String    // what her group sees; she can change it
   market            String? // only in the case the trades in a market
@@ -137,6 +148,7 @@ model User {
   lockoutLevel      Int       @default(0) // each lockout lasts longer than the last
   lockedUntil       DateTime?
   pinChangedAt      DateTime? // stamps issued before this moment cannot reset the PIN again
+  closedAt          DateTime? // D69: recorded deceased by the MFI; no one can log in
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -169,6 +181,7 @@ model Device {
   installationId String
   trustedAt      DateTime @default(now())
   lastSeenAt     DateTime @default(now())
+  untrustedAt    DateTime? // D69: her number changed; this phone needs the SMS code again
 
   user     User      @relation(fields: [userId], references: [id])
   sessions Session[]
@@ -185,7 +198,7 @@ model Session {
   refreshTokenHash String    @unique // the token itself is never stored
   expiresAt        DateTime
   revokedAt        DateTime?
-  revokedReason    String?   // ROTATED, LOGOUT, PIN_RESET or REUSE_DETECTED
+  revokedReason    String?   // ROTATED, LOGOUT, PIN_RESET, REUSE_DETECTED, PHONE_CHANGED or DECEASED
   createdAt        DateTime  @default(now())
 
   user   User   @relation(fields: [userId], references: [id])
@@ -331,6 +344,11 @@ model Membership {
   payoutPosition  Int?       // her turn in the payout order, set when the group starts
   invitedById     String?    // empty for the organiser's own seat
   respondedAt     DateTime?
+  // D69: she left the started group; her pot and her share of the reserve
+  // then go to exitPayoutPhone (her next of kin, after a death).
+  exitReason      ExitReason?
+  exitedAt        DateTime?
+  exitPayoutPhone String?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
@@ -463,6 +481,8 @@ model Payout {
   releasedAt         DateTime?
   receiptConfirmedAt DateTime? // "I received it"
   receiptDisputedAt  DateTime? // "I did not receive it": shown to the officer
+  toNextOfKin        Boolean   @default(false) // D69: sent to her next of kin after her death
+  coverRepaidFcfa    Int       @default(0) // D69: her own unpaid covers, repaid from her pot first
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
@@ -610,6 +630,7 @@ model ReserveCover {
   amountFcfa Int       // her share of the pot: the contribution less the reserve's part
   coveredAt  DateTime  @default(now())
   repaidAt   DateTime?
+  writtenOffAt DateTime? // D69: she died; the fund carries her share, nobody owes it
 
   round Round @relation(fields: [roundId], references: [id])
   user  User  @relation(fields: [userId], references: [id])

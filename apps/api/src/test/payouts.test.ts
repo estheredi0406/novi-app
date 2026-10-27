@@ -342,18 +342,24 @@ describe("the solidarity reserve (D68)", () => {
   it("gives nothing back to a member who still owes a covered round", async () => {
     const { groupId, members } = await activeGroup();
     await seedFund(groupId, 9800);
+    // The member paid first stops in round 3: her turn is past, so her pot
+    // cannot repay the fund (D69), and she leaves owing it.
+    const first = await prisma.round.findUniqueOrThrow({
+      where: { groupId_number: { groupId, number: 1 } },
+      include: { beneficiary: { select: { displayName: true } } },
+    });
+    const stops = NAMES.indexOf(first.beneficiary.displayName);
     for (const number of [1, 2, 3]) {
-      const payers = number === 3 ? members.slice(0, 2) : members; // Koffi stops in round 3
+      const payers = number === 3 ? members.filter((_, i) => i !== stops) : members;
       for (const member of payers) await pay(member, groupId, number);
       await makeDue(groupId, number);
       await runPayouts();
       await release(groupId, number);
     }
-    const koffi = await prisma.user.findFirstOrThrow({ where: { displayName: "Koffi" } });
     const returns = await prisma.reserveReturn.findMany({ where: { groupId } });
-    expect(returns.map((r) => r.userId)).not.toContain(koffi.id);
+    expect(returns.map((r) => r.userId)).not.toContain(first.beneficiaryId);
     expect(returns).toHaveLength(2);
-    const record = (await (members.at(NAMES.indexOf("Koffi")) as Member).get("/v1/me/record")).body;
+    const record = (await (members.at(stops) as Member).get("/v1/me/record")).body;
     // The fund protected the group, but her record still says she missed it.
     expect(record).toMatchObject({ coveredByReserve: 1, coversRepaid: 0, missed: 1 });
   });

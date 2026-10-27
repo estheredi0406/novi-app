@@ -8,10 +8,11 @@ import { RecordPage, Records } from "./pages/Records";
 import { type Lang, text } from "./text";
 import { Activity } from "./pages/Activity";
 import { Analytics } from "./pages/Analytics";
+import { Members } from "./pages/Members";
 
 // The console's pages, read from the address bar after "#", so the browser's
 // back button works without a routing library: #/, #/groups/<id>,
-// #/records, #/records/<id>.
+// #/records, #/records/<id>, #/members.
 function useRoute(): string[] {
   const read = () => window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   const [route, setRoute] = useState(read);
@@ -76,6 +77,8 @@ export function App() {
       <Records t={t} onExpired={expired} />
     ) : section === "analytics" ? (
       <Analytics t={t} onExpired={expired} />
+    ) : section === "members" ? (
+      <Members t={t} onExpired={expired} />
     ) : section === "activity" ? (
       <Activity t={t} onExpired={expired} />
     ) : (
@@ -98,6 +101,9 @@ export function App() {
             </a>
             <a href="#/records" className={section === "records" ? "on" : ""}>
               {t.records}
+            </a>
+            <a href="#/members" className={section === "members" ? "on" : ""}>
+              {t.membersNav}
             </a>
             <a href="#/activity" className={section === "activity" ? "on" : ""}>
               {t.activity}

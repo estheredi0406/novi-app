@@ -13,6 +13,7 @@ import {
   releaseRoundPayout,
   retryPayout,
 } from "../services/consoleService.js";
+import { changeOrganiser, changePhone, lookupMember, recordExit } from "../services/protectionService.js";
 import { listSharedWithMfi, openSharedRecord } from "../services/recordService.js";
 import { documentFor } from "./verify.js";
 
@@ -61,6 +62,39 @@ consoleRouter.get("/analytics", async (_req, res) => {
 
 consoleRouter.get("/activity", async (_req, res) => {
   res.status(200).json(await listActivity(currentStaff(res).mfiId));
+});
+
+// D69: protecting the group. A member found by her phone number at the
+// counter; her death or departure; a new number; a new organiser.
+const phone = z.string().regex(/^\+228\d{8}$/);
+
+consoleRouter.get("/members", async (req, res) => {
+  const staff = currentStaff(res);
+  const query = z.object({ phone }).parse(req.query);
+  res.status(200).json(await lookupMember(staff.mfiId, staff.staffId, query.phone));
+});
+
+consoleRouter.post("/members/:userId/exit", async (req, res) => {
+  const staff = currentStaff(res);
+  const body = z
+    .object({ groupId: id, reason: z.enum(["DEATH", "LEFT"]), payoutPhone: phone.optional() })
+    .strict()
+    .parse(req.body);
+  res.status(200).json(await recordExit(staff.mfiId, staff.staffId, id.parse(req.params.userId), body));
+});
+
+consoleRouter.post("/members/:userId/phone", async (req, res) => {
+  const staff = currentStaff(res);
+  const body = z.object({ phone }).strict().parse(req.body);
+  res.status(200).json(await changePhone(staff.mfiId, staff.staffId, id.parse(req.params.userId), body.phone));
+});
+
+consoleRouter.post("/groups/:groupId/organiser", async (req, res) => {
+  const staff = currentStaff(res);
+  const body = z.object({ userId: id }).strict().parse(req.body);
+  res
+    .status(200)
+    .json(await changeOrganiser(staff.mfiId, staff.staffId, id.parse(req.params.groupId), body.userId));
 });
 
 // D63: a full, due pot leaves only when the officer releases it.

@@ -14,6 +14,8 @@ export type MemberProfile = {
   language: "EN" | "FR" | "EE";
   area: string;
   market: string | null;
+  // D69: who receives what she is owed if she dies.
+  nextOfKin: { name: string; phone: string; relation: string } | null;
 };
 
 export type AuthResponse = { tokens: AuthTokens; member: MemberProfile };

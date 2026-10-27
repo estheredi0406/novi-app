@@ -399,6 +399,10 @@ const ACTIVITY_LABELS = [
   "STAFF_PAYOUT_RELEASED",
   "STAFF_PAYOUT_RETRY",
   "STAFF_RECORD_OPENED",
+  "STAFF_MEMBER_LOOKUP",
+  "STAFF_MEMBER_EXIT",
+  "STAFF_PHONE_CHANGED",
+  "STAFF_ORGANISER_CHANGED",
 ] as const;
 
 // Every action taken by this MFI's officers, newest first: who did what and

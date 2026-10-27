@@ -115,6 +115,35 @@ export type ConsoleActivity = {
     | "STAFF_GROUP_DECLINED"
     | "STAFF_PAYOUT_RELEASED"
     | "STAFF_PAYOUT_RETRY"
-    | "STAFF_RECORD_OPENED";
+    | "STAFF_RECORD_OPENED"
+    | "STAFF_MEMBER_LOOKUP"
+    | "STAFF_MEMBER_EXIT"
+    | "STAFF_PHONE_CHANGED"
+    | "STAFF_ORGANISER_CHANGED";
   detail: string | null; // the round, the decline reason, or whose record was opened
+};
+
+// D69: one member as an officer sees her at the counter, found by her phone
+// number. Only for acting on her request, or on a death certificate; every
+// lookup is logged with the officer's name.
+export type ConsoleMemberSeat = {
+  groupId: string;
+  groupName: string;
+  groupState: "STARTING" | "ACTIVE" | "COMPLETED";
+  role: "ORGANISER" | "MEMBER";
+  payoutPosition: number | null;
+  potReceived: boolean; // her turn has come and the pot was paid
+  exitReason: "DEATH" | "LEFT" | null;
+  exitedAt: string | null;
+  exitPayoutPhone: string | null;
+};
+
+export type ConsoleMember = {
+  userId: string;
+  legalName: string;
+  phone: string;
+  closed: boolean; // recorded deceased
+  nextOfKin: { name: string; phone: string; relation: string } | null;
+  owedFcfa: number; // covers the fund paid for her, not repaid nor written off
+  seats: ConsoleMemberSeat[];
 };

@@ -408,7 +408,8 @@
     "notFound": "We couldn't find this.",
     "internal": "Something went wrong on our side. Please try again in a moment.",
     "rateLimited": "Too many tries. Please wait and try again.",
-    "noConnection": "No connection to Novi. Check your internet and try again."
+    "noConnection": "No connection to Novi. Check your internet and try again.",
+    "nextOfKinMissing": "A number is needed to pay what is owed."
   },
   "auth": {
     "otpInvalid": "This code is not right. Check the SMS and try again.",
@@ -421,7 +422,8 @@
     "newDevice": "This is a new phone. We sent you an SMS code to check it is yours.",
     "sessionRevoked": "You were logged out. Please log in again.",
     "pinTooWeak": "This PIN is too easy to guess. Choose another.",
-    "consentRequired": "Please tick the boxes to continue."
+    "consentRequired": "Please tick the boxes to continue.",
+    "accountClosed": "This account is closed. For any question, go to your MFI agency."
   },
   "identity": {
     "mismatch": "These details don't match ANID's record. Check them against your card.",
@@ -446,7 +448,8 @@
     "orderInvalid": "The payout order must list every member once.",
     "mfiUnavailable": "The MFI could not open the group's account just now. Try again in a few minutes: the payout order is kept.",
     "alreadyInvited": "This number is already invited to the group, or already has a seat in it.",
-    "cannotRemoveOrganiser": "The organiser's seat cannot be removed. Cancel the group instead."
+    "cannotRemoveOrganiser": "The organiser's seat cannot be removed. Cancel the group instead.",
+    "debtOutstanding": "The solidarity fund paid a share for you that you have not repaid yet. Pay that round first, then you can join another group."
   },
   "nav": {
     "home": "Home",
@@ -498,6 +501,26 @@
     "coveredTag": "Covered by the fund",
     "coveredLate": "Paid late",
     "youOweCover": "The solidarity fund paid your share of round {{number}} ({{amount}}). Pay as soon as you can to repay it.",
-    "payCover": "Repay now"
+    "payCover": "Repay now",
+    "toKin": "To her next of kin",
+    "left": "Has left"
+  },
+  "kin": {
+    "title": "Next of kin",
+    "why": "If you die, the MFI pays what you are owed to this person, on a death certificate: your pot if your turn has not come, and your part of the reserve.",
+    "private": "Novi never contacts this person while you are alive. Your groups do not see who it is.",
+    "name": "Full name",
+    "relation": "Who they are to you",
+    "relationExample": "Son, sister, husband…",
+    "phone": "Their phone number",
+    "notYours": "Choose someone else's number: your own phone may be lost with you.",
+    "remove": "Remove",
+    "removeTitle": "Remove your next of kin?",
+    "removeBody": "If you die, the MFI will have to find your heirs from documents, which takes longer.",
+    "keep": "Keep",
+    "notSet": "Not set yet",
+    "reminderTitle": "Who receives your money if something happens to you?",
+    "reminderBody": "Name a person you trust. It takes one minute.",
+    "reminderGo": "Name my next of kin"
   }
 }

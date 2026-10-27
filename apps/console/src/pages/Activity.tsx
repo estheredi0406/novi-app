@@ -30,7 +30,7 @@ export function Activity({ t, onExpired }: { t: Text; onExpired: () => void }) {
               <time>{when(entry.at)}</time>
               <span>
                 <strong>{entry.staffName}</strong> {t.actions[entry.action]}
-                {entry.detail ? ` · ${entry.detail}` : ""}
+                {entry.detail ? ` · ${(t.exited as Record<string, string>)[entry.detail] ?? entry.detail}` : ""}
               </span>
             </li>
           ))}

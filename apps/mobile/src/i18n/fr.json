@@ -408,7 +408,8 @@
     "notFound": "Introuvable.",
     "internal": "Un problème est survenu de notre côté. Réessayez dans un instant.",
     "rateLimited": "Trop de tentatives. Patientez puis réessayez.",
-    "noConnection": "Pas de connexion à Novi. Vérifiez votre internet et réessayez."
+    "noConnection": "Pas de connexion à Novi. Vérifiez votre internet et réessayez.",
+    "nextOfKinMissing": "Il faut un numéro pour verser ce qui est dû."
   },
   "auth": {
     "otpInvalid": "Ce code n'est pas correct. Vérifiez le SMS et réessayez.",
@@ -421,7 +422,8 @@
     "newDevice": "C'est un nouveau téléphone. Nous vous avons envoyé un code par SMS pour vérifier qu'il est le vôtre.",
     "sessionRevoked": "Vous avez été déconnecté. Veuillez vous reconnecter.",
     "pinTooWeak": "Ce PIN est trop facile à deviner. Choisissez-en un autre.",
-    "consentRequired": "Cochez les cases pour continuer."
+    "consentRequired": "Cochez les cases pour continuer.",
+    "accountClosed": "Ce compte est clôturé. Pour toute question, rendez-vous à votre agence IMF."
   },
   "identity": {
     "mismatch": "Ces informations ne correspondent pas au dossier de l'ANID. Comparez-les avec votre carte.",
@@ -446,7 +448,8 @@
     "orderInvalid": "L'ordre des tours doit citer chaque membre une seule fois.",
     "mfiUnavailable": "L'IMF n'a pas pu ouvrir le compte du groupe pour le moment. Réessayez dans quelques minutes : l'ordre des tours est conservé.",
     "alreadyInvited": "Ce numéro est déjà invité dans le groupe, ou y a déjà une place.",
-    "cannotRemoveOrganiser": "La place de la personne qui organise ne peut pas être retirée. Annulez plutôt le groupe."
+    "cannotRemoveOrganiser": "La place de la personne qui organise ne peut pas être retirée. Annulez plutôt le groupe.",
+    "debtOutstanding": "Le fonds solidaire a payé une part pour vous, pas encore remboursée. Payez d'abord ce tour, puis vous pourrez rejoindre un autre groupe."
   },
   "nav": {
     "home": "Accueil",
@@ -498,6 +501,26 @@
     "coveredTag": "Couverte par le fonds",
     "coveredLate": "Payé en retard",
     "youOweCover": "Le fonds solidaire a payé votre part du tour {{number}} ({{amount}}). Payez dès que possible pour le rembourser.",
-    "payCover": "Rembourser maintenant"
+    "payCover": "Rembourser maintenant",
+    "toKin": "À sa personne de confiance",
+    "left": "A quitté le groupe"
+  },
+  "kin": {
+    "title": "Personne de confiance",
+    "why": "Si vous décédez, l'IMF verse ce qui vous revient à cette personne, sur présentation de l'acte de décès : votre cagnotte si votre tour n'est pas passé, et votre part de la réserve.",
+    "private": "Novi ne contacte jamais cette personne de votre vivant. Vos groupes ne voient pas qui c'est.",
+    "name": "Nom complet",
+    "relation": "Lien avec vous",
+    "relationExample": "Fils, sœur, mari…",
+    "phone": "Son numéro de téléphone",
+    "notYours": "Choisissez le numéro de quelqu'un d'autre : votre téléphone peut être perdu avec vous.",
+    "remove": "Retirer",
+    "removeTitle": "Retirer votre personne de confiance ?",
+    "removeBody": "En cas de décès, l'IMF devra retrouver vos ayants droit à partir des documents, ce qui prend plus de temps.",
+    "keep": "Garder",
+    "notSet": "Pas encore choisie",
+    "reminderTitle": "Qui reçoit votre argent s'il vous arrive quelque chose ?",
+    "reminderBody": "Choisissez une personne de confiance. Cela prend une minute.",
+    "reminderGo": "Choisir ma personne de confiance"
   }
 }

@@ -29,6 +29,10 @@ export const errors = {
   // Group rules (apps/api/src/lib/groupRules.ts). The codes match the
   // rules engine's reasons one to one.
   NOT_ALLOWED_NOW: { messageKey: "groups.notAllowedNow" },
+  DEBT_OUTSTANDING: { messageKey: "groups.debtOutstanding" }, // D69: a covered share not yet repaid
+  ACCOUNT_CLOSED: { messageKey: "auth.accountClosed" }, // D69: recorded deceased by the MFI
+  NEXT_OF_KIN_MISSING: { messageKey: "errors.nextOfKinMissing" }, // D69: console, no number to pay after a death
+  NEXT_OF_KIN_SELF: { messageKey: "kin.notYours" }, // D69: her own number cannot be her next of kin's
   ORGANISER_ONLY: { messageKey: "groups.organiserOnly" },
   MEMBERS_ONLY: { messageKey: "groups.membersOnly" },
   SIZE_OUT_OF_RANGE: { messageKey: "groups.sizeOutOfRange" },

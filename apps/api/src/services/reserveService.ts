@@ -109,9 +109,24 @@ export async function coverMissing(
     const group = await tx.group.findUniqueOrThrow({ where: { id: round.groupId }, select: { mfiId: true } });
     if ((await fundBalance(group.mfiId, tx)) < missing.length * net) return false;
 
+    // D69: after a death, nobody owes her shares: the fund carries them.
+    const deceased = new Set(
+      (
+        await tx.membership.findMany({
+          where: { groupId: round.groupId, exitReason: "DEATH" },
+          select: { userId: true },
+        })
+      ).map((m) => m.userId),
+    );
     for (const { userId } of missing) {
       const cover = await tx.reserveCover.create({
-        data: { roundId: round.id, userId, amountFcfa: net, coveredAt: now },
+        data: {
+          roundId: round.id,
+          userId,
+          amountFcfa: net,
+          coveredAt: now,
+          writtenOffAt: deceased.has(userId) ? now : null,
+        },
       });
       await tx.ledgerEntry.create({
         data: {
@@ -143,8 +158,17 @@ export async function returnReserve(groupId: string): Promise<void> {
   if (group.state !== "COMPLETED" || !group.mfiAccountRef) return;
   if ((await prisma.reserveReturn.count({ where: { groupId } })) > 0) return;
 
+  // Shares written off after a death are the whole fund's loss, not this
+  // group's (D69): the members who paid are not made to carry them.
+  const writtenOff = await prisma.reserveCover.aggregate({
+    where: { round: { groupId }, writtenOffAt: { not: null }, repaidAt: null },
+    _sum: { amountFcfa: true },
+  });
   // Never more than the fund holds, if other groups' losses emptied it.
-  const balance = Math.min(await reserveBalance(groupId), await fundBalance(group.mfiId));
+  const balance = Math.min(
+    (await reserveBalance(groupId)) + (writtenOff._sum.amountFcfa ?? 0),
+    await fundBalance(group.mfiId),
+  );
   if (balance <= 0) return;
   const putIn = await prisma.ledgerEntry.groupBy({
     by: ["userId"],
@@ -153,7 +177,10 @@ export async function returnReserve(groupId: string): Promise<void> {
   });
   const owing = new Set(
     (
-      await prisma.reserveCover.findMany({ where: { round: { groupId }, repaidAt: null }, select: { userId: true } })
+      await prisma.reserveCover.findMany({
+        where: { round: { groupId }, repaidAt: null, writtenOffAt: null },
+        select: { userId: true },
+      })
     ).map((c) => c.userId),
   );
   const eligible = putIn.filter((p) => p.userId && !owing.has(p.userId));
@@ -170,7 +197,13 @@ export async function returnReserve(groupId: string): Promise<void> {
   if (parts[0]) parts[0].amount += rest;
 
   for (const part of parts.filter((p) => p.amount > 0)) {
-    const user = await prisma.user.findUniqueOrThrow({ where: { id: part.userId }, select: { phone: true } });
+    // After she left or died, her part goes where the officer recorded (D69).
+    const seat = await prisma.membership.findFirst({
+      where: { groupId, userId: part.userId },
+      select: { exitPayoutPhone: true, user: { select: { phone: true } } },
+    });
+    const user = { phone: seat?.exitPayoutPhone ?? seat?.user.phone ?? "" };
+    if (!user.phone) continue;
     const last = await prisma.contribution.findFirst({
       where: { userId: part.userId, status: "PAID", round: { groupId } },
       orderBy: { paidAt: "desc" },
@@ -217,10 +250,51 @@ export async function reserveSummary(groupId: string, mfiId: string) {
     reserveBalance(groupId),
     fundBalance(mfiId),
     prisma.reserveCover.aggregate({
-      where: { round: { groupId }, repaidAt: null },
+      where: { round: { groupId }, repaidAt: null, writtenOffAt: null },
       _sum: { amountFcfa: true },
       _count: true,
     }),
   ]);
   return { balanceFcfa: balance, fundFcfa: fund, owedFcfa: open._sum.amountFcfa ?? 0, coversOpen: open._count };
+}
+
+// D69: before her pot leaves, what the fund paid for her in this group and
+// she has not paid back is taken from it first, so a member cannot collect
+// the pot and leave her debt behind. Runs inside the release transaction;
+// returns what was repaid.
+export async function repayFromPot(tx: Tx, groupId: string, userId: string, potFcfa: number): Promise<number> {
+  const open = await tx.reserveCover.findMany({
+    where: { userId, round: { groupId }, repaidAt: null, writtenOffAt: null },
+    orderBy: { coveredAt: "asc" },
+  });
+  let repaid = 0;
+  for (const cover of open) {
+    if (repaid + cover.amountFcfa > potFcfa) break;
+    const done = await tx.reserveCover.updateMany({
+      where: { id: cover.id, repaidAt: null },
+      data: { repaidAt: new Date() },
+    });
+    if (done.count === 0) continue;
+    await tx.ledgerEntry.create({
+      data: {
+        groupId,
+        roundId: cover.roundId,
+        userId,
+        type: "RESERVE_REPAY",
+        amountFcfa: cover.amountFcfa,
+        note: `cover ${cover.id} from pot`,
+      },
+    });
+    repaid += cover.amountFcfa;
+  }
+  return repaid;
+}
+
+// D69: after a death, what the fund paid for her is nobody's debt.
+export async function writeOffCovers(tx: Tx, groupId: string, userId: string, now: Date): Promise<number> {
+  const done = await tx.reserveCover.updateMany({
+    where: { userId, round: { groupId }, repaidAt: null, writtenOffAt: null },
+    data: { writtenOffAt: now },
+  });
+  return done.count;
 }

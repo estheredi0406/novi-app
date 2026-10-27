@@ -25,7 +25,14 @@ import { currentRoundNumber, dueDates, isoDay } from "../lib/schedule.js";
 import { onTimeStreak } from "../lib/streak.js";
 import { inviteSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
+import { owedCovers } from "./memberService.js";
 import { reserveSummary } from "./reserveService.js";
+
+// D69: a member who still owes the solidarity fund a covered share settles it
+// before she commits to a new group, so a debt cannot be left behind.
+async function refuseIfOwing(userId: string): Promise<void> {
+  if ((await owedCovers(userId)) > 0) throw new AppError("DEBT_OUTSTANDING", 409);
+}
 
 // The demo works with one partner MFI (brief, section 3). It is created the
 // first time a group needs it; with several MFIs, the organiser will choose.
@@ -117,6 +124,7 @@ function toDetail(group: LoadedGroup, userId: string): GroupDetail {
       // nothing new, and lets her check that the person who accepted is the
       // one she meant to invite (D43). Other members see names only (D15).
       maskedPhone: isOrganiser ? maskPhone(seat.user.phone) : null,
+      exitReason: seat.exitReason,
     })),
     pendingInvites: group.invites.map((invite) => ({ id: invite.id, maskedPhone: maskPhone(invite.phone) })),
     myRole: isOrganiser ? "ORGANISER" : "MEMBER",
@@ -233,6 +241,7 @@ export async function countActiveGroups(userId: string, exceptGroupId?: string):
 // only once she proposes the group (D26).
 export async function createGroup(userId: string, input: { name: string } & RulesInput): Promise<GroupDetail> {
   enforce(checkRules(input));
+  await refuseIfOwing(userId);
   const { name, ...rules } = input;
 
   const groupId = await prisma.$transaction(async (tx) => {
@@ -471,6 +480,7 @@ export async function acceptRules(groupId: string, userId: string, versionSeen: 
   enforce(checkAction("RESPOND", group.state, isOrganiser));
   enforce(checkAnswersCurrentRules(versionSeen, group.currentVersion));
   enforce(checkCanJoin(await countActiveGroups(userId, groupId)));
+  await refuseIfOwing(userId);
 
   await recordAnswer(groupId, userId, invite?.id, invite?.invitedById, {
     state: "ACCEPTED",

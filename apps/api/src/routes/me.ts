@@ -18,6 +18,16 @@ const profileChanges = z
     area: z.string().trim().min(2).max(60).optional(),
     market: z.string().trim().min(2).max(60).nullable().optional(),
     language: z.enum(["EN", "FR", "EE"]).optional(),
+    // D69: the person who receives what she is owed if she dies; null removes it.
+    nextOfKin: z
+      .object({
+        name: z.string().trim().min(2).max(80),
+        phone: z.string().regex(/^\+228\d{8}$/),
+        relation: z.string().trim().min(2).max(40),
+      })
+      .strict()
+      .nullable()
+      .optional(),
   })
   .strict();
 

@@ -25,6 +25,10 @@ export function toMemberProfile(user: User): MemberProfile {
     language: user.language,
     area: user.area,
     market: user.market,
+    nextOfKin:
+      user.nextOfKinName && user.nextOfKinPhone
+        ? { name: user.nextOfKinName, phone: user.nextOfKinPhone, relation: user.nextOfKinRelation ?? "" }
+        : null,
   };
 }
 
@@ -169,11 +173,14 @@ export async function login(input: { phone: string; pin: string; installationId:
   }
 
   await checkPin(user, input.pin);
+  if (user.closedAt) throw new AppError("ACCOUNT_CLOSED", 403);
 
   const device = await prisma.device.findUnique({
     where: { userId_installationId: { userId: user.id, installationId: input.installationId } },
   });
-  if (!device) {
+  // A phone untrusted when her number changed (D69) needs the SMS code
+  // sent to her new number, like a new phone.
+  if (!device || device.untrustedAt) {
     const device = await sendDeviceCode(user.phone, user.language);
     throw new AppError("NEW_DEVICE", 409, undefined, device.challengeId, device.pilotCode);
   }
@@ -205,12 +212,13 @@ export async function trustDevice(input: {
   if (!user) throw new AppError("UNAUTHENTICATED", 401);
 
   await checkPin(user, input.pin);
+  if (user.closedAt) throw new AppError("ACCOUNT_CLOSED", 403);
 
   return prisma.$transaction(async (tx) => {
     const device = await tx.device.upsert({
       where: { userId_installationId: { userId: user.id, installationId: input.installationId } },
       create: { userId: user.id, installationId: input.installationId },
-      update: { lastSeenAt: new Date() },
+      update: { lastSeenAt: new Date(), untrustedAt: null },
     });
     const tokens = await openSession(tx, user.id, device.id);
     await tx.auditEvent.create({ data: { userId: user.id, type: "DEVICE_TRUSTED", details: { deviceId: device.id } } });

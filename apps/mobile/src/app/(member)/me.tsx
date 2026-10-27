@@ -102,6 +102,24 @@ export default function MeScreen() {
           <Row
             icon={
               <>
+                <Circle cx={9} cy={8} r={3} stroke={colors.indigo} strokeWidth={1.8} fill={colors.mist} />
+                <Path
+                  d="M3 19 C3 15 6 13 9 13 C12 13 15 15 15 19 M16 7 L18 9 L22 5"
+                  stroke={colors.indigo}
+                  strokeWidth={1.8}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </>
+            }
+            label={t("kin.title")}
+            sub={member.nextOfKin ? `${member.nextOfKin.name} · ${member.nextOfKin.relation}` : t("kin.notSet")}
+            onPress={() => router.push("/me-kin" as Href)}
+          />
+          <Row
+            icon={
+              <>
                 <Path
                   d="M5 4 H14 L19 9 V20 H5 Z M14 4 V9 H19"
                   stroke={colors.indigo}
