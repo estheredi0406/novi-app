@@ -67,6 +67,14 @@
         "projectId": "5d462fe8-2261-454f-8448-8791f0959e94"
       }
     },
-    "owner": "edi0406"
+    "owner": "edi0406",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5d462fe8-2261-454f-8448-8791f0959e94",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    }
   }
 }
