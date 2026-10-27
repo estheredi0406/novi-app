@@ -334,7 +334,9 @@
     "payoutPaid": "Cagnotte envoyée à {{name}} le {{date}}",
     "payoutHeld_one": "Cagnotte retenue : il manque {{count}} paiement",
     "payoutHeld_other": "Cagnotte retenue : il manque {{count}} paiements",
-    "payoutSending": "Cagnotte en cours d'envoi par l'IMF"
+    "payoutSending": "Cagnotte en cours d'envoi par l'IMF",
+    "confirmOnPageHint": "La page de paiement s'est ouverte. Choisissez votre opérateur et validez {{amount}}, puis revenez sur Novi : tout se met à jour seul.",
+    "openPage": "Rouvrir la page de paiement"
   },
   "idScan": {
     "title": "Test du code de la carte d'identité (développement)",

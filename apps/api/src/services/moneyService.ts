@@ -132,6 +132,7 @@ function toView(contribution: ContributionRow): ContributionView {
     requestedAt: contribution.requestedAt.toISOString(),
     paidAt: contribution.paidAt?.toISOString() ?? null,
     receiptRef: contribution.status === "PAID" ? receiptRef(contribution.id) : null,
+    paymentUrl: null,
   };
 }
 
@@ -188,8 +189,9 @@ export async function payRound(
     throw err;
   }
 
+  let paymentUrl: string | null = null;
   try {
-    const { providerRef } = await payments.requestCollection({
+    const requested = await payments.requestCollection({
       reference: contributionId,
       amountFcfa: rules.amountFcfa,
       phone: user.phone,
@@ -197,7 +199,8 @@ export async function payRound(
       description: `Novi, ${group.name}, round ${number}`,
       payerName: user.displayName,
     });
-    await prisma.contribution.update({ where: { id: contributionId }, data: { providerRef } });
+    paymentUrl = requested.paymentUrl ?? null;
+    await prisma.contribution.update({ where: { id: contributionId }, data: { providerRef: requested.providerRef } });
   } catch (err) {
     console.error(`Payment provider refused the request for contribution ${contributionId}:`, err);
     await prisma.contribution.update({ where: { id: contributionId }, data: { status: "FAILED", failedAt: new Date() } });
@@ -205,7 +208,8 @@ export async function payRound(
   }
 
   await prisma.auditEvent.create({ data: { userId, type: "CONTRIBUTION_REQUESTED", details: { groupId, round: number } } });
-  return toView(await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId }, include: { round: true } }));
+  const view = toView(await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId }, include: { round: true } }));
+  return { ...view, paymentUrl };
 }
 
 // ---------- Settling ----------

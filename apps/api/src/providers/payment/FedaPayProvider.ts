@@ -60,7 +60,7 @@ export class FedaPayProvider implements PaymentProvider {
     return (await res.json()) as T;
   }
 
-  async requestCollection(request: CollectionRequest): Promise<{ providerRef: string }> {
+  async requestCollection(request: CollectionRequest): Promise<{ providerRef: string; paymentUrl?: string }> {
     // In the sandbox with a test payer, the customer gets the test number too:
     // FedaPay's payment page locks the country to the customer's.
     const test = this.sandboxPayer?.number ? this.sandboxPayer : undefined;
@@ -82,10 +82,13 @@ export class FedaPayProvider implements PaymentProvider {
 
     const { token, url } = await this.call<{ token: string; url?: string }>("POST", `/transactions/${transaction.id}/token`);
     if (this.sandboxPayer?.mode === "page") {
-      // Sandbox only: skips the request to a phone and prints FedaPay's own
-      // payment page instead. Paying there with a test number completes the
-      // transaction, and Novi then sees it as paid when it checks the status.
-      console.warn(`[fedapay sandbox] open this page to pay with a test number: ${url ?? "(no url returned)"}`);
+      // Checkout (D64): no request is sent to a phone. The app opens
+      // FedaPay's own payment page, where she chooses her operator and
+      // approves; FedaPay then tells Novi through the signed webhook. This
+      // sandbox account may not use "send now" ("Opération non autorisée").
+      if (!url) throw new Error(`FedaPay returned no payment page for transaction ${transaction.id}`);
+      console.log(`[fedapay] payment page for transaction ${transaction.id}`);
+      return { providerRef: String(transaction.id), paymentUrl: url };
     } else if (this.sandboxPayer) {
       const { mode, country, number } = this.sandboxPayer;
       console.warn(`[fedapay sandbox] payment request sent to test number ${number} (${mode}), not ${request.phone}`);

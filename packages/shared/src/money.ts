@@ -19,6 +19,9 @@ export type ContributionView = {
   requestedAt: string;
   paidAt: string | null;
   receiptRef: string | null; // short reference printed on the receipt, once paid
+  // Only in the answer to "pay": the provider's payment page, when she pays
+  // there instead of approving a request on her phone (FedaPay checkout).
+  paymentUrl: string | null;
 };
 
 // One round in the group's calendar.

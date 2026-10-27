@@ -14,7 +14,8 @@
     "db:migrate": "prisma migrate dev && prisma generate",
     "demo:group": "tsx src/scripts/demoGroup.ts",
     "staff:create": "tsx src/scripts/createStaff.ts",
-    "demo:payout": "tsx src/scripts/demoPayout.ts"
+    "demo:payout": "tsx src/scripts/demoPayout.ts",
+    "fedapay:probe": "tsx src/scripts/fedapayProbe.ts"
   },
   "devDependencies": {
     "@novi/shared": "*",

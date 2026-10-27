@@ -2,7 +2,7 @@ import type { ContributionView, MobileOperator, RoundDetail } from "@novi/shared
 import { useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, View } from "react-native";
+import { Linking, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../../../../api/client";
 import { checkContribution, getRound, payRound } from "../../../../../api/money";
 import { Celebrate } from "../../../../../components/art/Celebrate";
@@ -63,13 +63,22 @@ export default function RoundScreen() {
     return () => clearTimeout(timer);
   }, [payment, load]);
 
+  const [pageUrl, setPageUrl] = useState<string | null>(null);
+
   async function pay(chosen: MobileOperator) {
     setBusy(true);
     setError(null);
     setWaitedTooLong(false);
     try {
       pollStarted.current = Date.now();
-      setPayment(await payRound(id, roundNumber, chosen));
+      const started = await payRound(id, roundNumber, chosen);
+      setPayment(started);
+      // Checkout (D64): she approves on the provider's page, then comes back;
+      // Novi keeps checking until the payment is confirmed.
+      if (started.paymentUrl) {
+        setPageUrl(started.paymentUrl);
+        void Linking.openURL(started.paymentUrl);
+      }
     } catch (err) {
       setError(errorKey(err));
     } finally {
@@ -100,7 +109,10 @@ export default function RoundScreen() {
       {payment?.status === "PENDING" ? (
         <View style={styles.note}>
           <Text style={[type.title, styles.indigo]}>{t("money.confirmOnPhone")}</Text>
-          <Text style={[type.body, styles.ink]}>{t("money.confirmOnPhoneHint", { amount })}</Text>
+          <Text style={[type.body, styles.ink]}>
+            {pageUrl ? t("money.confirmOnPageHint", { amount }) : t("money.confirmOnPhoneHint", { amount })}
+          </Text>
+          {pageUrl ? <TextButton label={t("money.openPage")} onPress={() => void Linking.openURL(pageUrl)} /> : null}
           {waitedTooLong ? (
             <>
               <Text style={[type.small, styles.muted]}>{t("money.stillWaiting")}</Text>

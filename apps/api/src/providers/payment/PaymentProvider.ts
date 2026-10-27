@@ -20,7 +20,9 @@ export interface PaymentProvider {
   readonly name: string; // stored with each contribution: "mock" or "fedapay"
 
   // Asks the provider to send the payment request to her phone.
-  requestCollection(request: CollectionRequest): Promise<{ providerRef: string }>;
+  // paymentUrl: when she completes the payment on the provider's own page
+  // (checkout) rather than approving a request sent to her phone.
+  requestCollection(request: CollectionRequest): Promise<{ providerRef: string; paymentUrl?: string }>;
 
   // Reads the true state of a transaction from the provider. A webhook only
   // says "something changed"; its own status is never trusted, because
