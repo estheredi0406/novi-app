@@ -18,8 +18,8 @@ import {
   startGroup,
   startNextCycle,
 } from "../services/groupService.js";
-import { hideMessage, listMessages, MAX_LENGTH, postMessage } from "../services/chatService.js";
-import { cancelMeeting, joinMeeting, listMeetings, scheduleMeeting } from "../services/meetingService.js";
+import { getVoice, hideMessage, listMessages, MAX_LENGTH, postMessage, postVoice, VOICE_MAX_BYTES } from "../services/chatService.js";
+import { cancelMeeting, joinMeeting, listMeetings, scheduleMeeting, startCall } from "../services/meetingService.js";
 import { getRound, listLedger, listRounds, payRound } from "../services/moneyService.js";
 
 export const groupsRouter = Router();
@@ -187,6 +187,26 @@ groupsRouter.post("/:id/messages/:messageId/hide", async (req, res) => {
   res.json(await hideMessage(id, currentMember(res).userId, messageId));
 });
 
+// A voice note (D76). The body is the recording as base64, so this route
+// alone accepts a larger body (see app.ts).
+const voiceBody = z
+  .object({
+    audioBase64: z.string().min(100).max(Math.ceil((VOICE_MAX_BYTES * 4) / 3) + 8),
+    durationMs: z.number().int(),
+    mime: z.string().max(40),
+  })
+  .strict();
+
+groupsRouter.post("/:id/voice", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  res.status(201).json(await postVoice(id, currentMember(res).userId, voiceBody.parse(req.body)));
+});
+
+groupsRouter.get("/:id/messages/:messageId/voice", async (req, res) => {
+  const { id, messageId } = messageParams.parse(req.params);
+  res.json(await getVoice(id, currentMember(res).userId, messageId));
+});
+
 // ---------- Group meetings (D71) ----------
 
 const meetingBody = z
@@ -215,6 +235,12 @@ groupsRouter.post("/:id/meetings", async (req, res) => {
 groupsRouter.post("/:id/meetings/:meetingId/cancel", async (req, res) => {
   const { id, meetingId } = meetingParams.parse(req.params);
   res.json(await cancelMeeting(id, currentMember(res).userId, meetingId));
+});
+
+// "Appeler le groupe" (D76): joins the open call, or starts one now.
+groupsRouter.post("/:id/call", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  res.json(await startCall(id, currentMember(res).userId));
 });
 
 groupsRouter.post("/:id/meetings/:meetingId/join", async (req, res) => {

@@ -19,3 +19,5 @@ Thumbs.db
 
 # Prisma client: rebuilt by prisma generate
 generated/
+# Machine Ewe voice clips: made on each laptop by scripts/ewe_voice.py, never shipped as is
+apps/mobile/assets/voice/ee/machine/

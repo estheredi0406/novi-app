@@ -4,7 +4,9 @@
     "back": "Retour",
     "listen": "Écouter",
     "tryAgain": "Réessayer",
-    "next": "Suivant"
+    "next": "Suivant",
+    "close": "Fermer",
+    "understood": "Compris"
   },
   "welcome": {
     "greeting": "Bienvenue",
@@ -27,7 +29,7 @@
     "step": "Étape 1 · Votre numéro",
     "title": "Quel est votre numéro de téléphone ?",
     "label": "Numéro de portable",
-    "safety": "Nous vous envoyons un code par SMS. Novi ne vous demandera jamais votre code Mixx ou Flooz.",
+    "safety": "Code envoyé par SMS. Novi ne demande jamais votre code Mixx ou Flooz.",
     "send": "Envoyez-moi le code",
     "haveAccount": "Déjà un compte ?",
     "login": "Se connecter"
@@ -58,7 +60,7 @@
     "day": "Jour",
     "month": "Mois",
     "year": "Année",
-    "nameHint": "Utilisez le nom imprimé sur la carte, pas un surnom. Vous choisirez le nom affiché pour votre groupe à l'étape 6.",
+    "nameHint": "Le nom imprimé sur la carte, pas un surnom.",
     "submit": "Vérifier avec l'ANID"
   },
   "anidCode": {
@@ -80,8 +82,8 @@
     "step": "Étape 5 · Votre code secret",
     "createTitle": "Choisissez un PIN à 4 chiffres",
     "confirmTitle": "Tapez à nouveau votre PIN",
-    "lede": "Vous le taperez à chaque ouverture de Novi, pour qu'une personne utilisant votre téléphone ne voie pas votre groupe.",
-    "tip": "Novi refuse les PIN trop faciles comme 1234 ou 0000. Évitez votre année de naissance et le code de votre mobile money.",
+    "lede": "Vous le taperez à chaque ouverture de Novi.",
+    "tip": "Pas de 1234, ni votre année de naissance, ni votre code mobile money.",
     "mismatch": "Les deux PIN sont différents. Réessayez."
   },
   "profile": {
@@ -93,7 +95,7 @@
     "market": "Vendez-vous dans un marché ? (facultatif)",
     "noMarket": "Pas dans un marché",
     "otherMarket": "Un autre marché",
-    "privacy": "Les groupes proches peuvent vous trouver par quartier. Novi n'affiche jamais votre position exacte.",
+    "privacy": "Novi n'affiche jamais votre position exacte.",
     "finish": "Ouvrir mon Novi",
     "otherAreaPlaceholder": "Nom de votre quartier",
     "otherMarketPlaceholder": "Nom de votre marché",
@@ -218,8 +220,8 @@
     "order": "Ordre des tours",
     "orderDrawn": "Tiré au sort par Novi",
     "orderFixed": "Fixé par la personne qui organise",
-    "orderDrawnHint": "Novi tire l'ordre au sort, équitablement, au démarrage du groupe. Personne ne peut le choisir.",
-    "orderFixedHint": "Quand toutes les places sont prises, vous fixez qui reçoit en premier. Chaque membre accepte l'ordre.",
+    "orderDrawnHint": "Tiré au sort au démarrage. Personne ne le choisit.",
+    "orderFixedHint": "Vous fixez l'ordre, chaque membre l'accepte.",
     "heldAt": "Argent conservé chez",
     "everyWeekday": "chaque {{day}}",
     "everyMonthDay": "le {{day}} de chaque mois",
@@ -237,12 +239,12 @@
   },
   "newGroup": {
     "title": "Nouveau groupe",
-    "lede": "Fixez les règles. Personne n'est prévenu tant que vous n'avez pas invité de numéros et envoyé les règles.",
+    "lede": "Personne n'est prévenu avant l'envoi des règles.",
     "create": "Créer le groupe"
   },
   "editRules": {
     "title": "Modifier les règles",
-    "lede": "Enregistrer crée une nouvelle version des règles. Chaque membre répond à nouveau.",
+    "lede": "Chaque membre répondra à la nouvelle version.",
     "save": "Enregistrer les nouvelles règles"
   },
   "group": {
@@ -278,7 +280,7 @@
   },
   "order": {
     "title": "Ordre des tours",
-    "lede": "Qui reçoit la cagnotte en premier, en deuxième, et ainsi de suite. Enregistrer crée une nouvelle version des règles que chaque membre accepte.",
+    "lede": "Qui reçoit en premier, en deuxième… Chaque membre accepte l'ordre.",
     "up": "Monter",
     "down": "Descendre",
     "save": "Enregistrer l'ordre"
@@ -318,7 +320,7 @@
     "stillWaiting": "Pas encore de réponse. Si vous avez confirmé, le paiement peut mettre un moment à arriver.",
     "checkAgain": "Vérifier à nouveau",
     "receiptTitle": "Paiement reçu",
-    "receiptBody": "{{amount}} pour le tour {{number}}. Un reçu vous a aussi été envoyé par SMS.",
+    "receiptBody": "{{amount}} pour le tour {{number}}. Reçu envoyé par SMS.",
     "receiptRef": "Référence {{ref}}",
     "paymentFailed": "Le paiement n'est pas passé. Aucun argent n'a été prélevé. Vous pouvez réessayer.",
     "whoPaid": "Qui a payé",
@@ -330,7 +332,7 @@
       "PAID": "Payé"
     },
     "ledgerTitle": "Registre",
-    "ledgerLede": "Tous les paiements du groupe, du plus récent au plus ancien. Une ligne n'est jamais modifiée ni supprimée.",
+    "ledgerLede": "Tous les paiements du groupe. Une ligne n'est jamais modifiée.",
     "ledgerEmpty": "Aucun paiement pour le moment.",
     "ledgerType": {
       "CONTRIBUTION": "Cotisation",
@@ -349,7 +351,7 @@
     "payoutHeld_one": "Cagnotte retenue : il manque {{count}} paiement",
     "payoutHeld_other": "Cagnotte retenue : il manque {{count}} paiements",
     "payoutSending": "Cagnotte en cours d'envoi par l'IMF",
-    "confirmOnPageHint": "La page de paiement s'est ouverte. Choisissez votre opérateur et validez {{amount}}, puis revenez sur Novi : tout se met à jour seul.",
+    "confirmOnPageHint": "Validez {{amount}} sur la page de paiement, puis revenez sur Novi.",
     "openPage": "Rouvrir la page de paiement"
   },
   "idScan": {
@@ -473,7 +475,7 @@
     "save": "Enregistrer",
     "pin": "Changer mon code PIN",
     "pinTitle": "Changer votre code PIN",
-    "pinBody": "Nous vous envoyons un code par SMS, puis vous choisissez un nouveau code PIN et vous vous connectez avec.",
+    "pinBody": "Un code par SMS, puis un nouveau PIN.",
     "pinGo": "Continuer",
     "agreed": "Ce que j'ai accepté"
   },
@@ -503,21 +505,27 @@
     "receiptYes": "Oui, je l'ai reçue",
     "receiptNo": "Non, elle n'est pas arrivée",
     "disputed": "Non reçue",
-    "reserveTitle": "Réserve solidaire",
+    "reserveTitle": "Caisse de secours",
     "reserveText": "{{percent}} % de chaque paiement vont au fonds solidaire de {{mfi}}. Si une membre a un empêchement, le fonds paie sa part et la cagnotte part complète, à l'heure.",
     "reserveGroup": "Mis par le groupe",
     "reserveFund": "Fonds de {{mfi}}",
     "reserveBack": "Ce qui reste vous est rendu en fin de cycle.",
-    "coveredTag": "Couverte par le fonds",
+    "coveredTag": "Payée par la caisse",
     "coveredLate": "Payé en retard",
-    "youOweCover": "Le fonds solidaire a payé votre part du tour {{number}} ({{amount}}). Payez dès que possible pour le rembourser.",
+    "youOweCover": "La caisse de secours a payé votre part du tour {{number}} ({{amount}}). Remboursez dès que possible.",
     "payCover": "Rembourser maintenant",
     "toKin": "À sa personne de confiance",
-    "left": "A quitté le groupe"
+    "left": "A quitté le groupe",
+    "roundOf": "Tour {{number}} sur {{total}}",
+    "pay": "Payer",
+    "youPaidShort": "Payé",
+    "paidOf": "{{paid}} sur {{size}} ont payé",
+    "receivesOn": "Reçoit {{day}}",
+    "yourTurn": "Votre tour"
   },
   "kin": {
     "title": "Personne de confiance",
-    "why": "Comme pour un compte en banque, choisissez qui pourra recevoir votre épargne Novi si un jour vous ne pouvez plus le faire vous-même. Votre IMF s'en occupe, sur justificatif.",
+    "why": "Qui pourra recevoir votre épargne si vous ne pouvez plus le faire. Votre IMF s'en occupe, sur justificatif.",
     "private": "Cette personne n'est pas prévenue, et votre groupe ne voit pas qui c'est.",
     "name": "Nom complet",
     "relation": "Lien avec vous",
@@ -555,7 +563,15 @@
     "paid": "{{name}} a payé le tour {{round}}",
     "potPaid": "Cagnotte du tour {{round}} versée à {{name}}",
     "meetingScheduled": "{{name}} a planifié une réunion : {{title}}, {{when}}",
-    "meetingCancelled": "{{name}} a annulé la réunion : {{title}}, {{when}}"
+    "meetingCancelled": "{{name}} a annulé la réunion : {{title}}, {{when}}",
+    "voiceExpired": "Message vocal effacé",
+    "callStarted": "{{name}} a lancé un appel",
+    "join": "Rejoindre",
+    "callEnded": "Appel terminé",
+    "callGroup": "Appeler le groupe",
+    "meetingAt": "Réunion · {{time}}",
+    "meetingsLink": "Réunions",
+    "safetyShort": "Novi ne vous demandera jamais votre code PIN ni un code SMS."
   },
   "meetings": {
     "title": "Réunions du groupe",
@@ -564,7 +580,7 @@
     "noneOrganiser": "Aucune réunion prévue. Planifiez-en une pour vous parler.",
     "openNow": "Ouverte maintenant",
     "schedule": "Planifier une réunion",
-    "scheduleHint": "Votre groupe la voit dans la discussion. La salle ouvre 10 minutes avant et ferme à la fin.",
+    "scheduleHint": "La salle ouvre 10 minutes avant.",
     "upcoming": "À venir",
     "past": "Les 30 derniers jours",
     "minutes_one": "{{count}} min",
@@ -598,14 +614,15 @@
     "timeInvalid": "Cette heure ne convient pas : elle est passée, à plus de 60 jours, ou chevauche une autre réunion.",
     "limit": "Votre groupe a déjà 5 réunions prévues. Attendez qu'une soit passée.",
     "notOpen": "La salle n'est pas ouverte : elle ouvre 10 minutes avant la réunion et ferme à la fin.",
-    "unavailable": "Le service de réunion n'a pas répondu. Réessayez dans un instant."
+    "unavailable": "Le service de réunion n'a pas répondu. Réessayez dans un instant.",
+    "micOn": "Micro allumé, caméra éteinte."
   },
   "cycle": {
     "number": "Cycle {{number}}",
     "done": "Cycle {{number}} terminé",
-    "doneHint": "Chaque membre a reçu sa cagnotte. Ce cycle compte sur le relevé d'épargne (ACEV) de chacune.",
+    "doneHint": "Chaque membre a reçu sa cagnotte.",
     "start": "Relancer un cycle",
-    "startHint": "Même nom et mêmes règles, et une invitation à chaque membre qui a terminé ce cycle. Vous pouvez modifier les règles avant de les envoyer.",
+    "startHint": "Mêmes règles, mêmes membres. Vous pouvez les modifier avant l'envoi.",
     "confirmTitle": "Relancer un cycle ?",
     "confirmBody": "Le cycle {{number}} est créé en brouillon et les membres sont invitées de nouveau. Chacune l'accepte elle-même.",
     "notNow": "Pas maintenant",
@@ -614,5 +631,50 @@
   },
   "splash": {
     "tagline": "Épargner ensemble, en confiance"
+  },
+  "tabs": {
+    "cotisation": "Cotisation",
+    "discussion": "Discussion",
+    "groupe": "Le groupe"
+  },
+  "groupInfo": {
+    "whoWhen": "Qui reçoit, et quand",
+    "received_one": "{{count}} reçue",
+    "received_other": "{{count}} reçues",
+    "see": "Voir",
+    "thisTurn": "Ce tour",
+    "more_one": "{{count}} autre jusqu'au {{date}}",
+    "more_other": "{{count}} autres jusqu'au {{date}}",
+    "seeAll": "Voir les {{count}}",
+    "seeLess": "Voir moins",
+    "rules": "Règles",
+    "ledger": "Registre",
+    "members_one": "{{count}} membre",
+    "members_other": "{{count}} membres"
+  },
+  "caisse": {
+    "title": "Caisse de secours",
+    "active": "Caisse de secours · active",
+    "what": "Qu'est-ce que la caisse de secours ?",
+    "body": "Si une membre ne peut pas payer à temps, la caisse paie pour elle. La cagnotte part complète, le jour prévu. Elle rembourse ensuite.",
+    "setAside": "Mis de côté",
+    "percent": "{{percent}} % de chaque cotisation",
+    "group": "Pour ce groupe",
+    "end": "Fin du cycle",
+    "returned": "rendu aux membres"
+  },
+  "voice": {
+    "micTitle": "Micro",
+    "micBody": "Autorisez le micro dans les réglages du téléphone pour envoyer un message vocal.",
+    "releaseToCancel": "Relâchez pour annuler",
+    "slideToCancel": "Glisser pour annuler",
+    "hold": "Maintenir pour enregistrer un message vocal",
+    "note": "Message vocal, {{time}}"
+  },
+  "calendar": {
+    "previous": "Mois précédent",
+    "next": "Mois suivant",
+    "meeting": "Réunion",
+    "payment": "Cotisation"
   }
 }

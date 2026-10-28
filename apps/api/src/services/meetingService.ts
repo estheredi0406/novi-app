@@ -1,4 +1,4 @@
-import type { GroupMeetingView, MeetingState, MeetingsPage } from "@novi/shared";
+import type { GroupCall, GroupMeetingView, MeetingState, MeetingsPage } from "@novi/shared";
 import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
@@ -19,6 +19,8 @@ const DURATIONS = [15, 30, 45, 60];
 const MAX_AHEAD_DAYS = 60;
 const MAX_UPCOMING = 5;
 const PAST_DAYS = 30;
+// "Appeler le groupe": an instant call lasts at most this long.
+const CALL_MIN = 30;
 
 type Loaded = Prisma.GroupMeetingGetPayload<{
   include: { createdBy: { select: { displayName: true } }; attendances: { include: { user: { select: { displayName: true } } } } };
@@ -79,7 +81,7 @@ export async function listMeetings(groupId: string, userId: string, now = new Da
   const seat = await seatOf(groupId, userId);
   const isOrganiser = seat.group.organiserId === userId;
   const rows = await prisma.groupMeeting.findMany({
-    where: { groupId, startsAt: { gte: new Date(now.getTime() - PAST_DAYS * 24 * 60 * MINUTE) } },
+    where: { groupId, instant: false, startsAt: { gte: new Date(now.getTime() - PAST_DAYS * 24 * 60 * MINUTE) } },
     orderBy: { startsAt: "asc" },
     include,
   });
@@ -109,7 +111,7 @@ export async function scheduleMeeting(
   }
 
   const planned = await prisma.groupMeeting.findMany({
-    where: { groupId, cancelledAt: null, startsAt: { gte: new Date(now.getTime() - 60 * MINUTE) } },
+    where: { groupId, instant: false, cancelledAt: null, startsAt: { gte: new Date(now.getTime() - 60 * MINUTE) } },
   });
   const still = planned.filter((m) => endOf(m) > now);
   if (still.length >= MAX_UPCOMING) throw new AppError("MEETING_LIMIT", 409);
@@ -215,4 +217,45 @@ export async function joinMeeting(
     update: {},
   });
   return { url };
+}
+
+// "Appeler le groupe" (D76): any active member calls the whole group now, as
+// she would ring her neighbours. If a call or a meeting is already open, she
+// joins it instead of opening a second room. A new call is posted in the
+// chat ("Akossiwa a lancé un appel · Rejoindre") and ends after 30 minutes.
+export async function startCall(groupId: string, userId: string, now = new Date()): Promise<GroupCall> {
+  const seat = await seatOf(groupId, userId);
+  if (!active(seat) || !["PROPOSED", "STARTING", "ACTIVE"].includes(seat.group.state)) {
+    throw new AppError("NOT_ALLOWED_NOW", 409);
+  }
+
+  const recent = await prisma.groupMeeting.findMany({
+    where: { groupId, cancelledAt: null, startsAt: { gte: new Date(now.getTime() - 60 * MINUTE), lte: new Date(now.getTime() + OPENS_BEFORE_MS) } },
+    orderBy: { startsAt: "desc" },
+  });
+  const open = recent.find((m) => stateOf(m, now) === "OPEN" && m.roomName);
+  if (open) return { meetingId: open.id, ...(await joinMeeting(groupId, userId, open.id, now)) };
+
+  const size = seat.group.rulesVersions.find((v) => v.version === seat.group.currentVersion)?.size ?? 15;
+  const call = await prisma.groupMeeting.create({
+    data: { groupId, createdById: userId, title: "", startsAt: now, durationMin: CALL_MIN, instant: true },
+  });
+  try {
+    const room = await meetings.createRoom({
+      name: `novi-${call.id}`,
+      opensAt: new Date(now.getTime() - MINUTE),
+      closesAt: endOf(call),
+      maxParticipants: size,
+    });
+    await prisma.groupMeeting.update({ where: { id: call.id }, data: { roomName: room.name, roomUrl: room.url } });
+  } catch (err) {
+    console.error("Call room not created:", err);
+    await prisma.groupMeeting.delete({ where: { id: call.id } });
+    throw new AppError("MEETING_UNAVAILABLE", 503);
+  }
+  await prisma.$transaction([
+    prisma.groupMessage.create({ data: { groupId, userId, kind: "EVENT", event: "CALL_STARTED", meetingId: call.id } }),
+    prisma.auditEvent.create({ data: { userId, type: "CALL_STARTED", details: { groupId, meetingId: call.id } } }),
+  ]);
+  return { meetingId: call.id, ...(await joinMeeting(groupId, userId, call.id, now)) };
 }

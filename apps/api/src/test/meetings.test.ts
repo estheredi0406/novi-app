@@ -192,3 +192,50 @@ describe("cancelling a meeting", () => {
     );
   });
 });
+
+describe("calling the group (D76)", () => {
+  it("opens a room now, posts it in the chat, and gives the caller her pass", async () => {
+    const { groupId, abla, koffi } = await group();
+    const call = await abla.post(`/v1/groups/${groupId}/call`);
+    expect(call.status).toBe(200);
+    expect(call.body.url).toContain("?t=mock-member-");
+    const room = rooms.rooms.get(`novi-${call.body.meetingId}`);
+    expect(room?.maxParticipants).toBe(3);
+    expect((room?.closesAt.getTime() ?? 0) - Date.now()).toBeGreaterThan(29 * 60_000);
+
+    const line = (await koffi.get(`/v1/groups/${groupId}/messages`)).body.messages.at(-1);
+    expect(line).toMatchObject({ event: "CALL_STARTED", authorName: "Abla", meeting: { instant: true, state: "OPEN" } });
+    // An instant call is not a planned meeting.
+    expect((await koffi.get(`/v1/groups/${groupId}/meetings`)).body.upcoming).toHaveLength(0);
+  });
+
+  it("joins the call already open instead of opening a second one", async () => {
+    const { groupId, abla, koffi } = await group();
+    const first = (await abla.post(`/v1/groups/${groupId}/call`)).body;
+    const second = (await koffi.post(`/v1/groups/${groupId}/call`)).body;
+    expect(second.meetingId).toBe(first.meetingId);
+    expect(await prisma.groupMessage.count({ where: { event: "CALL_STARTED" } })).toBe(1);
+  });
+
+  it("joins an open planned meeting rather than starting a call beside it", async () => {
+    const { groupId, akossiwa, koffi } = await group();
+    const planned = (await akossiwa.post(`/v1/groups/${groupId}/meetings`, meeting())).body;
+    await moveTo(planned.id, 5);
+    expect((await koffi.post(`/v1/groups/${groupId}/call`)).body.meetingId).toBe(planned.id);
+  });
+
+  it("is refused to anyone outside the group, and to a member who left", async () => {
+    const { groupId, ids, abla } = await group();
+    const stranger = as((await signedUpMember("+22890000005", undefined, { niu: "TEST-0005", legalName: "Ama Essi Lawson", dateOfBirth: "1992-11-19" }, "Ama")).tokens.accessToken);
+    expect((await stranger.post(`/v1/groups/${groupId}/call`)).status).toBe(404);
+    await prisma.membership.updateMany({ where: { groupId, userId: ids[1] }, data: { exitReason: "LEFT", exitedAt: new Date() } });
+    expect((await abla.post(`/v1/groups/${groupId}/call`)).status).toBe(409);
+  });
+
+  it("leaves nothing behind when the video provider does not answer", async () => {
+    const { groupId, abla } = await group();
+    rooms.failNext = true;
+    expect((await abla.post(`/v1/groups/${groupId}/call`)).status).toBe(503);
+    expect(await prisma.groupMeeting.count()).toBe(0);
+  });
+});

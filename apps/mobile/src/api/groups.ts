@@ -2,12 +2,14 @@ import type {
   ChatMessage,
   ChatPage,
   Frequency,
+  GroupCall,
   GroupDetail,
   GroupMeetingView,
   GroupSummary,
   Invitation,
   MeetingsPage,
   PayoutOrder,
+  VoiceAudio,
 } from "@novi/shared";
 import { memberRequest } from "./client";
 
@@ -59,6 +61,12 @@ export const listMessages = (id: string, cursor: { after?: string; before?: stri
 };
 export const postMessage = (id: string, body: string) =>
   memberRequest<ChatMessage>("POST", `/v1/groups/${id}/messages`, { body });
+// D76: voice notes and calling the group.
+export const postVoice = (id: string, input: { audioBase64: string; durationMs: number; mime: string }) =>
+  memberRequest<ChatMessage>("POST", `/v1/groups/${id}/voice`, input);
+export const getVoice = (id: string, messageId: string) =>
+  memberRequest<VoiceAudio>("GET", `/v1/groups/${id}/messages/${messageId}/voice`);
+export const callGroup = (id: string) => memberRequest<GroupCall>("POST", `/v1/groups/${id}/call`, {});
 export const hideMessage = (id: string, messageId: string) =>
   memberRequest<ChatMessage>("POST", `/v1/groups/${id}/messages/${messageId}/hide`, {});
 

@@ -1,11 +1,13 @@
 import type { GroupMeetingView, MeetingsPage } from "@novi/shared";
 import { type Href, router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Linking, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../../../api/client";
 import { cancelMeeting, joinMeeting, listMeetings } from "../../../../api/groups";
+import { listRounds } from "../../../../api/money";
 import { BackHeader } from "../../../../components/BackHeader";
+import { dayKey, MonthCalendar } from "../../../../components/MonthCalendar";
 import { ErrorMessage } from "../../../../components/ErrorMessage";
 import { HeaderBand } from "../../../../components/HeaderBand";
 import { PrimaryButton } from "../../../../components/PrimaryButton";
@@ -25,6 +27,21 @@ export default function MeetingsScreen() {
   const [page, setPage] = useState<MeetingsPage | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dueDays, setDueDays] = useState<Set<string>>(new Set());
+
+  // Payment days, for the orange dots: only once the group runs.
+  useFocusEffect(
+    useCallback(() => {
+      void listRounds(id).then(
+        (rounds) => setDueDays(new Set(rounds.map((r) => r.dueDate.slice(0, 10)))),
+        () => setDueDays(new Set()),
+      );
+    }, [id]),
+  );
+  const meetingDays = useMemo(
+    () => new Set((page?.upcoming ?? []).map((m) => dayKey(new Date(m.startsAt)))),
+    [page],
+  );
 
   const load = useCallback(() => {
     void listMeetings(id).then(
@@ -73,18 +90,12 @@ export default function MeetingsScreen() {
         <HeaderBand>
           <BackHeader listenText={listen} />
           <Text style={styles.bandName}>{t("meetings.title")}</Text>
-          <Text style={styles.bandSub}>{t("meetings.hint")}</Text>
         </HeaderBand>
       }
     >
       <ErrorMessage messageKey={error} />
 
-      {page?.canSchedule ? (
-        <PrimaryButton
-          label={t("meetings.schedule")}
-          onPress={() => router.push(`/groups/${id}/meeting-new` as Href)}
-        />
-      ) : null}
+      <MonthCalendar meetings={meetingDays} payments={dueDays} />
 
       <Text style={styles.section}>{t("meetings.upcoming")}</Text>
       {page && page.upcoming.length === 0 ? <Text style={styles.empty}>{t("meetings.none")}</Text> : null}
@@ -110,11 +121,18 @@ export default function MeetingsScreen() {
             ) : (
               <Text style={styles.small}>{opensIn(t, meeting.startsAt)}</Text>
             )}
-            {open ? <Text style={styles.small}>{t("meetings.voiceFirst")}</Text> : null}
+            {open ? <Text style={styles.small}>{t("meetings.micOn")}</Text> : null}
             {meeting.canCancel ? <TextButton label={t("meetings.cancel")} onPress={() => cancel(meeting)} /> : null}
           </WaxCard>
         );
       })}
+
+      {page?.canSchedule ? (
+        <PrimaryButton
+          label={`+ ${t("meetings.schedule")}`}
+          onPress={() => router.push(`/groups/${id}/meeting-new` as Href)}
+        />
+      ) : null}
 
       {page && page.past.length > 0 ? (
         <View style={styles.pastList}>
@@ -143,7 +161,6 @@ export default function MeetingsScreen() {
 
 const styles = StyleSheet.create({
   bandName: { fontFamily: fonts.display, fontSize: 28, color: colors.indigo },
-  bandSub: { fontFamily: fonts.body, fontSize: 15, color: colors.muted },
   section: { fontFamily: fonts.display, fontSize: 20, color: colors.indigo },
   empty: { fontFamily: fonts.body, fontSize: 16, color: colors.muted },
   card: { padding: 16, gap: 8 },

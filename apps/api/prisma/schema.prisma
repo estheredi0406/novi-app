@@ -677,6 +677,7 @@ model ReserveReturn {
 enum MessageKind {
   TEXT  // written by a member
   EVENT // written by Novi when money moves, shown in each reader's language
+  VOICE // a voice note recorded by a member, at most a minute
 }
 
 // One message in a group's chat. Only the group's members read it: never the
@@ -688,7 +689,8 @@ model GroupMessage {
   userId     String?     // the author; for an EVENT, the member it is about
   kind       MessageKind @default(TEXT)
   body       String?     // TEXT only, at most 500 characters
-  event      String?     // EVENT only: PAID, POT_PAID, MEETING_SCHEDULED or MEETING_CANCELLED
+  voiceMs    Int?        // VOICE only: the note's length
+  event      String?     // EVENT only: PAID, POT_PAID, MEETING_SCHEDULED, MEETING_CANCELLED or CALL_STARTED
   round      Int?        // EVENT only: the round number
   meetingId  String?     // EVENT only: the meeting it is about (D71)
   hiddenAt   DateTime?
@@ -699,9 +701,24 @@ model GroupMessage {
   author   User? @relation("MessageAuthor", fields: [userId], references: [id])
   hiddenBy User? @relation("MessageHider", fields: [hiddenById], references: [id])
   meeting  GroupMeeting? @relation(fields: [meetingId], references: [id])
+  voice    VoiceNote?
 
   @@index([groupId, createdAt])
   @@map("group_messages")
+}
+
+// The sound of a voice note, kept apart so the chat pages stay light. Deleted
+// when its message is hidden, and when the cycle ends: a voice is personal,
+// and the group's written story is what stays.
+model VoiceNote {
+  messageId String   @id
+  mime      String
+  audio     Bytes
+  createdAt DateTime @default(now())
+
+  message GroupMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("voice_notes")
 }
 
 //----------------Group meetings (D71)----------------------------
@@ -718,6 +735,7 @@ model GroupMeeting {
   agenda      String?
   startsAt    DateTime
   durationMin Int       // 15 to 60
+  instant     Boolean   @default(false) // a call a member started now, from the chat
   roomName    String?   @unique
   roomUrl     String?
   cancelledAt DateTime?

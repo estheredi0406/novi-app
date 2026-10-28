@@ -3,6 +3,11 @@
 //
 //   node scripts/importEwe.mjs
 //
+// Only the "eʋegbe" column is copied: the sentences a speaker wrote or
+// checked. "brouillon_claude" is a draft to correct, never shipped as is.
+// To try the drafts on your own phone only, add --brouillon: an empty
+// "eʋegbe" cell then takes the draft. Do not publish an update made that way.
+//
 // Only filled cells are copied; an empty cell keeps falling back to French.
 // Words in {{double braces}} are filled in by the app (a name, an amount)
 // and must stay exactly as they are; the script refuses a sentence that
@@ -34,13 +39,23 @@ function parse(text) {
 }
 
 const placeholders = (s) => (s.match(/\{\{\w+\}\}/g) ?? []).sort().join(",");
-const [, ...rows] = parse(readFileSync(csvPath, "utf8").replace(/^﻿/, ""));
+const [header, ...rows] = parse(readFileSync(csvPath, "utf8").replace(/^\uFEFF/, ""));
+const col = (name) => header.findIndex((h) => h.trim().toLowerCase() === name);
+const KEY = col("key");
+const FR = col("francais");
+const EWE = col("eʋegbe");
+const DRAFT = col("brouillon_claude");
+const useDrafts = process.argv.includes("--brouillon");
+if (KEY < 0 || FR < 0 || EWE < 0) throw new Error("The sheet needs the columns key, francais and eʋegbe.");
 const ee = JSON.parse(readFileSync(eePath, "utf8"));
 let copied = 0;
 const problems = [];
 
-for (const [key, fr, , ewe] of rows) {
-  if (!key || !ewe?.trim()) continue;
+for (const row of rows) {
+  const key = row[KEY];
+  const fr = row[FR] ?? "";
+  const ewe = row[EWE]?.trim() || (useDrafts && DRAFT >= 0 ? row[DRAFT]?.trim() : "");
+  if (!key || !ewe) continue;
   if (placeholders(fr) !== placeholders(ewe)) {
     problems.push(`${key}: keep ${placeholders(fr) || "no {{…}}"} exactly`);
     continue;
@@ -48,7 +63,7 @@ for (const [key, fr, , ewe] of rows) {
   const parts = key.split(".");
   let node = ee;
   for (const part of parts.slice(0, -1)) node = node[part] ??= {};
-  node[parts.at(-1)] = ewe.trim();
+  node[parts.at(-1)] = ewe;
   copied++;
 }
 

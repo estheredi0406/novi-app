@@ -27,3 +27,11 @@ export function daysUntil(isoDay: string, now = new Date()): number {
   const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   return Math.round((Date.parse(`${isoDay.slice(0, 10)}T00:00:00Z`) - today) / 86_400_000);
 }
+
+// "2026-11-06" becomes "ven. 6 nov." (or "Fri 6 Nov"): the day as people say
+// it at the market, short enough for a list of fifteen turns.
+export function shortDay(isoDay: string, language: string): string {
+  const date = new Date(`${isoDay.slice(0, 10)}T12:00:00Z`);
+  const locale = language === "en" ? "en-GB" : "fr-FR";
+  return date.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+}

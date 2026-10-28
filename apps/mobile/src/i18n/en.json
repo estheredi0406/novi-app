@@ -4,7 +4,9 @@
     "back": "Back",
     "listen": "Listen",
     "tryAgain": "Try again",
-    "next": "Next"
+    "next": "Next",
+    "close": "Close",
+    "understood": "Got it"
   },
   "welcome": {
     "greeting": "Welcome",
@@ -27,7 +29,7 @@
     "step": "Step 1 · Your number",
     "title": "What is your phone number?",
     "label": "Mobile number",
-    "safety": "We send you a code by SMS. Novi will never ask for your Mixx or Flooz PIN.",
+    "safety": "Code sent by SMS. Novi never asks for your Mixx or Flooz PIN.",
     "send": "Send me the code",
     "haveAccount": "Already have an account?",
     "login": "Log in"
@@ -58,7 +60,7 @@
     "day": "Day",
     "month": "Month",
     "year": "Year",
-    "nameHint": "Use the name printed on the card, not a nickname. You choose what your group calls you in step 6.",
+    "nameHint": "The name printed on the card, not a nickname.",
     "submit": "Check with ANID"
   },
   "anidCode": {
@@ -80,8 +82,8 @@
     "step": "Step 5 · Your secret",
     "createTitle": "Choose a 4-number PIN",
     "confirmTitle": "Type your PIN again",
-    "lede": "You will type it each time you open Novi, so someone using your phone cannot see your group.",
-    "tip": "Novi refuses easy PINs like 1234 or 0000. Avoid your birth year and the PIN you use for mobile money.",
+    "lede": "You will type it each time you open Novi.",
+    "tip": "No 1234, no birth year, not your mobile money PIN.",
     "mismatch": "The two PINs are different. Try again."
   },
   "profile": {
@@ -93,7 +95,7 @@
     "market": "Do you trade in a market? (optional)",
     "noMarket": "Not in a market",
     "otherMarket": "Another market",
-    "privacy": "Groups near you can find you by area. Novi never shows your exact location.",
+    "privacy": "Novi never shows your exact location.",
     "finish": "Open my Novi",
     "otherAreaPlaceholder": "Name of your area",
     "otherMarketPlaceholder": "Name of your market",
@@ -218,8 +220,8 @@
     "order": "Order of turns",
     "orderDrawn": "Drawn by Novi",
     "orderFixed": "Set by the organiser",
-    "orderDrawnHint": "Novi draws the order fairly when the group starts. Nobody can choose it.",
-    "orderFixedHint": "Once every place is taken, you set who is paid first. Every member accepts the order.",
+    "orderDrawnHint": "Drawn at random at the start. Nobody chooses it.",
+    "orderFixedHint": "You set the order, each member accepts it.",
     "heldAt": "Money held at",
     "everyWeekday": "every {{day}}",
     "everyMonthDay": "on day {{day}} of each month",
@@ -237,12 +239,12 @@
   },
   "newGroup": {
     "title": "New group",
-    "lede": "Set the rules. Nobody is told anything until you invite numbers and send the rules.",
+    "lede": "Nobody is told until you send the rules.",
     "create": "Create the group"
   },
   "editRules": {
     "title": "Change the rules",
-    "lede": "Saving makes a new version of the rules. Every member answers again.",
+    "lede": "Each member will answer the new version.",
     "save": "Save the new rules"
   },
   "group": {
@@ -278,7 +280,7 @@
   },
   "order": {
     "title": "Order of turns",
-    "lede": "Who receives the pot first, second, and so on. Saving makes a new version of the rules that every member accepts.",
+    "lede": "Who receives first, second… Each member accepts the order.",
     "up": "Up",
     "down": "Down",
     "save": "Save the order"
@@ -318,7 +320,7 @@
     "stillWaiting": "No answer yet. If you confirmed, the payment may take a moment to arrive.",
     "checkAgain": "Check again",
     "receiptTitle": "Payment received",
-    "receiptBody": "{{amount}} for round {{number}}. A receipt was also sent to you by SMS.",
+    "receiptBody": "{{amount}} for round {{number}}. Receipt sent by SMS.",
     "receiptRef": "Reference {{ref}}",
     "paymentFailed": "The payment did not go through. No money was taken. You can try again.",
     "whoPaid": "Who has paid",
@@ -330,7 +332,7 @@
       "PAID": "Paid"
     },
     "ledgerTitle": "Ledger",
-    "ledgerLede": "Every payment of the group, newest first. A line is never changed or deleted.",
+    "ledgerLede": "Every payment of the group. A line is never changed.",
     "ledgerEmpty": "No payment yet.",
     "ledgerType": {
       "CONTRIBUTION": "Contribution",
@@ -349,7 +351,7 @@
     "payoutHeld_one": "Pot held: waiting for {{count}} payment",
     "payoutHeld_other": "Pot held: waiting for {{count}} payments",
     "payoutSending": "Pot on its way through the MFI",
-    "confirmOnPageHint": "The payment page has opened. Choose your operator and approve {{amount}}, then come back to Novi: it updates by itself.",
+    "confirmOnPageHint": "Approve {{amount}} on the payment page, then come back to Novi.",
     "openPage": "Open the payment page again"
   },
   "idScan": {
@@ -473,7 +475,7 @@
     "save": "Save",
     "pin": "Change my PIN",
     "pinTitle": "Change your PIN",
-    "pinBody": "We will send you an SMS code, then you choose a new PIN and log in with it.",
+    "pinBody": "A code by SMS, then a new PIN.",
     "pinGo": "Continue",
     "agreed": "What I agreed to"
   },
@@ -503,21 +505,27 @@
     "receiptYes": "Yes, I received it",
     "receiptNo": "No, it has not arrived",
     "disputed": "Not received",
-    "reserveTitle": "Solidarity reserve",
+    "reserveTitle": "Safety fund",
     "reserveText": "{{percent}}% of each payment goes to {{mfi}}'s solidarity fund. If a member cannot pay in time, the fund pays her share and the pot leaves full, on time.",
     "reserveGroup": "Put in by the group",
     "reserveFund": "{{mfi}}'s fund",
     "reserveBack": "What is left comes back to you at the end of the cycle.",
-    "coveredTag": "Covered by the fund",
+    "coveredTag": "Paid by the fund",
     "coveredLate": "Paid late",
-    "youOweCover": "The solidarity fund paid your share of round {{number}} ({{amount}}). Pay as soon as you can to repay it.",
+    "youOweCover": "The safety fund paid your share of round {{number}} ({{amount}}). Repay it as soon as you can.",
     "payCover": "Repay now",
     "toKin": "To her next of kin",
-    "left": "Has left"
+    "left": "Has left",
+    "roundOf": "Round {{number}} of {{total}}",
+    "pay": "Pay",
+    "youPaidShort": "Paid",
+    "paidOf": "{{paid}} of {{size}} have paid",
+    "receivesOn": "Receives {{day}}",
+    "yourTurn": "Your turn"
   },
   "kin": {
     "title": "Trusted person",
-    "why": "Like for a bank account, choose who can receive your Novi savings if one day you can no longer do it yourself. Your MFI handles it, on proof.",
+    "why": "Who can receive your savings if you no longer can. Your MFI handles it, with proof.",
     "private": "This person is not told, and your group does not see who it is.",
     "name": "Full name",
     "relation": "Who they are to you",
@@ -555,7 +563,15 @@
     "paid": "{{name}} paid round {{round}}",
     "potPaid": "Round {{round}} pot paid to {{name}}",
     "meetingScheduled": "{{name}} planned a meeting: {{title}}, {{when}}",
-    "meetingCancelled": "{{name}} cancelled the meeting: {{title}}, {{when}}"
+    "meetingCancelled": "{{name}} cancelled the meeting: {{title}}, {{when}}",
+    "voiceExpired": "Voice note deleted",
+    "callStarted": "{{name}} started a call",
+    "join": "Join",
+    "callEnded": "Call ended",
+    "callGroup": "Call the group",
+    "meetingAt": "Meeting · {{time}}",
+    "meetingsLink": "Meetings",
+    "safetyShort": "Novi will never ask for your PIN or an SMS code."
   },
   "meetings": {
     "title": "Group meetings",
@@ -564,7 +580,7 @@
     "noneOrganiser": "No meeting planned. Plan one to talk together.",
     "openNow": "Open now",
     "schedule": "Plan a meeting",
-    "scheduleHint": "Your group sees it in the chat. The room opens 10 minutes before and closes at the end.",
+    "scheduleHint": "The room opens 10 minutes before.",
     "upcoming": "Coming up",
     "past": "The last 30 days",
     "minutes_one": "{{count}} min",
@@ -598,14 +614,15 @@
     "timeInvalid": "This time does not work: it is past, more than 60 days away, or overlaps another meeting.",
     "limit": "Your group already has 5 meetings planned. Wait for one to pass.",
     "notOpen": "The room is not open: it opens 10 minutes before the meeting and closes at the end.",
-    "unavailable": "The meeting service did not answer. Try again in a moment."
+    "unavailable": "The meeting service did not answer. Try again in a moment.",
+    "micOn": "Microphone on, camera off."
   },
   "cycle": {
     "number": "Cycle {{number}}",
     "done": "Cycle {{number}} complete",
-    "doneHint": "Every member received her pot. It counts on each member's savings record (ACEV).",
+    "doneHint": "Every member has received her pot.",
     "start": "Start the next cycle",
-    "startHint": "Same name and rules, and an invitation to every member who completed this cycle. You can change the rules before sending them.",
+    "startHint": "Same rules, same members. You can change them before sending.",
     "confirmTitle": "Start the next cycle?",
     "confirmBody": "Cycle {{number}} is created as a draft and the members are invited again. Each one accepts it herself.",
     "notNow": "Not now",
@@ -614,5 +631,50 @@
   },
   "splash": {
     "tagline": "Saving together, with trust"
+  },
+  "tabs": {
+    "cotisation": "Payments",
+    "discussion": "Chat",
+    "groupe": "The group"
+  },
+  "groupInfo": {
+    "whoWhen": "Who receives, and when",
+    "received_one": "{{count}} received",
+    "received_other": "{{count}} received",
+    "see": "See",
+    "thisTurn": "This round",
+    "more_one": "{{count}} more until {{date}}",
+    "more_other": "{{count}} more until {{date}}",
+    "seeAll": "See all {{count}}",
+    "seeLess": "See less",
+    "rules": "Rules",
+    "ledger": "Register",
+    "members_one": "{{count}} member",
+    "members_other": "{{count}} members"
+  },
+  "caisse": {
+    "title": "Safety fund",
+    "active": "Safety fund · active",
+    "what": "What is the safety fund?",
+    "body": "If a member cannot pay on time, the fund pays for her. The pot leaves in full, on the planned day. She repays it afterwards.",
+    "setAside": "Set aside",
+    "percent": "{{percent}} % of each payment",
+    "group": "For this group",
+    "end": "End of the cycle",
+    "returned": "given back to members"
+  },
+  "voice": {
+    "micTitle": "Microphone",
+    "micBody": "Allow the microphone in your phone's settings to send a voice note.",
+    "releaseToCancel": "Let go to cancel",
+    "slideToCancel": "Slide to cancel",
+    "hold": "Hold to record a voice note",
+    "note": "Voice note, {{time}}"
+  },
+  "calendar": {
+    "previous": "Previous month",
+    "next": "Next month",
+    "meeting": "Meeting",
+    "payment": "Payment"
   }
 }

@@ -112,18 +112,25 @@ export type CurrentRound = {
 // by Novi when money moved, and the app words it in the reader's language.
 export type ChatMessage = {
   id: string;
-  kind: "TEXT" | "EVENT";
+  kind: "TEXT" | "EVENT" | "VOICE";
   authorId: string | null;
   authorName: string | null; // her display name, as her group sees it
   mine: boolean;
   body: string | null; // null when hidden, or for an EVENT
-  event: "PAID" | "POT_PAID" | "MEETING_SCHEDULED" | "MEETING_CANCELLED" | null;
+  event: "PAID" | "POT_PAID" | "MEETING_SCHEDULED" | "MEETING_CANCELLED" | "CALL_STARTED" | null;
   round: number | null;
-  meeting: { id: string; title: string; startsAt: string } | null; // D71
+  // D71; state tells a call still open from one that ended
+  meeting: { id: string; title: string; startsAt: string; state: MeetingState; instant: boolean } | null;
+  voice: { durationMs: number; available: boolean } | null; // VOICE only; false once deleted
   hidden: boolean;
   canHide: boolean; // she wrote it, or she is the organiser
   createdAt: string; // ISO
 };
+
+export type VoiceAudio = { mime: string; audioBase64: string };
+
+// "Appeler le groupe": the open call she joins, started now or already running.
+export type GroupCall = { meetingId: string; url: string };
 
 export type ChatPage = {
   messages: ChatMessage[]; // oldest first

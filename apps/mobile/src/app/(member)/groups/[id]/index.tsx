@@ -18,7 +18,6 @@ import { listRounds } from "../../../../api/money";
 import { AnswerPanel } from "../../../../components/AnswerPanel";
 import { BackHeader } from "../../../../components/BackHeader";
 import { ErrorMessage } from "../../../../components/ErrorMessage";
-import { GroupRoundView } from "../../../../components/GroupRoundView";
 import { HeaderBand } from "../../../../components/HeaderBand";
 import { Field } from "../../../../components/Field";
 import { PrimaryButton } from "../../../../components/PrimaryButton";
@@ -32,6 +31,7 @@ import { colors } from "../../../../theme/colors";
 import { ChatEntry } from "../../../../components/ChatEntry";
 import { MeetingsCard } from "../../../../components/MeetingsCard";
 import { NextCycleCard } from "../../../../components/NextCycleCard";
+import { GROUP_TABS, type GroupTab, RunningGroup } from "../../../../components/group/RunningGroup";
 import { fonts, type } from "../../../../theme/typography";
 
 // One group, as its members see it: rules, members, and the actions this
@@ -39,7 +39,7 @@ import { fonts, type } from "../../../../theme/typography";
 // offers the buttons that make sense, so she is rarely refused.
 export default function GroupScreen() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const { member } = useSession();
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [meetings, setMeetings] = useState<MeetingsPage | null>(null);
@@ -98,6 +98,14 @@ export default function GroupScreen() {
     );
   }
 
+  // Once it runs, the group lives in three tabs (approved design F1 to F3).
+  if ((group.state === "ACTIVE" || group.state === "COMPLETED") && rounds.length > 0) {
+    const open: GroupTab = GROUP_TABS.includes(tab as GroupTab) ? (tab as GroupTab) : "cotisation";
+    return (
+      <RunningGroup group={group} rounds={rounds} meetings={meetings} memberId={member.id} tab={open} onChanged={load} />
+    );
+  }
+
   const { rules, state } = group;
   const isOrganiser = group.myRole === "ORGANISER";
   const setup = state === "DRAFT" || state === "PROPOSED";
@@ -124,8 +132,6 @@ export default function GroupScreen() {
       }
     >
       {state === "COMPLETED" ? <NextCycleCard group={group} /> : null}
-
-      {rounds.length > 0 ? <GroupRoundView group={group} rounds={rounds} memberId={member.id} onChanged={load} /> : null}
 
       {state !== "DRAFT" && state !== "CANCELLED" ? <ChatEntry groupId={group.id} unread={group.unreadMessages} /> : null}
       {state !== "DRAFT" && state !== "CANCELLED" ? <MeetingsCard groupId={group.id} page={meetings} /> : null}

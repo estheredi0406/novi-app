@@ -171,3 +171,71 @@ describe("the group's chat", () => {
     expect((await abla.post(`/v1/groups/${groupId}/messages`, { body: "Bonjour" })).status).toBe(409);
   });
 });
+
+// A fake minute-long note: the server checks size and length, not the sound.
+const note = (bytes = 2_000, durationMs = 12_000) => ({
+  audioBase64: Buffer.alloc(bytes, 7).toString("base64"),
+  durationMs,
+  mime: "audio/mp4",
+});
+
+describe("voice notes (D76)", () => {
+  it("lets a member send a voice note that the group can play", async () => {
+    const { groupId, akossiwa, abla } = await group();
+    const sent = await abla.post(`/v1/groups/${groupId}/voice`, note());
+    expect(sent.status).toBe(201);
+    expect(sent.body).toMatchObject({ kind: "VOICE", mine: true, voice: { durationMs: 12_000, available: true } });
+
+    const line = (await akossiwa.get(`/v1/groups/${groupId}/messages`)).body.messages[0];
+    expect(line).toMatchObject({ kind: "VOICE", authorName: "Abla", mine: false, canHide: true });
+    const sound = await akossiwa.get(`/v1/groups/${groupId}/messages/${line.id}/voice`);
+    expect(sound.status).toBe(200);
+    expect(sound.body.mime).toBe("audio/mp4");
+    expect(Buffer.from(sound.body.audioBase64, "base64").length).toBe(2_000);
+  });
+
+  it("refuses a note longer than a minute, too large, or of another kind", async () => {
+    const { groupId, abla } = await group();
+    expect((await abla.post(`/v1/groups/${groupId}/voice`, note(2_000, 75_000))).status).toBe(400);
+    expect((await abla.post(`/v1/groups/${groupId}/voice`, note(700_000))).status).toBe(400);
+    expect((await abla.post(`/v1/groups/${groupId}/voice`, { ...note(), mime: "video/mp4" })).status).toBe(400);
+  });
+
+  it("keeps the sound from anyone outside the group", async () => {
+    const { groupId, abla } = await group();
+    const sent = (await abla.post(`/v1/groups/${groupId}/voice`, note())).body;
+    const stranger = as((await signedUpMember("+22890000005", undefined, { niu: "TEST-0005", legalName: "Ama Essi Lawson", dateOfBirth: "1992-11-19" }, "Ama")).tokens.accessToken);
+    expect((await stranger.get(`/v1/groups/${groupId}/messages/${sent.id}/voice`)).status).toBe(404);
+  });
+
+  it("deletes the sound when the note is hidden", async () => {
+    const { groupId, akossiwa, koffi } = await group();
+    const sent = (await koffi.post(`/v1/groups/${groupId}/voice`, note())).body;
+    await akossiwa.post(`/v1/groups/${groupId}/messages/${sent.id}/hide`);
+    expect(await prisma.voiceNote.count()).toBe(0);
+    const line = (await akossiwa.get(`/v1/groups/${groupId}/messages`)).body.messages[0];
+    expect(line).toMatchObject({ hidden: true, voice: { available: false } });
+    expect((await akossiwa.get(`/v1/groups/${groupId}/messages/${sent.id}/voice`)).status).toBe(410);
+  });
+
+  it("deletes the voices when the cycle ends, and keeps the written chat", async () => {
+    const { groupId, akossiwa, abla, koffi } = await group();
+    await abla.post(`/v1/groups/${groupId}/voice`, note());
+    await abla.post(`/v1/groups/${groupId}/messages`, { body: "Merci à toutes" });
+    for (let round = 1; round <= 3; round++) {
+      for (const member of [akossiwa, abla, koffi]) await pay(member, groupId, round);
+      await prisma.round.update({
+        where: { groupId_number: { groupId, number: round } },
+        data: { dueDate: new Date("2026-01-02T00:00:00Z") },
+      });
+      await runPayouts();
+      const payout = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: round } } });
+      await releasePayout(payout.id, null);
+    }
+    expect((await prisma.group.findUniqueOrThrow({ where: { id: groupId } })).state).toBe("COMPLETED");
+    expect(await prisma.voiceNote.count()).toBe(0);
+    const lines = (await abla.get(`/v1/groups/${groupId}/messages`)).body.messages;
+    expect(lines.find((m: { kind: string }) => m.kind === "VOICE").voice.available).toBe(false);
+    expect(lines.find((m: { body: string }) => m.body === "Merci à toutes")).toBeTruthy();
+  });
+});
