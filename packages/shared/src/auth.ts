@@ -16,6 +16,7 @@ export type MemberProfile = {
   market: string | null;
   // D69: who receives what she is owed if she dies.
   nextOfKin: { name: string; phone: string; relation: string } | null;
+  notifyChat: boolean; // D79: notifications for chat messages; money ones always go
 };
 
 export type AuthResponse = { tokens: AuthTokens; member: MemberProfile };

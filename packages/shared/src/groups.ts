@@ -59,6 +59,9 @@ export type GroupDetail = {
   cycleNumber: number;
   previousCycleId: string | null;
   nextCycleId: string | null; // set once the organiser started the next cycle
+  // D80: once the cycle is complete, who wants to go again (display names).
+  continueAnswers: { yes: string[]; no: string[]; waiting: string[] } | null;
+  myContinue: boolean | null; // her own answer, null until she answers
 };
 
 // An invitation as the invited person sees it: enough to decide whether to

@@ -4,6 +4,7 @@ import { prisma } from "../lib/db.js";
 import { isoDay } from "../lib/schedule.js";
 import { reminderSms } from "../lib/smsText.js";
 import { sms } from "../providers/index.js";
+import { notifyDue } from "./notifyService.js";
 
 // Reminders before a contribution is due (F16): an SMS the day before, and
 // one on the morning of the due day, to each member who has not paid yet.
@@ -57,6 +58,7 @@ export async function runReminders(now = new Date()): Promise<number> {
           dueToday,
         }),
       );
+      await notifyDue(seat.userId, round.groupId, round.group.name, rules?.amountFcfa ?? 0, dueToday);
       sent += 1;
     }
   }

@@ -7,6 +7,7 @@ import { payoutSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import type { PayoutAnswer } from "../providers/mfi/MfiAdapter.js";
 import { deleteGroupVoices, postEvent } from "./chatService.js";
+import { notifyCycleDone, notifyPotPaid } from "./notifyService.js";
 import { coverMissing, repayFromPot, returnReserve } from "./reserveService.js";
 
 // Money out (Sprint 4, D63). On a round's due date, a full pot becomes READY;
@@ -286,6 +287,8 @@ async function settlePayout(payoutId: string, mfiRef: string) {
     const closed = await prisma.group.findUnique({ where: { id: done.round.groupId }, select: { state: true } });
     if (closed?.state === "COMPLETED") {
       await deleteGroupVoices(done.round.groupId).catch((err: unknown) => console.error("Voice notes not deleted:", err));
+      // D80: each member says whether she goes again.
+      await notifyCycleDone(done.round.groupId);
     }
     // D70: the group's chat shows whose pot was paid.
     await postEvent(done.round.groupId, "POT_PAID", done.beneficiaryId, done.round.number);
@@ -303,6 +306,8 @@ async function settlePayout(payoutId: string, mfiRef: string) {
         mfiName: round.group.mfi.name,
       }),
     );
+    // D79: and on her phone, if Novi is installed.
+    await notifyPotPaid(done.beneficiaryId, round.groupId, round.group.name, done.amountFcfa);
   }
 }
 

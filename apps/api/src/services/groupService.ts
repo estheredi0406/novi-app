@@ -135,7 +135,33 @@ function toDetail(group: LoadedGroup, userId: string): GroupDetail {
     cycleNumber: group.cycleNumber,
     previousCycleId: group.previousGroupId,
     nextCycleId: group.nextCycle?.id ?? null,
+    ...continueOf(group, userId),
   };
+}
+
+// D80: once the cycle is complete, each member who finished it says whether
+// she goes again; the whole group sees the answers, as they would at the
+// market.
+function continueOf(group: LoadedGroup, userId: string): Pick<GroupDetail, "continueAnswers" | "myContinue"> {
+  if (group.state !== "COMPLETED") return { continueAnswers: null, myContinue: null };
+  const finished = group.memberships.filter((m) => m.payoutPosition !== null && m.exitReason === null);
+  const names = (answer: boolean | null) =>
+    finished.filter((m) => m.continueAnswer === answer).map((m) => m.user.displayName);
+  return {
+    continueAnswers: { yes: names(true), no: names(false), waiting: names(null) },
+    myContinue: finished.find((m) => m.userId === userId)?.continueAnswer ?? null,
+  };
+}
+
+// "Oui, je continue" or "Non, j'arrête", until the next cycle is started.
+// She can change her mind until then.
+export async function answerContinue(groupId: string, userId: string, continues: boolean): Promise<GroupDetail> {
+  const { group, mySeat } = await loadForMember(groupId, userId);
+  if (group.state !== "COMPLETED" || group.nextCycle || mySeat.payoutPosition === null || mySeat.exitReason) {
+    throw new AppError("NOT_ALLOWED_NOW", 409);
+  }
+  await prisma.membership.update({ where: { id: mySeat.id }, data: { continueAnswer: continues, continueAt: new Date() } });
+  return getGroup(groupId, userId);
 }
 
 // Every place taken in the group: held seats, plus invitations waiting for an
@@ -700,8 +726,10 @@ async function createRounds(
 // and an invitation to every member who completed the cycle. It starts as
 // a draft, so she can change the rules first; each member then accepts the
 // new cycle herself, as consent is given per cycle (D29). Members who left
-// or died (D69) are not invited again; a member who still owes the fund is
-// invited, but cannot accept until she has repaid it.
+// or died (D69) are not invited again, nor a member who answered "Non,
+// j'arrête" (D80); one who has not answered is invited, and can decline. A
+// member who still owes the fund is invited, but cannot accept until she
+// has repaid it.
 export async function startNextCycle(groupId: string, userId: string): Promise<GroupDetail> {
   const { group, isOrganiser } = await loadForMember(groupId, userId);
   if (!isOrganiser) throw new AppError("ORGANISER_ONLY", 403);
@@ -737,6 +765,7 @@ export async function startNextCycle(groupId: string, userId: string): Promise<G
       payoutPosition: { not: null },
       exitReason: null,
       user: { closedAt: null },
+      OR: [{ continueAnswer: null }, { continueAnswer: true }],
     },
     orderBy: { payoutPosition: "asc" },
     include: { user: { select: { phone: true } } },

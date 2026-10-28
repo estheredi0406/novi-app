@@ -82,4 +82,7 @@ export const joinMeeting = (id: string, meetingId: string) =>
   memberRequest<{ url: string }>("POST", `/v1/groups/${id}/meetings/${meetingId}/join`, {});
 
 // D72: the next cycle with the same members.
+// D80: at the end of the cycle, does she go again?
+export const answerContinue = (id: string, continues: boolean) =>
+  memberRequest<GroupDetail>("POST", `/v1/groups/${id}/continue`, { continues });
 export const startNextCycle = (id: string) => memberRequest<GroupDetail>("POST", `/v1/groups/${id}/next-cycle`, {});

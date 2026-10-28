@@ -20,6 +20,7 @@ export async function updateProfile(
     market?: string | null;
     language?: Language;
     nextOfKin?: { name: string; phone: string; relation: string } | null;
+    notifyChat?: boolean;
   },
 ): Promise<MemberProfile> {
   const { nextOfKin, ...rest } = changes;

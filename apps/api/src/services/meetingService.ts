@@ -4,6 +4,7 @@ import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { holdsSeat } from "../lib/groupRules.js";
 import { meetings } from "../providers/index.js";
+import { notifyCall } from "./notifyService.js";
 
 // Group meetings (D71). The organiser schedules a call: a title, a date and
 // time, a length and what will be discussed. Novi asks the video provider
@@ -257,5 +258,6 @@ export async function startCall(groupId: string, userId: string, now = new Date(
     prisma.groupMessage.create({ data: { groupId, userId, kind: "EVENT", event: "CALL_STARTED", meetingId: call.id } }),
     prisma.auditEvent.create({ data: { userId, type: "CALL_STARTED", details: { groupId, meetingId: call.id } } }),
   ]);
+  await notifyCall(groupId, userId);
   return { meetingId: call.id, ...(await joinMeeting(groupId, userId, call.id, now)) };
 }

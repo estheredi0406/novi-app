@@ -29,6 +29,7 @@ export function toMemberProfile(user: User): MemberProfile {
       user.nextOfKinName && user.nextOfKinPhone
         ? { name: user.nextOfKinName, phone: user.nextOfKinPhone, relation: user.nextOfKinRelation ?? "" }
         : null,
+    notifyChat: user.notifyChat,
   };
 }
 

@@ -2,16 +2,12 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { updateProfile } from "../api/auth";
-import { type AppLanguage, currentLanguage, setAppLanguage } from "../i18n";
+import { APP_LANGUAGES, type AppLanguage, currentLanguage, setAppLanguage } from "../i18n";
 import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
 import { Chip } from "./Chip";
 
-const LANGUAGES: { language: AppLanguage; nameKey: string }[] = [
-  { language: "EE", nameKey: "language.ee" },
-  { language: "FR", nameKey: "language.fr" },
-  { language: "EN", nameKey: "language.en" },
-];
+const LANGUAGES = APP_LANGUAGES;
 
 // Changes the language of the app at once, and of her account, so the SMS
 // Novi sends her (codes, invitations, receipts) follow the same choice.

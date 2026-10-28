@@ -8,6 +8,9 @@ import type { PaymentProvider } from "./payment/PaymentProvider.js";
 import { DailyMeetingProvider } from "./meeting/DailyMeetingProvider.js";
 import type { MeetingProvider } from "./meeting/MeetingProvider.js";
 import { MockMeetingProvider } from "./meeting/MockMeetingProvider.js";
+import { ExpoPushProvider } from "./push/ExpoPushProvider.js";
+import { MockPushProvider } from "./push/MockPushProvider.js";
+import type { PushProvider } from "./push/PushProvider.js";
 import type { SmsProvider } from "./sms/SmsProvider.js";
 import { MockSmsProvider } from "./sms/MockSmsProvider.js";
 
@@ -52,3 +55,13 @@ function chooseMeetings(): MeetingProvider {
 }
 
 export const meetings: MeetingProvider = chooseMeetings();
+
+// Phone notifications (D79): Expo's push service, which is free and needs
+// no key; EXPO_ACCESS_TOKEN, if set, locks sending to Novi's server. Tests
+// always use the mock.
+function choosePush(): PushProvider {
+  if (process.env.NODE_ENV === "test" || process.env.NOTIFICATIONS_OFF) return new MockPushProvider();
+  return new ExpoPushProvider(process.env.EXPO_ACCESS_TOKEN || undefined);
+}
+
+export const push: PushProvider = choosePush();

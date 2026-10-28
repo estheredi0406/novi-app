@@ -477,7 +477,9 @@
     "pinTitle": "Change your PIN",
     "pinBody": "A code by SMS, then a new PIN.",
     "pinGo": "Continue",
-    "agreed": "What I agreed to"
+    "agreed": "What I agreed to",
+    "notifyChat": "Chat notifications",
+    "notifyMoney": "Money notifications always stay on."
   },
   "pilot": {
     "label": "Pilot: this code normally arrives by SMS"
@@ -622,12 +624,21 @@
     "done": "Cycle {{number}} complete",
     "doneHint": "Every member has received her pot.",
     "start": "Start the next cycle",
-    "startHint": "Same rules, same members. You can change them before sending.",
+    "startHint": "Same rules. Everyone is invited again, except those who stop.",
     "confirmTitle": "Start the next cycle?",
     "confirmBody": "Cycle {{number}} is created as a draft and the members are invited again. Each one accepts it herself.",
     "notNow": "Not now",
     "openNext": "Open cycle {{number}}",
-    "organiserCan": "Your organiser can start the next cycle with the same members."
+    "organiserCan": "Your organiser starts the next cycle with those who continue.",
+    "goAgain": "Going again?",
+    "yes": "Yes, I continue",
+    "no": "No, I stop",
+    "votesYes_one": "{{count}} yes",
+    "votesYes_other": "{{count}} yes",
+    "votesNo_one": "{{count}} no",
+    "votesNo_other": "{{count}} no",
+    "votesWaiting_one": "{{count}} not yet",
+    "votesWaiting_other": "{{count}} not yet"
   },
   "splash": {
     "tagline": "Saving together, with trust"

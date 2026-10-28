@@ -6,16 +6,12 @@ import { StatusBar } from "expo-status-bar";
 import Svg, { G, Path } from "react-native-svg";
 import { NoviMark } from "../../components/art/NoviMark";
 import { ListenButton } from "../../components/ListenButton";
-import { type AppLanguage, currentLanguage, setAppLanguage } from "../../i18n";
+import { APP_LANGUAGES, type AppLanguage, currentLanguage, setAppLanguage } from "../../i18n";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// Ewe first: it is the language most likely to be missing elsewhere.
-const LANGUAGES: { language: AppLanguage; nameKey: string }[] = [
-  { language: "EE", nameKey: "language.ee" },
-  { language: "FR", nameKey: "language.fr" },
-  { language: "EN", nameKey: "language.en" },
-];
+// Ewe first, once its texts are ready (D78).
+const LANGUAGES = APP_LANGUAGES;
 
 // Welcome (approved design, 27 Oct): the orange of the splash continues,
 // with Novi's mark and name. The language is chosen right here, in one tap

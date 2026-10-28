@@ -113,3 +113,37 @@ describe("the next cycle", () => {
     expect(next.pendingInvites[0].maskedPhone).toBe("+228 90 •• •• 02");
   });
 });
+
+describe("on continue ? (D80)", () => {
+  it("lets each member who finished the cycle say whether she goes again, seen by the group", async () => {
+    const { groupId, akossiwa, abla, koffi } = await completedGroup();
+    const before = (await abla.get(`/v1/groups/${groupId}`)).body;
+    expect(before.continueAnswers).toEqual({ yes: [], no: [], waiting: ["Akossiwa", "Abla", "Koffi"] });
+
+    expect((await abla.post(`/v1/groups/${groupId}/continue`, { continues: true })).body.myContinue).toBe(true);
+    await koffi.post(`/v1/groups/${groupId}/continue`, { continues: false });
+    const seen = (await akossiwa.get(`/v1/groups/${groupId}`)).body;
+    expect(seen.continueAnswers).toEqual({ yes: ["Abla"], no: ["Koffi"], waiting: ["Akossiwa"] });
+    expect(seen.myContinue).toBeNull();
+  });
+
+  it("does not invite a member who said she stops, and invites one who has not answered", async () => {
+    const { groupId, akossiwa, abla, koffi } = await completedGroup();
+    await abla.post(`/v1/groups/${groupId}/continue`, { continues: false });
+    const next = (await akossiwa.post(`/v1/groups/${groupId}/next-cycle`)).body;
+    expect(next.pendingInvites).toHaveLength(1);
+    // Koffi, who did not answer, is invited; Abla is not.
+    const invited = await prisma.invite.findMany({ where: { groupId: next.id } });
+    expect(invited.map((i) => i.phone)).toEqual(["+22890000003"]);
+    // Once the next cycle exists, the answers are closed.
+    expect((await koffi.post(`/v1/groups/${groupId}/continue`, { continues: true })).status).toBe(409);
+  });
+
+  it("is refused while the cycle is still running", async () => {
+    const people = [await signedUpMember()];
+    const akossiwa = as(people[0]!.tokens.accessToken);
+    const groupId = (await akossiwa.post("/v1/groups", SMALL_GROUP)).body.id as string;
+    expect((await akossiwa.post(`/v1/groups/${groupId}/continue`, { continues: true })).status).toBe(409);
+  });
+});
+

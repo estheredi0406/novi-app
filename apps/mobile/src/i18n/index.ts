@@ -13,17 +13,31 @@ export type AppLanguage = "EN" | "FR" | "EE";
 // review by a native speaker; missing Ewe keys fall back to French.
 const frComplete: typeof en = fr;
 
+// Ewe is offered once enough of it has been written or checked by a speaker
+// (D78): until then, choosing it would only show French, which confuses a
+// tester or a jury. Counted, not switched by hand, so it appears by itself.
+const count = (node: unknown): number =>
+  typeof node === "string" ? 1 : node && typeof node === "object" ? Object.values(node).reduce((n: number, v) => n + count(v), 0) : 0;
+export const EWE_READY = count(ee) >= 40;
+
+// The languages she can choose, Ewe first when it is ready.
+export const APP_LANGUAGES: { language: AppLanguage; nameKey: string }[] = [
+  ...(EWE_READY ? [{ language: "EE" as const, nameKey: "language.ee" }] : []),
+  { language: "FR", nameKey: "language.fr" },
+  { language: "EN", nameKey: "language.en" },
+];
+
 // Starts in the phone's language when Novi supports it; otherwise in French,
 // Togo's official language. The member chooses on the first screen.
 function deviceLanguage(): AppLanguage {
   const code = getLocales()[0]?.languageCode;
-  if (code === "ee") return "EE";
+  if (code === "ee" && EWE_READY) return "EE";
   if (code === "en") return "EN";
   return "FR";
 }
 
 function toI18nCode(language: AppLanguage): "en" | "fr" | "ee" {
-  return language === "EN" ? "en" : language === "FR" ? "fr" : "ee";
+  return language === "EN" ? "en" : language === "EE" && EWE_READY ? "ee" : "fr";
 }
 
 void i18n.use(initReactI18next).init({

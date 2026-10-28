@@ -149,6 +149,7 @@ model User {
   lockedUntil       DateTime?
   pinChangedAt      DateTime? // stamps issued before this moment cannot reset the PIN again
   closedAt          DateTime? // D69: recorded deceased by the MFI; no one can log in
+  notifyChat        Boolean   @default(true) // D79: phone notifications for chat messages (money ones always go)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -186,6 +187,7 @@ model Device {
   trustedAt      DateTime @default(now())
   lastSeenAt     DateTime @default(now())
   untrustedAt    DateTime? // D69: her number changed; this phone needs the SMS code again
+  pushToken      String?   // D79: Expo's address for notifications to this phone
 
   user     User      @relation(fields: [userId], references: [id])
   sessions Session[]
@@ -361,6 +363,9 @@ model Membership {
   exitedAt        DateTime?
   exitPayoutPhone String?
   chatReadAt      DateTime?  // D70: the last time she opened the group's chat
+  chatPushedAt    DateTime?  // D79: the last chat notification, at most one an hour
+  continueAnswer  Boolean?   // D80: at the end of the cycle, does she want to go again?
+  continueAt      DateTime?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 

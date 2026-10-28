@@ -21,3 +21,6 @@ Thumbs.db
 generated/
 # Machine Ewe voice clips: made on each laptop by scripts/ewe_voice.py, never shipped as is
 apps/mobile/assets/voice/ee/machine/
+
+# Firebase service account keys (push notifications, D79): secret, uploaded to EAS, never committed
+*firebase-adminsdk*.json

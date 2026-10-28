@@ -16,6 +16,7 @@ import {
   reviseRules,
   setPayoutOrder,
   startGroup,
+  answerContinue,
   startNextCycle,
 } from "../services/groupService.js";
 import { getVoice, hideMessage, listMessages, MAX_LENGTH, postMessage, postVoice, VOICE_MAX_BYTES } from "../services/chatService.js";
@@ -246,6 +247,13 @@ groupsRouter.post("/:id/call", async (req, res) => {
 groupsRouter.post("/:id/meetings/:meetingId/join", async (req, res) => {
   const { id, meetingId } = meetingParams.parse(req.params);
   res.json(await joinMeeting(id, currentMember(res).userId, meetingId));
+});
+
+// D80: at the end of the cycle, does she go again?
+groupsRouter.post("/:id/continue", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  const { continues } = z.object({ continues: z.boolean() }).strict().parse(req.body);
+  res.json(await answerContinue(id, currentMember(res).userId, continues));
 });
 
 // D72: the organiser starts the next cycle with the same members.

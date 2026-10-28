@@ -4,6 +4,7 @@ import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { holdsSeat } from "../lib/groupRules.js";
 import { stateOf } from "./meetingService.js";
+import { notifyChat } from "./notifyService.js";
 
 // The group's chat (D70). A tontine is a group of people who know each
 // other; the chat is where they remind, encourage and agree, as they would
@@ -143,6 +144,7 @@ export async function postMessage(groupId: string, userId: string, text: string)
 
   const message = await prisma.groupMessage.create({ data: { groupId, userId, kind: "TEXT", body }, include });
   await prisma.membership.update({ where: { id: seat.id }, data: { chatReadAt: message.createdAt } });
+  await notifyChat(groupId, userId, { text: body });
   return toMessage(message, userId, seat.group.organiserId === userId);
 }
 
@@ -183,6 +185,7 @@ export async function postVoice(
     include,
   });
   await prisma.membership.update({ where: { id: seat.id }, data: { chatReadAt: message.createdAt } });
+  await notifyChat(groupId, userId, { voice: true });
   return toMessage(message, userId, seat.group.organiserId === userId);
 }
 

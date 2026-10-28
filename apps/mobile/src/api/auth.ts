@@ -75,6 +75,7 @@ export function updateProfile(changes: {
   language?: AppLanguage;
   displayName?: string;
   nextOfKin?: { name: string; relation: string; phone: string } | null;
+  notifyChat?: boolean;
 }) {
   return memberRequest<MemberProfile>("PATCH", "/v1/me", changes);
 }

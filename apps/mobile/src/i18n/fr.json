@@ -477,7 +477,9 @@
     "pinTitle": "Changer votre code PIN",
     "pinBody": "Un code par SMS, puis un nouveau PIN.",
     "pinGo": "Continuer",
-    "agreed": "Ce que j'ai accepté"
+    "agreed": "Ce que j'ai accepté",
+    "notifyChat": "Notifications de la discussion",
+    "notifyMoney": "Celles de l'argent restent toujours actives."
   },
   "pilot": {
     "label": "Pilote : ce code arrive normalement par SMS"
@@ -622,12 +624,21 @@
     "done": "Cycle {{number}} terminé",
     "doneHint": "Chaque membre a reçu sa cagnotte.",
     "start": "Relancer un cycle",
-    "startHint": "Mêmes règles, mêmes membres. Vous pouvez les modifier avant l'envoi.",
+    "startHint": "Mêmes règles. Toutes sont réinvitées, sauf celles qui arrêtent.",
     "confirmTitle": "Relancer un cycle ?",
     "confirmBody": "Le cycle {{number}} est créé en brouillon et les membres sont invitées de nouveau. Chacune l'accepte elle-même.",
     "notNow": "Pas maintenant",
     "openNext": "Ouvrir le cycle {{number}}",
-    "organiserCan": "Votre organisatrice peut relancer un cycle avec les mêmes membres."
+    "organiserCan": "Votre organisatrice relance le cycle avec celles qui continuent.",
+    "goAgain": "On continue ?",
+    "yes": "Oui, je continue",
+    "no": "Non, j'arrête",
+    "votesYes_one": "{{count}} oui",
+    "votesYes_other": "{{count}} oui",
+    "votesNo_one": "{{count}} non",
+    "votesNo_other": "{{count}} non",
+    "votesWaiting_one": "{{count}} pas encore",
+    "votesWaiting_other": "{{count}} pas encore"
   },
   "splash": {
     "tagline": "Épargner ensemble, en confiance"

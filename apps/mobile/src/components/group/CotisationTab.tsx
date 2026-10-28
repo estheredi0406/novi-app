@@ -67,7 +67,7 @@ export function CotisationTab({
 
   return (
     <View style={styles.wrap}>
-      {group.state === "COMPLETED" ? <NextCycleCard group={group} /> : null}
+      {group.state === "COMPLETED" ? <NextCycleCard group={group} onChanged={onChanged} /> : null}
 
       {myCover ? (
         <WaxCard style={[styles.card, styles.soft]}>

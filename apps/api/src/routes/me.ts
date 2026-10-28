@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
 import { getProfile, updateProfile } from "../services/memberService.js";
+import { savePushToken } from "../services/notifyService.js";
 import { answerReceipt } from "../services/payoutService.js";
 import { buildRecord, listLenders, listShares, revokeShare, shareRecord } from "../services/recordService.js";
 
@@ -28,6 +29,8 @@ const profileChanges = z
       .strict()
       .nullable()
       .optional(),
+    // D79: chat notifications on or off.
+    notifyChat: z.boolean().optional(),
   })
   .strict();
 
@@ -38,6 +41,18 @@ meRouter.get("/", async (_req, res) => {
 meRouter.patch("/", async (req, res) => {
   const changes = profileChanges.parse(req.body);
   res.json(await updateProfile(currentMember(res).userId, changes));
+});
+
+// D79: where this phone receives notifications (Expo's token), or null to
+// stop. Tied to the phone she is logged in on now.
+const pushBody = z
+  .object({ token: z.string().regex(/^Expo(nent)?PushToken\[[A-Za-z0-9_-]+\]$/).nullable() })
+  .strict();
+
+meRouter.put("/push-token", async (req, res) => {
+  const { token } = pushBody.parse(req.body);
+  await savePushToken(currentMember(res).sessionId, token);
+  res.status(204).end();
 });
 
 // ---------- Her savings record, the ACEV (Sprint 6) ----------

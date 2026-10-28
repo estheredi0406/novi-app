@@ -6,7 +6,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL;
 // Long enough for a slow mobile connection, short enough not to leave her waiting.
 const TIMEOUT_MS = 15_000;
 
-type Method = "GET" | "POST" | "PATCH";
+type Method = "GET" | "POST" | "PATCH" | "PUT";
 
 // An error the screens can show in her language: messageKey is a key in the
 // translation files. challengeId comes with NEW_DEVICE.

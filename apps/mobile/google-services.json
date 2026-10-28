@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "630775149507",
+    "project_id": "novi-e3dc6",
+    "storage_bucket": "novi-e3dc6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:630775149507:android:fd28201865d14938354376",
+        "android_client_info": {
+          "package_name": "com.estheredi.novi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2pSQ5OEbvvswC9mssQgm3tWbqvxqdw7M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

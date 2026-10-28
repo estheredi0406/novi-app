@@ -1,14 +1,14 @@
 import { type Href, router } from "expo-router";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
+import { updateProfile } from "../../api/auth";
 import { BottomBar } from "../../components/BottomBar";
 import { HeaderBand } from "../../components/HeaderBand";
 import { LanguageSwitch } from "../../components/LanguageSwitch";
 import { ListenButton } from "../../components/ListenButton";
 import { Screen } from "../../components/Screen";
-import { TextButton } from "../../components/TextButton";
 import { Glyph } from "../../components/art/Glyph";
 import { formatPhone } from "../../lib/format";
 import { useSession } from "../../session/SessionProvider";
@@ -20,8 +20,21 @@ import { fonts } from "../../theme/typography";
 // the map itself (no link that leads nowhere).
 export default function MeScreen() {
   const { t } = useTranslation();
-  const { member, phone, lock } = useSession();
+  const { member, phone, lock, setMember } = useSession();
+  const [saving, setSaving] = useState(false);
   if (!member) return null;
+
+  // D79: chat notifications on or off. Money notifications always go.
+  async function toggleChat(on: boolean) {
+    setSaving(true);
+    try {
+      await setMember(await updateProfile({ notifyChat: on }));
+    } catch {
+      // Unchanged: the switch shows what the server still has.
+    } finally {
+      setSaving(false);
+    }
+  }
 
   // Logging out locks Novi on this phone, then opens the PIN screen directly,
   // so she never lands back inside sign-up.
@@ -117,6 +130,31 @@ export default function MeScreen() {
             sub={member.nextOfKin ? `${member.nextOfKin.name} · ${member.nextOfKin.relation}` : t("kin.notSet")}
             onPress={() => router.push("/me-kin" as Href)}
           />
+          <View style={[styles.row, styles.rowLine]}>
+            <View style={styles.rowIcon}>
+              <Svg width={20} height={20} viewBox="0 0 24 24">
+                <Path
+                  d="M6 16 V11 A6 6 0 0 1 18 11 V16 L20 18 H4 Z M10 20 A2 2 0 0 0 14 20"
+                  stroke={colors.indigo}
+                  strokeWidth={1.8}
+                  fill={colors.gold}
+                  strokeLinejoin="round"
+                />
+              </Svg>
+            </View>
+            <View style={styles.rowText}>
+              <Text style={styles.rowLabel}>{t("me.notifyChat")}</Text>
+              <Text style={styles.rowSub}>{t("me.notifyMoney")}</Text>
+            </View>
+            <Switch
+              value={member.notifyChat}
+              disabled={saving}
+              onValueChange={(on) => void toggleChat(on)}
+              trackColor={{ true: colors.accent, false: colors.line }}
+              thumbColor={colors.white}
+              accessibilityLabel={t("me.notifyChat")}
+            />
+          </View>
           <Row
             icon={
               <>
@@ -141,8 +179,6 @@ export default function MeScreen() {
         <Pressable accessibilityRole="button" onPress={() => void logOut()} style={styles.logout}>
           <Text style={styles.logoutText}>{t("home.logout")}</Text>
         </Pressable>
-        {/* Development only: the ID card barcode test (D35). */}
-        {__DEV__ ? <TextButton label={t("idScan.title")} onPress={() => router.push("/id-scan-test")} /> : null}
       </View>
     </Screen>
   );
