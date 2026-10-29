@@ -527,7 +527,12 @@
     "youPaidShort": "Paid",
     "paidOf": "{{paid}} of {{size}} have paid",
     "receivesOn": "Receives {{day}}",
-    "yourTurn": "Your turn"
+    "yourTurn": "Your turn",
+    "roundDone": "Round {{number}} done",
+    "paidTo": "paid to {{name}}",
+    "nextRound": "Next round",
+    "payAhead": "Pay ahead",
+    "payCurrentFirst": "Pay the current round first"
   },
   "kin": {
     "title": "Trusted person",

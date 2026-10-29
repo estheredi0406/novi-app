@@ -230,6 +230,18 @@ describe("what can and cannot be paid", () => {
     expect(res.body.error.code).toBe("PAYMENT_IN_PROGRESS");
   });
 
+  it("lets a member who paid this round pay the next one ahead (D83)", async () => {
+    const { abla, groupId } = await activeGroup();
+    expect((await abla.post(`/v1/groups/${groupId}/rounds/2/pay`, { operator: "MOOV_TG" })).body.error.code).toBe(
+      "ROUND_NOT_OPEN",
+    );
+    await payAndConfirm(abla, groupId, 1);
+    expect((await abla.post(`/v1/groups/${groupId}/rounds/2/pay`, { operator: "MOOV_TG" })).status).toBe(202);
+    expect((await abla.post(`/v1/groups/${groupId}/rounds/3/pay`, { operator: "MOOV_TG" })).body.error.code).toBe(
+      "ROUND_NOT_OPEN",
+    );
+  });
+
   it("refuses a round whose turn has not come, and accepts a late one", async () => {
     const { abla, groupId } = await activeGroup();
     const early = await abla.post(`/v1/groups/${groupId}/rounds/2/pay`, { operator: "MOOV_TG" });

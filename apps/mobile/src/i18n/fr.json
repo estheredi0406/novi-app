@@ -527,7 +527,12 @@
     "youPaidShort": "Payé",
     "paidOf": "{{paid}} sur {{size}} ont payé",
     "receivesOn": "Reçoit {{day}}",
-    "yourTurn": "Votre tour"
+    "yourTurn": "Votre tour",
+    "roundDone": "Tour {{number}} terminé",
+    "paidTo": "versé à {{name}}",
+    "nextRound": "Prochain tour",
+    "payAhead": "Payer en avance",
+    "payCurrentFirst": "Payez d'abord le tour en cours"
   },
   "kin": {
     "title": "Personne de confiance",

@@ -31,11 +31,17 @@ export function CotisationTab({
   const [answering, setAnswering] = useState(false);
   const [detail, setDetail] = useState<RoundDetail | null>(null);
   const current = rounds.find((r) => r.isCurrent);
+  // D83: once this round's pot has been paid out, the tab moves on to the
+  // next round (its date, who receives it), and she may pay it ahead if she
+  // paid this one. The finished round stays as one line above it.
+  const next = current ? rounds.find((r) => r.number === current.number + 1) : undefined;
+  const finished = current?.payoutStatus === "PAID" && next ? current : undefined;
+  const focus = finished ? next : current;
 
   useEffect(() => {
-    if (!current) return;
-    getRound(group.id, current.number).then(setDetail, () => setDetail(null));
-  }, [group.id, current]);
+    if (!focus) return;
+    getRound(group.id, focus.number).then(setDetail, () => setDetail(null));
+  }, [group.id, focus]);
 
   const openRound = (number: number) =>
     router.push({ pathname: "/groups/[id]/rounds/[number]", params: { id: group.id, number: String(number) } });
@@ -62,7 +68,9 @@ export function CotisationTab({
   // D68: a round the caisse paid for her, which she has not repaid yet.
   const myCover = rounds.find((r) => r.coveredCount > 0 && r.myStatus !== "PAID" && r.myStatus !== "PENDING");
 
-  const owes = current ? current.myStatus === "UNPAID" || current.myStatus === "FAILED" : false;
+  const unpaid = (r: RoundSummary) => r.myStatus === "UNPAID" || r.myStatus === "FAILED";
+  // Ahead of time only after paying the round before it (the API's rule too).
+  const canPay = focus ? unpaid(focus) && (focus === current || current?.myStatus === "PAID") : false;
   const days = myRound ? daysUntil(myRound.dueDate) : 0;
 
   return (
@@ -98,26 +106,47 @@ export function CotisationTab({
         </WaxCard>
       ) : null}
 
-      {current ? (
+      {finished ? (
+        <View style={styles.done}>
+          <Text style={styles.doneText}>
+            ✓ {t("groupView.roundDone", { number: finished.number })} ·{" "}
+            {t("groupView.paidTo", {
+              name:
+                receiver(finished.number)?.memberId === memberId
+                  ? t("groupView.you")
+                  : (receiver(finished.number)?.displayName ?? finished.beneficiaryName),
+            })}
+          </Text>
+        </View>
+      ) : null}
+
+      {focus ? (
         <WaxCard style={styles.card}>
           <Text style={styles.kicker}>
-            {t("groupView.roundOf", { number: current.number, total: rounds.length })} ·{" "}
-            {shortDay(current.dueDate, lang)}
+            {finished ? `${t("groupView.nextRound")} · ` : ""}
+            {t("groupView.roundOf", { number: focus.number, total: rounds.length })} · {shortDay(focus.dueDate, lang)}
           </Text>
           <Text style={styles.amount}>{formatFcfa(group.rules.amountFcfa)}</Text>
-          {owes ? (
-            <PrimaryButton label={t("groupView.pay")} onPress={() => openRound(current.number)} />
+          {canPay ? (
+            <PrimaryButton
+              label={focus === current ? t("groupView.pay") : t("groupView.payAhead")}
+              onPress={() => openRound(focus.number)}
+            />
           ) : (
-            <Text style={[styles.status, current.myStatus === "PAID" && styles.paid]}>
-              {current.myStatus === "PAID" ? `✓ ${t("groupView.youPaidShort")}` : t("groupView.onItsWay")}
+            <Text style={[styles.status, focus.myStatus === "PAID" && styles.paid]}>
+              {focus.myStatus === "PAID"
+                ? `✓ ${t("groupView.youPaidShort")}`
+                : focus.myStatus === "PENDING"
+                  ? t("groupView.onItsWay")
+                  : t("groupView.payCurrentFirst")}
             </Text>
           )}
         </WaxCard>
       ) : null}
 
-      {current && detail ? (
+      {focus && detail ? (
         <View style={styles.section}>
-          <Text style={styles.title}>{t("groupView.paidOf", { paid: current.paidCount, size: current.size })}</Text>
+          <Text style={styles.title}>{t("groupView.paidOf", { paid: focus.paidCount, size: focus.size })}</Text>
           <View style={styles.list}>
             {detail.payments.map((p, i) => {
               const paid = p.status === "PAID";
@@ -144,17 +173,17 @@ export function CotisationTab({
         </View>
       ) : null}
 
-      {current || myRound ? (
+      {focus || myRound ? (
         <View style={styles.tiles}>
-          {current ? (
+          {focus ? (
             <View style={[styles.tile, styles.tileSoft]}>
-              <Text style={styles.tileLabel}>{t("groupView.receivesOn", { day: shortDay(current.dueDate, lang) })}</Text>
+              <Text style={styles.tileLabel}>{t("groupView.receivesOn", { day: shortDay(focus.dueDate, lang) })}</Text>
               <Text style={styles.tileMain} numberOfLines={1}>
-                {receiver(current.number)?.memberId === memberId
+                {receiver(focus.number)?.memberId === memberId
                   ? t("groupView.you")
-                  : (receiver(current.number)?.displayName ?? current.beneficiaryName)}
+                  : (receiver(focus.number)?.displayName ?? focus.beneficiaryName)}
               </Text>
-              <Text style={styles.tileSub}>{formatFcfa(current.potFcfa)}</Text>
+              <Text style={styles.tileSub}>{formatFcfa(focus.potFcfa)}</Text>
             </View>
           ) : null}
           {myRound ? (
@@ -179,6 +208,8 @@ export function CotisationTab({
 const styles = StyleSheet.create({
   wrap: { gap: 18 },
   card: { padding: 18, gap: 10 },
+  done: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14, backgroundColor: "#E3F1E9" },
+  doneText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.paid },
   soft: { backgroundColor: colors.mist },
   cardTitle: { fontFamily: fonts.bodyBold, fontSize: 16, lineHeight: 22, color: colors.indigo },
   kicker: {

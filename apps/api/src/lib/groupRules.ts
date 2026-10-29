@@ -179,7 +179,9 @@ export const PAYMENT_WAIT_MS = 5 * 60 * 1000;
 export type PaymentAttempt = { status: "PENDING" | "PAID" | "FAILED"; requestedAt: Date };
 
 // May she pay this round now? Rounds up to the current one can be paid,
-// late ones included; a later round cannot be paid before its turn opens.
+// late ones included. Once she has paid the current round, she may also pay
+// the next one ahead (D83), never further: a trader who has the money today
+// can set it aside, but nobody pays a whole cycle in advance.
 // One payment per round: a paid round is refused, and a request still
 // waiting for her confirmation is not sent twice.
 export function checkCanPay(
@@ -187,8 +189,10 @@ export function checkCanPay(
   currentRound: number,
   attempt: PaymentAttempt | null,
   now: Date,
+  paidCurrent = false,
 ): RuleResult {
-  if (roundNumber > currentRound) return refused("ROUND_NOT_OPEN");
+  const earlyNext = roundNumber === currentRound + 1 && paidCurrent;
+  if (roundNumber > currentRound && !earlyNext) return refused("ROUND_NOT_OPEN");
   if (attempt?.status === "PAID") return refused("ALREADY_PAID");
   if (attempt?.status === "PENDING" && now.getTime() - attempt.requestedAt.getTime() < PAYMENT_WAIT_MS) {
     return refused("PAYMENT_IN_PROGRESS");

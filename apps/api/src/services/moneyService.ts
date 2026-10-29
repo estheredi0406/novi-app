@@ -160,7 +160,10 @@ export async function payRound(
   if (!round) throw new AppError("NOT_FOUND", 404);
   const existing = round.contributions.find((c) => c.userId === userId) ?? null;
   const now = new Date();
-  enforce(checkCanPay(number, current, existing, now));
+  const paidCurrent =
+    group.rounds.find((r) => r.number === current)?.contributions.some((c) => c.userId === userId && c.status === "PAID") ??
+    false;
+  enforce(checkCanPay(number, current, existing, now, paidCurrent));
 
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: userId },

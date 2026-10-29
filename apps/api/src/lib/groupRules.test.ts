@@ -179,6 +179,11 @@ describe("paying a round (Sprint 3)", () => {
     expect(checkCanPay(3, 2, null, now)).toEqual({ ok: false, reason: "ROUND_NOT_OPEN" });
   });
 
+  it("lets her pay the next round ahead once she has paid the current one, never further (D83)", () => {
+    expect(checkCanPay(3, 2, null, now, true)).toEqual({ ok: true });
+    expect(checkCanPay(4, 2, null, now, true)).toEqual({ ok: false, reason: "ROUND_NOT_OPEN" });
+  });
+
   it("refuses a round already paid", () => {
     expect(checkCanPay(1, 1, { status: "PAID", requestedAt: minutesAgo(60) }, now)).toEqual({
       ok: false,
