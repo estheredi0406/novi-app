@@ -2,6 +2,8 @@ import { timingSafeEqual } from "node:crypto";
 import express, { Router } from "express";
 import { z } from "zod";
 import { pilotMode } from "../lib/pilot.js";
+import { identity } from "../providers/index.js";
+import { MockAnidProvider } from "../providers/identity/MockAnidProvider.js";
 import { handleUssd } from "../services/ussdService.js";
 
 // Novi by USSD (D73), reached through Africa's Talking's USSD gateway. At
@@ -12,12 +14,13 @@ import { handleUssd } from "../services/ussdService.js";
 // The gateway does not sign its requests, so the address itself carries a
 // secret, USSD_CALLBACK_TOKEN, known only to Novi and the Africa's Talking
 // dashboard. Without it, or with a wrong one, the route does not exist.
-// While the channel is the sandbox (pilot mode), only the 20 test accounts
-// may use it.
+// While the channel is the sandbox (pilot mode), a member's keys pass through
+// Africa's Talking's test servers, so only test accounts may use it: in the
+// pilot every account was opened with a demo identity (the simulated ANID
+// accepts nothing else, D3), so any account qualifies; once the real ANID is
+// connected, the sandbox is closed to all.
 export const ussdRouter = Router();
 ussdRouter.use(express.urlencoded({ extended: false, limit: "4kb" }));
-
-const TEST_NUMBER = /^\+2289000000[1-9]$|^\+228900000(1\d|20)$/;
 
 const form = z.object({
   sessionId: z.string().min(1).max(100),
@@ -48,8 +51,8 @@ ussdRouter.post("/africastalking/:token", async (req, res) => {
   }
   // The gateway sends the number as dialled from; Novi stores +228 numbers.
   const phone = parsed.data.phoneNumber.replace(/\s/g, "");
-  if (pilotMode() && !TEST_NUMBER.test(phone)) {
-    res.send("END Pilote Novi : seuls les comptes de test (+22890000001 à +22890000020) peuvent utiliser ce code.");
+  if (pilotMode() && !(identity instanceof MockAnidProvider)) {
+    res.send("END Pilote Novi : ce code de test est fermé aux comptes réels.");
     return;
   }
   try {

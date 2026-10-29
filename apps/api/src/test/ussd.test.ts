@@ -77,9 +77,11 @@ describe("the USSD gateway's callback", () => {
     expect((await dial("+22890000001", "4829*0")).text).toBe("END Merci d'utiliser Novi.");
   });
 
-  it("only lets the test accounts in while the channel is the pilot sandbox", async () => {
-    const res = await dial("+254711000000", "");
-    expect(res.text).toMatch(/^END Pilote Novi/);
+  it("lets any pilot account in, since every one was opened with a demo identity", async () => {
+    const afiavi = { niu: "0000-000-0021", legalName: "Afiavi Enyonam Edoh", dateOfBirth: "1986-08-19" };
+    await signedUpMember("+22891000021", undefined, afiavi, "Afiavi");
+    expect((await dial("+22891000021", "4829")).text).toMatch(/^CON Novi\n1\. Payer ma cotisation/);
+    expect((await dial("+254711000000", "")).text).toMatch(/^END /);
   });
 
   it("ends the session on a wrong PIN, and counts it towards the lockout", async () => {

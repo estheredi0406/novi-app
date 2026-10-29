@@ -328,6 +328,22 @@ describe("bringing a due date forward, in the pilot only (D82)", () => {
     vi.unstubAllEnvs();
   });
 
+  it("can run a whole cycle in one session: the next round opens for payment at once", async () => {
+    vi.stubEnv("PILOT_SHOW_CODES", "true");
+    const { groupId, members } = await activeGroup();
+    const mawuli = await officer();
+    for (const member of members) await pay(member, groupId, 1);
+    await mawuli.post(`/v1/console/groups/${groupId}/demo-due`);
+    const first = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 1 } } });
+    await mawuli.post(`/v1/console/payouts/${first.id}/release`);
+
+    expect((await mawuli.post(`/v1/console/groups/${groupId}/demo-due`)).body).toEqual({ round: 2 });
+    // Round 2 is now the one open: members can pay it straight away.
+    const paid = await (members[0] as Client).post(`/v1/groups/${groupId}/rounds/2/pay`, { operator: "TOGOCEL" });
+    expect(paid.status).toBe(202); // the payment request is accepted, awaiting her approval
+    vi.unstubAllEnvs();
+  });
+
   it("does not exist outside the pilot", async () => {
     vi.stubEnv("PILOT_SHOW_CODES", "false");
     const { groupId } = await activeGroup();

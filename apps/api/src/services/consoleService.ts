@@ -457,8 +457,11 @@ export async function listActivity(mfiId: string, limit = 100): Promise<ConsoleA
 // In the pilot, a round falls due a week or a month after the start (D44), so
 // a test or a demonstration could not show a release on the day. This brings
 // the next unpaid round's due date forward to today, then runs the payout job
-// for the group at once: a full pot becomes "À libérer". Only in pilot mode,
-// only for this MFI's running groups, and written to the Journal.
+// for the group at once: a full pot becomes "À libérer". Rounds before it
+// that were also due today move to yesterday, so the brought-forward round is
+// the one open for payment, and a whole cycle can be shown in one session.
+// Only in pilot mode, only for this MFI's running groups, and written to the
+// Journal.
 export async function advanceDueDateForDemo(mfiId: string, staffId: string, groupId: string, now = new Date()) {
   if (!pilotMode()) throw new AppError("NOT_FOUND", 404);
   const group = await prisma.group.findFirst({ where: { id: groupId, mfiId, state: "ACTIVE" } });
@@ -469,6 +472,11 @@ export async function advanceDueDateForDemo(mfiId: string, staffId: string, grou
   });
   if (!next) throw new AppError("NOT_ALLOWED_NOW", 409);
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+  await prisma.round.updateMany({
+    where: { groupId, number: { lt: next.number }, dueDate: { gte: today } },
+    data: { dueDate: yesterday },
+  });
   await prisma.round.update({ where: { id: next.id }, data: { dueDate: today } });
   await prisma.auditEvent.create({ data: { type: "STAFF_DEMO_DUE", details: { staffId, groupId, round: next.number } } });
   await runPayouts(now, groupId);
