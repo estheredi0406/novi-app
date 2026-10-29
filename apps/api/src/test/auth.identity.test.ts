@@ -14,7 +14,7 @@ const outbox = sms.sent;
 const anid = identity;
 
 const PHONE = "+22890000001";
-const AKOSSIWA = { niu: "TEST-0001", legalName: "Akossiwa Afi Mensah", dateOfBirth: "1984-03-12" };
+const AKOSSIWA = { niu: "0000-000-0001", legalName: "Akossiwa Afi Mensah", dateOfBirth: "1984-03-12" };
 
 // Completes the SMS step and returns the sign-up verification token.
 async function verifiedPhone(): Promise<string> {
@@ -46,6 +46,17 @@ describe("identity check", () => {
     expect(res.status).toBe(200);
     expect(res.body.pendingToken).toBeTypeOf("string");
     expect(res.body.maskedPhone).toBe("+228 ** ** 00 01");
+  });
+
+  it("reads the NIU in the card's 4-3-4 format, with or without dashes", async () => {
+    const res = await startCheck(await verifiedPhone(), { ...AKOSSIWA, niu: " 00000000001 " });
+    expect(res.status).toBe(200);
+  });
+
+  it("refuses an NIU that is not 11 digits, before contacting ANID", async () => {
+    const res = await startCheck(await verifiedPhone(), { ...AKOSSIWA, niu: "TEST-0001" });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_FAILED");
   });
 
   it("refuses to contact ANID without consent", async () => {
@@ -106,7 +117,7 @@ describe("identity check", () => {
         area: "Bè",
         language: "FR",
         pinHash: "not-used-in-this-test",
-        niuKeyedHash: niuKeyedHash("TEST-0001"),
+        niuKeyedHash: niuKeyedHash("0000-000-0001"),
         idVerifiedAt: new Date(),
       },
     });

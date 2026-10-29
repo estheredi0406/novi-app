@@ -13,13 +13,13 @@ const outbox = sms.sent;
 const anid = identity;
 
 // Akossiwa's record in the mock ANID register.
-export const AKOSSIWA = { niu: "TEST-0001", legalName: "Akossiwa Afi Mensah", dateOfBirth: "1984-03-12" };
+export const AKOSSIWA = { niu: "0000-000-0001", legalName: "Akossiwa Afi Mensah", dateOfBirth: "1984-03-12" };
 
 // Abla's record, for tests that need a second member.
-export const ABLA = { niu: "TEST-0002", legalName: "Abla Dzifa Agbeko", dateOfBirth: "1990-07-25" };
+export const ABLA = { niu: "0000-000-0002", legalName: "Abla Dzifa Agbeko", dateOfBirth: "1990-07-25" };
 
 // Koffi's record, for tests that need a third person.
-export const KOFFI = { niu: "TEST-0003", legalName: "Koffi Selom Amegah", dateOfBirth: "1979-01-01" };
+export const KOFFI = { niu: "0000-000-0003", legalName: "Koffi Selom Amegah", dateOfBirth: "1979-01-01" };
 
 // Completes the SMS step for a phone and returns its sign-up verification token.
 export async function verifiedPhone(phone: string): Promise<string> {

@@ -24,6 +24,13 @@ function toIsoDate(day: string, month: string, year: string): string | null {
   return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
 
+// The NIU as she types it: digits only, with the dashes of the card's
+// 4-3-4 format added as she goes (1234-234-2344).
+function formatNiu(typed: string): string {
+  const d = typed.replace(/\D/g, "").slice(0, 11);
+  return [d.slice(0, 4), d.slice(4, 7), d.slice(7)].filter(Boolean).join("-");
+}
+
 // Screen A5: the details from her e-ID card, checked against ANID's record.
 export default function IdentityScreen() {
   const { t } = useTranslation();
@@ -44,7 +51,7 @@ export default function IdentityScreen() {
   const { verificationToken } = draft;
 
   const dateOfBirth = toIsoDate(day, month, year);
-  const isComplete = niu.trim().length > 0 && legalName.trim().length >= 2 && dateOfBirth !== null;
+  const isComplete = niu.replace(/\D/g, "").length === 11 && legalName.trim().length >= 2 && dateOfBirth !== null;
 
   async function check() {
     if (!dateOfBirth) return;
@@ -84,15 +91,17 @@ export default function IdentityScreen() {
     >
       {__DEV__ ? (
         <View style={styles.demo}>
-          <Text style={[type.small, styles.ink]}>Demo record: TEST-0001 · AKOSSIWA AFI MENSAH · 12 03 1984</Text>
+          <Text style={[type.small, styles.ink]}>Demo record: 0000-000-0001 · AKOSSIWA AFI MENSAH · 12 03 1984</Text>
         </View>
       ) : null}
 
       <Field
         label={t("idDetails.niu")}
         value={niu}
-        onChangeText={setNiu}
-        autoCapitalize="characters"
+        onChangeText={(v) => setNiu(formatNiu(v))}
+        keyboardType="number-pad"
+        placeholder="1234-234-2344"
+        maxLength={13}
         autoCorrect={false}
       />
       <Field

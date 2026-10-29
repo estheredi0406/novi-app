@@ -142,7 +142,7 @@ describe("her savings record", () => {
     await pay(abla, groupId, 1);
 
     const text = JSON.stringify((await abla.get("/v1/me/record")).body);
-    for (const absent of ["+22890000002", "TEST-0002", "Akossiwa", "Koffi"]) expect(text).not.toContain(absent);
+    for (const absent of ["+22890000002", "0000-000-0002", "Akossiwa", "Koffi"]) expect(text).not.toContain(absent);
   });
 });
 

@@ -159,7 +159,7 @@ describe("joining a meeting", () => {
     const { groupId, akossiwa } = await group();
     const planned = (await akossiwa.post(`/v1/groups/${groupId}/meetings`, meeting())).body;
     await moveTo(planned.id, 5);
-    const ama = { niu: "TEST-0005", legalName: "Ama Essi Lawson", dateOfBirth: "1992-11-19" };
+    const ama = { niu: "0000-000-0005", legalName: "Ama Essi Lawson", dateOfBirth: "1992-11-19" };
     const stranger = as((await signedUpMember("+22890000005", undefined, ama, "Ama")).tokens.accessToken);
     expect((await stranger.post(`/v1/groups/${groupId}/meetings/${planned.id}/join`)).status).toBe(404);
   });
@@ -226,7 +226,7 @@ describe("calling the group (D76)", () => {
 
   it("is refused to anyone outside the group, and to a member who left", async () => {
     const { groupId, ids, abla } = await group();
-    const stranger = as((await signedUpMember("+22890000005", undefined, { niu: "TEST-0005", legalName: "Ama Essi Lawson", dateOfBirth: "1992-11-19" }, "Ama")).tokens.accessToken);
+    const stranger = as((await signedUpMember("+22890000005", undefined, { niu: "0000-000-0005", legalName: "Ama Essi Lawson", dateOfBirth: "1992-11-19" }, "Ama")).tokens.accessToken);
     expect((await stranger.post(`/v1/groups/${groupId}/call`)).status).toBe(404);
     await prisma.membership.updateMany({ where: { groupId, userId: ids[1] }, data: { exitReason: "LEFT", exitedAt: new Date() } });
     expect((await abla.post(`/v1/groups/${groupId}/call`)).status).toBe(409);

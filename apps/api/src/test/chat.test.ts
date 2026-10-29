@@ -94,7 +94,7 @@ describe("the group's chat", () => {
 
   it("is closed to anyone outside the group", async () => {
     const { groupId } = await group();
-    const ama = { niu: "TEST-0005", legalName: "Ama Essi Lawson", dateOfBirth: "1992-11-19" };
+    const ama = { niu: "0000-000-0005", legalName: "Ama Essi Lawson", dateOfBirth: "1992-11-19" };
     const stranger = as((await signedUpMember("+22890000005", undefined, ama, "Ama")).tokens.accessToken);
     expect((await stranger.get(`/v1/groups/${groupId}/messages`)).status).toBe(404);
     expect((await stranger.post(`/v1/groups/${groupId}/messages`, { body: "Bonjour" })).status).toBe(404);
@@ -204,7 +204,7 @@ describe("voice notes (D76)", () => {
   it("keeps the sound from anyone outside the group", async () => {
     const { groupId, abla } = await group();
     const sent = (await abla.post(`/v1/groups/${groupId}/voice`, note())).body;
-    const stranger = as((await signedUpMember("+22890000005", undefined, { niu: "TEST-0005", legalName: "Ama Essi Lawson", dateOfBirth: "1992-11-19" }, "Ama")).tokens.accessToken);
+    const stranger = as((await signedUpMember("+22890000005", undefined, { niu: "0000-000-0005", legalName: "Ama Essi Lawson", dateOfBirth: "1992-11-19" }, "Ama")).tokens.accessToken);
     expect((await stranger.get(`/v1/groups/${groupId}/messages/${sent.id}/voice`)).status).toBe(404);
   });
 

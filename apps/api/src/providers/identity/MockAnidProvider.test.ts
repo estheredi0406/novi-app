@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MockAnidProvider } from "./MockAnidProvider.js";
 
-const akossiwa = { niu: "TEST-0001", fullName: "Akossiwa Afi Mensah", dateOfBirth: "1984-03-12" };
+const akossiwa = { niu: "0000-000-0001", fullName: "Akossiwa Afi Mensah", dateOfBirth: "1984-03-12" };
 
 // Starts a verification that is expected to succeed and returns its ticket and code.
 async function startAndReadCode(anid: MockAnidProvider) {
@@ -36,7 +36,7 @@ describe("mock ANID identity check", () => {
   });
 
   it("refuses an unknown NIU", async () => {
-    const result = await new MockAnidProvider().startVerification({ ...akossiwa, niu: "TEST-9999" });
+    const result = await new MockAnidProvider().startVerification({ ...akossiwa, niu: "0000-000-9999" });
     expect(result.kind).toBe("NO_MATCH");
   });
 

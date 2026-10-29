@@ -27,7 +27,7 @@ describe("hashing", () => {
     expect(newRandomToken()).not.toBe(newRandomToken());
   });
 
-  it("gives the same NIU hash regardless of capitals and spaces", () => {
-    expect(niuKeyedHash(" test-0001 ")).toBe(niuKeyedHash("TEST-0001"));
+  it("gives the same NIU hash regardless of surrounding spaces", () => {
+    expect(niuKeyedHash(" 0000-000-0001 ")).toBe(niuKeyedHash("0000-000-0001"));
   });
 });

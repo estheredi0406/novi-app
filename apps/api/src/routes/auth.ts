@@ -63,7 +63,14 @@ authRouter.post("/otp/verify", async (req, res) => {
 const identityStartBody = z.object({
   verificationToken: z.string().min(1),
   consentToIdCheck: z.boolean(),
-  niu: z.string().trim().min(1).max(40),
+  // The NIU as printed on the e-ID card, 4-3-4 digits (1234-234-2344). The
+  // dashes are optional; it is always stored and compared in that one form.
+  niu: z
+    .string()
+    .max(40)
+    .transform((v) => v.replace(/\D/g, ""))
+    .refine((digits) => digits.length === 11)
+    .transform((d) => `${d.slice(0, 4)}-${d.slice(4, 7)}-${d.slice(7)}`),
   legalName: z.string().trim().min(2).max(120),
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
