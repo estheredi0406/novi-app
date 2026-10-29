@@ -403,6 +403,10 @@ const ACTIVITY_LABELS = [
   "STAFF_MEMBER_EXIT",
   "STAFF_PHONE_CHANGED",
   "STAFF_ORGANISER_CHANGED",
+  "STAFF_ADDED",
+  "STAFF_DEACTIVATED",
+  "STAFF_REACTIVATED",
+  "STAFF_ACCESS_RESET",
 ] as const;
 
 // Every action taken by this MFI's officers, newest first: who did what and

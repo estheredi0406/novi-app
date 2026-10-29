@@ -9,6 +9,8 @@ import { type Lang, text } from "./text";
 import { Activity } from "./pages/Activity";
 import { Analytics } from "./pages/Analytics";
 import { Members } from "./pages/Members";
+import { FirstPassword } from "./pages/FirstPassword";
+import { Team } from "./pages/Team";
 
 // The console's pages, read from the address bar after "#", so the browser's
 // back button works without a routing library: #/, #/groups/<id>,
@@ -28,6 +30,9 @@ export function App() {
   const [lang, setLang] = useState<Lang>("fr");
   const [staff, setStaff] = useState<StaffProfile | null>(null);
   const [checking, setChecking] = useState(Boolean(session.get()));
+  // D81: the temporary password typed at login, so the first-login page
+  // does not ask for it again.
+  const [temporary, setTemporary] = useState<string | null>(null);
   const route = useRoute();
   const t = text[lang];
 
@@ -39,8 +44,9 @@ export function App() {
       .finally(() => setChecking(false));
   }, []);
 
-  function loggedIn(res: StaffLoginResponse) {
+  function loggedIn(res: StaffLoginResponse, password: string) {
     session.set(res.accessToken);
+    setTemporary(res.staff.mustChangePassword ? password : null);
     setStaff(res.staff);
   }
 
@@ -66,6 +72,19 @@ export function App() {
   );
 
   if (!staff) return <Login t={t} onLoggedIn={loggedIn} languageButton={languageButton} />;
+  if (staff.mustChangePassword) {
+    return (
+      <FirstPassword
+        t={t}
+        staff={staff}
+        temporary={temporary}
+        onDone={(updated) => {
+          setTemporary(null);
+          setStaff(updated);
+        }}
+      />
+    );
+  }
 
   const [section, id] = route;
   const page =
@@ -81,6 +100,8 @@ export function App() {
       <Members t={t} onExpired={expired} />
     ) : section === "activity" ? (
       <Activity t={t} onExpired={expired} />
+    ) : section === "team" && staff.role === "ADMIN" ? (
+      <Team t={t} onExpired={expired} />
     ) : (
       <Overview t={t} onExpired={expired} />
     );
@@ -108,6 +129,11 @@ export function App() {
             <a href="#/activity" className={section === "activity" ? "on" : ""}>
               {t.activity}
             </a>
+            {staff.role === "ADMIN" ? (
+              <a href="#/team" className={section === "team" ? "on" : ""}>
+                {t.team}
+              </a>
+            ) : null}
           </nav>
           <div className="who">
             <strong>{staff.mfi.name}</strong>

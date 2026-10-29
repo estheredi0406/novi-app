@@ -23,7 +23,7 @@ async function main() {
   const created = await createStaff({ mfiCode, email, name, role: role === "ADMIN" ? "ADMIN" : "OFFICER" });
 
   console.log(`Account created for ${email} at ${mfiCode}.`);
-  console.log(`One-time password:   ${created.password}`);
+  console.log(`Temporary password:  ${created.password}  (to replace at the first login)`);
   console.log(`Authenticator key:   ${created.totpSecret}`);
   console.log(`Or as a link:        ${created.otpauth}`);
   console.log("Keep these somewhere safe now: they are not shown again.");

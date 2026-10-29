@@ -15,6 +15,7 @@ import {
 } from "../services/consoleService.js";
 import { changeOrganiser, changePhone, lookupMember, recordExit } from "../services/protectionService.js";
 import { listSharedWithMfi, openSharedRecord } from "../services/recordService.js";
+import { addOfficer, deactivateOfficer, listTeam, reactivateOfficer, resetAccess } from "../services/staffService.js";
 import { documentFor } from "./verify.js";
 
 // The MFI console's data (Sprint 5.2). Staff only; every answer is limited
@@ -125,4 +126,30 @@ consoleRouter.get("/records/:shareId/document", async (req, res) => {
 consoleRouter.get("/records/:shareId", async (req, res) => {
   const { staffId, mfiId } = currentStaff(res);
   res.status(200).json(await openSharedRecord({ staffId, mfiId }, id.parse(req.params.shareId)));
+});
+
+// ---------- The team, for the MFI's administrators (D81) ----------
+
+const newOfficer = z
+  .object({ name: z.string().trim().min(2).max(80), email: z.string().trim().email().max(200), role: z.enum(["OFFICER", "ADMIN"]) })
+  .strict();
+
+consoleRouter.get("/team", async (_req, res) => {
+  res.status(200).json(await listTeam(currentStaff(res)));
+});
+
+consoleRouter.post("/team", async (req, res) => {
+  res.status(201).json(await addOfficer(currentStaff(res), newOfficer.parse(req.body)));
+});
+
+consoleRouter.post("/team/:staffId/deactivate", async (req, res) => {
+  res.status(200).json(await deactivateOfficer(currentStaff(res), id.parse(req.params.staffId)));
+});
+
+consoleRouter.post("/team/:staffId/reactivate", async (req, res) => {
+  res.status(200).json(await reactivateOfficer(currentStaff(res), id.parse(req.params.staffId)));
+});
+
+consoleRouter.post("/team/:staffId/reset", async (req, res) => {
+  res.status(200).json(await resetAccess(currentStaff(res), id.parse(req.params.staffId)));
 });

@@ -412,7 +412,11 @@
   "staff": {
     "loginFailed": "E-mail, mot de passe ou code non reconnu.",
     "locked": "Trop d'essais. Réessayez plus tard.",
-    "staffOnly": "Réservé au personnel de l'IMF."
+    "staffOnly": "Réservé au personnel de l'IMF.",
+    "passwordChangeRequired": "Choisissez d'abord votre mot de passe.",
+    "adminOnly": "Réservé aux administrateurs de l'IMF.",
+    "emailTaken": "Cet e-mail a déjà un accès.",
+    "weakPassword": "12 caractères au moins, différent du mot de passe temporaire."
   },
   "errors": {
     "validationFailed": "Une information manque ou n'a pas le bon format. Vérifiez et réessayez.",

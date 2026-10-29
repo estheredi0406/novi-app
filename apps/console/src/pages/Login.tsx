@@ -10,7 +10,7 @@ export function Login({
   languageButton,
 }: {
   t: Text;
-  onLoggedIn: (res: StaffLoginResponse) => void;
+  onLoggedIn: (res: StaffLoginResponse, password: string) => void;
   languageButton: ReactNode;
 }) {
   const [email, setEmail] = useState("");
@@ -24,7 +24,7 @@ export function Login({
     setBusy(true);
     setError(null);
     try {
-      onLoggedIn(await api<StaffLoginResponse>("POST", "/v1/staff/login", { email, password, code }));
+      onLoggedIn(await api<StaffLoginResponse>("POST", "/v1/staff/login", { email, password, code }), password);
     } catch (err) {
       const key = err instanceof ApiFailure ? err.code : "default";
       setError(t.errors[key as keyof typeof t.errors] ?? t.errors.default);

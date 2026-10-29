@@ -3,7 +3,7 @@ import { MemoryStore, rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { AppError } from "../lib/errors.js";
 import { currentStaff, requireStaff } from "../middleware/requireStaff.js";
-import { getStaffProfile, staffLogin, staffLogout } from "../services/staffService.js";
+import { changePassword, getStaffProfile, staffLogin, staffLogout } from "../services/staffService.js";
 
 // The MFI console's login (Sprint 5, D52).
 export const staffRouter = Router();
@@ -36,4 +36,13 @@ staffRouter.post("/logout", requireStaff, async (_req, res) => {
 
 staffRouter.get("/me", requireStaff, async (_req, res) => {
   res.status(200).json(await getStaffProfile(currentStaff(res).staffId));
+});
+
+// D81: her own password, required at the first login.
+const passwordBody = z.object({ current: z.string().min(1).max(200), next: z.string().min(1).max(200) }).strict();
+
+staffRouter.post("/password", requireStaff, async (req, res) => {
+  const { staffId, sessionId } = currentStaff(res);
+  const { current, next } = passwordBody.parse(req.body);
+  res.status(200).json(await changePassword(staffId, sessionId, current, next));
 });

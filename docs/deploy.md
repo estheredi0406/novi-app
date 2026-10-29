@@ -30,10 +30,12 @@ ones on the laptop.
 - Every push to `main` builds and deploys again.
 - The phone app: set `EXPO_PUBLIC_API_URL=https://<service>.onrender.com` in
   `apps/mobile/.env` and restart Expo with `npx expo start -c`.
-- The console: `https://<service>.onrender.com/console/`. Create an officer
-  from the service's **Shell** tab in Render:
-  `npm run staff:create -- FUCEC officer@example.org "Full Name"`
-  (run from the `apps/api` folder the shell opens in).
+- The console: `https://<service>.onrender.com/console/`. Create the MFI's
+  first administrator, once, from the service's **Shell** tab in Render:
+  `npm run staff:create -- FUCEC manager@example.org "Full Name" ADMIN`
+  (run from the `apps/api` folder the shell opens in). She then adds the
+  other officers on the console's **Équipe** page (D81); nobody needs the
+  shell again.
 - Logs, including mock SMS codes while SMS is still a mock: the service's
   **Logs** tab.
 - Costs: set a spending notification in Render's billing settings, and delete

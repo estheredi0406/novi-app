@@ -119,7 +119,11 @@ export type ConsoleActivity = {
     | "STAFF_MEMBER_LOOKUP"
     | "STAFF_MEMBER_EXIT"
     | "STAFF_PHONE_CHANGED"
-    | "STAFF_ORGANISER_CHANGED";
+    | "STAFF_ORGANISER_CHANGED"
+    | "STAFF_ADDED"
+    | "STAFF_DEACTIVATED"
+    | "STAFF_REACTIVATED"
+    | "STAFF_ACCESS_RESET";
   detail: string | null; // the round, the decline reason, or whose record was opened
 };
 

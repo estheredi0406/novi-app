@@ -412,7 +412,11 @@
   "staff": {
     "loginFailed": "Email, password or code not recognised.",
     "locked": "Too many tries. Try again later.",
-    "staffOnly": "For MFI staff only."
+    "staffOnly": "For MFI staff only.",
+    "passwordChangeRequired": "Choose your password first.",
+    "adminOnly": "For the MFI's administrators only.",
+    "emailTaken": "This email already has access.",
+    "weakPassword": "At least 12 characters, not the temporary password."
   },
   "errors": {
     "validationFailed": "Something is missing or not in the right form. Please check and try again.",

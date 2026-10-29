@@ -26,10 +26,26 @@ export async function requireStaff(req: Request, res: Response, next: NextFuncti
 
   const session = await prisma.staffSession.findUnique({
     where: { id: claims.sessionId },
-    select: { staffId: true, revokedAt: true, expiresAt: true, staff: { select: { mfiId: true, role: true } } },
+    select: {
+      staffId: true,
+      revokedAt: true,
+      expiresAt: true,
+      staff: { select: { mfiId: true, role: true, mustChangePassword: true, deactivatedAt: true } },
+    },
   });
-  if (!session || session.staffId !== claims.staffId || session.revokedAt || session.expiresAt < new Date()) {
+  if (
+    !session ||
+    session.staffId !== claims.staffId ||
+    session.revokedAt ||
+    session.expiresAt < new Date() ||
+    session.staff.deactivatedAt
+  ) {
     throw new AppError("SESSION_REVOKED", 401);
+  }
+  // D81: with a temporary password, only her profile, the password change
+  // and logging out are open (all under /v1/staff); the console waits.
+  if (session.staff.mustChangePassword && !req.originalUrl.startsWith("/v1/staff/")) {
+    throw new AppError("PASSWORD_CHANGE_REQUIRED", 403);
   }
 
   res.locals.staff = { ...claims, mfiId: session.staff.mfiId, role: session.staff.role };

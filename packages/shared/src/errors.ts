@@ -68,6 +68,10 @@ export const errors = {
   STAFF_LOGIN_FAILED: { messageKey: "staff.loginFailed" },
   STAFF_LOCKED: { messageKey: "staff.locked" },
   STAFF_ONLY: { messageKey: "staff.staffOnly" },
+  PASSWORD_CHANGE_REQUIRED: { messageKey: "staff.passwordChangeRequired" }, // D81: first login, temporary password
+  ADMIN_ONLY: { messageKey: "staff.adminOnly" }, // D81: managing the team
+  STAFF_EMAIL_TAKEN: { messageKey: "staff.emailTaken" }, // D81
+  WEAK_PASSWORD: { messageKey: "staff.weakPassword" }, // D81: at least 12 characters, not the temporary one
 } as const;
 
 // The allowed error codes, derived from the list above so the two never drift apart.

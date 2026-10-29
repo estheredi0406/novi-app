@@ -590,6 +590,8 @@ model StaffUser {
   failedAttempts Int       @default(0)
   lockedUntil    DateTime?
   lastLoginAt    DateTime?
+  mustChangePassword Boolean @default(false) // D81: a temporary password must be replaced at first login
+  deactivatedAt  DateTime? // D81: left the agency; cannot log in
   createdAt      DateTime  @default(now())
 
   mfi         Mfi            @relation(fields: [mfiId], references: [id])

@@ -248,6 +248,8 @@ describe("sharing it with a lender (D50)", () => {
 async function officer(mfiCode: string, email: string) {
   await prisma.mfi.upsert({ where: { code: mfiCode }, create: { code: mfiCode, name: `${mfiCode}-Togo` }, update: {} });
   const { password, totpSecret } = await createStaff({ mfiCode, email, name: "Mawuli Adzo" });
+  // Past his first login: his own password is set (D81).
+  await prisma.staffUser.update({ where: { email }, data: { mustChangePassword: false } });
   const code = codeForStep(base32Decode(totpSecret), totpStep(Date.now()));
   const login = await request(app).post("/v1/staff/login").send({ email, password, code });
   return { client: as(login.body.accessToken), staffId: login.body.staff.id as string };
