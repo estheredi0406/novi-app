@@ -1,13 +1,41 @@
 import type { ConsoleGroupDetail } from "@novi/shared";
-import { api } from "../api";
+import { useState } from "react";
+import { ApiFailure, api } from "../api";
 import { day, fcfa } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
 // One group, round by round. Each round is drawn as a pot that fills as
 // payments arrive. The receiver appears as a turn number, never a name (D33).
-export function GroupPage({ t, groupId, onExpired }: { t: Text; groupId: string; onExpired: () => void }) {
-  const { data, failed } = useLoad(() => api<ConsoleGroupDetail>("GET", `/v1/console/groups/${groupId}`), onExpired);
+export function GroupPage({
+  t,
+  groupId,
+  onExpired,
+  pilot,
+}: {
+  t: Text;
+  groupId: string;
+  onExpired: () => void;
+  pilot: boolean;
+}) {
+  const { data, failed, reload } = useLoad(
+    () => api<ConsoleGroupDetail>("GET", `/v1/console/groups/${groupId}`),
+    onExpired,
+  );
+  const [note, setNote] = useState<string | null>(null);
+
+  // D82, pilot only: the next round falls due today, for a test or a demo.
+  async function demoDue() {
+    if (!window.confirm(t.demoDueConfirm)) return;
+    try {
+      const { round } = await api<{ round: number }>("POST", `/v1/console/groups/${groupId}/demo-due`);
+      setNote(t.demoDueDone(round));
+      reload();
+    } catch (err) {
+      const key = err instanceof ApiFailure ? err.code : "default";
+      setNote(t.errors[key as keyof typeof t.errors] ?? t.errors.default);
+    }
+  }
 
   if (failed) return <p className="error">{t.errors.default}</p>;
   if (!data) return null;
@@ -20,6 +48,14 @@ export function GroupPage({ t, groupId, onExpired }: { t: Text; groupId: string;
       <div className="group-head">
         <div>
           <h1>{data.name}</h1>
+          {pilot ? (
+            <p className="demo-tool">
+              <button className="ghost" onClick={() => void demoDue()}>
+                {t.demoDue}
+              </button>{" "}
+              {note ? <span className="muted small">{note}</span> : null}
+            </p>
+          ) : null}
           <p className="card-meta">
             {fcfa(data.amountFcfa)} {t.perMember} · {data.frequency === "WEEKLY" ? t.weekly : t.monthly} · {t.account}{" "}
             {data.accountRef ?? "…"}

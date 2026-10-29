@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { currentStaff, requireStaff } from "../middleware/requireStaff.js";
 import {
+  advanceDueDateForDemo,
   getConsoleGroup,
   getOverview,
   listAttention,
@@ -59,6 +60,12 @@ consoleRouter.post("/groups/:groupId/decline", async (req, res) => {
 // D67: the portfolio over time, and what the officers did.
 consoleRouter.get("/analytics", async (_req, res) => {
   res.status(200).json(await getAnalytics(currentStaff(res).mfiId));
+});
+
+// D82, pilot only: a round falls due today, for a test or a demonstration.
+consoleRouter.post("/groups/:groupId/demo-due", async (req, res) => {
+  const staff = currentStaff(res);
+  res.status(200).json(await advanceDueDateForDemo(staff.mfiId, staff.staffId, id.parse(req.params.groupId)));
 });
 
 consoleRouter.get("/activity", async (_req, res) => {

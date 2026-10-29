@@ -123,7 +123,8 @@ export type ConsoleActivity = {
     | "STAFF_ADDED"
     | "STAFF_DEACTIVATED"
     | "STAFF_REACTIVATED"
-    | "STAFF_ACCESS_RESET";
+    | "STAFF_ACCESS_RESET"
+    | "STAFF_DEMO_DUE";
   detail: string | null; // the round, the decline reason, or whose record was opened
 };
 

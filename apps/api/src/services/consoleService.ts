@@ -13,6 +13,7 @@ import { AppError } from "../lib/errors.js";
 import { potShare } from "../lib/groupRules.js";
 import { currentRoundNumber, isoDay } from "../lib/schedule.js";
 import { openApprovedGroup } from "./groupService.js";
+import { pilotMode } from "../lib/pilot.js";
 import { releasePayout, runPayouts } from "./payoutService.js";
 import { fundBalance, reserveBalance } from "./reserveService.js";
 
@@ -403,6 +404,7 @@ const ACTIVITY_LABELS = [
   "STAFF_MEMBER_EXIT",
   "STAFF_PHONE_CHANGED",
   "STAFF_ORGANISER_CHANGED",
+  "STAFF_DEMO_DUE",
   "STAFF_ADDED",
   "STAFF_DEACTIVATED",
   "STAFF_REACTIVATED",
@@ -449,3 +451,27 @@ export async function listActivity(mfiId: string, limit = 100): Promise<ConsoleA
   }));
   return [...fromEvents, ...fromViews].sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
 }
+
+// ---------- Demo only (D82) ----------
+
+// In the pilot, a round falls due a week or a month after the start (D44), so
+// a test or a demonstration could not show a release on the day. This brings
+// the next unpaid round's due date forward to today, then runs the payout job
+// for the group at once: a full pot becomes "À libérer". Only in pilot mode,
+// only for this MFI's running groups, and written to the Journal.
+export async function advanceDueDateForDemo(mfiId: string, staffId: string, groupId: string, now = new Date()) {
+  if (!pilotMode()) throw new AppError("NOT_FOUND", 404);
+  const group = await prisma.group.findFirst({ where: { id: groupId, mfiId, state: "ACTIVE" } });
+  if (!group) throw new AppError("NOT_FOUND", 404);
+  const next = await prisma.round.findFirst({
+    where: { groupId, dueDate: { gt: now }, OR: [{ payout: null }, { payout: { status: { not: "PAID" } } }] },
+    orderBy: { number: "asc" },
+  });
+  if (!next) throw new AppError("NOT_ALLOWED_NOW", 409);
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  await prisma.round.update({ where: { id: next.id }, data: { dueDate: today } });
+  await prisma.auditEvent.create({ data: { type: "STAFF_DEMO_DUE", details: { staffId, groupId, round: next.number } } });
+  await runPayouts(now, groupId);
+  return { round: next.number };
+}
+

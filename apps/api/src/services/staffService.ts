@@ -2,6 +2,7 @@ import type { StaffCredentials, StaffLoginResponse, StaffMember, StaffProfile, S
 import { randomInt } from "node:crypto";
 import QRCode from "qrcode";
 import { prisma } from "../lib/db.js";
+import { pilotMode } from "../lib/pilot.js";
 import { AppError } from "../lib/errors.js";
 import { hashSecret, verifySecret } from "../lib/hashing.js";
 import { createStaffToken } from "../lib/tokens.js";
@@ -30,6 +31,7 @@ function profile(staff: StaffWithMfi): StaffProfile {
     role: staff.role,
     mfi: { code: staff.mfi.code, name: staff.mfi.name },
     mustChangePassword: staff.mustChangePassword,
+    pilot: pilotMode(),
   };
 }
 

@@ -311,3 +311,29 @@ describe("analytics and the officers' log (D67)", () => {
     expect(log[0]).toMatchObject({ action: "STAFF_PAYOUT_RELEASED", staffName: expect.any(String), detail: "round 1" });
   });
 });
+
+describe("bringing a due date forward, in the pilot only (D82)", () => {
+  it("makes the next round due today, so a full pot is ready to release, and logs it", async () => {
+    vi.stubEnv("PILOT_SHOW_CODES", "true");
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    const mawuli = await officer();
+    expect((await mawuli.get("/v1/staff/me")).body.pilot).toBe(true);
+
+    const res = await mawuli.post(`/v1/console/groups/${groupId}/demo-due`);
+    expect(res.body).toEqual({ round: 1 });
+    const payout = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 1 } } });
+    expect(payout.status).toBe("READY");
+    expect(await prisma.auditEvent.count({ where: { type: "STAFF_DEMO_DUE" } })).toBe(1);
+    vi.unstubAllEnvs();
+  });
+
+  it("does not exist outside the pilot", async () => {
+    vi.stubEnv("PILOT_SHOW_CODES", "false");
+    const { groupId } = await activeGroup();
+    const res = await (await officer()).post(`/v1/console/groups/${groupId}/demo-due`);
+    expect(res.status).toBe(404);
+    vi.unstubAllEnvs();
+  });
+});
+

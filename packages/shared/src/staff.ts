@@ -10,6 +10,7 @@ export type StaffProfile = {
   role: StaffRole;
   mfi: { code: string; name: string };
   mustChangePassword: boolean; // D81: first login with a temporary password
+  pilot: boolean; // D82: pilot mode, where the demo tools appear
 };
 
 export type StaffLoginRequest = { email: string; password: string; code: string };

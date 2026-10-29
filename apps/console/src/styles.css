@@ -318,3 +318,7 @@ h1::before {
 .creds-steps { display: flex; flex-direction: column; gap: 14px; flex: 1; min-width: 240px; }
 .creds-steps code { font-size: 12px; word-break: break-all; }
 .temp { font-family: ui-monospace, monospace; font-size: 22px; font-weight: 700; letter-spacing: 1px; color: var(--indigo); }
+
+/* D82: the demo tool, only in pilot mode. */
+.demo-tool { margin: 6px 0 0; }
+.demo-tool .ghost { border-style: dashed; }

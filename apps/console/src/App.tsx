@@ -89,7 +89,7 @@ export function App() {
   const [section, id] = route;
   const page =
     section === "groups" && id ? (
-      <GroupPage key={id} t={t} groupId={id} onExpired={expired} />
+      <GroupPage key={id} t={t} groupId={id} onExpired={expired} pilot={staff.pilot} />
     ) : section === "records" && id ? (
       <RecordPage key={id} t={t} shareId={id} onExpired={expired} />
     ) : section === "records" ? (
