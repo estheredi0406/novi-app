@@ -26,8 +26,27 @@ function useRoute(): string[] {
   return route;
 }
 
+// The officer's language choice survives a refresh: it is kept in this
+// browser. Storage can be blocked (private window), so failures are ignored.
+const LANG_KEY = "novi.console.lang";
+function savedLang(): Lang {
+  try {
+    return localStorage.getItem(LANG_KEY) === "en" ? "en" : "fr";
+  } catch {
+    return "fr";
+  }
+}
+
 export function App() {
-  const [lang, setLang] = useState<Lang>("fr");
+  const [lang, setLangState] = useState<Lang>(savedLang);
+  const setLang = (next: Lang) => {
+    setLangState(next);
+    try {
+      localStorage.setItem(LANG_KEY, next);
+    } catch {
+      // the choice then lasts until the page is closed
+    }
+  };
   const [staff, setStaff] = useState<StaffProfile | null>(null);
   const [checking, setChecking] = useState(Boolean(session.get()));
   // D81: the temporary password typed at login, so the first-login page
