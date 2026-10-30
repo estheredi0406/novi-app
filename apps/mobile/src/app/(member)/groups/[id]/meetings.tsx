@@ -1,11 +1,21 @@
 import type { GroupMeetingView, MeetingsPage } from "@novi/shared";
-import { type Href, router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import {
+  type Href,
+  router,
+  useFocusEffect,
+  useLocalSearchParams,
+} from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Linking, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../../../api/client";
-import { cancelMeeting, joinMeeting, listMeetings } from "../../../../api/groups";
+import {
+  cancelMeeting,
+  joinMeeting,
+  listMeetings,
+} from "../../../../api/groups";
 import { listRounds } from "../../../../api/money";
+import { openCall } from "../../../../lib/openCall";
 import { BackHeader } from "../../../../components/BackHeader";
 import { dayKey, MonthCalendar } from "../../../../components/MonthCalendar";
 import { ErrorMessage } from "../../../../components/ErrorMessage";
@@ -33,13 +43,15 @@ export default function MeetingsScreen() {
   useFocusEffect(
     useCallback(() => {
       void listRounds(id).then(
-        (rounds) => setDueDays(new Set(rounds.map((r) => r.dueDate.slice(0, 10)))),
+        (rounds) =>
+          setDueDays(new Set(rounds.map((r) => r.dueDate.slice(0, 10)))),
         () => setDueDays(new Set()),
       );
     }, [id]),
   );
   const meetingDays = useMemo(
-    () => new Set((page?.upcoming ?? []).map((m) => dayKey(new Date(m.startsAt)))),
+    () =>
+      new Set((page?.upcoming ?? []).map((m) => dayKey(new Date(m.startsAt)))),
     [page],
   );
 
@@ -59,7 +71,7 @@ export default function MeetingsScreen() {
     setError(null);
     try {
       const { url } = await joinMeeting(id, meeting.id);
-      await Linking.openURL(url);
+      await openCall(url, meeting.title);
       load();
     } catch (err) {
       setError(errorKey(err));
@@ -69,15 +81,21 @@ export default function MeetingsScreen() {
   }
 
   function cancel(meeting: GroupMeetingView) {
-    Alert.alert(t("meetings.cancelTitle"), t("meetings.cancelBody", { title: meeting.title }), [
-      { text: t("meetings.keep"), style: "cancel" },
-      {
-        text: t("meetings.cancel"),
-        style: "destructive",
-        onPress: () =>
-          void cancelMeeting(id, meeting.id).then(setPage, (err: unknown) => setError(errorKey(err))),
-      },
-    ]);
+    Alert.alert(
+      t("meetings.cancelTitle"),
+      t("meetings.cancelBody", { title: meeting.title }),
+      [
+        { text: t("meetings.keep"), style: "cancel" },
+        {
+          text: t("meetings.cancel"),
+          style: "destructive",
+          onPress: () =>
+            void cancelMeeting(id, meeting.id).then(setPage, (err: unknown) =>
+              setError(errorKey(err)),
+            ),
+        },
+      ],
+    );
   }
 
   const listen = page?.upcoming[0]
@@ -98,19 +116,31 @@ export default function MeetingsScreen() {
       <MonthCalendar meetings={meetingDays} payments={dueDays} />
 
       <Text style={styles.section}>{t("meetings.upcoming")}</Text>
-      {page && page.upcoming.length === 0 ? <Text style={styles.empty}>{t("meetings.none")}</Text> : null}
+      {page && page.upcoming.length === 0 ? (
+        <Text style={styles.empty}>{t("meetings.none")}</Text>
+      ) : null}
       {page?.upcoming.map((meeting) => {
         const open = meeting.state === "OPEN";
         return (
-          <WaxCard key={meeting.id} style={[styles.card, open && styles.cardOpen]}>
-            {open ? <Text style={styles.live}>{t("meetings.openNow")}</Text> : null}
+          <WaxCard
+            key={meeting.id}
+            style={[styles.card, open && styles.cardOpen]}
+          >
+            {open ? (
+              <Text style={styles.live}>{t("meetings.openNow")}</Text>
+            ) : null}
             <Text style={styles.title}>{meeting.title}</Text>
             <Text style={styles.when}>
-              {meetingWhen(meeting.startsAt, i18n.language)} · {t("meetings.minutes", { count: meeting.durationMin })}
+              {meetingWhen(meeting.startsAt, i18n.language)} ·{" "}
+              {t("meetings.minutes", { count: meeting.durationMin })}
             </Text>
-            {meeting.agenda ? <Text style={styles.agenda}>{meeting.agenda}</Text> : null}
+            {meeting.agenda ? (
+              <Text style={styles.agenda}>{meeting.agenda}</Text>
+            ) : null}
             {meeting.joined.length > 0 ? (
-              <Text style={styles.small}>{t("meetings.joined", { names: meeting.joined.join(", ") })}</Text>
+              <Text style={styles.small}>
+                {t("meetings.joined", { names: meeting.joined.join(", ") })}
+              </Text>
             ) : null}
             {open ? (
               <PrimaryButton
@@ -121,8 +151,15 @@ export default function MeetingsScreen() {
             ) : (
               <Text style={styles.small}>{opensIn(t, meeting.startsAt)}</Text>
             )}
-            {open ? <Text style={styles.small}>{t("meetings.micOn")}</Text> : null}
-            {meeting.canCancel ? <TextButton label={t("meetings.cancel")} onPress={() => cancel(meeting)} /> : null}
+            {open ? (
+              <Text style={styles.small}>{t("meetings.micOn")}</Text>
+            ) : null}
+            {meeting.canCancel ? (
+              <TextButton
+                label={t("meetings.cancel")}
+                onPress={() => cancel(meeting)}
+              />
+            ) : null}
           </WaxCard>
         );
       })}
@@ -141,9 +178,13 @@ export default function MeetingsScreen() {
             <View key={meeting.id} style={styles.pastRow}>
               <Text style={styles.pastTitle}>
                 {meeting.title}
-                {meeting.state === "CANCELLED" ? ` · ${t("meetings.cancelled")}` : ""}
+                {meeting.state === "CANCELLED"
+                  ? ` · ${t("meetings.cancelled")}`
+                  : ""}
               </Text>
-              <Text style={styles.small}>{meetingWhen(meeting.startsAt, i18n.language)}</Text>
+              <Text style={styles.small}>
+                {meetingWhen(meeting.startsAt, i18n.language)}
+              </Text>
               {meeting.state === "ENDED" ? (
                 <Text style={styles.small}>
                   {meeting.joined.length > 0
@@ -165,12 +206,32 @@ const styles = StyleSheet.create({
   empty: { fontFamily: fonts.body, fontSize: 16, color: colors.muted },
   card: { padding: 16, gap: 8 },
   cardOpen: { borderColor: colors.accent, borderWidth: 2.5 },
-  live: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.accent, textTransform: "uppercase", letterSpacing: 0.6 },
+  live: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    color: colors.accent,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
   title: { fontFamily: fonts.bodyBold, fontSize: 20, color: colors.indigo },
   when: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.ink },
-  agenda: { fontFamily: fonts.body, fontSize: 16, lineHeight: 22, color: colors.ink },
+  agenda: {
+    fontFamily: fonts.body,
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.ink,
+  },
   small: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
   pastList: { gap: 12 },
-  pastRow: { borderBottomWidth: 1, borderBottomColor: colors.line, paddingBottom: 10, gap: 2 },
-  pastTitle: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.ink },
+  pastRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    paddingBottom: 10,
+    gap: 2,
+  },
+  pastTitle: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 16,
+    color: colors.ink,
+  },
 });

@@ -300,7 +300,9 @@
     "declineTitle": "Say no to this group?",
     "leave": "Leave the group",
     "leaveTitle": "Leave this group?",
-    "declinePrivate": "If you say no, the group does not see your name."
+    "declinePrivate": "If you say no, the group does not see your name.",
+    "shareConsent": "I agree that FUCEC sees my Novi record (completed tontines, payments on time, emergency fund). Not my messages.",
+    "shareConsentNeeded": "FUCEC checks each member before opening the group's account."
   },
   "money": {
     "rounds": "Rounds",
@@ -696,5 +698,10 @@
     "next": "Next month",
     "meeting": "Meeting",
     "payment": "Payment"
+  },
+  "call": {
+    "title": "Group call",
+    "leave": "Leave the call",
+    "unavailable": "This call cannot open here."
   }
 }

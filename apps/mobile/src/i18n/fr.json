@@ -300,7 +300,9 @@
     "declineTitle": "Refuser ce groupe ?",
     "leave": "Quitter le groupe",
     "leaveTitle": "Quitter ce groupe ?",
-    "declinePrivate": "Si vous refusez, le groupe ne voit pas votre nom."
+    "declinePrivate": "Si vous refusez, le groupe ne voit pas votre nom.",
+    "shareConsent": "J'accepte que FUCEC voie mon historique Novi (tontines terminées, paiements à l'heure, caisse de secours). Pas mes messages.",
+    "shareConsentNeeded": "FUCEC vérifie chaque membre avant d'ouvrir le compte du groupe."
   },
   "money": {
     "rounds": "Tours",
@@ -696,5 +698,10 @@
     "next": "Mois suivant",
     "meeting": "Réunion",
     "payment": "Cotisation"
+  },
+  "call": {
+    "title": "Appel du groupe",
+    "leave": "Quitter l'appel",
+    "unavailable": "Cet appel ne peut pas s'ouvrir ici."
   }
 }
