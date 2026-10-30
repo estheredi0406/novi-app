@@ -366,6 +366,9 @@ model Membership {
   chatPushedAt    DateTime?  // D79: the last chat notification, at most one an hour
   continueAnswer  Boolean?   // D80: at the end of the cycle, does she want to go again?
   continueAt      DateTime?
+  // D84: she agreed, when joining, that the MFI may see her Novi record
+  // (cycles finished, payments on time, caisse debt) to validate the group.
+  shareConsentAt  DateTime?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 

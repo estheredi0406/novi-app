@@ -19,9 +19,28 @@ import {
   answerContinue,
   startNextCycle,
 } from "../services/groupService.js";
-import { getVoice, hideMessage, listMessages, MAX_LENGTH, postMessage, postVoice, VOICE_MAX_BYTES } from "../services/chatService.js";
-import { cancelMeeting, joinMeeting, listMeetings, scheduleMeeting, startCall } from "../services/meetingService.js";
-import { getRound, listLedger, listRounds, payRound } from "../services/moneyService.js";
+import {
+  getVoice,
+  hideMessage,
+  listMessages,
+  MAX_LENGTH,
+  postMessage,
+  postVoice,
+  VOICE_MAX_BYTES,
+} from "../services/chatService.js";
+import {
+  cancelMeeting,
+  joinMeeting,
+  listMeetings,
+  scheduleMeeting,
+  startCall,
+} from "../services/meetingService.js";
+import {
+  getRound,
+  listLedger,
+  listRounds,
+  payRound,
+} from "../services/moneyService.js";
 
 export const groupsRouter = Router();
 
@@ -41,15 +60,24 @@ const rules = z
   })
   .strict();
 
-const newGroup = rules.extend({ name: z.string().trim().min(2).max(60) }).strict();
+const newGroup = rules
+  .extend({ name: z.string().trim().min(2).max(60) })
+  .strict();
 const groupId = z.object({ id: z.string().uuid() });
-const inviteBody = z.object({ phone: z.string().regex(/^\+228\d{8}$/) }).strict();
+const inviteBody = z
+  .object({ phone: z.string().regex(/^\+228\d{8}$/) })
+  .strict();
 const inviteParams = groupId.extend({ inviteId: z.string().uuid() });
 const seatParams = groupId.extend({ memberId: z.string().uuid() });
 // The version she read is sent with her answer, so a change made while she
 // was reading is caught (D29).
-const acceptBody = z.object({ version: z.number() }).strict();
-const counterBody = z.object({ version: z.number(), note: z.string().trim().min(1).max(280) }).strict();
+const acceptBody = z
+  .object({ version: z.number(), shareConsent: z.boolean().optional() })
+  .strict();
+const proposeBody = z.object({ shareConsent: z.boolean().optional() }).strict();
+const counterBody = z
+  .object({ version: z.number(), note: z.string().trim().min(1).max(280) })
+  .strict();
 const emptyBody = z.object({}).strict();
 const orderBody = z.object({ memberIds: z.array(z.string().uuid()) }).strict();
 const roundParams = groupId.extend({ number: z.coerce.number().int() });
@@ -60,7 +88,11 @@ groupsRouter.get("/", async (_req, res) => {
 });
 
 groupsRouter.post("/", async (req, res) => {
-  res.status(201).json(await createGroup(currentMember(res).userId, newGroup.parse(req.body)));
+  res
+    .status(201)
+    .json(
+      await createGroup(currentMember(res).userId, newGroup.parse(req.body)),
+    );
 });
 
 groupsRouter.get("/:id", async (req, res) => {
@@ -72,12 +104,17 @@ groupsRouter.get("/:id", async (req, res) => {
 // not a general "update the group" that could change anything.
 groupsRouter.post("/:id/rules", async (req, res) => {
   const { id } = groupId.parse(req.params);
-  res.json(await reviseRules(id, currentMember(res).userId, rules.parse(req.body)));
+  res.json(
+    await reviseRules(id, currentMember(res).userId, rules.parse(req.body)),
+  );
 });
 
 groupsRouter.post("/:id/propose", async (req, res) => {
   const { id } = groupId.parse(req.params);
-  res.json(await proposeGroup(id, currentMember(res).userId));
+  const { shareConsent } = proposeBody.parse(req.body ?? {});
+  res.json(
+    await proposeGroup(id, currentMember(res).userId, shareConsent ?? false),
+  );
 });
 
 groupsRouter.post("/:id/cancel", async (req, res) => {
@@ -107,8 +144,15 @@ groupsRouter.post("/:id/seats/:memberId/remove", async (req, res) => {
 
 groupsRouter.post("/:id/accept", async (req, res) => {
   const { id } = groupId.parse(req.params);
-  const { version } = acceptBody.parse(req.body);
-  res.json(await acceptRules(id, currentMember(res).userId, version));
+  const { version, shareConsent } = acceptBody.parse(req.body);
+  res.json(
+    await acceptRules(
+      id,
+      currentMember(res).userId,
+      version,
+      shareConsent ?? false,
+    ),
+  );
 });
 
 groupsRouter.post("/:id/counter", async (req, res) => {
@@ -156,7 +200,9 @@ groupsRouter.get("/:id/rounds/:number", async (req, res) => {
 groupsRouter.post("/:id/rounds/:number/pay", async (req, res) => {
   const { id, number } = roundParams.parse(req.params);
   const { operator } = payBody.parse(req.body);
-  res.status(202).json(await payRound(id, currentMember(res).userId, number, operator));
+  res
+    .status(202)
+    .json(await payRound(id, currentMember(res).userId, number, operator));
 });
 
 groupsRouter.get("/:id/ledger", async (req, res) => {
@@ -167,20 +213,39 @@ groupsRouter.get("/:id/ledger", async (req, res) => {
 // ---------- The group's chat (D70) ----------
 
 const chatQuery = z
-  .object({ after: z.string().uuid().optional(), before: z.string().uuid().optional() })
+  .object({
+    after: z.string().uuid().optional(),
+    before: z.string().uuid().optional(),
+  })
   .strict()
   .refine((q) => !(q.after && q.before));
-const chatBody = z.object({ body: z.string().trim().min(1).max(MAX_LENGTH) }).strict();
+const chatBody = z
+  .object({ body: z.string().trim().min(1).max(MAX_LENGTH) })
+  .strict();
 const messageParams = groupId.extend({ messageId: z.string().uuid() });
 
 groupsRouter.get("/:id/messages", async (req, res) => {
   const { id } = groupId.parse(req.params);
-  res.json(await listMessages(id, currentMember(res).userId, chatQuery.parse(req.query)));
+  res.json(
+    await listMessages(
+      id,
+      currentMember(res).userId,
+      chatQuery.parse(req.query),
+    ),
+  );
 });
 
 groupsRouter.post("/:id/messages", async (req, res) => {
   const { id } = groupId.parse(req.params);
-  res.status(201).json(await postMessage(id, currentMember(res).userId, chatBody.parse(req.body).body));
+  res
+    .status(201)
+    .json(
+      await postMessage(
+        id,
+        currentMember(res).userId,
+        chatBody.parse(req.body).body,
+      ),
+    );
 });
 
 groupsRouter.post("/:id/messages/:messageId/hide", async (req, res) => {
@@ -192,7 +257,10 @@ groupsRouter.post("/:id/messages/:messageId/hide", async (req, res) => {
 // alone accepts a larger body (see app.ts).
 const voiceBody = z
   .object({
-    audioBase64: z.string().min(100).max(Math.ceil((VOICE_MAX_BYTES * 4) / 3) + 8),
+    audioBase64: z
+      .string()
+      .min(100)
+      .max(Math.ceil((VOICE_MAX_BYTES * 4) / 3) + 8),
     durationMs: z.number().int(),
     mime: z.string().max(40),
   })
@@ -200,7 +268,11 @@ const voiceBody = z
 
 groupsRouter.post("/:id/voice", async (req, res) => {
   const { id } = groupId.parse(req.params);
-  res.status(201).json(await postVoice(id, currentMember(res).userId, voiceBody.parse(req.body)));
+  res
+    .status(201)
+    .json(
+      await postVoice(id, currentMember(res).userId, voiceBody.parse(req.body)),
+    );
 });
 
 groupsRouter.get("/:id/messages/:messageId/voice", async (req, res) => {
@@ -230,7 +302,12 @@ groupsRouter.post("/:id/meetings", async (req, res) => {
   const body = meetingBody.parse(req.body);
   res
     .status(201)
-    .json(await scheduleMeeting(id, currentMember(res).userId, { ...body, startsAt: new Date(body.startsAt) }));
+    .json(
+      await scheduleMeeting(id, currentMember(res).userId, {
+        ...body,
+        startsAt: new Date(body.startsAt),
+      }),
+    );
 });
 
 groupsRouter.post("/:id/meetings/:meetingId/cancel", async (req, res) => {
@@ -252,7 +329,10 @@ groupsRouter.post("/:id/meetings/:meetingId/join", async (req, res) => {
 // D80: at the end of the cycle, does she go again?
 groupsRouter.post("/:id/continue", async (req, res) => {
   const { id } = groupId.parse(req.params);
-  const { continues } = z.object({ continues: z.boolean() }).strict().parse(req.body);
+  const { continues } = z
+    .object({ continues: z.boolean() })
+    .strict()
+    .parse(req.body);
   res.json(await answerContinue(id, currentMember(res).userId, continues));
 });
 

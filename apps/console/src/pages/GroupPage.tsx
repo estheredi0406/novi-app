@@ -7,6 +7,7 @@ import { useLoad } from "../useLoad";
 
 // One group, round by round. Each round is drawn as a pot that fills as
 // payments arrive. The receiver appears as a turn number, never a name (D33).
+// D84: above the rounds, each member's Novi record, when she agreed to share it.
 export function GroupPage({
   t,
   groupId,
@@ -28,7 +29,10 @@ export function GroupPage({
   async function demoDue() {
     if (!window.confirm(t.demoDueConfirm)) return;
     try {
-      const { round } = await api<{ round: number }>("POST", `/v1/console/groups/${groupId}/demo-due`);
+      const { round } = await api<{ round: number }>(
+        "POST",
+        `/v1/console/groups/${groupId}/demo-due`,
+      );
       setNote(t.demoDueDone(round));
       reload();
     } catch (err) {
@@ -57,7 +61,8 @@ export function GroupPage({
             </p>
           ) : null}
           <p className="card-meta">
-            {fcfa(data.amountFcfa)} {t.perMember} · {data.frequency === "WEEKLY" ? t.weekly : t.monthly} · {t.account}{" "}
+            {fcfa(data.amountFcfa)} {t.perMember} ·{" "}
+            {data.frequency === "WEEKLY" ? t.weekly : t.monthly} · {t.account}{" "}
             {data.accountRef ?? "…"}
           </p>
         </div>
@@ -81,14 +86,105 @@ export function GroupPage({
         </dl>
       </div>
 
+      <h2>{t.recordTitle}</h2>
+      <p className="muted small">{t.recordHint}</p>
+      <table className="members">
+        <thead>
+          <tr>
+            <th>{t.colMember}</th>
+            <th>{t.colRecord}</th>
+            <th>{t.colCaisse}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.members.map((m, i) => (
+            <tr key={i}>
+              <td>
+                {m.consent ? (
+                  <>
+                    <strong>{m.name}</strong>
+                    {m.organiser ? (
+                      <span className="muted small"> ({t.organiserTag})</span>
+                    ) : null}
+                    <br />
+                    <span className="small paid-text">
+                      ✓ {t.verifiedOn(day(m.verifiedAt ?? ""))}
+                    </span>
+                  </>
+                ) : (
+                  <span className="muted">
+                    {m.turn ? `${t.turn(m.turn)} · ` : ""}
+                    {t.noConsent}
+                  </span>
+                )}
+              </td>
+              <td>
+                {!m.consent ? (
+                  "…"
+                ) : m.paymentsMade === 0 && m.cyclesCompleted === 0 ? (
+                  <span className="muted">{t.newOnNovi}</span>
+                ) : (
+                  <>
+                    <span className="dots" aria-hidden="true">
+                      {Array.from(
+                        { length: Math.min(m.paymentsMade, 24) },
+                        (_, k) => (
+                          <span
+                            key={k}
+                            className={
+                              k < m.paymentsOnTime
+                                ? "dot dot-ok"
+                                : "dot dot-late"
+                            }
+                          />
+                        ),
+                      )}
+                    </span>
+                    <br />
+                    <span className="small">
+                      {t.record(
+                        m.cyclesCompleted,
+                        m.paymentsMade,
+                        m.paymentsOnTime,
+                      )}
+                    </span>
+                  </>
+                )}
+              </td>
+              <td>
+                {!m.consent ? (
+                  "…"
+                ) : m.owesCaisseFcfa > 0 ? (
+                  <strong className="problem-text">
+                    {t.owes(fcfa(m.owesCaisseFcfa))}
+                  </strong>
+                ) : (
+                  t.recordOwesNothing
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
       <div className="pots">
         {data.roundList.map((round) => {
-          const fill = round.expectedFcfa > 0 ? round.collectedFcfa / round.expectedFcfa : 0;
+          const fill =
+            round.expectedFcfa > 0
+              ? round.collectedFcfa / round.expectedFcfa
+              : 0;
           const status = round.payout?.status ?? "NOT_DUE";
           const current = round.number === data.currentRound;
           return (
-            <div key={round.number} className={`pot ${current ? "pot-current" : ""}`}>
-              <div className="jar" role="img" aria-label={`${fcfa(round.collectedFcfa)} / ${fcfa(round.expectedFcfa)}`}>
+            <div
+              key={round.number}
+              className={`pot ${current ? "pot-current" : ""}`}
+            >
+              <div
+                className="jar"
+                role="img"
+                aria-label={`${fcfa(round.collectedFcfa)} / ${fcfa(round.expectedFcfa)}`}
+              >
                 <div
                   className={`jar-fill jar-${status.toLowerCase()}`}
                   style={{ height: `${Math.round(fill * 100)}%` }}
@@ -98,9 +194,15 @@ export function GroupPage({
                 {t.round} {round.number}
               </strong>
               <span className="pot-line">{day(round.dueDate)}</span>
-              <span className="pot-line">{t.payments(round.paymentsReceived, round.paymentsExpected)}</span>
-              <span className={`chip chip-${status.toLowerCase()}`}>{t.status[status]}</span>
-              <span className="pot-line muted">{t.turn(round.receiverTurn)}</span>
+              <span className="pot-line">
+                {t.payments(round.paymentsReceived, round.paymentsExpected)}
+              </span>
+              <span className={`chip chip-${status.toLowerCase()}`}>
+                {t.status[status]}
+              </span>
+              <span className="pot-line muted">
+                {t.turn(round.receiverTurn)}
+              </span>
             </div>
           );
         })}

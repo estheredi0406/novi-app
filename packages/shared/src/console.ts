@@ -40,7 +40,26 @@ export type ConsoleRound = {
   } | null;
 };
 
-export type ConsoleGroupDetail = ConsoleGroup & { roundList: ConsoleRound[] };
+// D84: what the officer sees of each member before validating a group, only
+// for members who agreed when joining. Never her payments one by one, nor
+// her messages: her name, and the summary of her Novi record.
+export type ConsoleMemberCard = {
+  turn: number | null; // her place in the payout order, once the group has one
+  organiser: boolean;
+  consent: boolean;
+  name: string | null; // null when she has not agreed
+  verifiedAt: string | null; // her identity check (every account has one)
+  memberSince: string | null;
+  cyclesCompleted: number; // tontines she finished on Novi
+  paymentsMade: number;
+  paymentsOnTime: number;
+  owesCaisseFcfa: number; // rounds the caisse paid for her, not yet repaid
+};
+
+export type ConsoleGroupDetail = ConsoleGroup & {
+  roundList: ConsoleRound[];
+  members: ConsoleMemberCard[];
+};
 
 // A payout the officer should look at: ready to release (D63), held (not
 // full on its due date, D48), failed (the transfer was refused, D49), or
@@ -82,9 +101,20 @@ export type ConsoleSharedRecord = {
 
 // D67: the MFI's view of its Novi portfolio over time. Totals only (D33).
 export type ConsoleAnalytics = {
-  weeks: { weekOf: string; collectedFcfa: number; paidOutFcfa: number; payments: number; onTime: number }[];
+  weeks: {
+    weekOf: string;
+    collectedFcfa: number;
+    paidOutFcfa: number;
+    payments: number;
+    onTime: number;
+  }[];
   members: number; // different people with a seat in a started group
-  groups: { starting: number; active: number; completed: number; cancelled: number };
+  groups: {
+    starting: number;
+    active: number;
+    completed: number;
+    cancelled: number;
+  };
   onTimeRate: number | null; // % of payments made on or before their due date
   potsPaid: number;
   potsDisputed: number; // receivers who said the money did not arrive (D63)

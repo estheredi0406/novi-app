@@ -10,7 +10,10 @@ import { releasePayout, runPayouts } from "../services/payoutService.js";
 import { createStaff } from "../services/staffService.js";
 import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
 
-if (!(mfi instanceof MockMfiAdapter) || !(payments instanceof MockPaymentProvider)) {
+if (
+  !(mfi instanceof MockMfiAdapter) ||
+  !(payments instanceof MockPaymentProvider)
+) {
   throw new Error("Tests require the mock MFI and payment providers.");
 }
 const mockMfi = mfi;
@@ -27,7 +30,8 @@ const SMALL_GROUP = {
 const PAST = new Date("2026-01-02T00:00:00Z");
 
 function as(accessToken: string) {
-  const auth = (req: request.Test) => req.set("Authorization", `Bearer ${accessToken}`);
+  const auth = (req: request.Test) =>
+    req.set("Authorization", `Bearer ${accessToken}`);
   return {
     get: (path: string) => auth(request(app).get(path)),
     post: (path: string, body?: object) =>
@@ -46,20 +50,43 @@ async function activeGroup() {
   const abla = await signedUpMember("+22890000002", undefined, ABLA, "Abla");
   const koffi = await signedUpMember("+22890000003", undefined, KOFFI, "Koffi");
   const organiser = as(akossiwa.tokens.accessToken);
-  const groupId = (await organiser.post("/v1/groups", SMALL_GROUP)).body.id as string;
-  await organiser.post(`/v1/groups/${groupId}/invites`, { phone: "+22890000002" });
-  await organiser.post(`/v1/groups/${groupId}/invites`, { phone: "+22890000003" });
+  const groupId = (await organiser.post("/v1/groups", SMALL_GROUP)).body
+    .id as string;
+  await organiser.post(`/v1/groups/${groupId}/invites`, {
+    phone: "+22890000002",
+  });
+  await organiser.post(`/v1/groups/${groupId}/invites`, {
+    phone: "+22890000003",
+  });
   await organiser.post(`/v1/groups/${groupId}/propose`);
-  await as(abla.tokens.accessToken).post(`/v1/groups/${groupId}/accept`, { version: 1 });
-  await as(koffi.tokens.accessToken).post(`/v1/groups/${groupId}/accept`, { version: 1 });
+  await as(abla.tokens.accessToken).post(`/v1/groups/${groupId}/accept`, {
+    version: 1,
+  });
+  await as(koffi.tokens.accessToken).post(`/v1/groups/${groupId}/accept`, {
+    version: 1,
+  });
   await organiser.post(`/v1/groups/${groupId}/start`);
-  return { groupId, members: [organiser, as(abla.tokens.accessToken), as(koffi.tokens.accessToken)] };
+  return {
+    groupId,
+    members: [
+      organiser,
+      as(abla.tokens.accessToken),
+      as(koffi.tokens.accessToken),
+    ],
+  };
 }
 
 async function pay(member: Client, groupId: string, round: number) {
-  const paid = await member.post(`/v1/groups/${groupId}/rounds/${round}/pay`, { operator: "TOGOCEL" });
-  const contribution = await prisma.contribution.findUniqueOrThrow({ where: { id: paid.body.id } });
-  const delivery = mockPayments.settle(contribution.providerRef as string, "PAID");
+  const paid = await member.post(`/v1/groups/${groupId}/rounds/${round}/pay`, {
+    operator: "TOGOCEL",
+  });
+  const contribution = await prisma.contribution.findUniqueOrThrow({
+    where: { id: paid.body.id },
+  });
+  const delivery = mockPayments.settle(
+    contribution.providerRef as string,
+    "PAID",
+  );
   await request(app)
     .post("/v1/webhooks/payments")
     .set("X-FEDAPAY-SIGNATURE", delivery.signature)
@@ -68,16 +95,32 @@ async function pay(member: Client, groupId: string, round: number) {
 }
 
 const makeDue = (groupId: string, number: number) =>
-  prisma.round.update({ where: { groupId_number: { groupId, number } }, data: { dueDate: PAST } });
+  prisma.round.update({
+    where: { groupId_number: { groupId, number } },
+    data: { dueDate: PAST },
+  });
 
 // A logged-in officer of the given MFI.
 async function officer(mfiCode = "FUCEC", email = "mawuli@fucec.example") {
-  await prisma.mfi.upsert({ where: { code: mfiCode }, create: { code: mfiCode, name: `${mfiCode} test` }, update: {} });
-  const { password, totpSecret } = await createStaff({ mfiCode, email, name: "Mawuli Adzo" });
+  await prisma.mfi.upsert({
+    where: { code: mfiCode },
+    create: { code: mfiCode, name: `${mfiCode} test` },
+    update: {},
+  });
+  const { password, totpSecret } = await createStaff({
+    mfiCode,
+    email,
+    name: "Mawuli Adzo",
+  });
   // Past his first login: his own password is set (D81).
-  await prisma.staffUser.update({ where: { email }, data: { mustChangePassword: false } });
+  await prisma.staffUser.update({
+    where: { email },
+    data: { mustChangePassword: false },
+  });
   const code = codeForStep(base32Decode(totpSecret), totpStep(Date.now()));
-  const login = await request(app).post("/v1/staff/login").send({ email, password, code });
+  const login = await request(app)
+    .post("/v1/staff/login")
+    .send({ email, password, code });
   return as(login.body.accessToken);
 }
 
@@ -87,7 +130,9 @@ describe("the console's view of groups", () => {
     for (const member of members) await pay(member, groupId, 1);
     await makeDue(groupId, 1);
     await runPayouts();
-    const ready = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 1 } } });
+    const ready = await prisma.payout.findFirstOrThrow({
+      where: { round: { groupId, number: 1 } },
+    });
     await releasePayout(ready.id, null); // the officer's release (D63)
     await pay(members[0] as Client, groupId, 2);
 
@@ -120,7 +165,8 @@ describe("the console's view of groups", () => {
       paymentsExpected: 3,
     });
     const text = JSON.stringify(res.body);
-    for (const name of ["Akossiwa", "Abla", "Koffi", "+2289000000"]) expect(text).not.toContain(name);
+    for (const name of ["Akossiwa", "Abla", "Koffi", "+2289000000"])
+      expect(text).not.toContain(name);
   });
 
   it("hides another MFI's groups, as if they did not exist", async () => {
@@ -191,7 +237,9 @@ describe("payouts that need a look (D53)", () => {
     expect(res.body).toEqual([]);
     const round = await members[0]?.get(`/v1/groups/${groupId}/rounds/1`);
     expect(round?.body.payoutStatus).toBe("PAID");
-    expect(await prisma.auditEvent.count({ where: { type: "STAFF_PAYOUT_RETRY" } })).toBe(1);
+    expect(
+      await prisma.auditEvent.count({ where: { type: "STAFF_PAYOUT_RETRY" } }),
+    ).toBe(1);
   });
 
   it("lists a full, due pot as ready, and sends it only when the officer releases it (D63)", async () => {
@@ -201,16 +249,30 @@ describe("payouts that need a look (D53)", () => {
     await runPayouts();
     const desk = await officer();
     const [ready] = (await desk.get("/v1/console/attention")).body;
-    expect(ready).toMatchObject({ groupId, status: "READY", canRelease: true, receiverTurn: 1, amountFcfa: 14700 });
+    expect(ready).toMatchObject({
+      groupId,
+      status: "READY",
+      canRelease: true,
+      receiverTurn: 1,
+      amountFcfa: 14700,
+    });
     expect(JSON.stringify(ready)).not.toMatch(/Akossiwa|Abla|Koffi/);
 
-    const res = await desk.post(`/v1/console/payouts/${ready.payoutId}/release`);
+    const res = await desk.post(
+      `/v1/console/payouts/${ready.payoutId}/release`,
+    );
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
     const round = await members[0]?.get(`/v1/groups/${groupId}/rounds/1`);
     expect(round?.body.payoutStatus).toBe("PAID");
-    expect(await prisma.auditEvent.count({ where: { type: "STAFF_PAYOUT_RELEASED" } })).toBe(1);
-    expect((await desk.post(`/v1/console/payouts/${ready.payoutId}/release`)).status).toBe(409);
+    expect(
+      await prisma.auditEvent.count({
+        where: { type: "STAFF_PAYOUT_RELEASED" },
+      }),
+    ).toBe(1);
+    expect(
+      (await desk.post(`/v1/console/payouts/${ready.payoutId}/release`)).status,
+    ).toBe(409);
   });
 
   it("shows the officer a pot its member says she did not receive (D63)", async () => {
@@ -222,14 +284,25 @@ describe("payouts that need a look (D53)", () => {
     const [ready] = (await desk.get("/v1/console/attention")).body;
     await desk.post(`/v1/console/payouts/${ready.payoutId}/release`);
 
-    const payout = await prisma.payout.findUniqueOrThrow({ where: { id: ready.payoutId } });
-    const receiver = (await Promise.all(members.map(async (m) => ({ m, me: (await m.get("/v1/me")).body.id })))).find(
-      (x) => x.me === payout.beneficiaryId,
-    );
-    await receiver?.m.post(`/v1/me/payouts/${payout.id}/receipt`, { received: false });
+    const payout = await prisma.payout.findUniqueOrThrow({
+      where: { id: ready.payoutId },
+    });
+    const receiver = (
+      await Promise.all(
+        members.map(async (m) => ({ m, me: (await m.get("/v1/me")).body.id })),
+      )
+    ).find((x) => x.me === payout.beneficiaryId);
+    await receiver?.m.post(`/v1/me/payouts/${payout.id}/receipt`, {
+      received: false,
+    });
 
     const [disputed] = (await desk.get("/v1/console/attention")).body;
-    expect(disputed).toMatchObject({ payoutId: payout.id, status: "DISPUTED", canRelease: false, canRetry: false });
+    expect(disputed).toMatchObject({
+      payoutId: payout.id,
+      status: "DISPUTED",
+      canRelease: false,
+      canRetry: false,
+    });
   });
 
   it("sums it all up on the overview", async () => {
@@ -260,17 +333,83 @@ describe("validating a group before its account opens (D66)", () => {
   it("keeps a started group waiting until the officer approves it", async () => {
     vi.stubEnv("MFI_GROUP_APPROVAL", "true");
     const { groupId, members } = await activeGroup();
-    expect((await members[0]?.get(`/v1/groups/${groupId}`))?.body.state).toBe("STARTING");
+    expect((await members[0]?.get(`/v1/groups/${groupId}`))?.body.state).toBe(
+      "STARTING",
+    );
 
     const desk = await officer();
     const listed = (await desk.get("/v1/console/groups")).body;
-    expect(listed).toEqual([expect.objectContaining({ id: groupId, state: "STARTING" })]);
+    expect(listed).toEqual([
+      expect.objectContaining({ id: groupId, state: "STARTING" }),
+    ]);
 
-    expect((await desk.post(`/v1/console/groups/${groupId}/approve`)).status).toBe(200);
-    expect((await members[0]?.get(`/v1/groups/${groupId}`))?.body.state).toBe("ACTIVE");
+    expect(
+      (await desk.post(`/v1/console/groups/${groupId}/approve`)).status,
+    ).toBe(200);
+    expect((await members[0]?.get(`/v1/groups/${groupId}`))?.body.state).toBe(
+      "ACTIVE",
+    );
     expect(await prisma.round.count({ where: { groupId } })).toBe(3);
-    expect(await prisma.auditEvent.count({ where: { type: "STAFF_GROUP_APPROVED" } })).toBe(1);
-    expect((await desk.post(`/v1/console/groups/${groupId}/approve`)).status).toBe(409);
+    expect(
+      await prisma.auditEvent.count({
+        where: { type: "STAFF_GROUP_APPROVED" },
+      }),
+    ).toBe(1);
+    expect(
+      (await desk.post(`/v1/console/groups/${groupId}/approve`)).status,
+    ).toBe(409);
+  });
+
+  it("shows the officer each member's record, only for those who agreed (D84)", async () => {
+    vi.stubEnv("MFI_GROUP_APPROVAL", "true");
+    const akossiwa = await signedUpMember();
+    const abla = await signedUpMember("+22890000002", undefined, ABLA, "Abla");
+    const koffi = await signedUpMember(
+      "+22890000003",
+      undefined,
+      KOFFI,
+      "Koffi",
+    );
+    const organiser = as(akossiwa.tokens.accessToken);
+    const groupId = (await organiser.post("/v1/groups", SMALL_GROUP)).body
+      .id as string;
+    await organiser.post(`/v1/groups/${groupId}/invites`, {
+      phone: "+22890000002",
+    });
+    await organiser.post(`/v1/groups/${groupId}/invites`, {
+      phone: "+22890000003",
+    });
+    expect(
+      (
+        await organiser.post(`/v1/groups/${groupId}/propose`, {
+          shareConsent: true,
+        })
+      ).status,
+    ).toBe(200);
+    await as(abla.tokens.accessToken).post(`/v1/groups/${groupId}/accept`, {
+      version: 1,
+      shareConsent: true,
+    });
+    await as(koffi.tokens.accessToken).post(`/v1/groups/${groupId}/accept`, {
+      version: 1,
+    }); // an older app
+    await organiser.post(`/v1/groups/${groupId}/start`);
+
+    const desk = await officer();
+    const { members } = (await desk.get(`/v1/console/groups/${groupId}`)).body;
+    expect(members).toHaveLength(3);
+    const shared = members.filter((m: { consent: boolean }) => m.consent);
+    expect(shared).toHaveLength(2);
+    expect(shared[0]).toMatchObject({
+      name: expect.any(String),
+      verifiedAt: expect.any(String),
+      cyclesCompleted: 0,
+      paymentsMade: 0,
+      owesCaisseFcfa: 0,
+    });
+    expect(members.find((m: { consent: boolean }) => !m.consent)).toMatchObject(
+      { name: null, verifiedAt: null },
+    );
   });
 
   it("lets the officer decline it with a reason, before any money moves", async () => {
@@ -278,10 +417,16 @@ describe("validating a group before its account opens (D66)", () => {
     const { groupId, members } = await activeGroup();
     const desk = await officer();
 
-    expect((await desk.post(`/v1/console/groups/${groupId}/decline`, { reason: "Pièces manquantes" })).status).toBe(
-      200,
+    expect(
+      (
+        await desk.post(`/v1/console/groups/${groupId}/decline`, {
+          reason: "Pièces manquantes",
+        })
+      ).status,
+    ).toBe(200);
+    expect((await members[0]?.get(`/v1/groups/${groupId}`))?.body.state).toBe(
+      "CANCELLED",
     );
-    expect((await members[0]?.get(`/v1/groups/${groupId}`))?.body.state).toBe("CANCELLED");
     expect(await prisma.round.count({ where: { groupId } })).toBe(0);
   });
 });
@@ -291,10 +436,20 @@ describe("analytics and the officers' log (D67)", () => {
     const { groupId, members } = await activeGroup();
     for (const member of members) await pay(member, groupId, 1);
 
-    const analytics = (await (await officer()).get("/v1/console/analytics")).body;
+    const analytics = (await (await officer()).get("/v1/console/analytics"))
+      .body;
     expect(analytics.weeks).toHaveLength(8);
-    expect(analytics.weeks.at(-1)).toMatchObject({ collectedFcfa: 15000, paidOutFcfa: 0, payments: 3, onTime: 3 });
-    expect(analytics).toMatchObject({ members: 3, onTimeRate: 100, groups: { active: 1 } });
+    expect(analytics.weeks.at(-1)).toMatchObject({
+      collectedFcfa: 15000,
+      paidOutFcfa: 0,
+      payments: 3,
+      onTime: 3,
+    });
+    expect(analytics).toMatchObject({
+      members: 3,
+      onTimeRate: 100,
+      groups: { active: 1 },
+    });
     expect(JSON.stringify(analytics)).not.toMatch(/Akossiwa|Abla|Koffi/);
   });
 
@@ -308,7 +463,11 @@ describe("analytics and the officers' log (D67)", () => {
     await desk.post(`/v1/console/payouts/${ready.payoutId}/release`);
 
     const log = (await desk.get("/v1/console/activity")).body;
-    expect(log[0]).toMatchObject({ action: "STAFF_PAYOUT_RELEASED", staffName: expect.any(String), detail: "round 1" });
+    expect(log[0]).toMatchObject({
+      action: "STAFF_PAYOUT_RELEASED",
+      staffName: expect.any(String),
+      detail: "round 1",
+    });
   });
 });
 
@@ -322,9 +481,13 @@ describe("bringing a due date forward, in the pilot only (D82)", () => {
 
     const res = await mawuli.post(`/v1/console/groups/${groupId}/demo-due`);
     expect(res.body).toEqual({ round: 1 });
-    const payout = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 1 } } });
+    const payout = await prisma.payout.findFirstOrThrow({
+      where: { round: { groupId, number: 1 } },
+    });
     expect(payout.status).toBe("READY");
-    expect(await prisma.auditEvent.count({ where: { type: "STAFF_DEMO_DUE" } })).toBe(1);
+    expect(
+      await prisma.auditEvent.count({ where: { type: "STAFF_DEMO_DUE" } }),
+    ).toBe(1);
     vi.unstubAllEnvs();
   });
 
@@ -334,12 +497,19 @@ describe("bringing a due date forward, in the pilot only (D82)", () => {
     const mawuli = await officer();
     for (const member of members) await pay(member, groupId, 1);
     await mawuli.post(`/v1/console/groups/${groupId}/demo-due`);
-    const first = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 1 } } });
+    const first = await prisma.payout.findFirstOrThrow({
+      where: { round: { groupId, number: 1 } },
+    });
     await mawuli.post(`/v1/console/payouts/${first.id}/release`);
 
-    expect((await mawuli.post(`/v1/console/groups/${groupId}/demo-due`)).body).toEqual({ round: 2 });
+    expect(
+      (await mawuli.post(`/v1/console/groups/${groupId}/demo-due`)).body,
+    ).toEqual({ round: 2 });
     // Round 2 is now the one open: members can pay it straight away.
-    const paid = await (members[0] as Client).post(`/v1/groups/${groupId}/rounds/2/pay`, { operator: "TOGOCEL" });
+    const paid = await (members[0] as Client).post(
+      `/v1/groups/${groupId}/rounds/2/pay`,
+      { operator: "TOGOCEL" },
+    );
     expect(paid.status).toBe(202); // the payment request is accepted, awaiting her approval
     vi.unstubAllEnvs();
   });
@@ -347,9 +517,10 @@ describe("bringing a due date forward, in the pilot only (D82)", () => {
   it("does not exist outside the pilot", async () => {
     vi.stubEnv("PILOT_SHOW_CODES", "false");
     const { groupId } = await activeGroup();
-    const res = await (await officer()).post(`/v1/console/groups/${groupId}/demo-due`);
+    const res = await (
+      await officer()
+    ).post(`/v1/console/groups/${groupId}/demo-due`);
     expect(res.status).toBe(404);
     vi.unstubAllEnvs();
   });
 });
-

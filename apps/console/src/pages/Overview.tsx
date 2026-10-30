@@ -1,11 +1,19 @@
-import type { AttentionItem, ConsoleGroup, ConsoleOverview } from "@novi/shared";
+import type {
+  AttentionItem,
+  ConsoleGroup,
+  ConsoleOverview,
+} from "@novi/shared";
 import { useState } from "react";
 import { api } from "../api";
 import { day, fcfa } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
-type Data = { overview: ConsoleOverview; attention: AttentionItem[]; groups: ConsoleGroup[] };
+type Data = {
+  overview: ConsoleOverview;
+  attention: AttentionItem[];
+  groups: ConsoleGroup[];
+};
 
 // What the officer sees first: three numbers, then what needs a look, then
 // every group. Totals only, never who paid (D33).
@@ -32,7 +40,8 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
 
   // D63: the officer confirms before a pot leaves the MFI.
   function release(item: AttentionItem) {
-    if (window.confirm(t.releaseConfirm(fcfa(item.amountFcfa)))) void act(item.payoutId, "release");
+    if (window.confirm(t.releaseConfirm(fcfa(item.amountFcfa))))
+      void act(item.payoutId, "release");
   }
 
   // D66: a group members have started waits for the officer before its account opens.
@@ -47,7 +56,11 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
     }
     setRetrying(group.id);
     try {
-      await api("POST", `/v1/console/groups/${group.id}/${approve ? "approve" : "decline"}`, body);
+      await api(
+        "POST",
+        `/v1/console/groups/${group.id}/${approve ? "approve" : "decline"}`,
+        body,
+      );
     } finally {
       setRetrying(null);
       reload();
@@ -94,11 +107,18 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
           className={`tile ${overview.held + overview.failed + overview.ready + overview.disputed > 0 ? "tile-alert" : ""}`}
         >
           <span className="tile-label">{t.toLook}</span>
-          <span className="tile-number">{overview.held + overview.failed + overview.ready + overview.disputed}</span>
+          <span className="tile-number">
+            {overview.held +
+              overview.failed +
+              overview.ready +
+              overview.disputed}
+          </span>
           <span className="tile-hint">
-            {overview.ready} {t.ready.toLowerCase()} · {overview.held} {t.held.toLowerCase()} · {overview.failed}{" "}
-            {t.failed.toLowerCase()}
-            {overview.disputed > 0 ? ` · ${overview.disputed} ${t.disputed.toLowerCase()}` : ""}
+            {overview.ready} {t.ready.toLowerCase()} · {overview.held}{" "}
+            {t.held.toLowerCase()} · {overview.failed} {t.failed.toLowerCase()}
+            {overview.disputed > 0
+              ? ` · ${overview.disputed} ${t.disputed.toLowerCase()}`
+              : ""}
           </span>
         </div>
       </section>
@@ -113,13 +133,21 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
               .map((group) => (
                 <li key={group.id} className="flag flag-ready">
                   <div>
-                    <span className="flag-title">{group.name}</span>
+                    <a href={`#/groups/${group.id}`} className="flag-title">
+                      {group.name}
+                    </a>
                     <span className="flag-meta">
-                      {fcfa(group.amountFcfa)} {t.perMember} · {group.frequency === "WEEKLY" ? t.weekly : t.monthly} ·{" "}
-                      {group.size} {t.members.toLowerCase()}
+                      {fcfa(group.amountFcfa)} {t.perMember} ·{" "}
+                      {group.frequency === "WEEKLY" ? t.weekly : t.monthly} ·{" "}
+                      {group.size} {t.members.toLowerCase()} ·{" "}
+                      <a href={`#/groups/${group.id}`} className="link">
+                        {t.seeMembers}
+                      </a>
                     </span>
                   </div>
-                  <span className="flag-amount">{fcfa(group.amountFcfa * group.size)}</span>
+                  <span className="flag-amount">
+                    {fcfa(group.amountFcfa * group.size)}
+                  </span>
                   <span />
                   <button
                     className="primary small"
@@ -128,7 +156,11 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
                   >
                     {t.approve}
                   </button>
-                  <button className="link" disabled={retrying === group.id} onClick={() => void decide(group, false)}>
+                  <button
+                    className="link"
+                    disabled={retrying === group.id}
+                    onClick={() => void decide(group, false)}
+                  >
                     {t.decline}
                   </button>
                 </li>
@@ -143,7 +175,10 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
       ) : (
         <ul className="attention">
           {attention.map((item) => (
-            <li key={item.payoutId} className={`flag flag-${item.status.toLowerCase()}`}>
+            <li
+              key={item.payoutId}
+              className={`flag flag-${item.status.toLowerCase()}`}
+            >
               <div>
                 <a href={`#/groups/${item.groupId}`} className="flag-title">
                   {item.groupName} · {t.round} {item.roundNumber}
@@ -153,9 +188,15 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
                 </span>
               </div>
               <span className="flag-amount">{fcfa(item.amountFcfa)}</span>
-              <span className={`chip chip-${item.status.toLowerCase()}`}>{label(item)}</span>
+              <span className={`chip chip-${item.status.toLowerCase()}`}>
+                {label(item)}
+              </span>
               {item.canRelease && (
-                <button className="primary small" disabled={retrying === item.payoutId} onClick={() => release(item)}>
+                <button
+                  className="primary small"
+                  disabled={retrying === item.payoutId}
+                  onClick={() => release(item)}
+                >
                   {t.release}
                 </button>
               )}
@@ -182,12 +223,17 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
             <a key={group.id} href={`#/groups/${group.id}`} className="card">
               <span className="card-title">{group.name}</span>
               <span className="card-meta">
-                {fcfa(group.amountFcfa)} {t.perMember} · {group.frequency === "WEEKLY" ? t.weekly : t.monthly}
+                {fcfa(group.amountFcfa)} {t.perMember} ·{" "}
+                {group.frequency === "WEEKLY" ? t.weekly : t.monthly}
               </span>
               <span className="card-number">{fcfa(group.balanceFcfa)}</span>
               <span className="card-meta">
-                {group.currentRound ? `${t.round} ${group.currentRound} ${t.of} ${group.rounds}` : t.status.PAID}
-                {group.needsAttention > 0 && <span className="dot" aria-label={t.toLook} />}
+                {group.currentRound
+                  ? `${t.round} ${group.currentRound} ${t.of} ${group.rounds}`
+                  : t.status.PAID}
+                {group.needsAttention > 0 && (
+                  <span className="dot" aria-label={t.toLook} />
+                )}
               </span>
               <span className="card-foot">
                 {t.account} {group.accountRef ?? "…"}

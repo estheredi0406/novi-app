@@ -5,6 +5,7 @@ import { ApiError, errorKey } from "../api/client";
 import { acceptRules, counterRules, declineGroup } from "../api/groups";
 import { colors } from "../theme/colors";
 import { fonts, type } from "../theme/typography";
+import { CheckRow } from "./CheckRow";
 import { ErrorMessage } from "./ErrorMessage";
 import { Field } from "./Field";
 import { PrimaryButton } from "./PrimaryButton";
@@ -35,6 +36,7 @@ export function AnswerPanel({
   onRulesChanged: () => void;
 }) {
   const { t } = useTranslation();
+  const [consent, setConsent] = useState(false);
   const [asking, setAsking] = useState(false);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,8 @@ export function AnswerPanel({
     } catch (err) {
       setError(errorKey(err));
       // The organiser changed the rules while she was reading: show the new ones.
-      if (err instanceof ApiError && err.code === "RULES_CHANGED") onRulesChanged();
+      if (err instanceof ApiError && err.code === "RULES_CHANGED")
+        onRulesChanged();
     } finally {
       setBusy(false);
     }
@@ -57,24 +60,37 @@ export function AnswerPanel({
 
   // Saying no is confirmed first, and she is told it stays private.
   function confirmDecline() {
-    Alert.alert(hasSeat ? t("answer.leaveTitle") : t("answer.declineTitle"), t("answer.declinePrivate"), [
-      { text: t("common.back"), style: "cancel" },
-      {
-        text: hasSeat ? t("answer.leave") : t("answer.decline"),
-        style: "destructive",
-        onPress: () => void run(() => declineGroup(groupId), onDeclined),
-      },
-    ]);
+    Alert.alert(
+      hasSeat ? t("answer.leaveTitle") : t("answer.declineTitle"),
+      t("answer.declinePrivate"),
+      [
+        { text: t("common.back"), style: "cancel" },
+        {
+          text: hasSeat ? t("answer.leave") : t("answer.decline"),
+          style: "destructive",
+          onPress: () => void run(() => declineGroup(groupId), onDeclined),
+        },
+      ],
+    );
   }
 
   return (
     <View style={styles.panel}>
       {canAnswer ? (
         <>
+          {/* D84: FUCEC sees her Novi record only if she agrees; joining needs it. */}
+          <Text style={[type.small, styles.muted]}>
+            {t("answer.shareConsentNeeded")}
+          </Text>
+          <CheckRow checked={consent} onToggle={() => setConsent(!consent)}>
+            {t("answer.shareConsent")}
+          </CheckRow>
           <PrimaryButton
             label={t("answer.accept", { version })}
-            onPress={() => void run(() => acceptRules(groupId, version), onSeat)}
-            disabled={busy}
+            onPress={() =>
+              void run(() => acceptRules(groupId, version, true), onSeat)
+            }
+            disabled={busy || !consent}
           />
           {asking ? (
             <View style={styles.ask}>
@@ -89,21 +105,38 @@ export function AnswerPanel({
               />
               <PrimaryButton
                 label={t("answer.sendNote")}
-                onPress={() => void run(() => counterRules(groupId, version, note.trim()), onSeat)}
+                onPress={() =>
+                  void run(
+                    () => counterRules(groupId, version, note.trim()),
+                    onSeat,
+                  )
+                }
                 disabled={busy || note.trim().length === 0}
               />
             </View>
           ) : (
-            <TextButton label={t("answer.askChange")} onPress={() => setAsking(true)} disabled={busy} />
+            <TextButton
+              label={t("answer.askChange")}
+              onPress={() => setAsking(true)}
+              disabled={busy}
+            />
           )}
         </>
       ) : waiting ? (
-        <Text style={[type.body, styles.muted]}>{t("answer.waitForRules")}</Text>
+        <Text style={[type.body, styles.muted]}>
+          {t("answer.waitForRules")}
+        </Text>
       ) : null}
 
       <ErrorMessage messageKey={error} />
-      <TextButton label={hasSeat ? t("answer.leave") : t("answer.decline")} onPress={confirmDecline} disabled={busy} />
-      <Text style={[type.small, styles.muted, styles.center]}>{t("answer.declinePrivate")}</Text>
+      <TextButton
+        label={hasSeat ? t("answer.leave") : t("answer.decline")}
+        onPress={confirmDecline}
+        disabled={busy}
+      />
+      <Text style={[type.small, styles.muted, styles.center]}>
+        {t("answer.declinePrivate")}
+      </Text>
     </View>
   );
 }
@@ -111,7 +144,12 @@ export function AnswerPanel({
 const styles = StyleSheet.create({
   panel: { gap: 12 },
   ask: { gap: 12 },
-  note: { fontFamily: fonts.body, fontSize: 17, minHeight: 90, textAlignVertical: "top" },
+  note: {
+    fontFamily: fonts.body,
+    fontSize: 17,
+    minHeight: 90,
+    textAlignVertical: "top",
+  },
   muted: { color: colors.muted },
   center: { textAlign: "center" },
 });

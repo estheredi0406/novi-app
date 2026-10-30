@@ -21,21 +21,41 @@ export const text = {
     nothingToLook: "Rien à regarder. Tout suit son cours.",
     held: "Retenue",
     failed: "Échec",
-    missing: (n: number) => `${n} paiement${n > 1 ? "s" : ""} manquant${n > 1 ? "s" : ""}`,
+    missing: (n: number) =>
+      `${n} paiement${n > 1 ? "s" : ""} manquant${n > 1 ? "s" : ""}`,
     since: (d: string) => `depuis le ${d}`,
     retry: "Relancer",
     toValidate: "Groupes à valider",
-    toValidateHint: "Le groupe a démarré côté membres. Vérifiez-le avant d'ouvrir son compte.",
+    toValidateHint:
+      "Le groupe a démarré côté membres. Vérifiez-le avant d'ouvrir son compte.",
     approve: "Valider et ouvrir le compte",
     decline: "Refuser",
     declineAsk: "Motif du refus (lu par l'organisatrice) :",
-    approveConfirm: (name: string) => `Valider « ${name} » ? FUCEC ouvrira le compte du groupe et le premier tour sera programmé.`,
+    seeMembers: "Voir les membres",
+    recordTitle: "Les membres",
+    recordHint:
+      "Chaque membre a choisi, en rejoignant, de partager son historique Novi avec FUCEC. Ses messages et le détail de ses paiements restent privés.",
+    colMember: "Membre",
+    colRecord: "Historique Novi",
+    colCaisse: "Caisse de secours",
+    organiserTag: "organisatrice",
+    noConsent: "N'a pas accepté de partager son historique",
+    verifiedOn: (d: string) => `Identité vérifiée le ${d}`,
+    newOnNovi: "Nouvelle sur Novi : pas encore d'historique",
+    record: (cycles: number, made: number, onTime: number) =>
+      `${cycles} tontine${cycles > 1 ? "s" : ""} terminée${cycles > 1 ? "s" : ""}, ${made} paiement${made > 1 ? "s" : ""} dont ${onTime} à l'heure`,
+    owes: (amount: string) => `Doit ${amount}`,
+    recordOwesNothing: "Ne doit rien",
+    approveConfirm: (name: string) =>
+      `Valider « ${name} » ? FUCEC ouvrira le compte du groupe et le premier tour sera programmé.`,
     analytics: "Analytique",
     reserveLabel: "Réserve solidaire",
     fundTitle: "Fonds solidaire",
-    fundHint: (owed: string) => `2 % de chaque paiement, tous groupes réunis · ${owed} avancés, à rembourser`,
+    fundHint: (owed: string) =>
+      `2 % de chaque paiement, tous groupes réunis · ${owed} avancés, à rembourser`,
     byGroupTitle: "Par groupe",
-    byGroupHint: "Totaux par groupe, jamais par membre : les noms restent privés.",
+    byGroupHint:
+      "Totaux par groupe, jamais par membre : les noms restent privés.",
     colGroup: "Groupe",
     colMembers: "Membres",
     colCollected: "Collecté",
@@ -51,16 +71,23 @@ export const text = {
     onTimeRate: "À l'heure",
     onTimeHint: "des paiements faits au plus tard le jour prévu",
     potsPaid: "Cagnottes versées",
-    potsHint: (disputed: number, rate: string) => `${disputed} non reçue(s) · ${rate} confirmées par la bénéficiaire`,
+    potsHint: (disputed: number, rate: string) =>
+      `${disputed} non reçue(s) · ${rate} confirmées par la bénéficiaire`,
     release: "Libérer la cagnotte",
     releaseWait: "Délai médian de libération",
     releaseWaitHint: "entre la date prévue et la libération par l'agent",
     hours: (h: number) => `${h} h`,
     noData: "Pas encore de données.",
-    groupsStates: (s: { starting: number; active: number; completed: number; cancelled: number }) =>
+    groupsStates: (s: {
+      starting: number;
+      active: number;
+      completed: number;
+      cancelled: number;
+    }) =>
       `${s.active} actifs · ${s.starting} à valider · ${s.completed} terminés · ${s.cancelled} annulés`,
     demoDue: "Avancer l'échéance à aujourd'hui (démo)",
-    demoDueConfirm: "Mode pilote : la prochaine échéance de ce groupe passe à aujourd'hui. Si tout le monde a payé, la cagnotte devient « À libérer ». C'est écrit dans le Journal.",
+    demoDueConfirm:
+      "Mode pilote : la prochaine échéance de ce groupe passe à aujourd'hui. Si tout le monde a payé, la cagnotte devient « À libérer ». C'est écrit dans le Journal.",
     demoDueDone: (n: number) => `Tour ${n} : échéance avancée à aujourd'hui.`,
     team: "Équipe",
     teamLede: "Les agents qui utilisent la console.",
@@ -72,19 +99,26 @@ export const text = {
     teamNever: "jamais",
     teamYou: "(vous)",
     roles: { OFFICER: "Agent", ADMIN: "Administrateur" },
-    states: { ACTIVE: "Actif", FIRST_LOGIN: "Première connexion", DISABLED: "Désactivé" },
-    teamAdminOnly: "Seuls les administrateurs voient cette page. Chaque ajout, désactivation ou réinitialisation est écrit dans le Journal.",
+    states: {
+      ACTIVE: "Actif",
+      FIRST_LOGIN: "Première connexion",
+      DISABLED: "Désactivé",
+    },
+    teamAdminOnly:
+      "Seuls les administrateurs voient cette page. Chaque ajout, désactivation ou réinitialisation est écrit dans le Journal.",
     teamReset: "Réinitialiser l'accès",
     teamDeactivate: "Désactiver",
     teamReactivate: "Réactiver",
     addTitle: "Ajouter un agent",
     fullName: "Nom complet",
     loginEmail: "E-mail (son identifiant de connexion)",
-    roleHint: "Un agent libère les cagnottes et suit les membres. Un administrateur gère aussi l'équipe.",
+    roleHint:
+      "Un agent libère les cagnottes et suit les membres. Un administrateur gère aussi l'équipe.",
     cancel: "Annuler",
     createAccess: "Créer l'accès",
     accessOf: (name: string) => `Accès de ${name}`,
-    onceWarning: (name: string) => `Affiché une seule fois. Donnez-le à ${name} en personne, jamais par SMS ou WhatsApp.`,
+    onceWarning: (name: string) =>
+      `Affiché une seule fois. Donnez-le à ${name} en personne, jamais par SMS ou WhatsApp.`,
     step1: "1. Dans Google ou Microsoft Authenticator",
     step1Body: "« Ajouter un compte » puis scanner ce code",
     setupKey: "ou saisir la clé",
@@ -92,11 +126,14 @@ export const text = {
     step3: "3. À sa première connexion",
     step3Body: (name: string) => `${name} choisit son propre mot de passe.`,
     doneClose: "C'est fait, fermer",
-    resetConfirm: (name: string) => `Réinitialiser l'accès de ${name} ? Son ancien mot de passe et l'ancien code de son téléphone ne marcheront plus.`,
+    resetConfirm: (name: string) =>
+      `Réinitialiser l'accès de ${name} ? Son ancien mot de passe et l'ancien code de son téléphone ne marcheront plus.`,
     deactivateTitle: (name: string) => `Désactiver ${name} ?`,
-    deactivateBody: (name: string) => `${name} est déconnecté tout de suite et ne peut plus se connecter. Ce qu'il a fait reste dans le Journal.`,
+    deactivateBody: (name: string) =>
+      `${name} est déconnecté tout de suite et ne peut plus se connecter. Ce qu'il a fait reste dans le Journal.`,
     welcome: (name: string) => `Bienvenue, ${name}`,
-    choosePassword: "Choisissez votre mot de passe. Le mot de passe temporaire ne marchera plus.",
+    choosePassword:
+      "Choisissez votre mot de passe. Le mot de passe temporaire ne marchera plus.",
     temporaryPassword: "Mot de passe temporaire",
     newPassword: "Nouveau mot de passe",
     newPasswordHint: "12 caractères au moins",
@@ -125,7 +162,8 @@ export const text = {
     readyHint: (n: number) => `pleine · reçoit : le membre n°${n} de l'ordre`,
     disputed: "Non reçue",
     disputedHint: "la membre dit ne pas avoir reçu l'argent",
-    releaseConfirm: (amount: string) => `Libérer ${amount} ? FUCEC enverra la cagnotte au numéro vérifié de la bénéficiaire.`,
+    releaseConfirm: (amount: string) =>
+      `Libérer ${amount} ? FUCEC enverra la cagnotte au numéro vérifié de la bénéficiaire.`,
     round: "Tour",
     of: "sur",
     collected: "Collecté",
@@ -152,7 +190,8 @@ export const text = {
       NEXT_OF_KIN_MISSING: "Il faut un numéro pour verser ce qui lui revient.",
       NOT_ALLOWED_NOW: "Ce n'est pas possible pour ce groupe maintenant.",
       STAFF_EMAIL_TAKEN: "Cet e-mail a déjà un accès.",
-      WEAK_PASSWORD: "12 caractères au moins, différent du mot de passe temporaire.",
+      WEAK_PASSWORD:
+        "12 caractères au moins, différent du mot de passe temporaire.",
       ADMIN_ONLY: "Réservé aux administrateurs.",
       default: "Une erreur s'est produite. Réessayez.",
     },
@@ -205,13 +244,16 @@ export const text = {
     changePhone: "Nouveau numéro",
     deathConfirm: (name: string, kin: string) =>
       `Clôturer le compte de ${name} pour succession, sur présentation des justificatifs ? Ce que le fonds a avancé pour elle est effacé. Sa cagnotte et sa part de la réserve iront à ${kin}.`,
-    deathAskPhone: "Elle n'a pas de personne de confiance. Numéro (+228…) de l'ayant droit, d'après les documents :",
+    deathAskPhone:
+      "Elle n'a pas de personne de confiance. Numéro (+228…) de l'ayant droit, d'après les documents :",
     leftConfirm: (name: string) =>
       `${name} quitte ce groupe ? Ce que le fonds paiera pour elle restera sa dette, prise d'abord sur sa cagnotte si son tour n'est pas passé.`,
-    phoneAsk: "Nouveau numéro (+228…), après vérification de sa pièce d'identité :",
+    phoneAsk:
+      "Nouveau numéro (+228…), après vérification de sa pièce d'identité :",
     phoneConfirm: (phone: string) =>
       `Passer son compte au ${phone} ? L'ancien téléphone sera déconnecté. Elle se reconnecte avec le code SMS et son code PIN.`,
-    organiserConfirm: (name: string, group: string) => `Nommer ${name} organisatrice de « ${group} » ?`,
+    organiserConfirm: (name: string, group: string) =>
+      `Nommer ${name} organisatrice de « ${group} » ?`,
     done: "Enregistré.",
     language: "English",
   },
@@ -238,15 +280,33 @@ export const text = {
     since: (d: string) => `since ${d}`,
     retry: "Retry",
     toValidate: "Groups to validate",
-    toValidateHint: "Members have started this group. Check it before its account opens.",
+    toValidateHint:
+      "Members have started this group. Check it before its account opens.",
     approve: "Validate and open the account",
     decline: "Decline",
     declineAsk: "Reason for declining (the organiser reads it):",
-    approveConfirm: (name: string) => `Validate "${name}"? The MFI will open the group's account and schedule the first round.`,
+    approveConfirm: (name: string) =>
+      `Validate "${name}"? The MFI will open the group's account and schedule the first round.`,
+    seeMembers: "See the members",
+    recordTitle: "Members",
+    recordHint:
+      "Each member chose, when joining, to share her Novi record with the MFI. Her messages and her individual payments stay private.",
+    colMember: "Member",
+    colRecord: "Novi record",
+    colCaisse: "Emergency fund",
+    organiserTag: "organiser",
+    noConsent: "Has not agreed to share her record",
+    verifiedOn: (d: string) => `ID verified on ${d}`,
+    newOnNovi: "New on Novi: no record yet",
+    record: (cycles: number, made: number, onTime: number) =>
+      `${cycles} tontine${cycles === 1 ? "" : "s"} completed, ${made} payment${made === 1 ? "" : "s"}, ${onTime} on time`,
+    owes: (amount: string) => `Owes ${amount}`,
+    recordOwesNothing: "Owes nothing",
     analytics: "Analytics",
     reserveLabel: "Solidarity reserve",
     fundTitle: "Solidarity fund",
-    fundHint: (owed: string) => `2% of every payment, all groups together · ${owed} advanced, to be repaid`,
+    fundHint: (owed: string) =>
+      `2% of every payment, all groups together · ${owed} advanced, to be repaid`,
     byGroupTitle: "By group",
     byGroupHint: "Totals per group, never per member: names stay private.",
     colGroup: "Group",
@@ -264,16 +324,23 @@ export const text = {
     onTimeRate: "On time",
     onTimeHint: "of payments made on or before the due date",
     potsPaid: "Pots paid out",
-    potsHint: (disputed: number, rate: string) => `${disputed} not received · ${rate} confirmed by the receiver`,
+    potsHint: (disputed: number, rate: string) =>
+      `${disputed} not received · ${rate} confirmed by the receiver`,
     release: "Release the pot",
     releaseWait: "Median release delay",
     releaseWaitHint: "from the due date to the officer's release",
     hours: (h: number) => `${h} h`,
     noData: "No data yet.",
-    groupsStates: (s: { starting: number; active: number; completed: number; cancelled: number }) =>
+    groupsStates: (s: {
+      starting: number;
+      active: number;
+      completed: number;
+      cancelled: number;
+    }) =>
       `${s.active} active · ${s.starting} to validate · ${s.completed} completed · ${s.cancelled} cancelled`,
     demoDue: "Bring the due date to today (demo)",
-    demoDueConfirm: "Pilot mode: this group's next due date moves to today. If everyone has paid, the pot becomes \"To release\". It is written to the Log.",
+    demoDueConfirm:
+      'Pilot mode: this group\'s next due date moves to today. If everyone has paid, the pot becomes "To release". It is written to the Log.',
     demoDueDone: (n: number) => `Round ${n}: due date brought to today.`,
     team: "Team",
     teamLede: "The officers who use the console.",
@@ -285,31 +352,41 @@ export const text = {
     teamNever: "never",
     teamYou: "(you)",
     roles: { OFFICER: "Officer", ADMIN: "Administrator" },
-    states: { ACTIVE: "Active", FIRST_LOGIN: "First login", DISABLED: "Deactivated" },
-    teamAdminOnly: "Only administrators see this page. Every addition, deactivation or reset is written to the Log.",
+    states: {
+      ACTIVE: "Active",
+      FIRST_LOGIN: "First login",
+      DISABLED: "Deactivated",
+    },
+    teamAdminOnly:
+      "Only administrators see this page. Every addition, deactivation or reset is written to the Log.",
     teamReset: "Reset access",
     teamDeactivate: "Deactivate",
     teamReactivate: "Reactivate",
     addTitle: "Add an officer",
     fullName: "Full name",
     loginEmail: "Email (their login)",
-    roleHint: "An officer releases pots and follows members. An administrator also manages the team.",
+    roleHint:
+      "An officer releases pots and follows members. An administrator also manages the team.",
     cancel: "Cancel",
     createAccess: "Create access",
     accessOf: (name: string) => `Access for ${name}`,
-    onceWarning: (name: string) => `Shown only once. Give it to ${name} in person, never by SMS or WhatsApp.`,
+    onceWarning: (name: string) =>
+      `Shown only once. Give it to ${name} in person, never by SMS or WhatsApp.`,
     step1: "1. In Google or Microsoft Authenticator",
-    step1Body: "\"Add account\", then scan this code",
+    step1Body: '"Add account", then scan this code',
     setupKey: "or type the key",
     step2: "2. Temporary password",
     step3: "3. At their first login",
     step3Body: (name: string) => `${name} chooses their own password.`,
     doneClose: "Done, close",
-    resetConfirm: (name: string) => `Reset ${name}'s access? Their old password and their phone's old code will stop working.`,
+    resetConfirm: (name: string) =>
+      `Reset ${name}'s access? Their old password and their phone's old code will stop working.`,
     deactivateTitle: (name: string) => `Deactivate ${name}?`,
-    deactivateBody: (name: string) => `${name} is logged out at once and can no longer log in. What they did stays in the Log.`,
+    deactivateBody: (name: string) =>
+      `${name} is logged out at once and can no longer log in. What they did stays in the Log.`,
     welcome: (name: string) => `Welcome, ${name}`,
-    choosePassword: "Choose your password. The temporary password will stop working.",
+    choosePassword:
+      "Choose your password. The temporary password will stop working.",
     temporaryPassword: "Temporary password",
     newPassword: "New password",
     newPasswordHint: "At least 12 characters",
@@ -338,7 +415,8 @@ export const text = {
     readyHint: (n: number) => `full · receives: member no. ${n} in the order`,
     disputed: "Not received",
     disputedHint: "the member says the money did not arrive",
-    releaseConfirm: (amount: string) => `Release ${amount}? The MFI will send the pot to the receiver's verified number.`,
+    releaseConfirm: (amount: string) =>
+      `Release ${amount}? The MFI will send the pot to the receiver's verified number.`,
     round: "Round",
     of: "of",
     collected: "Collected",
@@ -353,7 +431,8 @@ export const text = {
     noRecords: "No records shared with you.",
     sharedOn: (d: string) => `shared on ${d}`,
     until: (d: string) => `until ${d}`,
-    opened: (n: number) => (n === 0 ? "not opened yet" : `opened ${n} time${n > 1 ? "s" : ""}`),
+    opened: (n: number) =>
+      n === 0 ? "not opened yet" : `opened ${n} time${n > 1 ? "s" : ""}`,
     back: "Back",
     errors: {
       STAFF_LOGIN_FAILED: "Email, password or code not recognised.",
@@ -418,13 +497,15 @@ export const text = {
     changePhone: "New number",
     deathConfirm: (name: string, kin: string) =>
       `Close ${name}'s account for her estate, on the supporting documents? What the fund paid for her is written off. Her pot and her part of the reserve go to ${kin}.`,
-    deathAskPhone: "She has no trusted person. Number (+228…) of the heir, from the documents:",
+    deathAskPhone:
+      "She has no trusted person. Number (+228…) of the heir, from the documents:",
     leftConfirm: (name: string) =>
       `${name} leaves this group? What the fund pays for her stays her debt, taken first from her pot if her turn has not come.`,
     phoneAsk: "New number (+228…), after checking her ID card:",
     phoneConfirm: (phone: string) =>
       `Move her account to ${phone}? The old phone is logged out. She logs in again with the SMS code and her PIN.`,
-    organiserConfirm: (name: string, group: string) => `Make ${name} the organiser of "${group}"?`,
+    organiserConfirm: (name: string, group: string) =>
+      `Make ${name} the organiser of "${group}"?`,
     done: "Saved.",
     language: "Français",
   },

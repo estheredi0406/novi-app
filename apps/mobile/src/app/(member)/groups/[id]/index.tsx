@@ -1,4 +1,9 @@
-import type { GroupDetail, GroupSeat, MeetingsPage, RoundSummary } from "@novi/shared";
+import type {
+  GroupDetail,
+  GroupSeat,
+  MeetingsPage,
+  RoundSummary,
+} from "@novi/shared";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,6 +22,7 @@ import {
 import { listRounds } from "../../../../api/money";
 import { AnswerPanel } from "../../../../components/AnswerPanel";
 import { BackHeader } from "../../../../components/BackHeader";
+import { CheckRow } from "../../../../components/CheckRow";
 import { ErrorMessage } from "../../../../components/ErrorMessage";
 import { HeaderBand } from "../../../../components/HeaderBand";
 import { Field } from "../../../../components/Field";
@@ -31,7 +37,11 @@ import { colors } from "../../../../theme/colors";
 import { ChatEntry } from "../../../../components/ChatEntry";
 import { MeetingsCard } from "../../../../components/MeetingsCard";
 import { NextCycleCard } from "../../../../components/NextCycleCard";
-import { GROUP_TABS, type GroupTab, RunningGroup } from "../../../../components/group/RunningGroup";
+import {
+  GROUP_TABS,
+  type GroupTab,
+  RunningGroup,
+} from "../../../../components/group/RunningGroup";
 import { fonts, type } from "../../../../theme/typography";
 
 // One group, as its members see it: rules, members, and the actions this
@@ -47,6 +57,7 @@ export default function GroupScreen() {
   const [digits, setDigits] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [consent, setConsent] = useState(false); // D84
 
   // The group, and once it is running, its rounds (Sprint 3).
   const load = useCallback(() => {
@@ -54,7 +65,9 @@ export default function GroupScreen() {
       (loaded) => {
         setGroup(loaded);
         if (loaded.state === "ACTIVE" || loaded.state === "COMPLETED") {
-          listRounds(id).then(setRounds, (err: unknown) => setError(errorKey(err)));
+          listRounds(id).then(setRounds, (err: unknown) =>
+            setError(errorKey(err)),
+          );
         }
         if (loaded.state !== "DRAFT" && loaded.state !== "CANCELLED") {
           listMeetings(id).then(setMeetings, () => setMeetings(null));
@@ -82,7 +95,12 @@ export default function GroupScreen() {
   }
 
   // Asks before anything that cannot be undone.
-  function confirm(title: string, message: string, label: string, action: () => Promise<GroupDetail>) {
+  function confirm(
+    title: string,
+    message: string,
+    label: string,
+    action: () => Promise<GroupDetail>,
+  ) {
     Alert.alert(title, message, [
       { text: t("common.back"), style: "cancel" },
       { text: label, style: "destructive", onPress: () => void run(action) },
@@ -99,10 +117,22 @@ export default function GroupScreen() {
   }
 
   // Once it runs, the group lives in three tabs (approved design F1 to F3).
-  if ((group.state === "ACTIVE" || group.state === "COMPLETED") && rounds.length > 0) {
-    const open: GroupTab = GROUP_TABS.includes(tab as GroupTab) ? (tab as GroupTab) : "cotisation";
+  if (
+    (group.state === "ACTIVE" || group.state === "COMPLETED") &&
+    rounds.length > 0
+  ) {
+    const open: GroupTab = GROUP_TABS.includes(tab as GroupTab)
+      ? (tab as GroupTab)
+      : "cotisation";
     return (
-      <RunningGroup group={group} rounds={rounds} meetings={meetings} memberId={member.id} tab={open} onChanged={load} />
+      <RunningGroup
+        group={group}
+        rounds={rounds}
+        meetings={meetings}
+        memberId={member.id}
+        tab={open}
+        onChanged={load}
+      />
     );
   }
 
@@ -111,8 +141,11 @@ export default function GroupScreen() {
   const setup = state === "DRAFT" || state === "PROPOSED";
   const mySeat = group.seats.find((seat) => seat.memberId === member.id);
   const placesTaken = group.seats.length + group.pendingInvites.length;
-  const full = group.seats.length === rules.size && group.pendingInvites.length === 0;
-  const everyoneAccepted = group.seats.every((seat) => seat.acceptedCurrentRules);
+  const full =
+    group.seats.length === rules.size && group.pendingInvites.length === 0;
+  const everyoneAccepted = group.seats.every(
+    (seat) => seat.acceptedCurrentRules,
+  );
   const started = group.seats.some((seat) => seat.payoutPosition !== null);
   const seats = started ? [...group.seats].sort(byTurn) : group.seats;
 
@@ -125,7 +158,9 @@ export default function GroupScreen() {
           <BackHeader listenText={listen} />
           <Text style={styles.bandName}>{group.name}</Text>
           <Text style={styles.bandSub}>
-            {group.cycleNumber > 1 ? `${t("cycle.number", { number: group.cycleNumber })} · ` : ""}
+            {group.cycleNumber > 1
+              ? `${t("cycle.number", { number: group.cycleNumber })} · `
+              : ""}
             {rounds.length > 0 ? rulesSummary(t, rules) : stateLabel(t, state)}
           </Text>
         </HeaderBand>
@@ -133,8 +168,12 @@ export default function GroupScreen() {
     >
       {state === "COMPLETED" ? <NextCycleCard group={group} /> : null}
 
-      {state !== "DRAFT" && state !== "CANCELLED" ? <ChatEntry groupId={group.id} unread={group.unreadMessages} /> : null}
-      {state !== "DRAFT" && state !== "CANCELLED" ? <MeetingsCard groupId={group.id} page={meetings} /> : null}
+      {state !== "DRAFT" && state !== "CANCELLED" ? (
+        <ChatEntry groupId={group.id} unread={group.unreadMessages} />
+      ) : null}
+      {state !== "DRAFT" && state !== "CANCELLED" ? (
+        <MeetingsCard groupId={group.id} page={meetings} />
+      ) : null}
 
       <RulesCard rules={rules} mfiName={group.mfiName} />
 
@@ -142,14 +181,21 @@ export default function GroupScreen() {
         <View style={styles.section}>
           <TextButton
             label={t("money.openLedger")}
-            onPress={() => router.push({ pathname: "/groups/[id]/ledger", params: { id: group.id } })}
+            onPress={() =>
+              router.push({
+                pathname: "/groups/[id]/ledger",
+                params: { id: group.id },
+              })
+            }
           />
         </View>
       ) : null}
 
       <View style={styles.section}>
         <Text style={[type.title, styles.ink]}>
-          {started ? t("group.turns") : t("group.places", { taken: placesTaken, size: rules.size })}
+          {started
+            ? t("group.turns")
+            : t("group.places", { taken: placesTaken, size: rules.size })}
         </Text>
 
         {seats.map((seat) => (
@@ -165,9 +211,15 @@ export default function GroupScreen() {
                 {started ? "" : seatStatus(seat)}
               </Text>
               {seat.maskedPhone && seat.role !== "ORGANISER" ? (
-                <Text style={[type.small, styles.muted]}>{seat.maskedPhone}</Text>
+                <Text style={[type.small, styles.muted]}>
+                  {seat.maskedPhone}
+                </Text>
               ) : null}
-              {seat.counterNote ? <Text style={[type.small, styles.quote]}>“{seat.counterNote}”</Text> : null}
+              {seat.counterNote ? (
+                <Text style={[type.small, styles.quote]}>
+                  “{seat.counterNote}”
+                </Text>
+              ) : null}
             </View>
             {isOrganiser && setup && seat.role !== "ORGANISER" ? (
               <TextButton
@@ -190,13 +242,17 @@ export default function GroupScreen() {
           <View key={pending.id} style={styles.row}>
             <View style={styles.rowText}>
               <Text style={[type.body, styles.ink]}>{pending.maskedPhone}</Text>
-              <Text style={[type.small, styles.muted]}>{t("group.invited")}</Text>
+              <Text style={[type.small, styles.muted]}>
+                {t("group.invited")}
+              </Text>
             </View>
             {isOrganiser ? (
               <TextButton
                 label={t("group.withdraw")}
                 disabled={busy}
-                onPress={() => void run(() => cancelInvite(group.id, pending.id))}
+                onPress={() =>
+                  void run(() => cancelInvite(group.id, pending.id))
+                }
               />
             ) : null}
           </View>
@@ -211,7 +267,9 @@ export default function GroupScreen() {
             label={t("group.inviteLabel")}
             prefix="+228"
             value={digits}
-            onChangeText={(value) => setDigits(value.replace(/\D/g, "").slice(0, 8))}
+            onChangeText={(value) =>
+              setDigits(value.replace(/\D/g, "").slice(0, 8))
+            }
             keyboardType="number-pad"
             textContentType="telephoneNumber"
             maxLength={8}
@@ -221,18 +279,26 @@ export default function GroupScreen() {
             disabled={busy || !/^\d{8}$/.test(digits)}
             onPress={() => confirmInvite(group.id, `+228${digits}`)}
           />
-          <Text style={[type.small, styles.muted]}>{t("group.inviteHint")}</Text>
+          <Text style={[type.small, styles.muted]}>
+            {t("group.inviteHint")}
+          </Text>
         </View>
       ) : null}
 
       {isOrganiser && state === "DRAFT" ? (
         <View style={styles.section}>
+          {/* D84: the organiser agrees too, for her own seat. */}
+          <CheckRow checked={consent} onToggle={() => setConsent(!consent)}>
+            {t("answer.shareConsent")}
+          </CheckRow>
           <PrimaryButton
             label={t("group.propose")}
-            disabled={busy}
-            onPress={() => void run(() => proposeGroup(group.id))}
+            disabled={busy || !consent}
+            onPress={() => void run(() => proposeGroup(group.id, true))}
           />
-          <Text style={[type.small, styles.muted]}>{t("group.proposeHint")}</Text>
+          <Text style={[type.small, styles.muted]}>
+            {t("group.proposeHint")}
+          </Text>
         </View>
       ) : null}
 
@@ -242,7 +308,12 @@ export default function GroupScreen() {
             <TextButton
               label={t("group.setOrder")}
               disabled={busy || !full}
-              onPress={() => router.push({ pathname: "/groups/[id]/order", params: { id: group.id } })}
+              onPress={() =>
+                router.push({
+                  pathname: "/groups/[id]/order",
+                  params: { id: group.id },
+                })
+              }
             />
           ) : null}
           <PrimaryButton
@@ -251,21 +322,27 @@ export default function GroupScreen() {
             onPress={() =>
               confirm(
                 t("group.startTitle"),
-                t("group.startMessage", { names: group.seats.map((seat) => seat.displayName).join(", ") }),
+                t("group.startMessage", {
+                  names: group.seats.map((seat) => seat.displayName).join(", "),
+                }),
                 t("group.start"),
                 () => startGroup(group.id),
               )
             }
           />
           <Text style={[type.small, styles.muted]}>
-            {full && everyoneAccepted ? t("group.startReady") : t("group.startHint")}
+            {full && everyoneAccepted
+              ? t("group.startReady")
+              : t("group.startHint")}
           </Text>
         </View>
       ) : null}
 
       {isOrganiser && state === "STARTING" ? (
         <View style={styles.section}>
-          <Text style={[type.body, styles.ink]}>{t("group.starting", { mfi: group.mfiName })}</Text>
+          <Text style={[type.body, styles.ink]}>
+            {t("group.starting", { mfi: group.mfiName })}
+          </Text>
           <PrimaryButton
             label={t("common.tryAgain")}
             disabled={busy}
@@ -277,7 +354,9 @@ export default function GroupScreen() {
       {!isOrganiser && setup && mySeat ? (
         mySeat.acceptedCurrentRules ? (
           <View style={styles.section}>
-            <Text style={[type.body, styles.ink]}>{t("group.youAccepted", { version: rules.version })}</Text>
+            <Text style={[type.body, styles.ink]}>
+              {t("group.youAccepted", { version: rules.version })}
+            </Text>
             <AnswerPanel
               groupId={group.id}
               version={rules.version}
@@ -307,13 +386,23 @@ export default function GroupScreen() {
           <TextButton
             label={t("group.editRules")}
             disabled={busy}
-            onPress={() => router.push({ pathname: "/groups/[id]/edit", params: { id: group.id } })}
+            onPress={() =>
+              router.push({
+                pathname: "/groups/[id]/edit",
+                params: { id: group.id },
+              })
+            }
           />
           <TextButton
             label={t("group.cancel")}
             disabled={busy}
             onPress={() =>
-              confirm(t("group.cancelTitle"), t("group.cancelMessage"), t("group.cancel"), () => cancelGroup(group.id))
+              confirm(
+                t("group.cancelTitle"),
+                t("group.cancelMessage"),
+                t("group.cancel"),
+                () => cancelGroup(group.id),
+              )
             }
           />
         </View>
@@ -324,24 +413,29 @@ export default function GroupScreen() {
   // Shows the whole number she typed before the SMS goes out: once sent, the
   // group sees only part of it, and a typo would invite someone else (D43).
   function confirmInvite(groupId: string, phone: string) {
-    Alert.alert(t("group.inviteConfirmTitle", { phone: formatPhone(phone) }), t("group.inviteConfirmMessage"), [
-      { text: t("common.back"), style: "cancel" },
-      {
-        text: t("group.sendInvite"),
-        onPress: () =>
-          void run(async () => {
-            const next = await invite(groupId, phone);
-            setDigits("");
-            return next;
-          }),
-      },
-    ]);
+    Alert.alert(
+      t("group.inviteConfirmTitle", { phone: formatPhone(phone) }),
+      t("group.inviteConfirmMessage"),
+      [
+        { text: t("common.back"), style: "cancel" },
+        {
+          text: t("group.sendInvite"),
+          onPress: () =>
+            void run(async () => {
+              const next = await invite(groupId, phone);
+              setDigits("");
+              return next;
+            }),
+        },
+      ],
+    );
   }
 
   // "Accepted", "Asked for a change", or "Not answered yet" when her
   // acceptance was of an older version.
   function seatStatus(seat: GroupSeat): string {
-    if (seat.state === "ACCEPTED" && !seat.acceptedCurrentRules) return seatLabel(t, "INVITED");
+    if (seat.state === "ACCEPTED" && !seat.acceptedCurrentRules)
+      return seatLabel(t, "INVITED");
     return seatLabel(t, seat.state);
   }
 }
@@ -351,8 +445,17 @@ function byTurn(a: GroupSeat, b: GroupSeat): number {
 }
 
 const styles = StyleSheet.create({
-  bandName: { fontFamily: fonts.display, fontSize: 26, lineHeight: 32, color: colors.indigo },
-  bandSub: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },
+  bandName: {
+    fontFamily: fonts.display,
+    fontSize: 26,
+    lineHeight: 32,
+    color: colors.indigo,
+  },
+  bandSub: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.muted,
+  },
   indigo: { color: colors.indigo },
   ink: { color: colors.ink },
   muted: { color: colors.muted },

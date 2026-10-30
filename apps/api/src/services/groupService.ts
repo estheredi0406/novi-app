@@ -1,6 +1,16 @@
-import type { CurrentRound, GroupDetail, GroupRules, GroupSummary, Invitation } from "@novi/shared";
+import type {
+  CurrentRound,
+  GroupDetail,
+  GroupRules,
+  GroupSummary,
+  Invitation,
+} from "@novi/shared";
 import { Prisma } from "../generated/prisma/client.js";
-import type { Frequency, PayoutOrder, SeatState } from "../generated/prisma/enums.js";
+import type {
+  Frequency,
+  PayoutOrder,
+  SeatState,
+} from "../generated/prisma/enums.js";
 import { prisma } from "../lib/db.js";
 import { enforce } from "../lib/enforce.js";
 import { AppError } from "../lib/errors.js";
@@ -32,7 +42,8 @@ import { reserveSummary } from "./reserveService.js";
 // D69: a member who still owes the solidarity fund a covered share settles it
 // before she commits to a new group, so a debt cannot be left behind.
 async function refuseIfOwing(userId: string): Promise<void> {
-  if ((await owedCovers(userId)) > 0) throw new AppError("DEBT_OUTSTANDING", 409);
+  if ((await owedCovers(userId)) > 0)
+    throw new AppError("DEBT_OUTSTANDING", 409);
 }
 
 // The demo works with one partner MFI (brief, section 3). It is created the
@@ -77,23 +88,36 @@ function maskPhone(phone: string): string {
 // in the group gets the same answer as for a group that does not exist, so
 // nobody can find out which groups exist by guessing their IDs.
 async function loadForMember(groupId: string, userId: string) {
-  const group = await prisma.group.findUnique({ where: { id: groupId }, include: detailQuery });
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    include: detailQuery,
+  });
   const mySeat = group?.memberships.find((seat) => seat.userId === userId);
-  if (!group || !mySeat || !holdsSeat(mySeat)) throw new AppError("NOT_FOUND", 404);
+  if (!group || !mySeat || !holdsSeat(mySeat))
+    throw new AppError("NOT_FOUND", 404);
   return { group, mySeat, isOrganiser: group.organiserId === userId };
 }
 
 type LoadedGroup = Awaited<ReturnType<typeof loadForMember>>["group"];
 
 // The rules version in force now.
-function currentRules(group: Pick<LoadedGroup, "id" | "currentVersion" | "rulesVersions">) {
-  const rules = group.rulesVersions.find((v) => v.version === group.currentVersion);
-  if (!rules) throw new Error(`group ${group.id} has no rules version ${group.currentVersion}`);
+function currentRules(
+  group: Pick<LoadedGroup, "id" | "currentVersion" | "rulesVersions">,
+) {
+  const rules = group.rulesVersions.find(
+    (v) => v.version === group.currentVersion,
+  );
+  if (!rules)
+    throw new Error(
+      `group ${group.id} has no rules version ${group.currentVersion}`,
+    );
   return rules;
 }
 
 // The rules in force, as the app receives them.
-function toRules(group: Pick<LoadedGroup, "id" | "currentVersion" | "rulesVersions">): GroupRules {
+function toRules(
+  group: Pick<LoadedGroup, "id" | "currentVersion" | "rulesVersions">,
+): GroupRules {
   const rules = currentRules(group);
   return {
     version: rules.version,
@@ -119,7 +143,9 @@ function toDetail(group: LoadedGroup, userId: string): GroupDetail {
       displayName: seat.user.displayName,
       role: seat.role,
       state: seat.state,
-      acceptedCurrentRules: seat.state === "ACCEPTED" && seat.acceptedVersion === group.currentVersion,
+      acceptedCurrentRules:
+        seat.state === "ACCEPTED" &&
+        seat.acceptedVersion === group.currentVersion,
       counterNote: seat.counterNote,
       payoutPosition: seat.payoutPosition,
       // The organiser typed each number herself, so part of it tells her
@@ -128,7 +154,10 @@ function toDetail(group: LoadedGroup, userId: string): GroupDetail {
       maskedPhone: isOrganiser ? maskPhone(seat.user.phone) : null,
       exitReason: seat.exitReason,
     })),
-    pendingInvites: group.invites.map((invite) => ({ id: invite.id, maskedPhone: maskPhone(invite.phone) })),
+    pendingInvites: group.invites.map((invite) => ({
+      id: invite.id,
+      maskedPhone: maskPhone(invite.phone),
+    })),
     myRole: isOrganiser ? "ORGANISER" : "MEMBER",
     reserve: null, // filled in by getGroup once the group has started (D68)
     unreadMessages: 0, // filled in by getGroup (D70)
@@ -142,41 +171,83 @@ function toDetail(group: LoadedGroup, userId: string): GroupDetail {
 // D80: once the cycle is complete, each member who finished it says whether
 // she goes again; the whole group sees the answers, as they would at the
 // market.
-function continueOf(group: LoadedGroup, userId: string): Pick<GroupDetail, "continueAnswers" | "myContinue"> {
-  if (group.state !== "COMPLETED") return { continueAnswers: null, myContinue: null };
-  const finished = group.memberships.filter((m) => m.payoutPosition !== null && m.exitReason === null);
+function continueOf(
+  group: LoadedGroup,
+  userId: string,
+): Pick<GroupDetail, "continueAnswers" | "myContinue"> {
+  if (group.state !== "COMPLETED")
+    return { continueAnswers: null, myContinue: null };
+  const finished = group.memberships.filter(
+    (m) => m.payoutPosition !== null && m.exitReason === null,
+  );
   const names = (answer: boolean | null) =>
-    finished.filter((m) => m.continueAnswer === answer).map((m) => m.user.displayName);
+    finished
+      .filter((m) => m.continueAnswer === answer)
+      .map((m) => m.user.displayName);
   return {
-    continueAnswers: { yes: names(true), no: names(false), waiting: names(null) },
-    myContinue: finished.find((m) => m.userId === userId)?.continueAnswer ?? null,
+    continueAnswers: {
+      yes: names(true),
+      no: names(false),
+      waiting: names(null),
+    },
+    myContinue:
+      finished.find((m) => m.userId === userId)?.continueAnswer ?? null,
   };
 }
 
 // "Oui, je continue" or "Non, j'arrête", until the next cycle is started.
 // She can change her mind until then.
-export async function answerContinue(groupId: string, userId: string, continues: boolean): Promise<GroupDetail> {
+export async function answerContinue(
+  groupId: string,
+  userId: string,
+  continues: boolean,
+): Promise<GroupDetail> {
   const { group, mySeat } = await loadForMember(groupId, userId);
-  if (group.state !== "COMPLETED" || group.nextCycle || mySeat.payoutPosition === null || mySeat.exitReason) {
+  if (
+    group.state !== "COMPLETED" ||
+    group.nextCycle ||
+    mySeat.payoutPosition === null ||
+    mySeat.exitReason
+  ) {
     throw new AppError("NOT_ALLOWED_NOW", 409);
   }
-  await prisma.membership.update({ where: { id: mySeat.id }, data: { continueAnswer: continues, continueAt: new Date() } });
+  await prisma.membership.update({
+    where: { id: mySeat.id },
+    data: { continueAnswer: continues, continueAt: new Date() },
+  });
   return getGroup(groupId, userId);
 }
 
 // Every place taken in the group: held seats, plus invitations waiting for an
 // answer, which keep a place so the organiser cannot invite more people than
 // the group's size.
-function placesTaken(group: Pick<LoadedGroup, "memberships" | "invites">): Seat[] {
-  const waiting: Seat[] = group.invites.map(() => ({ state: "INVITED", acceptedVersion: null }));
+function placesTaken(
+  group: Pick<LoadedGroup, "memberships" | "invites">,
+): Seat[] {
+  const waiting: Seat[] = group.invites.map(() => ({
+    state: "INVITED",
+    acceptedVersion: null,
+  }));
   return [...group.memberships, ...waiting];
 }
 
-export async function getGroup(groupId: string, userId: string): Promise<GroupDetail> {
+export async function getGroup(
+  groupId: string,
+  userId: string,
+): Promise<GroupDetail> {
   const { group, mySeat } = await loadForMember(groupId, userId);
-  const detail = { ...toDetail(group, userId), unreadMessages: await unreadCount(group.id, userId, mySeat.chatReadAt) };
+  const detail = {
+    ...toDetail(group, userId),
+    unreadMessages: await unreadCount(group.id, userId, mySeat.chatReadAt),
+  };
   if (group.state !== "ACTIVE" && group.state !== "COMPLETED") return detail;
-  return { ...detail, reserve: { percent: RESERVE_PERCENT, ...(await reserveSummary(group.id, group.mfiId)) } };
+  return {
+    ...detail,
+    reserve: {
+      percent: RESERVE_PERCENT,
+      ...(await reserveSummary(group.id, group.mfiId)),
+    },
+  };
 }
 
 // Her groups, newest first: every group where she holds a seat.
@@ -202,7 +273,10 @@ export async function listMyGroups(userId: string): Promise<GroupSummary[]> {
         seatsHeld: detail.seats.length,
         myRole: detail.myRole,
         mySeatState: state,
-        currentRound: group.state === "ACTIVE" ? await currentRoundFor(group.id, userId, detail.rules) : null,
+        currentRound:
+          group.state === "ACTIVE"
+            ? await currentRoundFor(group.id, userId, detail.rules)
+            : null,
         unreadMessages: await unreadCount(group.id, userId, chatReadAt),
       };
     }),
@@ -219,7 +293,10 @@ async function currentRoundFor(
   const rounds = await prisma.round.findMany({
     where: { groupId },
     orderBy: { number: "asc" },
-    include: { contributions: { where: { userId } }, payout: { select: { status: true } } },
+    include: {
+      contributions: { where: { userId } },
+      payout: { select: { status: true } },
+    },
   });
   const now = new Date();
   const round = rounds.at(
@@ -231,13 +308,19 @@ async function currentRoundFor(
   if (!round) return null;
 
   const mine = rounds.find((r) => r.beneficiaryId === userId);
-  const paidCount = await prisma.contribution.count({ where: { roundId: round.id, status: "PAID" } });
-  const day = (date: Date) => Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  const paidCount = await prisma.contribution.count({
+    where: { roundId: round.id, status: "PAID" },
+  });
+  const day = (date: Date) =>
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
   const upToNow = rounds.filter((r) => r.number <= round.number);
   const streak = onTimeStreak(
     upToNow.map((r) => {
       const paid = r.contributions.find((c) => c.status === "PAID");
-      return { dueDay: day(r.dueDate), paidDay: paid?.paidAt ? day(paid.paidAt) : null };
+      return {
+        dueDay: day(r.dueDate),
+        paidDay: paid?.paidAt ? day(paid.paidAt) : null,
+      };
     }),
     day(now),
   );
@@ -252,7 +335,11 @@ async function currentRoundFor(
     // Where her own pot is comes from its payout, never from the date alone:
     // a round whose day has passed may still be held (D48).
     myTurn: mine
-      ? { number: mine.number, dueDate: isoDay(mine.dueDate), payoutStatus: mine.payout?.status ?? "NOT_DUE" }
+      ? {
+          number: mine.number,
+          dueDate: isoDay(mine.dueDate),
+          payoutStatus: mine.payout?.status ?? "NOT_DUE",
+        }
       : null,
     onTimeStreak: streak,
   };
@@ -260,12 +347,23 @@ async function currentRoundFor(
 
 // How many of her seats count towards the 3-group limit (D26), not counting
 // the group given, so the check can ask "and with this one?".
-export async function countActiveGroups(userId: string, exceptGroupId?: string): Promise<number> {
+export async function countActiveGroups(
+  userId: string,
+  exceptGroupId?: string,
+): Promise<number> {
   const seats = await prisma.membership.findMany({
-    where: { userId, groupId: exceptGroupId ? { not: exceptGroupId } : undefined },
-    select: { state: true, acceptedVersion: true, group: { select: { state: true } } },
+    where: {
+      userId,
+      groupId: exceptGroupId ? { not: exceptGroupId } : undefined,
+    },
+    select: {
+      state: true,
+      acceptedVersion: true,
+      group: { select: { state: true } },
+    },
   });
-  return seats.filter((seat) => countsTowardLimit(seat.group.state, seat)).length;
+  return seats.filter((seat) => countsTowardLimit(seat.group.state, seat))
+    .length;
 }
 
 // ---------- Creating and changing ----------
@@ -273,17 +371,26 @@ export async function countActiveGroups(userId: string, exceptGroupId?: string):
 // Creates a group as a DRAFT with version 1 of its rules. The organiser holds
 // the first seat and has accepted her own rules; it counts towards her limit
 // only once she proposes the group (D26).
-export async function createGroup(userId: string, input: { name: string } & RulesInput): Promise<GroupDetail> {
+export async function createGroup(
+  userId: string,
+  input: { name: string } & RulesInput,
+): Promise<GroupDetail> {
   enforce(checkRules(input));
   await refuseIfOwing(userId);
   const { name, ...rules } = input;
 
   const groupId = await prisma.$transaction(async (tx) => {
-    const mfi = await tx.mfi.upsert({ where: { code: PARTNER_MFI.code }, create: PARTNER_MFI, update: {} });
+    const mfi = await tx.mfi.upsert({
+      where: { code: PARTNER_MFI.code },
+      create: PARTNER_MFI,
+      update: {},
+    });
     const group = await tx.group.create({
       data: { name, mfiId: mfi.id, organiserId: userId, currentVersion: 1 },
     });
-    await tx.rulesVersion.create({ data: { groupId: group.id, version: 1, proposedById: userId, ...rules } });
+    await tx.rulesVersion.create({
+      data: { groupId: group.id, version: 1, proposedById: userId, ...rules },
+    });
     await tx.membership.create({
       data: {
         groupId: group.id,
@@ -294,7 +401,9 @@ export async function createGroup(userId: string, input: { name: string } & Rule
         respondedAt: new Date(),
       },
     });
-    await tx.auditEvent.create({ data: { userId, type: "GROUP_CREATED", details: { groupId: group.id } } });
+    await tx.auditEvent.create({
+      data: { userId, type: "GROUP_CREATED", details: { groupId: group.id } },
+    });
     return group.id;
   });
   return getGroup(groupId, userId);
@@ -320,52 +429,101 @@ async function saveNextVersion(
   const version = group.currentVersion + 1;
 
   await prisma.$transaction(async (tx) => {
-    await tx.rulesVersion.create({ data: { groupId, version, proposedById: userId, ...rules } });
-    await tx.group.update({ where: { id: groupId }, data: { currentVersion: version } });
+    await tx.rulesVersion.create({
+      data: { groupId, version, proposedById: userId, ...rules },
+    });
+    await tx.group.update({
+      where: { id: groupId },
+      data: { currentVersion: version },
+    });
     await tx.membership.updateMany({
-      where: { groupId, role: "MEMBER", state: { in: ["ACCEPTED", "COUNTERED"] } },
+      where: {
+        groupId,
+        role: "MEMBER",
+        state: { in: ["ACCEPTED", "COUNTERED"] },
+      },
       data: { state: "INVITED", counterNote: null, respondedAt: null },
     });
     await tx.membership.updateMany({
       where: { groupId, role: "ORGANISER" },
-      data: { state: "ACCEPTED", acceptedVersion: version, respondedAt: new Date() },
+      data: {
+        state: "ACCEPTED",
+        acceptedVersion: version,
+        respondedAt: new Date(),
+      },
     });
-    await tx.auditEvent.create({ data: { userId, type: audit, details: { groupId, version } } });
+    await tx.auditEvent.create({
+      data: { userId, type: audit, details: { groupId, version } },
+    });
   });
 }
 
 // Changes the amount, frequency, day, size or payout order. A fixed order
 // already set is kept while the group stays FIXED; if it no longer fits,
 // the start refuses it (D41).
-export async function reviseRules(groupId: string, userId: string, rules: RulesInput): Promise<GroupDetail> {
+export async function reviseRules(
+  groupId: string,
+  userId: string,
+  rules: RulesInput,
+): Promise<GroupDetail> {
   const { group } = await authorise(groupId, userId, "EDIT_RULES");
   enforce(checkRules(rules));
-  const fixedOrder = rules.payoutOrder === "FIXED" ? currentRules(group).fixedOrder : [];
-  await saveNextVersion(group, userId, { ...rules, fixedOrder }, "GROUP_RULES_REVISED");
+  const fixedOrder =
+    rules.payoutOrder === "FIXED" ? currentRules(group).fixedOrder : [];
+  await saveNextVersion(
+    group,
+    userId,
+    { ...rules, fixedOrder },
+    "GROUP_RULES_REVISED",
+  );
   return getGroup(groupId, userId);
 }
 
 // Sends the rules to the invited members. From now on the group counts
 // towards the organiser's limit, so she must have room for it (D26).
-export async function proposeGroup(groupId: string, userId: string): Promise<GroupDetail> {
+export async function proposeGroup(
+  groupId: string,
+  userId: string,
+  shareConsent = false,
+): Promise<GroupDetail> {
   await authorise(groupId, userId, "PROPOSE");
   enforce(checkCanJoin(await countActiveGroups(userId, groupId)));
 
   await prisma.$transaction(async (tx) => {
-    await tx.group.update({ where: { id: groupId }, data: { state: "PROPOSED" } });
-    await tx.auditEvent.create({ data: { userId, type: "GROUP_PROPOSED", details: { groupId } } });
+    await tx.group.update({
+      where: { id: groupId },
+      data: { state: "PROPOSED" },
+    });
+    // D84: the organiser agrees for her own seat when she sends the rules.
+    if (shareConsent) {
+      await tx.membership.updateMany({
+        where: { groupId, userId },
+        data: { shareConsentAt: new Date() },
+      });
+    }
+    await tx.auditEvent.create({
+      data: { userId, type: "GROUP_PROPOSED", details: { groupId } },
+    });
   });
   return getGroup(groupId, userId);
 }
 
 // Stops a group before any money has moved. Its seats no longer count
 // towards anyone's limit, because a cancelled group is not live (D26).
-export async function cancelGroup(groupId: string, userId: string): Promise<GroupDetail> {
+export async function cancelGroup(
+  groupId: string,
+  userId: string,
+): Promise<GroupDetail> {
   await authorise(groupId, userId, "CANCEL");
 
   await prisma.$transaction(async (tx) => {
-    await tx.group.update({ where: { id: groupId }, data: { state: "CANCELLED", cancelledAt: new Date() } });
-    await tx.auditEvent.create({ data: { userId, type: "GROUP_CANCELLED", details: { groupId } } });
+    await tx.group.update({
+      where: { id: groupId },
+      data: { state: "CANCELLED", cancelledAt: new Date() },
+    });
+    await tx.auditEvent.create({
+      data: { userId, type: "GROUP_CANCELLED", details: { groupId } },
+    });
   });
   return getGroup(groupId, userId);
 }
@@ -375,14 +533,25 @@ export async function cancelGroup(groupId: string, userId: string): Promise<Grou
 // Invites a phone number. It works the same whether or not the number has a
 // Novi account, and the answer to the organiser is the same either way: she
 // sees a masked number until the person answers (D38).
-export async function inviteToGroup(groupId: string, userId: string, phone: string): Promise<GroupDetail> {
+export async function inviteToGroup(
+  groupId: string,
+  userId: string,
+  phone: string,
+): Promise<GroupDetail> {
   const { group } = await authorise(groupId, userId, "INVITE");
   const rules = currentRules(group);
   enforce(checkCanInvite(placesTaken(group), rules.size));
 
   // Refused for a number already waiting for an answer, or already holding a seat.
-  const invitee = await prisma.user.findUnique({ where: { phone }, select: { id: true, language: true } });
-  const alreadySeated = invitee && group.memberships.some((seat) => seat.userId === invitee.id && holdsSeat(seat));
+  const invitee = await prisma.user.findUnique({
+    where: { phone },
+    select: { id: true, language: true },
+  });
+  const alreadySeated =
+    invitee &&
+    group.memberships.some(
+      (seat) => seat.userId === invitee.id && holdsSeat(seat),
+    );
   if (alreadySeated || group.invites.some((invite) => invite.phone === phone)) {
     throw new AppError("ALREADY_INVITED", 409);
   }
@@ -396,9 +565,16 @@ export async function inviteToGroup(groupId: string, userId: string, phone: stri
     await tx.invite.upsert({
       where: { groupId_phone: { groupId, phone } },
       create: { groupId, phone, invitedById: userId },
-      update: { invitedById: userId, createdAt: new Date(), answeredAt: null, cancelledAt: null },
+      update: {
+        invitedById: userId,
+        createdAt: new Date(),
+        answeredAt: null,
+        cancelledAt: null,
+      },
     });
-    await tx.auditEvent.create({ data: { userId, type: "GROUP_INVITE_SENT", details: { groupId } } });
+    await tx.auditEvent.create({
+      data: { userId, type: "GROUP_INVITE_SENT", details: { groupId } },
+    });
   });
 
   await sms.send(
@@ -414,28 +590,54 @@ export async function inviteToGroup(groupId: string, userId: string, phone: stri
 }
 
 // Withdraws an invitation that has not been answered, freeing its place.
-export async function cancelInvite(groupId: string, userId: string, inviteId: string): Promise<GroupDetail> {
+export async function cancelInvite(
+  groupId: string,
+  userId: string,
+  inviteId: string,
+): Promise<GroupDetail> {
   const { group } = await authorise(groupId, userId, "REMOVE_SEAT");
-  if (!group.invites.some((invite) => invite.id === inviteId)) throw new AppError("NOT_FOUND", 404);
+  if (!group.invites.some((invite) => invite.id === inviteId))
+    throw new AppError("NOT_FOUND", 404);
 
   await prisma.$transaction(async (tx) => {
-    await tx.invite.update({ where: { id: inviteId }, data: { cancelledAt: new Date() } });
-    await tx.auditEvent.create({ data: { userId, type: "GROUP_INVITE_CANCELLED", details: { groupId } } });
+    await tx.invite.update({
+      where: { id: inviteId },
+      data: { cancelledAt: new Date() },
+    });
+    await tx.auditEvent.create({
+      data: { userId, type: "GROUP_INVITE_CANCELLED", details: { groupId } },
+    });
   });
   return getGroup(groupId, userId);
 }
 
 // Removes a member's seat before the group starts. The organiser's own seat
 // cannot be removed: cancelling the group is how she stops it.
-export async function removeSeat(groupId: string, userId: string, memberId: string): Promise<GroupDetail> {
+export async function removeSeat(
+  groupId: string,
+  userId: string,
+  memberId: string,
+): Promise<GroupDetail> {
   const { group } = await authorise(groupId, userId, "REMOVE_SEAT");
-  if (memberId === group.organiserId) throw new AppError("CANNOT_REMOVE_ORGANISER", 400);
-  const seat = group.memberships.find((s) => s.userId === memberId && holdsSeat(s));
+  if (memberId === group.organiserId)
+    throw new AppError("CANNOT_REMOVE_ORGANISER", 400);
+  const seat = group.memberships.find(
+    (s) => s.userId === memberId && holdsSeat(s),
+  );
   if (!seat) throw new AppError("NOT_FOUND", 404);
 
   await prisma.$transaction(async (tx) => {
-    await tx.membership.update({ where: { id: seat.id }, data: { state: "REMOVED", respondedAt: new Date() } });
-    await tx.auditEvent.create({ data: { userId, type: "GROUP_SEAT_REMOVED", details: { groupId, memberId } } });
+    await tx.membership.update({
+      where: { id: seat.id },
+      data: { state: "REMOVED", respondedAt: new Date() },
+    });
+    await tx.auditEvent.create({
+      data: {
+        userId,
+        type: "GROUP_SEAT_REMOVED",
+        details: { groupId, memberId },
+      },
+    });
   });
   return getGroup(groupId, userId);
 }
@@ -444,11 +646,25 @@ export async function removeSeat(groupId: string, userId: string, memberId: stri
 // A number invited before it had an account sees its invitations as soon as
 // it signs up. Only groups still being set up or decided are shown.
 export async function listMyInvitations(userId: string): Promise<Invitation[]> {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { phone: true } });
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { phone: true },
+  });
   const invites = await prisma.invite.findMany({
-    where: { phone: user.phone, ...pending, group: { state: { in: ["DRAFT", "PROPOSED"] } } },
+    where: {
+      phone: user.phone,
+      ...pending,
+      group: { state: { in: ["DRAFT", "PROPOSED"] } },
+    },
     orderBy: { createdAt: "desc" },
-    include: { group: { include: { ...detailQuery, organiser: { select: { displayName: true } } } } },
+    include: {
+      group: {
+        include: {
+          ...detailQuery,
+          organiser: { select: { displayName: true } },
+        },
+      },
+    },
   });
   return invites.map(({ id, group }) => ({
     id,
@@ -468,9 +684,17 @@ export async function listMyInvitations(userId: string): Promise<Invitation[]> {
 // invitation to her verified phone number is waiting. Anyone else is told the
 // group does not exist, as in loadForMember.
 async function loadForAnswer(groupId: string, userId: string) {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { phone: true } });
-  const group = await prisma.group.findUnique({ where: { id: groupId }, include: detailQuery });
-  const seat = group?.memberships.find((s) => s.userId === userId && holdsSeat(s));
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { phone: true },
+  });
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    include: detailQuery,
+  });
+  const seat = group?.memberships.find(
+    (s) => s.userId === userId && holdsSeat(s),
+  );
   const invite = group?.invites.find((i) => i.phone === user.phone);
   if (!group || (!seat && !invite)) throw new AppError("NOT_FOUND", 404);
   return { group, invite, isOrganiser: group.organiserId === userId };
@@ -480,6 +704,7 @@ type Answer = {
   state: SeatState;
   acceptedVersion: number | null;
   counterNote: string | null;
+  shareConsentAt?: Date;
   audit: "GROUP_ACCEPTED" | "GROUP_COUNTERED" | "GROUP_DECLINED";
 };
 
@@ -497,19 +722,41 @@ async function recordAnswer(
   await prisma.$transaction(async (tx) => {
     await tx.membership.upsert({
       where: { groupId_userId: { groupId, userId } },
-      create: { groupId, userId, invitedById, ...seat, respondedAt: new Date() },
+      create: {
+        groupId,
+        userId,
+        invitedById,
+        ...seat,
+        respondedAt: new Date(),
+      },
       update: { ...seat, respondedAt: new Date() },
     });
-    if (inviteId) await tx.invite.update({ where: { id: inviteId }, data: { answeredAt: new Date() } });
+    if (inviteId)
+      await tx.invite.update({
+        where: { id: inviteId },
+        data: { answeredAt: new Date() },
+      });
     await tx.auditEvent.create({
-      data: { userId, type: audit, details: { groupId, version: answer.acceptedVersion } },
+      data: {
+        userId,
+        type: audit,
+        details: { groupId, version: answer.acceptedVersion },
+      },
     });
   });
 }
 
 // She accepts the version of the rules she read. From now on the group counts
 // towards her 3-group limit (D26), so she must have room for it.
-export async function acceptRules(groupId: string, userId: string, versionSeen: number): Promise<GroupDetail> {
+// D84: shareConsent is her agreement that the MFI sees her Novi record when
+// it validates the group. Older apps do not send it: the seat is taken, and
+// the officer sees that she has not agreed.
+export async function acceptRules(
+  groupId: string,
+  userId: string,
+  versionSeen: number,
+  shareConsent = false,
+): Promise<GroupDetail> {
   const { group, invite, isOrganiser } = await loadForAnswer(groupId, userId);
   enforce(checkAction("RESPOND", group.state, isOrganiser));
   enforce(checkAnswersCurrentRules(versionSeen, group.currentVersion));
@@ -520,6 +767,7 @@ export async function acceptRules(groupId: string, userId: string, versionSeen: 
     state: "ACCEPTED",
     acceptedVersion: group.currentVersion,
     counterNote: null,
+    ...(shareConsent ? { shareConsentAt: new Date() } : {}),
     audit: "GROUP_ACCEPTED",
   });
   return getGroup(groupId, userId);
@@ -551,7 +799,10 @@ export async function counterRules(
 // She says no, or leaves a group she had accepted, before it starts. Her
 // place is freed, and the group never sees her name: a declined seat is not
 // shown, so saying no costs her nothing with the organiser.
-export async function declineGroup(groupId: string, userId: string): Promise<void> {
+export async function declineGroup(
+  groupId: string,
+  userId: string,
+): Promise<void> {
   const { group, invite, isOrganiser } = await loadForAnswer(groupId, userId);
   enforce(checkAction("DECLINE", group.state, isOrganiser));
 
@@ -569,33 +820,56 @@ export async function declineGroup(groupId: string, userId: string): Promise<voi
 // Abla first, because her shop rent is due. It needs every seat taken, so the
 // order names real members, and it becomes a new version of the rules, so
 // everyone accepts the exact order before the group can start (D29).
-export async function setPayoutOrder(groupId: string, userId: string, memberIds: string[]): Promise<GroupDetail> {
+export async function setPayoutOrder(
+  groupId: string,
+  userId: string,
+  memberIds: string[],
+): Promise<GroupDetail> {
   const { group } = await authorise(groupId, userId, "SET_ORDER");
   const rules = currentRules(group);
-  const holders = group.memberships.filter(holdsSeat).map((seat) => seat.userId);
-  if (holders.length !== rules.size) enforce({ ok: false, reason: "SEATS_NOT_FILLED" });
+  const holders = group.memberships
+    .filter(holdsSeat)
+    .map((seat) => seat.userId);
+  if (holders.length !== rules.size)
+    enforce({ ok: false, reason: "SEATS_NOT_FILLED" });
   enforce(checkFixedOrder(memberIds, holders));
 
   const { amountFcfa, frequency, dueDay, size } = rules;
   await saveNextVersion(
     group,
     userId,
-    { amountFcfa, frequency, dueDay, size, payoutOrder: "FIXED", fixedOrder: memberIds },
+    {
+      amountFcfa,
+      frequency,
+      dueDay,
+      size,
+      payoutOrder: "FIXED",
+      fixedOrder: memberIds,
+    },
     "GROUP_ORDER_SET",
   );
   return getGroup(groupId, userId);
 }
 
 // How many groups she has started (D27), not counting the group given.
-async function countStarts(userId: string, exceptGroupId: string): Promise<number> {
+async function countStarts(
+  userId: string,
+  exceptGroupId: string,
+): Promise<number> {
   return prisma.group.count({
-    where: { organiserId: userId, id: { not: exceptGroupId }, state: { in: ["STARTING", "ACTIVE", "COMPLETED"] } },
+    where: {
+      organiserId: userId,
+      id: { not: exceptGroupId },
+      state: { in: ["STARTING", "ACTIVE", "COMPLETED"] },
+    },
   });
 }
 
 // Has she kept paying until the end of a whole cycle in some group (D27)?
 async function hasCompletedCycle(userId: string): Promise<boolean> {
-  const seats = await prisma.membership.count({ where: { userId, state: "ACCEPTED", group: { state: "COMPLETED" } } });
+  const seats = await prisma.membership.count({
+    where: { userId, state: "ACCEPTED", group: { state: "COMPLETED" } },
+  });
   return seats > 0;
 }
 
@@ -607,7 +881,10 @@ async function hasCompletedCycle(userId: string): Promise<boolean> {
 // If the MFI does not answer, the group waits in STARTING with its order
 // kept, and the organiser can try again: the order is never drawn twice, so
 // nobody can retry until the draw suits them.
-export async function startGroup(groupId: string, userId: string): Promise<GroupDetail> {
+export async function startGroup(
+  groupId: string,
+  userId: string,
+): Promise<GroupDetail> {
   const { group } = await authorise(groupId, userId, "START");
   if (group.state === "PROPOSED") await fixOrder(group, userId);
   // D66: when the MFI validates groups itself, the group waits in STARTING
@@ -632,11 +909,18 @@ async function fixOrder(group: LoadedGroup, userId: string) {
   const rules = currentRules(group);
   const seats = group.memberships.filter(holdsSeat);
   enforce(checkReadyToStart(seats, rules.size, group.currentVersion));
-  enforce(checkCanStartAnother(await countStarts(userId, group.id), await hasCompletedCycle(userId)));
+  enforce(
+    checkCanStartAnother(
+      await countStarts(userId, group.id),
+      await hasCompletedCycle(userId),
+    ),
+  );
 
   const holders = seats.map((seat) => seat.userId);
-  if (rules.payoutOrder === "FIXED") enforce(checkFixedOrder(rules.fixedOrder, holders));
-  const order = rules.payoutOrder === "FIXED" ? rules.fixedOrder : drawOrder(holders);
+  if (rules.payoutOrder === "FIXED")
+    enforce(checkFixedOrder(rules.fixedOrder, holders));
+  const order =
+    rules.payoutOrder === "FIXED" ? rules.fixedOrder : drawOrder(holders);
 
   await prisma.$transaction(async (tx) => {
     // Only a group still PROPOSED moves on, so two taps on "Start" at the
@@ -658,14 +942,19 @@ async function fixOrder(group: LoadedGroup, userId: string) {
       payoutOrder: rules.payoutOrder,
       order,
     };
-    await tx.auditEvent.create({ data: { userId, type: "GROUP_STARTING", details } });
+    await tx.auditEvent.create({
+      data: { userId, type: "GROUP_STARTING", details },
+    });
   });
 }
 
 // Asks the MFI to open the account. The MFI is told group totals only: no
 // names, no phone numbers (D33).
 async function openAccount(groupId: string, userId: string | null) {
-  const group = await prisma.group.findUniqueOrThrow({ where: { id: groupId }, include: { rulesVersions: true } });
+  const group = await prisma.group.findUniqueOrThrow({
+    where: { id: groupId },
+    include: { rulesVersions: true },
+  });
   const rules = currentRules(group);
 
   let accountRef: string;
@@ -678,7 +967,9 @@ async function openAccount(groupId: string, userId: string | null) {
     }));
   } catch (err) {
     console.error(`MFI could not open the account for group ${groupId}:`, err);
-    await prisma.auditEvent.create({ data: { userId, type: "GROUP_MFI_FAILED", details: { groupId } } });
+    await prisma.auditEvent.create({
+      data: { userId, type: "GROUP_MFI_FAILED", details: { groupId } },
+    });
     throw new AppError("MFI_UNAVAILABLE", 503);
   }
 
@@ -690,7 +981,9 @@ async function openAccount(groupId: string, userId: string | null) {
     });
     // The calendar is written once, by the request that made the group ACTIVE.
     if (moved.count === 1) await createRounds(tx, groupId, startedAt, rules);
-    await tx.auditEvent.create({ data: { userId, type: "GROUP_ACTIVE", details: { groupId } } });
+    await tx.auditEvent.create({
+      data: { userId, type: "GROUP_ACTIVE", details: { groupId } },
+    });
   });
 }
 
@@ -707,7 +1000,12 @@ async function createRounds(
     where: { groupId, payoutPosition: { not: null } },
     orderBy: { payoutPosition: "asc" },
   });
-  const dates = dueDates(startedAt, rules.frequency, rules.dueDay, seats.length);
+  const dates = dueDates(
+    startedAt,
+    rules.frequency,
+    rules.dueDay,
+    seats.length,
+  );
   await tx.round.createMany({
     data: seats.map((seat, i) => ({
       groupId,
@@ -730,10 +1028,14 @@ async function createRounds(
 // j'arrête" (D80); one who has not answered is invited, and can decline. A
 // member who still owes the fund is invited, but cannot accept until she
 // has repaid it.
-export async function startNextCycle(groupId: string, userId: string): Promise<GroupDetail> {
+export async function startNextCycle(
+  groupId: string,
+  userId: string,
+): Promise<GroupDetail> {
   const { group, isOrganiser } = await loadForMember(groupId, userId);
   if (!isOrganiser) throw new AppError("ORGANISER_ONLY", 403);
-  if (group.state !== "COMPLETED" || group.nextCycle) throw new AppError("NOT_ALLOWED_NOW", 409);
+  if (group.state !== "COMPLETED" || group.nextCycle)
+    throw new AppError("NOT_ALLOWED_NOW", 409);
 
   const rules = currentRules(group);
   const created = await createGroup(userId, {
@@ -751,8 +1053,14 @@ export async function startNextCycle(groupId: string, userId: string): Promise<G
     });
   } catch (err) {
     // Another tap got there first: this copy is not needed.
-    await prisma.group.update({ where: { id: created.id }, data: { state: "CANCELLED", cancelledAt: new Date() } });
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    await prisma.group.update({
+      where: { id: created.id },
+      data: { state: "CANCELLED", cancelledAt: new Date() },
+    });
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
       throw new AppError("NOT_ALLOWED_NOW", 409);
     }
     throw err;
@@ -774,7 +1082,11 @@ export async function startNextCycle(groupId: string, userId: string): Promise<G
     await inviteToGroup(created.id, userId, seat.user.phone);
   }
   await prisma.auditEvent.create({
-    data: { userId, type: "GROUP_NEXT_CYCLE", details: { from: groupId, to: created.id, invited: returning.length } },
+    data: {
+      userId,
+      type: "GROUP_NEXT_CYCLE",
+      details: { from: groupId, to: created.id, invited: returning.length },
+    },
   });
   return getGroup(created.id, userId);
 }
