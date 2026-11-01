@@ -20,7 +20,12 @@ type Tx = Prisma.TransactionClient;
 // her for this round, her payment repays it.
 export async function creditReserve(
   tx: Tx,
-  contribution: { id: string; roundId: string; userId: string; amountFcfa: number },
+  contribution: {
+    id: string;
+    roundId: string;
+    userId: string;
+    amountFcfa: number;
+  },
   groupId: string,
 ): Promise<void> {
   const share = reserveShare(contribution.amountFcfa);
@@ -37,7 +42,12 @@ export async function creditReserve(
     });
   }
   const cover = await tx.reserveCover.findUnique({
-    where: { roundId_userId: { roundId: contribution.roundId, userId: contribution.userId } },
+    where: {
+      roundId_userId: {
+        roundId: contribution.roundId,
+        userId: contribution.userId,
+      },
+    },
   });
   if (cover && !cover.repaidAt) {
     const repaid = await tx.reserveCover.updateMany({
@@ -59,23 +69,44 @@ export async function creditReserve(
   }
 }
 
-const RESERVE_TYPES = ["RESERVE_IN", "RESERVE_COVER", "RESERVE_REPAY", "RESERVE_RETURN"] as const;
+const RESERVE_TYPES = [
+  "RESERVE_IN",
+  "RESERVE_COVER",
+  "RESERVE_REPAY",
+  "RESERVE_RETURN",
+  "RESERVE_ADVANCE", // D88: out to a member, as an advance
+  "RESERVE_ADVANCE_REPAY", // D88: back from her pot
+] as const;
 type Db = Tx | typeof prisma;
 
-async function sumReserve(where: Prisma.LedgerEntryWhereInput, db: Db): Promise<number> {
+async function sumReserve(
+  where: Prisma.LedgerEntryWhereInput,
+  db: Db,
+): Promise<number> {
   const sums = await db.ledgerEntry.groupBy({
     by: ["type"],
     where: { ...where, type: { in: [...RESERVE_TYPES] } },
     _sum: { amountFcfa: true },
   });
-  const of = (type: string) => sums.find((s) => s.type === type)?._sum.amountFcfa ?? 0;
-  return of("RESERVE_IN") + of("RESERVE_REPAY") - of("RESERVE_COVER") - of("RESERVE_RETURN");
+  const of = (type: string) =>
+    sums.find((s) => s.type === type)?._sum.amountFcfa ?? 0;
+  return (
+    of("RESERVE_IN") +
+    of("RESERVE_REPAY") +
+    of("RESERVE_ADVANCE_REPAY") -
+    of("RESERVE_COVER") -
+    of("RESERVE_RETURN") -
+    of("RESERVE_ADVANCE")
+  );
 }
 
 // One group's place in the fund: what it put in and got back, less what the
 // fund paid for its members and they have not repaid. Can be negative while
 // one of its members owes a cover.
-export function reserveBalance(groupId: string, db: Db = prisma): Promise<number> {
+export function reserveBalance(
+  groupId: string,
+  db: Db = prisma,
+): Promise<number> {
   return sumReserve({ groupId }, db);
 }
 
@@ -102,12 +133,19 @@ export async function coverMissing(
       where: { roundId: round.id, status: "PAID" },
       select: { userId: true },
     });
-    const covered = await tx.reserveCover.findMany({ where: { roundId: round.id }, select: { userId: true } });
+    const covered = await tx.reserveCover.findMany({
+      where: { roundId: round.id },
+      select: { userId: true },
+    });
     const settled = new Set([...paid, ...covered].map((x) => x.userId));
     const missing = seats.filter((s) => !settled.has(s.userId));
     if (missing.length === 0) return true;
-    const group = await tx.group.findUniqueOrThrow({ where: { id: round.groupId }, select: { mfiId: true } });
-    if ((await fundBalance(group.mfiId, tx)) < missing.length * net) return false;
+    const group = await tx.group.findUniqueOrThrow({
+      where: { id: round.groupId },
+      select: { mfiId: true },
+    });
+    if ((await fundBalance(group.mfiId, tx)) < missing.length * net)
+      return false;
 
     // D69: after a death, nobody owes her shares: the fund carries them.
     const deceased = new Set(
@@ -142,7 +180,11 @@ export async function coverMissing(
     await tx.auditEvent.create({
       data: {
         type: "RESERVE_COVERED",
-        details: { roundId: round.id, members: missing.length, amountFcfa: missing.length * net },
+        details: {
+          roundId: round.id,
+          members: missing.length,
+          amountFcfa: missing.length * net,
+        },
       },
     });
     return true;
@@ -154,7 +196,9 @@ export async function coverMissing(
 // each put in. A member who still owes a covered round gets nothing back.
 // Run once: a second run finds the returns already written.
 export async function returnReserve(groupId: string): Promise<void> {
-  const group = await prisma.group.findUniqueOrThrow({ where: { id: groupId } });
+  const group = await prisma.group.findUniqueOrThrow({
+    where: { id: groupId },
+  });
   if (group.state !== "COMPLETED" || !group.mfiAccountRef) return;
   if ((await prisma.reserveReturn.count({ where: { groupId } })) > 0) return;
 
@@ -211,7 +255,14 @@ export async function returnReserve(groupId: string): Promise<void> {
     const operator = last?.operator ?? "MOOV_TG";
     const created = await prisma.$transaction(async (tx) => {
       const row = await tx.reserveReturn.create({
-        data: { groupId, userId: part.userId, amountFcfa: part.amount, phone: user.phone, operator, status: "SENDING" },
+        data: {
+          groupId,
+          userId: part.userId,
+          amountFcfa: part.amount,
+          phone: user.phone,
+          operator,
+          status: "SENDING",
+        },
       });
       await tx.ledgerEntry.create({
         data: {
@@ -234,14 +285,26 @@ export async function returnReserve(groupId: string): Promise<void> {
       });
       await prisma.reserveReturn.update({
         where: { id: created.id },
-        data: { status: answer.status, mfiRef: answer.mfiRef, paidAt: answer.status === "PAID" ? new Date() : null },
+        data: {
+          status: answer.status,
+          mfiRef: answer.mfiRef,
+          paidAt: answer.status === "PAID" ? new Date() : null,
+        },
       });
     } catch (err) {
       console.error(`MFI did not accept reserve return ${created.id}:`, err);
-      await prisma.reserveReturn.update({ where: { id: created.id }, data: { status: "FAILED" } });
+      await prisma.reserveReturn.update({
+        where: { id: created.id },
+        data: { status: "FAILED" },
+      });
     }
   }
-  await prisma.auditEvent.create({ data: { type: "RESERVE_RETURNED", details: { groupId, amountFcfa: balance } } });
+  await prisma.auditEvent.create({
+    data: {
+      type: "RESERVE_RETURNED",
+      details: { groupId, amountFcfa: balance },
+    },
+  });
 }
 
 // What a member or an officer sees of the reserve.
@@ -255,14 +318,24 @@ export async function reserveSummary(groupId: string, mfiId: string) {
       _count: true,
     }),
   ]);
-  return { balanceFcfa: balance, fundFcfa: fund, owedFcfa: open._sum.amountFcfa ?? 0, coversOpen: open._count };
+  return {
+    balanceFcfa: balance,
+    fundFcfa: fund,
+    owedFcfa: open._sum.amountFcfa ?? 0,
+    coversOpen: open._count,
+  };
 }
 
 // D69: before her pot leaves, what the fund paid for her in this group and
 // she has not paid back is taken from it first, so a member cannot collect
 // the pot and leave her debt behind. Runs inside the release transaction;
 // returns what was repaid.
-export async function repayFromPot(tx: Tx, groupId: string, userId: string, potFcfa: number): Promise<number> {
+export async function repayFromPot(
+  tx: Tx,
+  groupId: string,
+  userId: string,
+  potFcfa: number,
+): Promise<number> {
   const open = await tx.reserveCover.findMany({
     where: { userId, round: { groupId }, repaidAt: null, writtenOffAt: null },
     orderBy: { coveredAt: "asc" },
@@ -287,11 +360,39 @@ export async function repayFromPot(tx: Tx, groupId: string, userId: string, potF
     });
     repaid += cover.amountFcfa;
   }
+  // D88: then the advance she received from the fund in this group.
+  const advances = await tx.advance.findMany({
+    where: { userId, groupId, status: "PAID" },
+    orderBy: { createdAt: "asc" },
+  });
+  for (const advance of advances) {
+    if (repaid + advance.amountFcfa > potFcfa) break;
+    const done = await tx.advance.updateMany({
+      where: { id: advance.id, status: "PAID" },
+      data: { status: "REPAID", repaidAt: new Date() },
+    });
+    if (done.count === 0) continue;
+    await tx.ledgerEntry.create({
+      data: {
+        groupId,
+        userId,
+        type: "RESERVE_ADVANCE_REPAY",
+        amountFcfa: advance.amountFcfa,
+        note: `advance ${advance.id} from pot`,
+      },
+    });
+    repaid += advance.amountFcfa;
+  }
   return repaid;
 }
 
 // D69: after a death, what the fund paid for her is nobody's debt.
-export async function writeOffCovers(tx: Tx, groupId: string, userId: string, now: Date): Promise<number> {
+export async function writeOffCovers(
+  tx: Tx,
+  groupId: string,
+  userId: string,
+  now: Date,
+): Promise<number> {
   const done = await tx.reserveCover.updateMany({
     where: { userId, round: { groupId }, repaidAt: null, writtenOffAt: null },
     data: { writtenOffAt: now },

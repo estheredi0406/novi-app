@@ -45,3 +45,14 @@ ones on the laptop.
 
 SMS, the ANID identity check, the MFI and payments use their mock providers
 until real providers are connected. Codes sent "by SMS" appear in the logs.
+
+## Emails to officers (D90)
+Without these settings the API only prints the emails in its log. To send real ones:
+1. Create a free account at brevo.com, then add and verify a sender address (Senders, domains and IPs > Senders), for example your Gmail.
+2. Create an API key (SMTP and API > API keys).
+3. In Render > novi-api > Environment, add:
+   - `EMAIL_PROVIDER=brevo`
+   - `BREVO_API_KEY=` the key from step 2
+   - `EMAIL_FROM=` the verified sender address
+   - `CONSOLE_URL=https://novi-api-w7ri.onrender.com/console/`
+4. Give officers real email addresses (Équipe page), or emails to demo addresses go nowhere.

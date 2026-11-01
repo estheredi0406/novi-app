@@ -36,6 +36,7 @@ import { onTimeStreak } from "../lib/streak.js";
 import { inviteSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import { unreadCount } from "./chatService.js";
+import { alertStaff } from "./alertService.js";
 import { owedCovers } from "./memberService.js";
 import { reserveSummary } from "./reserveService.js";
 
@@ -886,11 +887,26 @@ export async function startGroup(
   userId: string,
 ): Promise<GroupDetail> {
   const { group } = await authorise(groupId, userId, "START");
-  if (group.state === "PROPOSED") await fixOrder(group, userId);
+  const wasProposed = group.state === "PROPOSED";
+  if (wasProposed) await fixOrder(group, userId);
   // D66: when the MFI validates groups itself, the group waits in STARTING
   // until an officer approves it in the console; only then is the account
   // opened. Otherwise Novi asks the MFI straight away.
   if (!mfiValidatesGroups()) await openAccount(groupId, userId);
+  else if (wasProposed) {
+    // D90: the officers hear about it without watching the console.
+    await alertStaff({
+      mfiId: group.mfiId,
+      kind: "GROUP_TO_VALIDATE",
+      refId: groupId,
+      groupId,
+      subject: `Groupe à valider : ${group.name}`,
+      lines: [
+        `Le groupe « ${group.name} » a démarré côté membres et attend votre validation.`,
+        "Ses membres et leur historique Novi sont sur sa page.",
+      ],
+    });
+  }
   return getGroup(groupId, userId);
 }
 

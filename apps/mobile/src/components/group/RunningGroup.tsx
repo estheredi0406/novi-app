@@ -37,7 +37,9 @@ export function RunningGroup({
   const { t } = useTranslation();
   const current = rounds.find((r) => r.isCurrent);
   const sub = [
-    group.cycleNumber > 1 ? t("cycle.number", { number: group.cycleNumber }) : null,
+    group.cycleNumber > 1
+      ? t("cycle.number", { number: group.cycleNumber })
+      : null,
     rulesSummary(t, group.rules),
     t("groupInfo.members", { count: group.rules.size }),
   ]
@@ -55,7 +57,10 @@ export function RunningGroup({
   const select = (next: GroupTab) => router.setParams({ tab: next });
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "left", "right", "bottom"]}>
+    <SafeAreaView
+      style={styles.safe}
+      edges={["top", "left", "right", "bottom"]}
+    >
       <View style={styles.band}>
         <BackHeader listenText={listen} />
         <Text style={styles.name} numberOfLines={1}>
@@ -67,7 +72,8 @@ export function RunningGroup({
         <View style={styles.tabs} accessibilityRole="tablist">
           {GROUP_TABS.map((key) => {
             const on = key === tab;
-            const unread = key === "discussion" && !on ? group.unreadMessages : 0;
+            const unread =
+              key === "discussion" && !on ? group.unreadMessages : 0;
             return (
               <Pressable
                 key={key}
@@ -76,10 +82,14 @@ export function RunningGroup({
                 onPress={() => select(key)}
                 style={[styles.tab, on && styles.tabOn]}
               >
-                <Text style={[styles.tabText, on && styles.tabTextOn]}>{t(`tabs.${key}`)}</Text>
+                <Text style={[styles.tabText, on && styles.tabTextOn]}>
+                  {t(`tabs.${key}`)}
+                </Text>
                 {unread > 0 ? (
                   <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{unread > 99 ? "99+" : unread}</Text>
+                    <Text style={styles.badgeText}>
+                      {unread > 99 ? "99+" : unread}
+                    </Text>
                   </View>
                 ) : null}
               </Pressable>
@@ -89,13 +99,26 @@ export function RunningGroup({
       </View>
 
       {tab === "discussion" ? (
-        <GroupChat groupId={group.id} nextMeeting={meetings?.upcoming[0] ?? null} />
+        <GroupChat
+          groupId={group.id}
+          nextMeeting={meetings?.upcoming[0] ?? null}
+        />
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           {tab === "cotisation" ? (
-            <CotisationTab group={group} rounds={rounds} memberId={memberId} onChanged={onChanged} />
+            <CotisationTab
+              group={group}
+              rounds={rounds}
+              memberId={memberId}
+              onChanged={onChanged}
+            />
           ) : (
-            <GroupInfoTab group={group} rounds={rounds} memberId={memberId} />
+            <GroupInfoTab
+              group={group}
+              rounds={rounds}
+              memberId={memberId}
+              onChanged={onChanged}
+            />
           )}
         </ScrollView>
       )}
@@ -113,7 +136,13 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     gap: 4,
   },
-  name: { fontFamily: fonts.display, fontSize: 26, lineHeight: 32, color: colors.indigo, marginTop: 4 },
+  name: {
+    fontFamily: fonts.display,
+    fontSize: 26,
+    lineHeight: 32,
+    color: colors.indigo,
+    marginTop: 4,
+  },
   sub: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },
   tabs: { flexDirection: "row", marginTop: 8 },
   tab: {
@@ -127,7 +156,11 @@ const styles = StyleSheet.create({
     borderBottomColor: "transparent",
   },
   tabOn: { borderBottomColor: colors.accent },
-  tabText: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.muted },
+  tabText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    color: colors.muted,
+  },
   tabTextOn: { fontFamily: fonts.bodyBold, color: colors.indigo },
   badge: {
     minWidth: 20,

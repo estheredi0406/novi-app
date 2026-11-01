@@ -29,8 +29,12 @@ export async function updateProfile(
     if (nextOfKin) {
       // Her own number would defeat the purpose: after a death, that phone
       // may be lost or in someone else's hands.
-      const me = await prisma.user.findUnique({ where: { id: userId }, select: { phone: true } });
-      if (me?.phone === nextOfKin.phone) throw new AppError("NEXT_OF_KIN_SELF", 400);
+      const me = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { phone: true },
+      });
+      if (me?.phone === nextOfKin.phone)
+        throw new AppError("NEXT_OF_KIN_SELF", 400);
     }
     data.nextOfKinName = nextOfKin?.name ?? null;
     data.nextOfKinPhone = nextOfKin?.phone ?? null;
@@ -39,7 +43,12 @@ export async function updateProfile(
   const user = await prisma.user.update({ where: { id: userId }, data });
   if (nextOfKin !== undefined) {
     // Who she named is not logged, only that she changed it.
-    await prisma.auditEvent.create({ data: { userId, type: nextOfKin ? "NEXT_OF_KIN_SET" : "NEXT_OF_KIN_REMOVED" } });
+    await prisma.auditEvent.create({
+      data: {
+        userId,
+        type: nextOfKin ? "NEXT_OF_KIN_SET" : "NEXT_OF_KIN_REMOVED",
+      },
+    });
   }
   return toMemberProfile(user);
 }
@@ -47,9 +56,16 @@ export async function updateProfile(
 // D69: what the solidarity fund paid for her and she has not paid back.
 // While anything is owed she cannot create or join another group.
 export async function owedCovers(userId: string): Promise<number> {
-  const open = await prisma.reserveCover.aggregate({
-    where: { userId, repaidAt: null, writtenOffAt: null },
-    _sum: { amountFcfa: true },
-  });
-  return open._sum.amountFcfa ?? 0;
+  const [open, advances] = await Promise.all([
+    prisma.reserveCover.aggregate({
+      where: { userId, repaidAt: null, writtenOffAt: null },
+      _sum: { amountFcfa: true },
+    }),
+    // D88: an advance in her wallet, not yet repaid from her pot.
+    prisma.advance.aggregate({
+      where: { userId, status: { in: ["SENT", "PAID"] } },
+      _sum: { amountFcfa: true },
+    }),
+  ]);
+  return (open._sum.amountFcfa ?? 0) + (advances._sum.amountFcfa ?? 0);
 }

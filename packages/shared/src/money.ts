@@ -7,7 +7,8 @@ export type ContributionStatus = "PENDING" | "PAID" | "FAILED";
 // Where a round's pot is (Sprint 4). NOT_DUE: its day has not come yet.
 // HELD: the day has passed but someone has not paid; nothing is sent short.
 // READY: due and full, waiting for the MFI officer to release it (D63).
-export type PayoutStatus = "NOT_DUE" | "HELD" | "READY" | "SENDING" | "SENT" | "PAID" | "FAILED";
+export type PayoutStatus =
+  "NOT_DUE" | "HELD" | "READY" | "SENDING" | "SENT" | "PAID" | "FAILED";
 
 // Her own payment for one round, as she sees it while paying and after.
 export type ContributionView = {
@@ -59,7 +60,16 @@ export type RoundDetail = RoundSummary & { payments: RoundPayment[] };
 // One line of the group's ledger, which is never edited (D5).
 export type LedgerLine = {
   id: string;
-  type: "CONTRIBUTION" | "PAYOUT" | "CORRECTION" | "RESERVE_IN" | "RESERVE_COVER" | "RESERVE_REPAY" | "RESERVE_RETURN";
+  type:
+    | "CONTRIBUTION"
+    | "PAYOUT"
+    | "CORRECTION"
+    | "RESERVE_IN"
+    | "RESERVE_COVER"
+    | "RESERVE_REPAY"
+    | "RESERVE_RETURN"
+    | "RESERVE_ADVANCE"
+    | "RESERVE_ADVANCE_REPAY";
   amountFcfa: number;
   roundNumber: number | null;
   memberName: string | null;

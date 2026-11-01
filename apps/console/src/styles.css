@@ -1168,16 +1168,16 @@ table.members tr:last-child td {
   flex-wrap: wrap;
   max-width: 260px;
 }
-.dot {
+.rec-dot {
   width: 9px;
   height: 9px;
   border-radius: 50%;
   display: inline-block;
 }
-.dot-ok {
+.rec-dot-ok {
   background: var(--paid);
 }
-.dot-late {
+.rec-dot-late {
   background: var(--saffron);
 }
 .paid-text {
@@ -1185,4 +1185,49 @@ table.members tr:last-child td {
 }
 .problem-text {
   color: var(--problem);
+}
+
+/* D89: microloan requests; D88: advances */
+.loan-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 32px;
+  align-items: start;
+}
+.loan-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+}
+.loan-side input,
+.loan-side textarea {
+  font: inherit;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+}
+.loan-amount {
+  font-size: 34px;
+  font-weight: 800;
+}
+.status-pending {
+  color: var(--laterite);
+  font-weight: 700;
+}
+.status-approved {
+  color: var(--paid);
+  font-weight: 700;
+}
+.status-declined {
+  color: var(--muted);
+  font-weight: 700;
+}
+@media (max-width: 900px) {
+  .loan-grid {
+    grid-template-columns: 1fr;
+  }
 }

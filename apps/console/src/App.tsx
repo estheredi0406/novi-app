@@ -11,12 +11,14 @@ import { Analytics } from "./pages/Analytics";
 import { Members } from "./pages/Members";
 import { FirstPassword } from "./pages/FirstPassword";
 import { Team } from "./pages/Team";
+import { LoanPage, Loans } from "./pages/Loans";
 
 // The console's pages, read from the address bar after "#", so the browser's
 // back button works without a routing library: #/, #/groups/<id>,
 // #/records, #/records/<id>, #/members.
 function useRoute(): string[] {
-  const read = () => window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  const read = () =>
+    window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   const [route, setRoute] = useState(read);
   useEffect(() => {
     const onChange = () => setRoute(read());
@@ -85,12 +87,18 @@ export function App() {
   if (checking) return null;
 
   const languageButton = (
-    <button className="link" onClick={() => setLang(lang === "fr" ? "en" : "fr")}>
+    <button
+      className="link"
+      onClick={() => setLang(lang === "fr" ? "en" : "fr")}
+    >
       {t.language}
     </button>
   );
 
-  if (!staff) return <Login t={t} onLoggedIn={loggedIn} languageButton={languageButton} />;
+  if (!staff)
+    return (
+      <Login t={t} onLoggedIn={loggedIn} languageButton={languageButton} />
+    );
   if (staff.mustChangePassword) {
     return (
       <FirstPassword
@@ -108,7 +116,17 @@ export function App() {
   const [section, id] = route;
   const page =
     section === "groups" && id ? (
-      <GroupPage key={id} t={t} groupId={id} onExpired={expired} pilot={staff.pilot} />
+      <GroupPage
+        key={id}
+        t={t}
+        groupId={id}
+        onExpired={expired}
+        pilot={staff.pilot}
+      />
+    ) : section === "loans" && id ? (
+      <LoanPage key={id} t={t} loanId={id} onExpired={expired} />
+    ) : section === "loans" ? (
+      <Loans t={t} onExpired={expired} />
     ) : section === "records" && id ? (
       <RecordPage key={id} t={t} shareId={id} onExpired={expired} />
     ) : section === "records" ? (
@@ -133,11 +151,20 @@ export function App() {
             Novi <span>{t.console}</span>
           </a>
           <nav>
-            <a href="#/" className={!section || section === "groups" ? "on" : ""}>
+            <a
+              href="#/"
+              className={!section || section === "groups" ? "on" : ""}
+            >
               {t.overview}
             </a>
-            <a href="#/analytics" className={section === "analytics" ? "on" : ""}>
+            <a
+              href="#/analytics"
+              className={section === "analytics" ? "on" : ""}
+            >
               {t.analytics}
+            </a>
+            <a href="#/loans" className={section === "loans" ? "on" : ""}>
+              {t.loansNav}
             </a>
             <a href="#/records" className={section === "records" ? "on" : ""}>
               {t.records}

@@ -7,6 +7,7 @@ import { payoutSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import type { PayoutAnswer } from "../providers/mfi/MfiAdapter.js";
 import { deleteGroupVoices, postEvent } from "./chatService.js";
+import { alertStaff } from "./alertService.js";
 import { notifyCycleDone, notifyPotPaid } from "./notifyService.js";
 import { coverMissing, repayFromPot, returnReserve } from "./reserveService.js";
 
@@ -23,7 +24,10 @@ import { coverMissing, repayFromPot, returnReserve } from "./reserveService.js";
 // the same payoutId as the same transfer, so asking again never sends twice.
 const STUCK_AFTER_MS = 10 * 60 * 1000;
 
-export async function runPayouts(now = new Date(), groupId?: string): Promise<void> {
+export async function runPayouts(
+  now = new Date(),
+  groupId?: string,
+): Promise<void> {
   const rounds = await prisma.round.findMany({
     where: {
       dueDate: { lte: now },
@@ -31,7 +35,12 @@ export async function runPayouts(now = new Date(), groupId?: string): Promise<vo
       OR: [{ payout: null }, { payout: { status: { not: "PAID" } } }],
     },
     orderBy: [{ groupId: "asc" }, { number: "asc" }],
-    include: { group: true, payout: true, contributions: true, beneficiary: { select: { phone: true } } },
+    include: {
+      group: true,
+      payout: true,
+      contributions: true,
+      beneficiary: { select: { phone: true } },
+    },
   });
 
   for (const round of rounds) {
@@ -39,40 +48,71 @@ export async function runPayouts(now = new Date(), groupId?: string): Promise<vo
       await handleRound(round, now);
     } catch (err) {
       // One round's problem never stops the others.
-      console.error(`Payout of round ${round.number} of group ${round.groupId} failed:`, err);
+      console.error(
+        `Payout of round ${round.number} of group ${round.groupId} failed:`,
+        err,
+      );
     }
   }
 }
 
 // Each member's contribution under the group's current rules.
 async function contributionOf(groupId: string): Promise<number> {
-  const group = await prisma.group.findUniqueOrThrow({ where: { id: groupId }, include: { rulesVersions: true } });
-  return group.rulesVersions.find((v) => v.version === group.currentVersion)?.amountFcfa ?? 0;
+  const group = await prisma.group.findUniqueOrThrow({
+    where: { id: groupId },
+    include: { rulesVersions: true },
+  });
+  return (
+    group.rulesVersions.find((v) => v.version === group.currentVersion)
+      ?.amountFcfa ?? 0
+  );
 }
 
 type DueRound = Prisma.RoundGetPayload<{
-  include: { group: true; payout: true; contributions: true; beneficiary: { select: { phone: true } } };
+  include: {
+    group: true;
+    payout: true;
+    contributions: true;
+    beneficiary: { select: { phone: true } };
+  };
 }>;
 
 async function handleRound(round: DueRound, now: Date) {
   // A transfer the MFI accepted earlier: ask how it went.
   if (round.payout?.status === "SENT" && round.payout.mfiRef) {
-    await applyAnswer(round.payout.id, await mfi.getPayoutStatus(round.payout.mfiRef));
+    await applyAnswer(
+      round.payout.id,
+      await mfi.getPayoutStatus(round.payout.mfiRef),
+    );
     return;
   }
 
   const paid = round.contributions.filter((c) => c.status === "PAID");
-  const members = await prisma.membership.count({ where: { groupId: round.groupId, payoutPosition: { not: null } } });
-  let covers = await prisma.reserveCover.findMany({ where: { roundId: round.id } });
-  let decision = decidePayout(round.dueDate, now, paid.length + covers.length, members);
+  const members = await prisma.membership.count({
+    where: { groupId: round.groupId, payoutPosition: { not: null } },
+  });
+  let covers = await prisma.reserveCover.findMany({
+    where: { roundId: round.id },
+  });
+  let decision = decidePayout(
+    round.dueDate,
+    now,
+    paid.length + covers.length,
+    members,
+  );
   if (decision === "WAIT") return;
 
   // D68: payments are missing on the due date; the solidarity reserve pays
   // the missing shares if it can, and the pot leaves full.
-  if (decision === "HOLD" && (!round.payout || round.payout.status === "HELD")) {
+  if (
+    decision === "HOLD" &&
+    (!round.payout || round.payout.status === "HELD")
+  ) {
     const amount = paid[0]?.amountFcfa ?? (await contributionOf(round.groupId));
     if (await coverMissing(round, amount, now)) {
-      covers = await prisma.reserveCover.findMany({ where: { roundId: round.id } });
+      covers = await prisma.reserveCover.findMany({
+        where: { roundId: round.id },
+      });
       decision = "SEND";
     }
   }
@@ -87,7 +127,11 @@ async function handleRound(round: DueRound, now: Date) {
     covers.reduce((sum, c) => sum + c.amountFcfa, 0) -
     (round.payout?.coverRepaidFcfa ?? 0);
   const hers = await prisma.contribution.findFirst({
-    where: { userId: round.beneficiaryId, status: "PAID", round: { groupId: round.groupId } },
+    where: {
+      userId: round.beneficiaryId,
+      status: "PAID",
+      round: { groupId: round.groupId },
+    },
     orderBy: { paidAt: "desc" },
   });
   // D69: after she left or died, the pot goes to the number the officer
@@ -119,14 +163,22 @@ async function handleRound(round: DueRound, now: Date) {
   // Full and due: the pot waits for the officer's release (D63). A held pot
   // that has just filled up becomes ready the same way.
   if (!round.payout) {
-    await createPayoutOnce({ roundId: round.id, beneficiaryId: round.beneficiaryId, status: "READY", ...details });
+    const created = await createPayoutOnce({
+      roundId: round.id,
+      beneficiaryId: round.beneficiaryId,
+      status: "READY",
+      ...details,
+    });
+    if (created) await alertPotReady(round, created, details.amountFcfa);
     return;
   }
   if (round.payout.status === "HELD") {
-    await prisma.payout.updateMany({
+    const moved = await prisma.payout.updateMany({
       where: { id: round.payout.id, status: "HELD" },
       data: { status: "READY", ...details },
     });
+    if (moved.count === 1)
+      await alertPotReady(round, round.payout.id, details.amountFcfa);
     return;
   }
   if (round.payout.status === "READY") return;
@@ -139,20 +191,40 @@ async function handleRound(round: DueRound, now: Date) {
 
 // The officer's release (D63): claims a READY pot, records who released it,
 // then instructs the MFI. Returns false if the pot was not ready to release.
-export async function releasePayout(payoutId: string, staffId: string | null, now = new Date()): Promise<boolean> {
+export async function releasePayout(
+  payoutId: string,
+  staffId: string | null,
+  now = new Date(),
+): Promise<boolean> {
   const claimed = await prisma.$transaction(async (tx) => {
     const moved = await tx.payout.updateMany({
       where: { id: payoutId, status: "READY" },
-      data: { status: "SENDING", requestedAt: now, releasedAt: now, releasedById: staffId },
+      data: {
+        status: "SENDING",
+        requestedAt: now,
+        releasedAt: now,
+        releasedById: staffId,
+      },
     });
     if (moved.count === 0) return false;
     // D69: her own unpaid covers in this group are repaid from her pot first.
-    const payout = await tx.payout.findUniqueOrThrow({ where: { id: payoutId }, include: { round: true } });
-    const repaid = await repayFromPot(tx, payout.round.groupId, payout.beneficiaryId, payout.amountFcfa);
+    const payout = await tx.payout.findUniqueOrThrow({
+      where: { id: payoutId },
+      include: { round: true },
+    });
+    const repaid = await repayFromPot(
+      tx,
+      payout.round.groupId,
+      payout.beneficiaryId,
+      payout.amountFcfa,
+    );
     if (repaid > 0) {
       await tx.payout.update({
         where: { id: payoutId },
-        data: { amountFcfa: payout.amountFcfa - repaid, coverRepaidFcfa: repaid },
+        data: {
+          amountFcfa: payout.amountFcfa - repaid,
+          coverRepaidFcfa: repaid,
+        },
       });
     }
     return true;
@@ -171,15 +243,29 @@ export async function releasePayout(payoutId: string, staffId: string | null, no
   return true;
 }
 
-async function sendToMfi(payoutId: string, accountRef: string | null, details: PayoutDetails) {
-  if (!accountRef) throw new Error(`payout ${payoutId}: the group has no MFI account`);
+async function sendToMfi(
+  payoutId: string,
+  accountRef: string | null,
+  details: PayoutDetails,
+) {
+  if (!accountRef)
+    throw new Error(`payout ${payoutId}: the group has no MFI account`);
   let answer: PayoutAnswer;
   try {
     const { amountFcfa, phone, operator } = details;
-    answer = await mfi.sendPayout({ payoutId, accountRef, amountFcfa, phone, operator });
+    answer = await mfi.sendPayout({
+      payoutId,
+      accountRef,
+      amountFcfa,
+      phone,
+      operator,
+    });
   } catch (err) {
     console.error(`MFI did not accept payout ${payoutId}:`, err);
-    await prisma.payout.update({ where: { id: payoutId }, data: { status: "FAILED" } });
+    await prisma.payout.update({
+      where: { id: payoutId },
+      data: { status: "FAILED" },
+    });
     return;
   }
   await applyAnswer(payoutId, answer);
@@ -187,10 +273,20 @@ async function sendToMfi(payoutId: string, accountRef: string | null, details: P
 
 // Her answer once the pot has arrived (D63): received, or not. Only the
 // member who received it may answer, once, and only after the MFI paid it.
-export async function answerReceipt(userId: string, payoutId: string, received: boolean, now = new Date()) {
+export async function answerReceipt(
+  userId: string,
+  payoutId: string,
+  received: boolean,
+  now = new Date(),
+) {
   const payout = await prisma.payout.findUnique({ where: { id: payoutId } });
-  if (!payout || payout.beneficiaryId !== userId) throw new AppError("NOT_FOUND", 404);
-  if (payout.status !== "PAID" || payout.receiptConfirmedAt || payout.receiptDisputedAt) {
+  if (!payout || payout.beneficiaryId !== userId)
+    throw new AppError("NOT_FOUND", 404);
+  if (
+    payout.status !== "PAID" ||
+    payout.receiptConfirmedAt ||
+    payout.receiptDisputedAt
+  ) {
     throw new AppError("NOT_ALLOWED_NOW", 409);
   }
   await prisma.$transaction([
@@ -199,33 +295,77 @@ export async function answerReceipt(userId: string, payoutId: string, received: 
       data: received ? { receiptConfirmedAt: now } : { receiptDisputedAt: now },
     }),
     prisma.auditEvent.create({
-      data: { userId, type: received ? "PAYOUT_RECEIPT_CONFIRMED" : "PAYOUT_RECEIPT_DISPUTED", details: { payoutId } },
+      data: {
+        userId,
+        type: received ? "PAYOUT_RECEIPT_CONFIRMED" : "PAYOUT_RECEIPT_DISPUTED",
+        details: { payoutId },
+      },
     }),
   ]);
+  if (!received) {
+    const round = await prisma.round.findUnique({
+      where: { id: payout.roundId },
+      include: { group: true },
+    });
+    if (round) {
+      await alertStaff({
+        mfiId: round.group.mfiId,
+        kind: "POT_DISPUTED",
+        refId: payoutId,
+        groupId: round.groupId,
+        subject: `Cagnotte non reçue : ${round.group.name}, tour ${round.number}`,
+        lines: [
+          `La bénéficiaire du tour ${round.number} de « ${round.group.name} » dit ne pas avoir reçu sa cagnotte.`,
+          "Vérifiez le transfert avec FUCEC.",
+        ],
+      });
+    }
+  }
 }
 
-type PayoutDetails = { amountFcfa: number; phone: string; operator: "MOOV_TG" | "TOGOCEL"; toNextOfKin?: boolean };
+type PayoutDetails = {
+  amountFcfa: number;
+  phone: string;
+  operator: "MOOV_TG" | "TOGOCEL";
+  toNextOfKin?: boolean;
+};
 
 // Creates the round's payout row; the unique roundId makes a second creation
 // fail, which simply means another run got there first.
-async function createPayoutOnce(data: Prisma.PayoutUncheckedCreateInput): Promise<string | null> {
+async function createPayoutOnce(
+  data: Prisma.PayoutUncheckedCreateInput,
+): Promise<string | null> {
   try {
     return (await prisma.payout.create({ data })).id;
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return null;
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    )
+      return null;
     throw err;
   }
 }
 
 // Returns the payout's ID if this run may send it, or null if another run is
 // already sending it or it is done.
-async function claimForSending(round: DueRound, now: Date, details: PayoutDetails): Promise<string | null> {
+async function claimForSending(
+  round: DueRound,
+  now: Date,
+  details: PayoutDetails,
+): Promise<string | null> {
   const sending = { status: "SENDING" as const, requestedAt: now, ...details };
   if (!round.payout) return null;
   const claimed = await prisma.payout.updateMany({
     where: {
       id: round.payout.id,
-      OR: [{ status: "FAILED" }, { status: "SENDING", requestedAt: { lt: new Date(now.getTime() - STUCK_AFTER_MS) } }],
+      OR: [
+        { status: "FAILED" },
+        {
+          status: "SENDING",
+          requestedAt: { lt: new Date(now.getTime() - STUCK_AFTER_MS) },
+        },
+      ],
     },
     data: sending,
   });
@@ -253,7 +393,10 @@ async function settlePayout(payoutId: string, mfiRef: string) {
     });
     if (moved.count === 0) return null;
 
-    const payout = await tx.payout.findUniqueOrThrow({ where: { id: payoutId }, include: { round: true } });
+    const payout = await tx.payout.findUniqueOrThrow({
+      where: { id: payoutId },
+      include: { round: true },
+    });
     await tx.ledgerEntry.create({
       data: {
         groupId: payout.round.groupId,
@@ -265,36 +408,64 @@ async function settlePayout(payoutId: string, mfiRef: string) {
       },
     });
     await tx.auditEvent.create({
-      data: { userId: payout.beneficiaryId, type: "PAYOUT_PAID", details: { payoutId, round: payout.round.number } },
+      data: {
+        userId: payout.beneficiaryId,
+        type: "PAYOUT_PAID",
+        details: { payoutId, round: payout.round.number },
+      },
     });
 
-    const rounds = await tx.round.count({ where: { groupId: payout.round.groupId } });
-    const paidOut = await tx.payout.count({ where: { round: { groupId: payout.round.groupId }, status: "PAID" } });
+    const rounds = await tx.round.count({
+      where: { groupId: payout.round.groupId },
+    });
+    const paidOut = await tx.payout.count({
+      where: { round: { groupId: payout.round.groupId }, status: "PAID" },
+    });
     if (paidOut === rounds) {
       await tx.group.updateMany({
         where: { id: payout.round.groupId, state: "ACTIVE" },
         data: { state: "COMPLETED", completedAt: paidAt },
       });
-      await tx.auditEvent.create({ data: { type: "GROUP_COMPLETED", details: { groupId: payout.round.groupId } } });
+      await tx.auditEvent.create({
+        data: {
+          type: "GROUP_COMPLETED",
+          details: { groupId: payout.round.groupId },
+        },
+      });
     }
     return payout;
   });
 
   if (done) {
     // D68: the last pot closed the cycle; what is left in the reserve goes back.
-    await returnReserve(done.round.groupId).catch((err: unknown) => console.error("Reserve return failed:", err));
+    await returnReserve(done.round.groupId).catch((err: unknown) =>
+      console.error("Reserve return failed:", err),
+    );
     // The voice notes go with the cycle; the written chat stays.
-    const closed = await prisma.group.findUnique({ where: { id: done.round.groupId }, select: { state: true } });
+    const closed = await prisma.group.findUnique({
+      where: { id: done.round.groupId },
+      select: { state: true },
+    });
     if (closed?.state === "COMPLETED") {
-      await deleteGroupVoices(done.round.groupId).catch((err: unknown) => console.error("Voice notes not deleted:", err));
+      await deleteGroupVoices(done.round.groupId).catch((err: unknown) =>
+        console.error("Voice notes not deleted:", err),
+      );
       // D80: each member says whether she goes again.
       await notifyCycleDone(done.round.groupId);
     }
     // D70: the group's chat shows whose pot was paid.
-    await postEvent(done.round.groupId, "POT_PAID", done.beneficiaryId, done.round.number);
+    await postEvent(
+      done.round.groupId,
+      "POT_PAID",
+      done.beneficiaryId,
+      done.round.number,
+    );
     const round = await prisma.round.findUniqueOrThrow({
       where: { id: done.roundId },
-      include: { group: { include: { mfi: true } }, beneficiary: { select: { language: true } } },
+      include: {
+        group: { include: { mfi: true } },
+        beneficiary: { select: { language: true } },
+      },
     });
     await sms.send(
       done.phone,
@@ -307,7 +478,12 @@ async function settlePayout(payoutId: string, mfiRef: string) {
       }),
     );
     // D79: and on her phone, if Novi is installed.
-    await notifyPotPaid(done.beneficiaryId, round.groupId, round.group.name, done.amountFcfa);
+    await notifyPotPaid(
+      done.beneficiaryId,
+      round.groupId,
+      round.group.name,
+      done.amountFcfa,
+    );
   }
 }
 
@@ -324,4 +500,28 @@ export function startPayoutJob(everyMs = 60_000): NodeJS.Timeout {
         running = false;
       });
   }, everyMs);
+}
+
+// D90: a pot is full and due; the officers are told to release it.
+async function alertPotReady(
+  round: {
+    number: number;
+    groupId: string;
+    group: { name: string; mfiId: string };
+  },
+  payoutId: string,
+  amountFcfa: number,
+) {
+  const amount = `${String(amountFcfa).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA`;
+  await alertStaff({
+    mfiId: round.group.mfiId,
+    kind: "POT_READY",
+    refId: payoutId,
+    groupId: round.groupId,
+    subject: `Cagnotte à libérer : ${round.group.name}, tour ${round.number}`,
+    lines: [
+      `La cagnotte du tour ${round.number} de « ${round.group.name} » est complète (${amount}).`,
+      "La bénéficiaire attend que vous la libériez.",
+    ],
+  });
 }

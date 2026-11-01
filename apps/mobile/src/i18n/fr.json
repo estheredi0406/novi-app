@@ -343,7 +343,9 @@
       "RESERVE_IN": "Part pour la réserve solidaire",
       "RESERVE_COVER": "Payé par le fonds solidaire",
       "RESERVE_REPAY": "Remboursement au fonds solidaire",
-      "RESERVE_RETURN": "Réserve rendue en fin de cycle"
+      "RESERVE_RETURN": "Réserve rendue en fin de cycle",
+      "RESERVE_ADVANCE": "Avance du fonds solidaire",
+      "RESERVE_ADVANCE_REPAY": "Avance remboursée sur la cagnotte"
     },
     "roundNotOpen": "Ce tour n'est pas encore ouvert. Vous pourrez le payer quand son tour viendra.",
     "alreadyPaid": "Vous avez déjà payé ce tour.",
@@ -584,7 +586,8 @@
     "callGroup": "Appeler le groupe",
     "meetingAt": "Réunion · {{time}}",
     "meetingsLink": "Réunions",
-    "safetyShort": "Novi ne vous demandera jamais votre code PIN ni un code SMS."
+    "safetyShort": "Novi ne vous demandera jamais votre code PIN ni un code SMS.",
+    "turnSwapped": "{{name}} passe au tour {{round}}"
   },
   "meetings": {
     "title": "Réunions du groupe",
@@ -703,5 +706,96 @@
     "title": "Appel du groupe",
     "leave": "Quitter l'appel",
     "unavailable": "Cet appel ne peut pas s'ouvrir ici."
+  },
+  "pay": {
+    "close": "Fermer",
+    "title": "Payer {{amount}}",
+    "titleShort": "Paiement",
+    "secure": "Page sécurisée FedaPay",
+    "unavailable": "Cette page ne peut pas s'ouvrir ici.",
+    "waiting": "Novi revient tout seul dès que le paiement est confirmé."
+  },
+  "help": {
+    "title": "Entraide",
+    "what": "Qu'est-ce que l'entraide ?",
+    "explain": "Deux façons de s'aider dans le groupe. Échanger son tour : un membre dont le tour vient plus tard peut prendre le vôtre, si elle est d'accord et que l'organisatrice confirme. Une avance de la caisse : en cas d'urgence, si vous êtes à jour et n'avez pas encore reçu votre cagnotte, le fonds solidaire peut vous avancer jusqu'à une cotisation. L'organisatrice et un membre l'acceptent, FUCEC l'envoie, et elle est reprise sur votre cagnotte, sans intérêt.",
+    "swapLine": "{{a}} (tour {{x}}) et {{b}} (tour {{y}})",
+    "swapAsked": "Échange de tour demandé",
+    "swapAgreed": "D'accord des deux côtés, l'organisatrice confirme",
+    "advanceLine": "{{name}} : avance de {{amount}}",
+    "approvals_other": "{{count}} accords sur 2",
+    "advanceStatus": {
+      "APPROVED": "Acceptée, FUCEC l'envoie",
+      "SENT": "En route vers son Mobile Money",
+      "PAID": "Reçue, reprise sur sa cagnotte",
+      "REPAID": "Remboursée",
+      "DECLINED": "Refusée",
+      "CANCELLED": "Retirée",
+      "ASKED": "En attente"
+    },
+    "accept": "Accepter",
+    "confirm": "Confirmer",
+    "approve": "Accepter",
+    "refuse": "Refuser",
+    "refuseConfirm": "Le groupe verra votre réponse.",
+    "withdraw": "Retirer ma demande",
+    "swapCta": "Échanger mon tour",
+    "swapCtaSub": "Votre tour : {{round}}",
+    "advanceCta": "Demander une avance",
+    "advanceCtaSub": "Jusqu'à {{amount}}, reprise sur votre cagnotte",
+    "fundTooLow": "Le fonds solidaire ne peut pas faire d'avance pour le moment.",
+    "swapIntro": "Choisissez avec qui échanger. Elle répond, puis l'organisatrice confirme.",
+    "yourTurnNow": "Votre tour aujourd'hui : {{round}}.",
+    "partnerTurn": "Tour {{round}}, {{day}}",
+    "swapConfirmTitle": "Demander l'échange ?",
+    "swapConfirm": "Vous prendriez le tour {{theirs}} de {{name}}, et elle votre tour {{mine}}.",
+    "send": "Envoyer la demande",
+    "advanceIntro": "Pour une urgence. Le groupe voit votre demande et le motif.",
+    "amountLabel": "Montant (jusqu'à {{max}})",
+    "reasonLabel": "Pourquoi (facultatif)",
+    "reasonPlaceholder": "Ma fille est malade",
+    "factApproval": "L'organisatrice et un membre l'acceptent",
+    "factRepay": "Reprise automatiquement sur votre cagnotte",
+    "factNoInterest": "Sans intérêt",
+    "swapNotPossible": "Cet échange n'est plus possible : un des tours est déjà payé ou tombe aujourd'hui, ou une demande est déjà en cours.",
+    "advanceNotAllowed": "L'avance est réservée aux membres à jour qui n'ont pas encore reçu leur cagnotte, une seule à la fois.",
+    "advanceTooLarge": "L'avance va de 500 F à une cotisation.",
+    "approvals_one": "{{count}} accord sur 2"
+  },
+  "loan": {
+    "menu": "Crédit FUCEC",
+    "menuSub": "Votre historique Novi vous ouvre une demande",
+    "title": "Crédit {{mfi}}",
+    "intro": "{{mfi}} étudie votre demande et décide. Novi ne prête pas d'argent : le crédit se remet et se rembourse à l'agence.",
+    "conditions": "Les conditions",
+    "check": {
+      "CYCLE_OR_STREAK": "Une tontine terminée sur Novi, ou 8 paiements à l'heure de suite",
+      "ON_TIME": "90 % des paiements à l'heure (vous : {{percent}} %)",
+      "NO_DEBT": "Rien à rendre au fonds solidaire",
+      "NO_OPEN_REQUEST": "Pas d'autre demande en cours",
+      "WAIT_AFTER_REFUSAL": "30 jours depuis un refus"
+    },
+    "amountLabel": "Montant (jusqu'à {{max}})",
+    "purposeLabel": "Pour quoi ?",
+    "purpose": {
+      "STOCK": "Acheter du stock",
+      "EQUIPMENT": "Du matériel",
+      "OTHER": "Autre"
+    },
+    "monthsLabel": "Rembourser en",
+    "months_other": "{{count}} mois",
+    "shareNote": "En envoyant, vous acceptez que {{mfi}} voie votre historique Novi pour cette demande.",
+    "send": "Envoyer à FUCEC",
+    "confirmTitle": "Envoyer la demande ?",
+    "confirm": "{{amount}} demandés à {{mfi}}.",
+    "pending": "Demande chez {{mfi}}",
+    "approved": "Crédit accordé : {{amount}}",
+    "declined": "Demande refusée",
+    "requestLine": "{{amount}}, {{purpose}}, {{months}} mois, le {{day}}",
+    "goToAgency": "Venez à votre agence {{mfi}} avec votre carte d'identité.",
+    "withdraw": "Retirer ma demande",
+    "notEligible": "Les conditions ne sont pas encore remplies.",
+    "tooLarge": "Ce montant dépasse le plafond proposé.",
+    "months_one": "{{count}} mois"
   }
 }

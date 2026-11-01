@@ -42,6 +42,17 @@ import {
   payRound,
 } from "../services/moneyService.js";
 
+import {
+  answerSwap,
+  askAdvance,
+  askSwap,
+  cancelAdvance,
+  cancelSwap,
+  decideAdvance,
+  decideSwap,
+  getGroupHelp,
+} from "../services/helpService.js";
+
 export const groupsRouter = Router();
 
 // Every group route needs a logged-in member.
@@ -300,14 +311,12 @@ groupsRouter.get("/:id/meetings", async (req, res) => {
 groupsRouter.post("/:id/meetings", async (req, res) => {
   const { id } = groupId.parse(req.params);
   const body = meetingBody.parse(req.body);
-  res
-    .status(201)
-    .json(
-      await scheduleMeeting(id, currentMember(res).userId, {
-        ...body,
-        startsAt: new Date(body.startsAt),
-      }),
-    );
+  res.status(201).json(
+    await scheduleMeeting(id, currentMember(res).userId, {
+      ...body,
+      startsAt: new Date(body.startsAt),
+    }),
+  );
 });
 
 groupsRouter.post("/:id/meetings/:meetingId/cancel", async (req, res) => {
@@ -340,4 +349,82 @@ groupsRouter.post("/:id/continue", async (req, res) => {
 groupsRouter.post("/:id/next-cycle", async (req, res) => {
   const { id } = groupId.parse(req.params);
   res.status(201).json(await startNextCycle(id, currentMember(res).userId));
+});
+
+// ---------- D87, D88: help inside the group ----------
+
+const yesBody = z.object({ yes: z.boolean() }).strict();
+const swapParams = groupId.extend({ swapId: z.string().uuid() });
+const advanceParams = groupId.extend({ advanceId: z.string().uuid() });
+
+groupsRouter.get("/:id/help", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  res.json(await getGroupHelp(id, currentMember(res).userId));
+});
+
+groupsRouter.post("/:id/swaps", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  const { partnerId } = z
+    .object({ partnerId: z.string().uuid() })
+    .strict()
+    .parse(req.body);
+  res.status(201).json(await askSwap(id, currentMember(res).userId, partnerId));
+});
+
+groupsRouter.post("/:id/swaps/:swapId/answer", async (req, res) => {
+  const { id, swapId } = swapParams.parse(req.params);
+  res.json(
+    await answerSwap(
+      id,
+      currentMember(res).userId,
+      swapId,
+      yesBody.parse(req.body).yes,
+    ),
+  );
+});
+
+groupsRouter.post("/:id/swaps/:swapId/decide", async (req, res) => {
+  const { id, swapId } = swapParams.parse(req.params);
+  res.json(
+    await decideSwap(
+      id,
+      currentMember(res).userId,
+      swapId,
+      yesBody.parse(req.body).yes,
+    ),
+  );
+});
+
+groupsRouter.post("/:id/swaps/:swapId/cancel", async (req, res) => {
+  const { id, swapId } = swapParams.parse(req.params);
+  res.json(await cancelSwap(id, currentMember(res).userId, swapId));
+});
+
+groupsRouter.post("/:id/advances", async (req, res) => {
+  const { id } = groupId.parse(req.params);
+  const body = z
+    .object({
+      amountFcfa: z.number().int().positive(),
+      reason: z.string().max(140).optional(),
+    })
+    .strict()
+    .parse(req.body);
+  res.status(201).json(await askAdvance(id, currentMember(res).userId, body));
+});
+
+groupsRouter.post("/:id/advances/:advanceId/decide", async (req, res) => {
+  const { id, advanceId } = advanceParams.parse(req.params);
+  res.json(
+    await decideAdvance(
+      id,
+      currentMember(res).userId,
+      advanceId,
+      yesBody.parse(req.body).yes,
+    ),
+  );
+});
+
+groupsRouter.post("/:id/advances/:advanceId/cancel", async (req, res) => {
+  const { id, advanceId } = advanceParams.parse(req.params);
+  res.json(await cancelAdvance(id, currentMember(res).userId, advanceId));
 });

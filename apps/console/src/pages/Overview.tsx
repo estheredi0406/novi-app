@@ -1,5 +1,6 @@
 import type {
   AttentionItem,
+  ConsoleAdvance,
   ConsoleGroup,
   ConsoleOverview,
 } from "@novi/shared";
@@ -13,6 +14,7 @@ type Data = {
   overview: ConsoleOverview;
   attention: AttentionItem[];
   groups: ConsoleGroup[];
+  advances: ConsoleAdvance[];
 };
 
 // What the officer sees first: three numbers, then what needs a look, then
@@ -23,10 +25,30 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
       overview: await api<ConsoleOverview>("GET", "/v1/console/overview"),
       attention: await api<AttentionItem[]>("GET", "/v1/console/attention"),
       groups: await api<ConsoleGroup[]>("GET", "/v1/console/groups"),
+      advances: await api<ConsoleAdvance[]>("GET", "/v1/console/advances"),
     }),
     onExpired,
   );
   const [retrying, setRetrying] = useState<string | null>(null);
+
+  // D88: an advance approved by the group, sent from the solidarity fund.
+  async function sendAdvance(advance: ConsoleAdvance) {
+    if (
+      !window.confirm(
+        t.advanceSendConfirm(fcfa(advance.amountFcfa), advance.groupName),
+      )
+    )
+      return;
+    setRetrying(advance.id);
+    try {
+      await api("POST", `/v1/console/advances/${advance.id}/send`);
+    } catch {
+      window.alert(t.errors.default);
+    } finally {
+      setRetrying(null);
+      reload();
+    }
+  }
 
   async function act(payoutId: string, action: "retry" | "release") {
     setRetrying(payoutId);
@@ -86,7 +108,8 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
 
   if (failed) return <p className="error">{t.errors.default}</p>;
   if (!data) return null;
-  const { overview, attention, groups } = data;
+  const { overview, attention, groups, advances } = data;
+  const toSend = advances.filter((a) => a.status === "APPROVED");
 
   return (
     <>
@@ -165,6 +188,40 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
                   </button>
                 </li>
               ))}
+          </ul>
+        </>
+      )}
+
+      {toSend.length > 0 && (
+        <>
+          <h2>{t.advancesTitle}</h2>
+          <p className="calm">{t.advancesHint}</p>
+          <ul className="attention">
+            {toSend.map((advance) => (
+              <li key={advance.id} className="flag flag-ready">
+                <div>
+                  <a
+                    href={`#/groups/${advance.groupId}`}
+                    className="flag-title"
+                  >
+                    {advance.groupName}
+                  </a>
+                  <span className="flag-meta">
+                    {t.advanceLine(advance.receiverTurn)}
+                  </span>
+                </div>
+                <span className="flag-amount">{fcfa(advance.amountFcfa)}</span>
+                <span />
+                <button
+                  className="primary small"
+                  disabled={retrying === advance.id}
+                  onClick={() => void sendAdvance(advance)}
+                >
+                  {t.advanceSend}
+                </button>
+                <span />
+              </li>
+            ))}
           </ul>
         </>
       )}

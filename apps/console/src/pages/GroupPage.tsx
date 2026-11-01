@@ -133,8 +133,8 @@ export function GroupPage({
                             key={k}
                             className={
                               k < m.paymentsOnTime
-                                ? "dot dot-ok"
-                                : "dot dot-late"
+                                ? "rec-dot rec-dot-ok"
+                                : "rec-dot rec-dot-late"
                             }
                           />
                         ),

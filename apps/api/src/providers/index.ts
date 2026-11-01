@@ -1,3 +1,6 @@
+import { BrevoEmailProvider } from "./email/BrevoEmailProvider.js";
+import type { EmailProvider } from "./email/EmailProvider.js";
+import { MockEmailProvider } from "./email/MockEmailProvider.js";
 import type { IdentityProvider } from "./identity/IdentityProvider.js";
 import { MockAnidProvider } from "./identity/MockAnidProvider.js";
 import type { MfiAdapter } from "./mfi/MfiAdapter.js";
@@ -24,23 +27,47 @@ export const mfi: MfiAdapter = new MockMfiAdapter();
 // Payments: FedaPay's sandbox when PAYMENT_PROVIDER=fedapay and its keys are
 // set in .env; otherwise the mock. Tests always use the mock.
 function choosePayments(): PaymentProvider {
-  const { PAYMENT_PROVIDER, FEDAPAY_SECRET_KEY, FEDAPAY_WEBHOOK_SECRET, MOCK_PAYMENTS_CONFIRM_MS, PORT } = process.env;
+  const {
+    PAYMENT_PROVIDER,
+    FEDAPAY_SECRET_KEY,
+    FEDAPAY_WEBHOOK_SECRET,
+    MOCK_PAYMENTS_CONFIRM_MS,
+    PORT,
+  } = process.env;
   if (PAYMENT_PROVIDER === "fedapay" && process.env.NODE_ENV !== "test") {
     if (!FEDAPAY_SECRET_KEY || !FEDAPAY_WEBHOOK_SECRET) {
-      throw new Error("PAYMENT_PROVIDER=fedapay needs FEDAPAY_SECRET_KEY and FEDAPAY_WEBHOOK_SECRET in .env.");
+      throw new Error(
+        "PAYMENT_PROVIDER=fedapay needs FEDAPAY_SECRET_KEY and FEDAPAY_WEBHOOK_SECRET in .env.",
+      );
     }
     // Optional, sandbox only: FEDAPAY_SANDBOX_PAYER="moov:bj:64000001" sends
     // every payment request to that FedaPay test number (see SandboxPayer).
-    const [mode, country, number] = (process.env.FEDAPAY_SANDBOX_PAYER ?? "").split(":");
+    const [mode, country, number] = (
+      process.env.FEDAPAY_SANDBOX_PAYER ?? ""
+    ).split(":");
     // FEDAPAY_SANDBOX_PAYER="page:bj:66000001" prints FedaPay's payment page
     // instead, set up for that test number.
     const sandboxPayer =
-      mode === "page" && !number ? { mode, country: "", number: "" } : mode && country && number ? { mode, country, number } : undefined;
-    return new FedaPayProvider(FEDAPAY_SECRET_KEY, FEDAPAY_WEBHOOK_SECRET, undefined, sandboxPayer);
+      mode === "page" && !number
+        ? { mode, country: "", number: "" }
+        : mode && country && number
+          ? { mode, country, number }
+          : undefined;
+    return new FedaPayProvider(
+      FEDAPAY_SECRET_KEY,
+      FEDAPAY_WEBHOOK_SECRET,
+      undefined,
+      sandboxPayer,
+    );
   }
   const delayMs = Number(MOCK_PAYMENTS_CONFIRM_MS);
   return new MockPaymentProvider(
-    delayMs > 0 ? { delayMs, webhookUrl: `http://localhost:${PORT ?? 3000}/v1/webhooks/payments` } : undefined,
+    delayMs > 0
+      ? {
+          delayMs,
+          webhookUrl: `http://localhost:${PORT ?? 3000}/v1/webhooks/payments`,
+        }
+      : undefined,
   );
 }
 
@@ -50,7 +77,8 @@ export const payments: PaymentProvider = choosePayments();
 // the mock, whose rooms lead nowhere. Tests always use the mock.
 function chooseMeetings(): MeetingProvider {
   const key = process.env.DAILY_API_KEY;
-  if (key && process.env.NODE_ENV !== "test") return new DailyMeetingProvider(key);
+  if (key && process.env.NODE_ENV !== "test")
+    return new DailyMeetingProvider(key);
   return new MockMeetingProvider();
 }
 
@@ -60,8 +88,26 @@ export const meetings: MeetingProvider = chooseMeetings();
 // no key; EXPO_ACCESS_TOKEN, if set, locks sending to Novi's server. Tests
 // always use the mock.
 function choosePush(): PushProvider {
-  if (process.env.NODE_ENV === "test" || process.env.NOTIFICATIONS_OFF) return new MockPushProvider();
+  if (process.env.NODE_ENV === "test" || process.env.NOTIFICATIONS_OFF)
+    return new MockPushProvider();
   return new ExpoPushProvider(process.env.EXPO_ACCESS_TOKEN || undefined);
 }
 
 export const push: PushProvider = choosePush();
+
+// Email to MFI staff (D90): Brevo when EMAIL_PROVIDER=brevo, with BREVO_API_KEY
+// and EMAIL_FROM (an address verified in Brevo); otherwise the mock, which
+// only prints. Tests always use the mock.
+function chooseEmail(): EmailProvider {
+  const { EMAIL_PROVIDER, BREVO_API_KEY, EMAIL_FROM } = process.env;
+  if (EMAIL_PROVIDER === "brevo" && process.env.NODE_ENV !== "test") {
+    if (!BREVO_API_KEY || !EMAIL_FROM)
+      throw new Error(
+        "EMAIL_PROVIDER=brevo needs BREVO_API_KEY and EMAIL_FROM in .env.",
+      );
+    return new BrevoEmailProvider(BREVO_API_KEY, EMAIL_FROM);
+  }
+  return new MockEmailProvider();
+}
+
+export const email: EmailProvider = chooseEmail();

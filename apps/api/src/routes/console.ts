@@ -13,10 +13,27 @@ import {
   listActivity,
   releaseRoundPayout,
   retryPayout,
+  listAdvances,
+  sendAdvance,
 } from "../services/consoleService.js";
-import { changeOrganiser, changePhone, lookupMember, recordExit } from "../services/protectionService.js";
-import { listSharedWithMfi, openSharedRecord } from "../services/recordService.js";
-import { addOfficer, deactivateOfficer, listTeam, reactivateOfficer, resetAccess } from "../services/staffService.js";
+import { decideLoan, getLoan, listLoans } from "../services/loanService.js";
+import {
+  changeOrganiser,
+  changePhone,
+  lookupMember,
+  recordExit,
+} from "../services/protectionService.js";
+import {
+  listSharedWithMfi,
+  openSharedRecord,
+} from "../services/recordService.js";
+import {
+  addOfficer,
+  deactivateOfficer,
+  listTeam,
+  reactivateOfficer,
+  resetAccess,
+} from "../services/staffService.js";
 import { documentFor } from "./verify.js";
 
 // The MFI console's data (Sprint 5.2). Staff only; every answer is limited
@@ -35,7 +52,14 @@ consoleRouter.get("/groups", async (_req, res) => {
 });
 
 consoleRouter.get("/groups/:groupId", async (req, res) => {
-  res.status(200).json(await getConsoleGroup(currentStaff(res).mfiId, id.parse(req.params.groupId)));
+  res
+    .status(200)
+    .json(
+      await getConsoleGroup(
+        currentStaff(res).mfiId,
+        id.parse(req.params.groupId),
+      ),
+    );
 });
 
 consoleRouter.get("/attention", async (_req, res) => {
@@ -45,7 +69,15 @@ consoleRouter.get("/attention", async (_req, res) => {
 // D66: a started group waits for the officer's approval before its account opens.
 consoleRouter.post("/groups/:groupId/approve", async (req, res) => {
   const staff = currentStaff(res);
-  res.status(200).json(await approveGroup(staff.mfiId, staff.staffId, id.parse(req.params.groupId)));
+  res
+    .status(200)
+    .json(
+      await approveGroup(
+        staff.mfiId,
+        staff.staffId,
+        id.parse(req.params.groupId),
+      ),
+    );
 });
 
 consoleRouter.post("/groups/:groupId/decline", async (req, res) => {
@@ -54,7 +86,16 @@ consoleRouter.post("/groups/:groupId/decline", async (req, res) => {
     .object({ reason: z.string().trim().min(3).max(300) })
     .strict()
     .parse(req.body);
-  res.status(200).json(await declineGroup(staff.mfiId, staff.staffId, id.parse(req.params.groupId), reason));
+  res
+    .status(200)
+    .json(
+      await declineGroup(
+        staff.mfiId,
+        staff.staffId,
+        id.parse(req.params.groupId),
+        reason,
+      ),
+    );
 });
 
 // D67: the portfolio over time, and what the officers did.
@@ -65,7 +106,15 @@ consoleRouter.get("/analytics", async (_req, res) => {
 // D82, pilot only: a round falls due today, for a test or a demonstration.
 consoleRouter.post("/groups/:groupId/demo-due", async (req, res) => {
   const staff = currentStaff(res);
-  res.status(200).json(await advanceDueDateForDemo(staff.mfiId, staff.staffId, id.parse(req.params.groupId)));
+  res
+    .status(200)
+    .json(
+      await advanceDueDateForDemo(
+        staff.mfiId,
+        staff.staffId,
+        id.parse(req.params.groupId),
+      ),
+    );
 });
 
 consoleRouter.get("/activity", async (_req, res) => {
@@ -79,22 +128,46 @@ const phone = z.string().regex(/^\+228\d{8}$/);
 consoleRouter.get("/members", async (req, res) => {
   const staff = currentStaff(res);
   const query = z.object({ phone }).parse(req.query);
-  res.status(200).json(await lookupMember(staff.mfiId, staff.staffId, query.phone));
+  res
+    .status(200)
+    .json(await lookupMember(staff.mfiId, staff.staffId, query.phone));
 });
 
 consoleRouter.post("/members/:userId/exit", async (req, res) => {
   const staff = currentStaff(res);
   const body = z
-    .object({ groupId: id, reason: z.enum(["DEATH", "LEFT"]), payoutPhone: phone.optional() })
+    .object({
+      groupId: id,
+      reason: z.enum(["DEATH", "LEFT"]),
+      payoutPhone: phone.optional(),
+    })
     .strict()
     .parse(req.body);
-  res.status(200).json(await recordExit(staff.mfiId, staff.staffId, id.parse(req.params.userId), body));
+  res
+    .status(200)
+    .json(
+      await recordExit(
+        staff.mfiId,
+        staff.staffId,
+        id.parse(req.params.userId),
+        body,
+      ),
+    );
 });
 
 consoleRouter.post("/members/:userId/phone", async (req, res) => {
   const staff = currentStaff(res);
   const body = z.object({ phone }).strict().parse(req.body);
-  res.status(200).json(await changePhone(staff.mfiId, staff.staffId, id.parse(req.params.userId), body.phone));
+  res
+    .status(200)
+    .json(
+      await changePhone(
+        staff.mfiId,
+        staff.staffId,
+        id.parse(req.params.userId),
+        body.phone,
+      ),
+    );
 });
 
 consoleRouter.post("/groups/:groupId/organiser", async (req, res) => {
@@ -102,18 +175,41 @@ consoleRouter.post("/groups/:groupId/organiser", async (req, res) => {
   const body = z.object({ userId: id }).strict().parse(req.body);
   res
     .status(200)
-    .json(await changeOrganiser(staff.mfiId, staff.staffId, id.parse(req.params.groupId), body.userId));
+    .json(
+      await changeOrganiser(
+        staff.mfiId,
+        staff.staffId,
+        id.parse(req.params.groupId),
+        body.userId,
+      ),
+    );
 });
 
 // D63: a full, due pot leaves only when the officer releases it.
 consoleRouter.post("/payouts/:payoutId/release", async (req, res) => {
   const staff = currentStaff(res);
-  res.status(200).json(await releaseRoundPayout(staff.mfiId, staff.staffId, id.parse(req.params.payoutId)));
+  res
+    .status(200)
+    .json(
+      await releaseRoundPayout(
+        staff.mfiId,
+        staff.staffId,
+        id.parse(req.params.payoutId),
+      ),
+    );
 });
 
 consoleRouter.post("/payouts/:payoutId/retry", async (req, res) => {
   const staff = currentStaff(res);
-  res.status(200).json(await retryPayout(staff.mfiId, staff.staffId, id.parse(req.params.payoutId)));
+  res
+    .status(200)
+    .json(
+      await retryPayout(
+        staff.mfiId,
+        staff.staffId,
+        id.parse(req.params.payoutId),
+      ),
+    );
 });
 
 // Savings records members shared with this MFI by name (D54). Opening one is
@@ -127,18 +223,30 @@ consoleRouter.get("/records/:shareId/document", async (req, res) => {
   const { staffId, mfiId } = currentStaff(res);
   const shareId = id.parse(req.params.shareId);
   const check = await openSharedRecord({ staffId, mfiId }, shareId);
-  res.type("html").send(await documentFor(check, shareId, `${req.protocol}://${req.get("host")}`));
+  res
+    .type("html")
+    .send(
+      await documentFor(check, shareId, `${req.protocol}://${req.get("host")}`),
+    );
 });
 
 consoleRouter.get("/records/:shareId", async (req, res) => {
   const { staffId, mfiId } = currentStaff(res);
-  res.status(200).json(await openSharedRecord({ staffId, mfiId }, id.parse(req.params.shareId)));
+  res
+    .status(200)
+    .json(
+      await openSharedRecord({ staffId, mfiId }, id.parse(req.params.shareId)),
+    );
 });
 
 // ---------- The team, for the MFI's administrators (D81) ----------
 
 const newOfficer = z
-  .object({ name: z.string().trim().min(2).max(80), email: z.string().trim().email().max(200), role: z.enum(["OFFICER", "ADMIN"]) })
+  .object({
+    name: z.string().trim().min(2).max(80),
+    email: z.string().trim().email().max(200),
+    role: z.enum(["OFFICER", "ADMIN"]),
+  })
   .strict();
 
 consoleRouter.get("/team", async (_req, res) => {
@@ -146,17 +254,97 @@ consoleRouter.get("/team", async (_req, res) => {
 });
 
 consoleRouter.post("/team", async (req, res) => {
-  res.status(201).json(await addOfficer(currentStaff(res), newOfficer.parse(req.body)));
+  res
+    .status(201)
+    .json(await addOfficer(currentStaff(res), newOfficer.parse(req.body)));
 });
 
 consoleRouter.post("/team/:staffId/deactivate", async (req, res) => {
-  res.status(200).json(await deactivateOfficer(currentStaff(res), id.parse(req.params.staffId)));
+  res
+    .status(200)
+    .json(
+      await deactivateOfficer(currentStaff(res), id.parse(req.params.staffId)),
+    );
 });
 
 consoleRouter.post("/team/:staffId/reactivate", async (req, res) => {
-  res.status(200).json(await reactivateOfficer(currentStaff(res), id.parse(req.params.staffId)));
+  res
+    .status(200)
+    .json(
+      await reactivateOfficer(currentStaff(res), id.parse(req.params.staffId)),
+    );
 });
 
 consoleRouter.post("/team/:staffId/reset", async (req, res) => {
-  res.status(200).json(await resetAccess(currentStaff(res), id.parse(req.params.staffId)));
+  res
+    .status(200)
+    .json(await resetAccess(currentStaff(res), id.parse(req.params.staffId)));
+});
+
+// ---------- D89: microloan requests; D88: advances from the fund ----------
+
+consoleRouter.get("/loans", async (_req, res) => {
+  res.status(200).json(await listLoans(currentStaff(res).mfiId));
+});
+
+consoleRouter.get("/loans/:loanId", async (req, res) => {
+  res
+    .status(200)
+    .json(await getLoan(currentStaff(res).mfiId, id.parse(req.params.loanId)));
+});
+
+consoleRouter.post("/loans/:loanId/approve", async (req, res) => {
+  const staff = currentStaff(res);
+  const body = z
+    .object({
+      grantedFcfa: z.number().int().positive(),
+      note: z.string().max(280).optional(),
+    })
+    .strict()
+    .parse(req.body);
+  res
+    .status(200)
+    .json(
+      await decideLoan(
+        staff.mfiId,
+        staff.staffId,
+        id.parse(req.params.loanId),
+        { approve: true, ...body },
+      ),
+    );
+});
+
+consoleRouter.post("/loans/:loanId/decline", async (req, res) => {
+  const staff = currentStaff(res);
+  const { reason } = z
+    .object({ reason: z.string().trim().min(3).max(280) })
+    .strict()
+    .parse(req.body);
+  res
+    .status(200)
+    .json(
+      await decideLoan(
+        staff.mfiId,
+        staff.staffId,
+        id.parse(req.params.loanId),
+        { approve: false, reason },
+      ),
+    );
+});
+
+consoleRouter.get("/advances", async (_req, res) => {
+  res.status(200).json(await listAdvances(currentStaff(res).mfiId));
+});
+
+consoleRouter.post("/advances/:advanceId/send", async (req, res) => {
+  const staff = currentStaff(res);
+  res
+    .status(200)
+    .json(
+      await sendAdvance(
+        staff.mfiId,
+        staff.staffId,
+        id.parse(req.params.advanceId),
+      ),
+    );
 });

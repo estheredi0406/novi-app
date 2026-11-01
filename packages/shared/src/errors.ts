@@ -52,6 +52,14 @@ export const errors = {
   ORDER_INVALID: { messageKey: "groups.orderInvalid" },
   MFI_UNAVAILABLE: { messageKey: "groups.mfiUnavailable" },
 
+  // Help inside the group and credit (D87, D88, D89)
+  SWAP_NOT_POSSIBLE: { messageKey: "help.swapNotPossible" }, // a turn already paid out, due today, or a swap already open
+  ADVANCE_NOT_ALLOWED: { messageKey: "help.advanceNotAllowed" }, // late payments, pot already received, or an advance already open
+  ADVANCE_TOO_LARGE: { messageKey: "help.advanceTooLarge" }, // more than one contribution
+  FUND_TOO_LOW: { messageKey: "help.fundTooLow" }, // the solidarity fund cannot spare it now
+  LOAN_NOT_ELIGIBLE: { messageKey: "loan.notEligible" },
+  LOAN_TOO_LARGE: { messageKey: "loan.tooLarge" },
+
   // Money in (Sprint 3)
   ROUND_NOT_OPEN: { messageKey: "money.roundNotOpen" },
   ALREADY_PAID: { messageKey: "money.alreadyPaid" },

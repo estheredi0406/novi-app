@@ -104,6 +104,9 @@ enum LedgerEntryType {
   RESERVE_COVER  // the reserve pays a late member's share so the pot leaves full
   RESERVE_REPAY  // her late payment refills the reserve
   RESERVE_RETURN // what is left at the end of the cycle, back to a member
+  // D88: a small advance from the fund to a member, repaid from her pot.
+  RESERVE_ADVANCE       // the fund sends the advance to her wallet
+  RESERVE_ADVANCE_REPAY // her pot pays it back
 }
 
 // Where one seat is in its life.
@@ -174,6 +177,10 @@ model User {
   messages        GroupMessage[]  @relation("MessageAuthor")
   messagesHidden  GroupMessage[]  @relation("MessageHider")
   meetingsCreated GroupMeeting[]
+  swapsAsked      TurnSwap[]      @relation("SwapRequester")
+  swapsReceived   TurnSwap[]      @relation("SwapPartner")
+  advances        Advance[]       @relation("AdvanceBorrower")
+  loanRequests    LoanRequest[]
   meetingsJoined  MeetingAttendance[]
 
   @@map("users")
@@ -283,6 +290,7 @@ model Mfi {
   groups       Group[]
   staff        StaffUser[]
   recordShares RecordShare[]
+  loanRequests LoanRequest[]
 
   @@map("mfis")
 }
@@ -318,6 +326,8 @@ model Group {
   reserveReturns ReserveReturn[]
   messages       GroupMessage[]
   meetings       GroupMeeting[]
+  turnSwaps      TurnSwap[]
+  advances       Advance[]
 
   @@index([state])
   @@map("groups")
@@ -772,4 +782,129 @@ model MeetingAttendance {
 
   @@unique([meetingId, userId])
   @@map("meeting_attendances")
+}
+
+
+// ---------- Help inside the group (D87, D88) and credit (D89) ----------
+
+enum SwapStatus {
+  ASKED     // she asked a member to swap turns; waiting for that member
+  AGREED    // the member said yes; waiting for the organiser
+  DONE      // turns swapped
+  DECLINED  // the member or the organiser said no
+  CANCELLED // she withdrew it, or it could no longer happen
+}
+
+// D87: two members swap their turns to receive the pot, as traders already do
+// by hand. No money is lent: only who receives which round changes.
+model TurnSwap {
+  id             String     @id @default(uuid())
+  groupId        String
+  requesterId    String
+  partnerId      String
+  requesterRound Int        // her round before the swap
+  partnerRound   Int
+  status         SwapStatus @default(ASKED)
+  answeredAt     DateTime?
+  decidedById    String?    // the organiser who confirmed or refused
+  doneAt         DateTime?
+  createdAt      DateTime   @default(now())
+
+  group     Group @relation(fields: [groupId], references: [id])
+  requester User  @relation("SwapRequester", fields: [requesterId], references: [id])
+  partner   User  @relation("SwapPartner", fields: [partnerId], references: [id])
+
+  @@index([groupId, status])
+  @@map("turn_swaps")
+}
+
+enum AdvanceStatus {
+  ASKED     // waiting for the organiser and one more member
+  APPROVED  // approved by the group; waiting for the MFI officer to send it
+  SENT      // the MFI accepted the transfer
+  PAID      // in her wallet; repaid from her pot on her turn
+  REPAID    // her pot paid it back
+  DECLINED
+  CANCELLED
+}
+
+// D88: a small advance from the solidarity fund, for an emergency. At most
+// one contribution, approved by the organiser and one other member, sent by
+// the MFI, and repaid from her own pot on her turn, with no interest.
+model Advance {
+  id                 String        @id @default(uuid())
+  groupId            String
+  userId             String
+  amountFcfa         Int
+  reason             String?       // a few words for the group ("ma fille est malade")
+  status             AdvanceStatus @default(ASKED)
+  organiserApproval  String?       // the organiser's user id once she approved
+  memberApproval     String?       // the other member who approved
+  declinedById       String?
+  releasedById       String?       // the officer who sent it
+  mfiRef             String?
+  paidAt             DateTime?
+  repaidAt           DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation("AdvanceBorrower", fields: [userId], references: [id])
+
+  @@index([groupId, status])
+  @@index([userId, status])
+  @@map("advances")
+}
+
+enum LoanPurpose {
+  STOCK     // buying goods to sell
+  EQUIPMENT // a freezer, a stall, a sewing machine
+  OTHER
+}
+
+enum LoanStatus {
+  PENDING
+  APPROVED  // FUCEC said yes: she goes to the agency, where the loan is paid and repaid
+  DECLINED
+  WITHDRAWN
+}
+
+// D89: a microloan request to the MFI, carried by Novi with her record.
+// The MFI decides and lends; Novi neither lends nor sends the money.
+model LoanRequest {
+  id            String      @id @default(uuid())
+  userId        String
+  mfiId         String
+  amountFcfa    Int
+  purpose       LoanPurpose
+  months        Int
+  status        LoanStatus  @default(PENDING)
+  grantedFcfa   Int?
+  decisionNote  String?     // the reason for a refusal, or the officer's note
+  decidedById   String?
+  decidedAt     DateTime?
+  createdAt     DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  mfi  Mfi  @relation(fields: [mfiId], references: [id])
+
+  @@index([mfiId, status])
+  @@index([userId, createdAt])
+  @@map("loan_requests")
+}
+
+// D90: something waiting for the MFI's staff, emailed when it happens. If it
+// is still waiting after 4 working hours, the administrators are emailed too.
+model StaffAlert {
+  id          String    @id @default(uuid())
+  mfiId       String
+  kind        String    // GROUP_TO_VALIDATE, POT_READY, POT_DISPUTED, LOAN_REQUEST, ADVANCE_TO_SEND
+  refId       String    // the group, payout, loan request or advance
+  createdAt   DateTime  @default(now())
+  escalatedAt DateTime?
+  resolvedAt  DateTime?
+
+  @@unique([kind, refId]) // one alert per thing
+  @@index([mfiId, resolvedAt])
+  @@map("staff_alerts")
 }

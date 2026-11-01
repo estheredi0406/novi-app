@@ -2,9 +2,20 @@ import { Router } from "express";
 import { z } from "zod";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
 import { getProfile, updateProfile } from "../services/memberService.js";
+import {
+  getLoanPage,
+  requestLoan,
+  withdrawLoan,
+} from "../services/loanService.js";
 import { savePushToken } from "../services/notifyService.js";
 import { answerReceipt } from "../services/payoutService.js";
-import { buildRecord, listLenders, listShares, revokeShare, shareRecord } from "../services/recordService.js";
+import {
+  buildRecord,
+  listLenders,
+  listShares,
+  revokeShare,
+  shareRecord,
+} from "../services/recordService.js";
 
 export const meRouter = Router();
 
@@ -46,7 +57,12 @@ meRouter.patch("/", async (req, res) => {
 // D79: where this phone receives notifications (Expo's token), or null to
 // stop. Tied to the phone she is logged in on now.
 const pushBody = z
-  .object({ token: z.string().regex(/^Expo(nent)?PushToken\[[A-Za-z0-9_-]+\]$/).nullable() })
+  .object({
+    token: z
+      .string()
+      .regex(/^Expo(nent)?PushToken\[[A-Za-z0-9_-]+\]$/)
+      .nullable(),
+  })
   .strict();
 
 meRouter.put("/push-token", async (req, res) => {
@@ -73,7 +89,9 @@ meRouter.get("/record/lenders", async (_req, res) => {
 
 // She shares it: a signed snapshot, valid 30 days (D50), with one MFI by its
 // code (D54), or as a code for any lender when mfiCode is left out.
-const shareBody = z.object({ mfiCode: z.string().min(1).max(20).optional() }).strict();
+const shareBody = z
+  .object({ mfiCode: z.string().min(1).max(20).optional() })
+  .strict();
 
 meRouter.post("/record/shares", async (req, res) => {
   const { mfiCode } = shareBody.parse(req.body ?? {});
@@ -81,7 +99,9 @@ meRouter.post("/record/shares", async (req, res) => {
 });
 
 meRouter.post("/record/shares/:shareId/revoke", async (req, res) => {
-  const { shareId } = z.object({ shareId: z.string().uuid() }).parse(req.params);
+  const { shareId } = z
+    .object({ shareId: z.string().uuid() })
+    .parse(req.params);
   res.json(await revokeShare(currentMember(res).userId, shareId));
 });
 
@@ -90,8 +110,34 @@ meRouter.post("/record/shares/:shareId/revoke", async (req, res) => {
 // "I received it" or "I did not receive it", once the MFI has paid her pot.
 // A "not received" answer goes to the officer's console.
 meRouter.post("/payouts/:payoutId/receipt", async (req, res) => {
-  const { received } = z.object({ received: z.boolean() }).strict().parse(req.body);
+  const { received } = z
+    .object({ received: z.boolean() })
+    .strict()
+    .parse(req.body);
   const payoutId = z.string().uuid().parse(req.params.payoutId);
   await answerReceipt(currentMember(res).userId, payoutId, received);
   res.status(204).end();
+});
+
+// ---------- D89: microloan requests to the MFI ----------
+
+meRouter.get("/loans", async (_req, res) => {
+  res.json(await getLoanPage(currentMember(res).userId));
+});
+
+meRouter.post("/loans", async (req, res) => {
+  const body = z
+    .object({
+      amountFcfa: z.number().int().min(5000).max(5_000_000),
+      purpose: z.enum(["STOCK", "EQUIPMENT", "OTHER"]),
+      months: z.union([z.literal(3), z.literal(6), z.literal(12)]),
+    })
+    .strict()
+    .parse(req.body);
+  res.status(201).json(await requestLoan(currentMember(res).userId, body));
+});
+
+meRouter.post("/loans/:loanId/withdraw", async (req, res) => {
+  const loanId = z.string().uuid().parse(req.params.loanId);
+  res.json(await withdrawLoan(currentMember(res).userId, loanId));
 });

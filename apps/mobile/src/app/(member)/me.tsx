@@ -73,12 +73,16 @@ export default function MeScreen() {
             <View style={styles.avatarWrap}>
               <View style={styles.avatarShadow} />
               <View style={styles.avatar}>
-                <Text style={styles.initial}>{member.displayName.slice(0, 1).toUpperCase()}</Text>
+                <Text style={styles.initial}>
+                  {member.displayName.slice(0, 1).toUpperCase()}
+                </Text>
               </View>
             </View>
             <View style={styles.whoText}>
               <Text style={styles.name}>{member.displayName}</Text>
-              {phone ? <Text style={styles.detail}>{formatPhone(phone)}</Text> : null}
+              {phone ? (
+                <Text style={styles.detail}>{formatPhone(phone)}</Text>
+              ) : null}
               {where ? <Text style={styles.detail}>{where}</Text> : null}
             </View>
           </View>
@@ -92,11 +96,33 @@ export default function MeScreen() {
         <View style={styles.card}>
           <Row
             icon={
-              <Path d="M4 7 H20 M4 12 H20 M4 17 H14" stroke={colors.indigo} strokeWidth={1.8} strokeLinecap="round" />
+              <Path
+                d="M4 7 H20 M4 12 H20 M4 17 H14"
+                stroke={colors.indigo}
+                strokeWidth={1.8}
+                strokeLinecap="round"
+              />
             }
             label={t("me.name")}
             sub={member.displayName}
             onPress={() => router.push("/me-name" as Href)}
+          />
+          <Row
+            icon={
+              <>
+                <Path
+                  d="M4 8 H20 V18 H4 Z M4 11 H20"
+                  stroke={colors.indigo}
+                  strokeWidth={1.8}
+                  fill={colors.gold}
+                  strokeLinejoin="round"
+                />
+                <Circle cx={16} cy={15} r={1.4} fill={colors.indigo} />
+              </>
+            }
+            label={t("loan.menu")}
+            sub={t("loan.menuSub")}
+            onPress={() => router.push("/loan" as Href)}
           />
           <Row
             icon={
@@ -115,7 +141,14 @@ export default function MeScreen() {
           <Row
             icon={
               <>
-                <Circle cx={9} cy={8} r={3} stroke={colors.indigo} strokeWidth={1.8} fill={colors.mist} />
+                <Circle
+                  cx={9}
+                  cy={8}
+                  r={3}
+                  stroke={colors.indigo}
+                  strokeWidth={1.8}
+                  fill={colors.mist}
+                />
                 <Path
                   d="M3 19 C3 15 6 13 9 13 C12 13 15 15 15 19 M16 7 L18 9 L22 5"
                   stroke={colors.indigo}
@@ -127,7 +160,11 @@ export default function MeScreen() {
               </>
             }
             label={t("kin.title")}
-            sub={member.nextOfKin ? `${member.nextOfKin.name} · ${member.nextOfKin.relation}` : t("kin.notSet")}
+            sub={
+              member.nextOfKin
+                ? `${member.nextOfKin.name} · ${member.nextOfKin.relation}`
+                : t("kin.notSet")
+            }
             onPress={() => router.push("/me-kin" as Href)}
           />
           <View style={[styles.row, styles.rowLine]}>
@@ -176,7 +213,11 @@ export default function MeScreen() {
       </View>
 
       <View style={styles.footer}>
-        <Pressable accessibilityRole="button" onPress={() => void logOut()} style={styles.logout}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void logOut()}
+          style={styles.logout}
+        >
           <Text style={styles.logoutText}>{t("home.logout")}</Text>
         </Pressable>
       </View>
@@ -198,7 +239,11 @@ function Row({
   last?: boolean;
 }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={[styles.row, !last && styles.rowLine]}>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={[styles.row, !last && styles.rowLine]}
+    >
       <View style={styles.rowIcon}>
         <Svg width={20} height={20} viewBox="0 0 24 24">
           {icon}
@@ -238,7 +283,12 @@ const styles = StyleSheet.create({
   },
   initial: { fontFamily: fonts.display, fontSize: 28, color: colors.white },
   whoText: { flex: 1, gap: 2 },
-  name: { fontFamily: fonts.display, fontSize: 24, lineHeight: 30, color: colors.indigo },
+  name: {
+    fontFamily: fonts.display,
+    fontSize: 24,
+    lineHeight: 30,
+    color: colors.indigo,
+  },
   detail: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },
   cardWrap: { paddingRight: 3, paddingBottom: 3 },
   cardShadow: {

@@ -1,4 +1,5 @@
 import { app } from "./app.js";
+import { startAlertJob } from "./services/alertService.js";
 import { startPayoutJob } from "./services/payoutService.js";
 import { startReminderJob } from "./services/reminderService.js";
 
@@ -15,3 +16,5 @@ app.listen(port, () => {
 startPayoutJob();
 // Reminds members the day before and on the morning of a due date (F16).
 startReminderJob();
+// D90: escalates what waits too long, and sends the 08:00 summary to staff.
+startAlertJob();

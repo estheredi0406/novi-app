@@ -204,6 +204,8 @@ export function GroupChat({
   function eventText(m: ChatMessage): string {
     const who = m.authorName ?? "";
     if (m.event === "CALL_STARTED") return t("chat.callStarted", { name: who });
+    if (m.event === "TURN_SWAPPED")
+      return t("chat.turnSwapped", { name: who, round: m.round });
     if (m.event === "MEETING_SCHEDULED" || m.event === "MEETING_CANCELLED") {
       const when = m.meeting
         ? meetingWhen(m.meeting.startsAt, i18n.language)

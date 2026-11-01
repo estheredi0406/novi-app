@@ -4,6 +4,7 @@ export * from "./console.js";
 export * from "./errors.js";
 export * from "./groups.js";
 export * from "./health.js";
+export * from "./help.js";
 export * from "./money.js";
 export * from "./pinRules.js";
 export * from "./record.js";

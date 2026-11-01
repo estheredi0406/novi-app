@@ -25,26 +25,41 @@ async function phonesOf(userIds: string[], channel: Channel) {
       userId: { in: userIds },
       pushToken: { not: null },
       untrustedAt: null,
-      user: { closedAt: null, ...(channel === "chat" ? { notifyChat: true } : {}) },
+      user: {
+        closedAt: null,
+        ...(channel === "chat" ? { notifyChat: true } : {}),
+      },
       sessions: { some: { revokedAt: null, expiresAt: { gt: now } } },
     },
     select: { pushToken: true, user: { select: { language: true } } },
   });
 }
 
-async function send(userIds: string[], channel: Channel, url: string, text: (language: Language) => Text) {
+async function send(
+  userIds: string[],
+  channel: Channel,
+  url: string,
+  text: (language: Language) => Text,
+) {
   try {
     const phones = await phonesOf(userIds, channel);
     await push.send(
-      phones.map((p) => ({ to: p.pushToken as string, ...text(p.user.language), data: { url }, channelId: channel })),
+      phones.map((p) => ({
+        to: p.pushToken as string,
+        ...text(p.user.language),
+        data: { url },
+        channelId: channel,
+      })),
     );
   } catch (err) {
     console.error(`Notification (${channel}) not sent:`, err);
   }
 }
 
-const groupUrl = (groupId: string, tab?: string) => `/groups/${groupId}${tab ? `?tab=${tab}` : ""}`;
-const fcfa = (amount: number) => `${String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA`;
+const groupUrl = (groupId: string, tab?: string) =>
+  `/groups/${groupId}${tab ? `?tab=${tab}` : ""}`;
+const fcfa = (amount: number) =>
+  `${String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA`;
 const en = (language: Language) => language === "EN"; // Ewe reads French until its texts are checked (D78)
 
 // The group's active members, apart from one person.
@@ -62,10 +77,16 @@ async function othersIn(groupId: string, exceptUserId: string | null) {
 }
 
 // "Akossiwa appelle le groupe": everyone but the caller.
-export async function notifyCall(groupId: string, callerId: string): Promise<void> {
+export async function notifyCall(
+  groupId: string,
+  callerId: string,
+): Promise<void> {
   const [group, caller, seats] = await Promise.all([
     prisma.group.findUnique({ where: { id: groupId }, select: { name: true } }),
-    prisma.user.findUnique({ where: { id: callerId }, select: { displayName: true } }),
+    prisma.user.findUnique({
+      where: { id: callerId },
+      select: { displayName: true },
+    }),
     othersIn(groupId, callerId),
   ]);
   if (!group || !caller) return;
@@ -75,8 +96,14 @@ export async function notifyCall(groupId: string, callerId: string): Promise<voi
     groupUrl(groupId, "discussion"),
     (l) =>
       en(l)
-        ? { title: `${caller.displayName} is calling ${group.name}`, body: "Tap to join the call." }
-        : { title: `${caller.displayName} appelle ${group.name}`, body: "Touchez pour rejoindre l'appel." },
+        ? {
+            title: `${caller.displayName} is calling ${group.name}`,
+            body: "Tap to join the call.",
+          }
+        : {
+            title: `${caller.displayName} appelle ${group.name}`,
+            body: "Touchez pour rejoindre l'appel.",
+          },
   );
 }
 
@@ -90,18 +117,29 @@ export async function notifyChat(
 ): Promise<void> {
   try {
     const [group, author, seats] = await Promise.all([
-      prisma.group.findUnique({ where: { id: groupId }, select: { name: true } }),
-      prisma.user.findUnique({ where: { id: authorId }, select: { displayName: true } }),
+      prisma.group.findUnique({
+        where: { id: groupId },
+        select: { name: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: authorId },
+        select: { displayName: true },
+      }),
       othersIn(groupId, authorId),
     ]);
     if (!group || !author) return;
     const due = seats.filter(
       (s) =>
-        (!s.chatPushedAt || now.getTime() - s.chatPushedAt.getTime() >= HOUR_MS) &&
-        (!s.chatReadAt || now.getTime() - s.chatReadAt.getTime() >= 2 * 60 * 1000),
+        (!s.chatPushedAt ||
+          now.getTime() - s.chatPushedAt.getTime() >= HOUR_MS) &&
+        (!s.chatReadAt ||
+          now.getTime() - s.chatReadAt.getTime() >= 2 * 60 * 1000),
     );
     if (due.length === 0) return;
-    await prisma.membership.updateMany({ where: { id: { in: due.map((s) => s.id) } }, data: { chatPushedAt: now } });
+    await prisma.membership.updateMany({
+      where: { id: { in: due.map((s) => s.id) } },
+      data: { chatPushedAt: now },
+    });
     const words = "text" in preview ? preview.text.slice(0, 90) : null;
     await send(
       due.map((s) => s.userId),
@@ -122,20 +160,43 @@ export async function notifyChat(
 }
 
 // Her pot reached her mobile money.
-export async function notifyPotPaid(userId: string, groupId: string, groupName: string, amountFcfa: number) {
+export async function notifyPotPaid(
+  userId: string,
+  groupId: string,
+  groupName: string,
+  amountFcfa: number,
+) {
   await send([userId], "money", groupUrl(groupId, "cotisation"), (l) =>
     en(l)
-      ? { title: `Your pot of ${fcfa(amountFcfa)} was sent`, body: `${groupName}: tell your group when it arrives.` }
-      : { title: `Votre cagnotte de ${fcfa(amountFcfa)} est envoyée`, body: `${groupName} : dites au groupe quand elle arrive.` },
+      ? {
+          title: `Your pot of ${fcfa(amountFcfa)} was sent`,
+          body: `${groupName}: tell your group when it arrives.`,
+        }
+      : {
+          title: `Votre cagnotte de ${fcfa(amountFcfa)} est envoyée`,
+          body: `${groupName} : dites au groupe quand elle arrive.`,
+        },
   );
 }
 
 // The day before, and the morning of, a payment she has not made yet.
-export async function notifyDue(userId: string, groupId: string, groupName: string, amountFcfa: number, dueToday: boolean) {
+export async function notifyDue(
+  userId: string,
+  groupId: string,
+  groupName: string,
+  amountFcfa: number,
+  dueToday: boolean,
+) {
   await send([userId], "money", groupUrl(groupId, "cotisation"), (l) =>
     en(l)
-      ? { title: `${fcfa(amountFcfa)} due ${dueToday ? "today" : "tomorrow"}`, body: `${groupName}: tap to pay.` }
-      : { title: `Cotisation de ${fcfa(amountFcfa)} ${dueToday ? "aujourd'hui" : "demain"}`, body: `${groupName} : touchez pour payer.` },
+      ? {
+          title: `${fcfa(amountFcfa)} due ${dueToday ? "today" : "tomorrow"}`,
+          body: `${groupName}: tap to pay.`,
+        }
+      : {
+          title: `Cotisation de ${fcfa(amountFcfa)} ${dueToday ? "aujourd'hui" : "demain"}`,
+          body: `${groupName} : touchez pour payer.`,
+        },
   );
 }
 
@@ -152,19 +213,48 @@ export async function notifyCycleDone(groupId: string): Promise<void> {
     groupUrl(groupId, "cotisation"),
     (l) =>
       en(l)
-        ? { title: `${group.name}: cycle complete`, body: "Everyone has received her pot. Going again?" }
-        : { title: `${group.name} : cycle terminé`, body: "Chacune a reçu sa cagnotte. On continue ?" },
+        ? {
+            title: `${group.name}: cycle complete`,
+            body: "Everyone has received her pot. Going again?",
+          }
+        : {
+            title: `${group.name} : cycle terminé`,
+            body: "Chacune a reçu sa cagnotte. On continue ?",
+          },
   );
 }
 
 // The phone tells Novi where to reach it, after login; null after logout.
-export async function savePushToken(sessionId: string, token: string | null): Promise<void> {
-  const session = await prisma.session.findUnique({ where: { id: sessionId }, select: { deviceId: true } });
+export async function savePushToken(
+  sessionId: string,
+  token: string | null,
+): Promise<void> {
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    select: { deviceId: true },
+  });
   if (!session) return;
   if (token) {
     // A token belongs to one phone: if another account used this phone
     // before, it stops receiving here.
-    await prisma.device.updateMany({ where: { pushToken: token, id: { not: session.deviceId } }, data: { pushToken: null } });
+    await prisma.device.updateMany({
+      where: { pushToken: token, id: { not: session.deviceId } },
+      data: { pushToken: null },
+    });
   }
-  await prisma.device.update({ where: { id: session.deviceId }, data: { pushToken: token } });
+  await prisma.device.update({
+    where: { id: session.deviceId },
+    data: { pushToken: token },
+  });
+}
+
+// D87 to D89: a short message to a few members, in French or English.
+export async function notifyMembers(
+  userIds: string[],
+  channel: Channel,
+  url: string,
+  fr: Text,
+  english: Text,
+): Promise<void> {
+  await send(userIds, channel, url, (l) => (en(l) ? english : fr));
 }

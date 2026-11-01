@@ -2,11 +2,13 @@ import type { PayoutStatus } from "./money.js";
 // What the app receives about savings groups. The values of each list match
 // the API's database, so a new state added there must be added here too.
 
-export type GroupState = "DRAFT" | "PROPOSED" | "STARTING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+export type GroupState =
+  "DRAFT" | "PROPOSED" | "STARTING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
 export type Frequency = "WEEKLY" | "MONTHLY";
 export type PayoutOrder = "DRAWN" | "FIXED";
 export type MemberRole = "ORGANISER" | "MEMBER";
-export type SeatState = "INVITED" | "ACCEPTED" | "COUNTERED" | "DECLINED" | "REMOVED";
+export type SeatState =
+  "INVITED" | "ACCEPTED" | "COUNTERED" | "DECLINED" | "REMOVED";
 
 // One version of a group's rules (D29).
 export type GroupRules = {
@@ -53,7 +55,13 @@ export type GroupDetail = {
   // D68: the group's solidarity reserve, once it has started.
   // balanceFcfa: what the group has in the MFI's solidarity fund; fundFcfa:
   // the whole fund, across the MFI's groups, which is what can cover a share.
-  reserve: { percent: number; balanceFcfa: number; fundFcfa: number; owedFcfa: number; coversOpen: number } | null;
+  reserve: {
+    percent: number;
+    balanceFcfa: number;
+    fundFcfa: number;
+    owedFcfa: number;
+    coversOpen: number;
+  } | null;
   unreadMessages: number; // D70: chat lines since she last opened the chat
   // D72: which cycle of this circle of members, and the cycles before and after.
   cycleNumber: number;
@@ -106,7 +114,11 @@ export type CurrentRound = {
   paidCount: number; // how many members have paid this round: the pot filling
   // The round whose pot is hers, and where that pot is: not due yet, held,
   // on its way, or received (PAID).
-  myTurn: { number: number; dueDate: string; payoutStatus: PayoutStatus } | null;
+  myTurn: {
+    number: number;
+    dueDate: string;
+    payoutStatus: PayoutStatus;
+  } | null;
   onTimeStreak: number; // her payments on time in a row in this group, up to now
 };
 // ---------- The group's chat (D70) ----------
@@ -120,10 +132,23 @@ export type ChatMessage = {
   authorName: string | null; // her display name, as her group sees it
   mine: boolean;
   body: string | null; // null when hidden, or for an EVENT
-  event: "PAID" | "POT_PAID" | "MEETING_SCHEDULED" | "MEETING_CANCELLED" | "CALL_STARTED" | null;
+  event:
+    | "PAID"
+    | "POT_PAID"
+    | "MEETING_SCHEDULED"
+    | "MEETING_CANCELLED"
+    | "CALL_STARTED"
+    | "TURN_SWAPPED"
+    | null;
   round: number | null;
   // D71; state tells a call still open from one that ended
-  meeting: { id: string; title: string; startsAt: string; state: MeetingState; instant: boolean } | null;
+  meeting: {
+    id: string;
+    title: string;
+    startsAt: string;
+    state: MeetingState;
+    instant: boolean;
+  } | null;
   voice: { durationMs: number; available: boolean } | null; // VOICE only; false once deleted
   hidden: boolean;
   canHide: boolean; // she wrote it, or she is the organiser

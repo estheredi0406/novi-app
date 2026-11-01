@@ -1,5 +1,6 @@
 import type {
   AttentionItem,
+  ConsoleAdvance,
   ConsoleActivity,
   ConsoleAnalytics,
   ConsoleGroup,
@@ -16,8 +17,10 @@ import { currentRoundNumber, isoDay } from "../lib/schedule.js";
 import { openApprovedGroup } from "./groupService.js";
 import { pilotMode } from "../lib/pilot.js";
 import { owedCovers } from "./memberService.js";
+import { notifyMembers } from "./notifyService.js";
 import { releasePayout, runPayouts } from "./payoutService.js";
 import { fundBalance, reserveBalance } from "./reserveService.js";
+import { mfi } from "../providers/index.js";
 
 // What an MFI officer sees and does in the console (Sprint 5.2). Every query
 // is limited to the officer's own MFI: another MFI's group is answered with
@@ -714,4 +717,133 @@ export async function advanceDueDateForDemo(
   });
   await runPayouts(now, groupId);
   return { round: next.number };
+}
+
+// ---------- D88: advances from the fund, sent by the officer ----------
+
+// Approved by the group and waiting to be sent, or sent in the last 30 days.
+// Like the pots, the member appears by her turn, never her name (D33).
+export async function listAdvances(
+  mfiId: string,
+  now = new Date(),
+): Promise<ConsoleAdvance[]> {
+  const since = new Date(now.getTime() - 30 * DAY_MS);
+  const advances = await prisma.advance.findMany({
+    where: {
+      group: { mfiId },
+      OR: [
+        { status: "APPROVED" },
+        {
+          status: { in: ["SENT", "PAID", "REPAID"] },
+          updatedAt: { gte: since },
+        },
+      ],
+    },
+    include: {
+      group: {
+        select: {
+          name: true,
+          memberships: { select: { userId: true, payoutPosition: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  return advances.map((a) => ({
+    id: a.id,
+    groupId: a.groupId,
+    groupName: a.group.name,
+    amountFcfa: a.amountFcfa,
+    status: a.status as ConsoleAdvance["status"],
+    approvedAt: a.updatedAt.toISOString(),
+    receiverTurn:
+      a.group.memberships.find((m) => m.userId === a.userId)?.payoutPosition ??
+      null,
+  }));
+}
+
+// The officer sends an approved advance from the solidarity fund to her
+// wallet, through the MFI, like a pot (D63). Claimed first, so it is never
+// sent twice.
+export async function sendAdvance(
+  mfiId: string,
+  staffId: string,
+  advanceId: string,
+): Promise<ConsoleAdvance[]> {
+  const advance = await prisma.advance.findFirst({
+    where: { id: advanceId, group: { mfiId } },
+    include: { group: true, user: { select: { phone: true } } },
+  });
+  if (!advance) throw new AppError("NOT_FOUND", 404);
+  if (advance.status !== "APPROVED") throw new AppError("NOT_ALLOWED_NOW", 409);
+  if ((await fundBalance(mfiId)) < advance.amountFcfa)
+    throw new AppError("FUND_TOO_LOW", 409);
+  if (!advance.group.mfiAccountRef) throw new AppError("NOT_ALLOWED_NOW", 409);
+
+  const claimed = await prisma.advance.updateMany({
+    where: { id: advance.id, status: "APPROVED" },
+    data: { status: "SENT", releasedById: staffId },
+  });
+  if (claimed.count === 0) throw new AppError("NOT_ALLOWED_NOW", 409);
+
+  const lastPayment = await prisma.contribution.findFirst({
+    where: {
+      userId: advance.userId,
+      status: "PAID",
+      round: { groupId: advance.groupId },
+    },
+    orderBy: { paidAt: "desc" },
+  });
+  let answer: Awaited<ReturnType<typeof mfi.sendPayout>>;
+  try {
+    answer = await mfi.sendPayout({
+      payoutId: `advance-${advance.id}`,
+      accountRef: advance.group.mfiAccountRef,
+      amountFcfa: advance.amountFcfa,
+      phone: advance.user.phone,
+      operator: lastPayment?.operator ?? "MOOV_TG",
+    });
+  } catch {
+    answer = { mfiRef: "", status: "FAILED" };
+  }
+  if (answer.status === "FAILED") {
+    await prisma.advance.update({
+      where: { id: advance.id },
+      data: { status: "APPROVED", releasedById: null },
+    });
+    throw new AppError("MFI_UNAVAILABLE", 503);
+  }
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.advance.update({
+      where: { id: advance.id },
+      data: { status: "PAID", mfiRef: answer.mfiRef, paidAt: now },
+    }),
+    prisma.ledgerEntry.create({
+      data: {
+        groupId: advance.groupId,
+        userId: advance.userId,
+        type: "RESERVE_ADVANCE",
+        amountFcfa: advance.amountFcfa,
+        note: `advance ${advance.id}`,
+      },
+    }),
+    prisma.auditEvent.create({
+      data: { type: "STAFF_ADVANCE_SENT", details: { staffId, advanceId } },
+    }),
+  ]);
+  await notifyMembers(
+    [advance.userId],
+    "money",
+    `/groups/${advance.groupId}?tab=groupe`,
+    {
+      title: "Votre avance est envoyée",
+      body: "Elle arrive sur votre Mobile Money. Elle sera reprise sur votre cagnotte.",
+    },
+    {
+      title: "Your advance was sent",
+      body: "It is on its way to your mobile money. It comes back out of your pot.",
+    },
+  );
+  return listAdvances(mfiId);
 }

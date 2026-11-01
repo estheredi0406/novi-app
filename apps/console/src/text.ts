@@ -32,6 +32,65 @@ export const text = {
     decline: "Refuser",
     declineAsk: "Motif du refus (lu par l'organisatrice) :",
     seeMembers: "Voir les membres",
+    loansNav: "Crédits",
+    loansTitle: "Demandes de crédit",
+    loansHint:
+      "Des membres qui remplissent les conditions de Novi : une tontine terminée ou 8 paiements à l'heure de suite, 90 % à l'heure, rien dû au fonds. FUCEC décide, prête et se fait rembourser à l'agence.",
+    loansPending: (n: number) => `À examiner (${n})`,
+    loansDecided: "Déjà décidées",
+    loansNone: "Aucune demande en attente.",
+    loanColAmount: "Montant",
+    loanColPurpose: "Pour",
+    loanColMonths: "Durée",
+    loanColDate: "Reçue",
+    loanColStatus: "État",
+    loanColContribution: "Cotisation",
+    loanColPaid: "Paiements",
+    loanPurpose: {
+      STOCK: "Achat de stock",
+      EQUIPMENT: "Matériel",
+      OTHER: "Autre",
+    } as Record<"STOCK" | "EQUIPMENT" | "OTHER", string>,
+    loanMonths: (m: number) => `${m} mois`,
+    loanStatus: {
+      PENDING: "À examiner",
+      APPROVED: "Accordé",
+      DECLINED: "Refusé",
+      WITHDRAWN: "Retiré",
+    } as Record<"PENDING" | "APPROVED" | "DECLINED" | "WITHDRAWN", string>,
+    loanGranted: (amount: string) => `Accordé : ${amount}`,
+    recordTitleOne: "Son historique Novi",
+    loanCycles: "Tontines terminées",
+    loanPayments: "Paiements",
+    loanOnTime: "À l'heure",
+    loanPaidLine: (paid: number, rounds: number, onTime: number) =>
+      `${paid} payé(s) sur ${rounds} tours, ${onTime} à l'heure`,
+    loanConsentNote:
+      "Partagé parce qu'elle a envoyé cette demande. Ses messages et le détail de ses paiements restent privés.",
+    loanAsks: "Elle demande",
+    loanCeiling: (amount: string) => `Plafond suggéré ${amount}`,
+    loanReceived: (d: string) => `reçue le ${d}`,
+    loanGrantLabel: "Montant accordé (FCFA)",
+    loanNoteLabel: "Note pour elle (facultatif)",
+    loanApprove: "Accorder : venir à l'agence",
+    loanApproveConfirm: (amount: string, name: string) =>
+      `Accorder ${amount} à ${name} ? Elle sera invitée à venir à l'agence avec sa carte d'identité.`,
+    loanDeclineAsk: "Motif du refus (elle le lira) :",
+    loanAfter: "Elle reçoit la réponse sur son téléphone.",
+    groupState: {
+      ACTIVE: "En cours",
+      COMPLETED: "Terminée",
+      STARTING: "À valider",
+    } as Record<string, string>,
+    advancesTitle: "Avances à verser",
+    advancesHint:
+      "Approuvées par l'organisatrice et un membre. Envoyées depuis le fonds solidaire, reprises sur la cagnotte de la bénéficiaire.",
+    advanceLine: (turn: number | null) =>
+      turn ? `Bénéficiaire : tour ${turn}` : "Bénéficiaire",
+    advanceSend: "Verser",
+    advanceSendConfirm: (amount: string, group: string) =>
+      `Verser ${amount} depuis le fonds solidaire (${group}) ?`,
+    advanceSent: "Versée",
     recordTitle: "Les membres",
     recordHint:
       "Chaque membre a choisi, en rejoignant, de partager son historique Novi avec FUCEC. Ses messages et le détail de ses paiements restent privés.",
@@ -193,6 +252,9 @@ export const text = {
       WEAK_PASSWORD:
         "12 caractères au moins, différent du mot de passe temporaire.",
       ADMIN_ONLY: "Réservé aux administrateurs.",
+      FUND_TOO_LOW:
+        "Le fonds solidaire ne peut pas verser ce montant maintenant.",
+      MFI_UNAVAILABLE: "FUCEC n'a pas répondu. Réessayez.",
       default: "Une erreur s'est produite. Réessayez.",
     },
     status: {
@@ -288,6 +350,65 @@ export const text = {
     approveConfirm: (name: string) =>
       `Validate "${name}"? The MFI will open the group's account and schedule the first round.`,
     seeMembers: "See the members",
+    loansNav: "Loans",
+    loansTitle: "Loan requests",
+    loansHint:
+      "Members who meet Novi's conditions: a completed tontine or 8 payments on time in a row, 90% on time, nothing owed to the fund. The MFI decides, lends and is repaid at the branch.",
+    loansPending: (n: number) => `To review (${n})`,
+    loansDecided: "Already decided",
+    loansNone: "No request waiting.",
+    loanColAmount: "Amount",
+    loanColPurpose: "For",
+    loanColMonths: "Length",
+    loanColDate: "Received",
+    loanColStatus: "Status",
+    loanColContribution: "Contribution",
+    loanColPaid: "Payments",
+    loanPurpose: {
+      STOCK: "Buying stock",
+      EQUIPMENT: "Equipment",
+      OTHER: "Other",
+    } as Record<"STOCK" | "EQUIPMENT" | "OTHER", string>,
+    loanMonths: (m: number) => `${m} months`,
+    loanStatus: {
+      PENDING: "To review",
+      APPROVED: "Granted",
+      DECLINED: "Declined",
+      WITHDRAWN: "Withdrawn",
+    } as Record<"PENDING" | "APPROVED" | "DECLINED" | "WITHDRAWN", string>,
+    loanGranted: (amount: string) => `Granted: ${amount}`,
+    recordTitleOne: "Her Novi record",
+    loanCycles: "Tontines completed",
+    loanPayments: "Payments",
+    loanOnTime: "On time",
+    loanPaidLine: (paid: number, rounds: number, onTime: number) =>
+      `${paid} paid of ${rounds} rounds, ${onTime} on time`,
+    loanConsentNote:
+      "Shared because she sent this request. Her messages and individual payments stay private.",
+    loanAsks: "She asks for",
+    loanCeiling: (amount: string) => `Suggested ceiling ${amount}`,
+    loanReceived: (d: string) => `received on ${d}`,
+    loanGrantLabel: "Amount granted (FCFA)",
+    loanNoteLabel: "Note for her (optional)",
+    loanApprove: "Grant: come to the branch",
+    loanApproveConfirm: (amount: string, name: string) =>
+      `Grant ${amount} to ${name}? She will be asked to come to the branch with her ID card.`,
+    loanDeclineAsk: "Reason for declining (she will read it):",
+    loanAfter: "She gets the answer on her phone.",
+    groupState: {
+      ACTIVE: "Running",
+      COMPLETED: "Completed",
+      STARTING: "To validate",
+    } as Record<string, string>,
+    advancesTitle: "Advances to send",
+    advancesHint:
+      "Approved by the organiser and one member. Sent from the solidarity fund, taken back from the member's pot.",
+    advanceLine: (turn: number | null) =>
+      turn ? `Receiver: turn ${turn}` : "Receiver",
+    advanceSend: "Send",
+    advanceSendConfirm: (amount: string, group: string) =>
+      `Send ${amount} from the solidarity fund (${group})?`,
+    advanceSent: "Sent",
     recordTitle: "Members",
     recordHint:
       "Each member chose, when joining, to share her Novi record with the MFI. Her messages and her individual payments stay private.",
@@ -446,6 +567,8 @@ export const text = {
       STAFF_EMAIL_TAKEN: "This email already has access.",
       WEAK_PASSWORD: "At least 12 characters, not the temporary password.",
       ADMIN_ONLY: "For administrators only.",
+      FUND_TOO_LOW: "The solidarity fund cannot send this amount now.",
+      MFI_UNAVAILABLE: "The MFI did not answer. Try again.",
       default: "Something went wrong. Try again.",
     },
     status: {
