@@ -314,7 +314,7 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
           <table className="members" style={{ boxShadow: "none" }}>
             <thead>
               <tr>
-                <th style={{ width: 70 }} />
+                <th style={{ width: 70 }}>{t.potsCol}</th>
                 <th>{t.colGroup}</th>
                 <th>{t.colRound}</th>
                 <th>{t.balance}</th>
@@ -332,10 +332,9 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
                 >
                   <td>
                     <div className="ring-cell" aria-hidden="true">
-                      <Ring paid={group.currentRound ?? (group.state === "COMPLETED" ? group.rounds : 0)} size={Math.max(group.rounds, group.size)} />
+                      <Ring paid={group.potsPaid} size={group.rounds || group.size} />
                       <span>
-                        {group.currentRound ?? (group.state === "COMPLETED" ? group.rounds : 0)}/
-                        {Math.max(group.rounds, group.size)}
+                        {group.potsPaid}/{group.rounds || group.size}
                       </span>
                     </div>
                   </td>

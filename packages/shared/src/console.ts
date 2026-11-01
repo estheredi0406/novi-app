@@ -18,8 +18,9 @@ export type ConsoleGroup = {
   rounds: number;
   collectedFcfa: number; // every contribution received, from Novi's ledger
   paidOutFcfa: number; // every pot sent
+  potsPaid: number; // D92: how many rounds' pots have left, of `rounds`
   balanceFcfa: number; // what the account should hold: collected minus paid out
-  needsAttention: number; // held or failed payouts in this group
+  needsAttention: number; // pots held, failed, ready to release or disputed in this group
   reserveFcfa: number; // D68: the solidarity reserve inside that balance
 };
 

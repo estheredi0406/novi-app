@@ -78,9 +78,17 @@ function toConsoleGroup(group: LoadedGroup): ConsoleGroup {
     (total, r) => total + r.amountFcfa,
     0,
   );
+  // Everything the officer must act on in this group: a pot held, failed,
+  // ready to release, or one its member says did not arrive (D63).
   const needsAttention = group.rounds.filter(
-    (r) => r.payout?.status === "HELD" || r.payout?.status === "FAILED",
+    (r) =>
+      r.payout?.status === "HELD" ||
+      r.payout?.status === "FAILED" ||
+      r.payout?.status === "READY" ||
+      (r.payout?.status === "PAID" && r.payout.receiptDisputedAt !== null),
   ).length;
+  // D92: the pots that actually left, for the ring on the overview.
+  const potsPaid = group.rounds.filter((r) => r.payout?.status === "PAID").length;
   return {
     id: group.id,
     name: group.name,
@@ -100,6 +108,7 @@ function toConsoleGroup(group: LoadedGroup): ConsoleGroup {
     rounds: group.rounds.length,
     collectedFcfa,
     paidOutFcfa,
+    potsPaid,
     balanceFcfa: collectedFcfa - paidOutFcfa - returnedFcfa,
     reserveFcfa: 0, // filled in by withReserve (D68)
     needsAttention,

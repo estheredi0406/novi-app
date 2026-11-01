@@ -314,7 +314,8 @@ describe("payouts that need a look (D53)", () => {
     await makeDue(groupId, 1);
     await runPayouts();
 
-    const overview = (await (await officer()).get("/v1/console/overview")).body;
+    const desk = await officer();
+    const overview = (await desk.get("/v1/console/overview")).body;
     expect(overview).toEqual({
       mfiName: "FUCEC-Togo",
       activeGroups: 1,
@@ -325,6 +326,10 @@ describe("payouts that need a look (D53)", () => {
       ready: 0,
       disputed: 0,
     });
+    // D92: a held pot has not left, so the ring shows no pot paid out yet,
+    // and the group is flagged for a look.
+    const [group] = (await desk.get("/v1/console/groups")).body;
+    expect(group).toMatchObject({ potsPaid: 0, needsAttention: 1 });
   });
 });
 
