@@ -8,8 +8,8 @@ Capstone project, BSc Software Engineering, African Leadership University (2026)
 
 | | |
 | --- | --- |
-| Walkthrough video | _link to add_ |
-| Technical report (PDF) | _link to add_ |
+| Walkthrough video | https://drive.google.com/file/d/14VB0Iwb2AAfy9Imy48L39sAIw1N0srCe/view?usp=sharing_ |
+| Technical report (PDF) https://drive.google.com/file/d/1xnoM5nkKuPxni25QNK2243s2GlWd5ZQy/view?usp=sharing
 | Live API | https://novi-api-w7ri.onrender.com/health |
 | MFI console (live) | https://novi-api-w7ri.onrender.com/console/ |
 | Decision log | [docs/decisions.md](docs/decisions.md) (D1 to D94) |
@@ -157,4 +157,4 @@ Built: F1 to F11, F14, F16 and F17 of the original plan, plus the features added
 
 ## Author
 
-Esther Sessenou (Xex), African Leadership University, Kigali.
+Esther Sessenou, African Leadership University, Kigali.
