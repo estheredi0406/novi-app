@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: colors.indigo,
+    borderColor: colors.line,
     backgroundColor: colors.card,
     alignItems: "center",
     justifyContent: "center",

@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   card: { flexDirection: "row", alignItems: "center", gap: 14, padding: 14 },
   open: { borderColor: colors.accent, borderWidth: 2.5 },
   text: { flex: 1, gap: 2 },
-  label: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.accent, textTransform: "uppercase", letterSpacing: 0.6 },
+  label: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.accent },
   title: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.indigo },
   sub: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
 });

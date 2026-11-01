@@ -210,8 +210,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 13,
     color: colors.accent,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
   },
   title: { fontFamily: fonts.bodyBold, fontSize: 20, color: colors.indigo },
   when: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.ink },

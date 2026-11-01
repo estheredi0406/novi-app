@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     minHeight: 60,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: colors.indigo,
+    borderColor: colors.line,
     backgroundColor: colors.card,
     paddingHorizontal: 16,
   },

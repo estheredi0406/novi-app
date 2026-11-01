@@ -21,7 +21,7 @@ export function ListenButton({ text }: { text: string }) {
       <Svg width={18} height={18} viewBox="0 0 24 24">
         <Path
           d="M5 9v6h4l5 4V5L9 9H5z M17 9a4 4 0 0 1 0 6"
-          stroke={colors.indigo}
+          stroke={colors.lagoon}
           strokeWidth={2.4}
           fill="none"
           strokeLinecap="round"
@@ -38,12 +38,10 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 16,
     borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: colors.indigo,
-    backgroundColor: colors.shell,
+    backgroundColor: colors.mist,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-  label: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.indigo },
+  label: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.lagoon },
 });

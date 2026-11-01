@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     justifyContent: "center",
   },
-  selected: { backgroundColor: colors.indigo, borderColor: colors.indigo },
+  selected: { backgroundColor: colors.lagoon, borderColor: colors.lagoon },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.ink },
   labelSelected: { color: colors.onDark },
 });

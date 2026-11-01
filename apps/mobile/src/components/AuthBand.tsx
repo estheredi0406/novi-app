@@ -9,7 +9,8 @@ import { ListenButton } from "./ListenButton";
 
 const SIGN_UP_STEPS = 6;
 
-// The top of every sign-up, login and PIN screen (approved design, 27 Oct):
+// The top of every sign-up, login and PIN screen (approved design, 27 Oct;
+// colours and back button in the "Lagune" style, D92):
 // on the plain cotton screen, back (or Novi's mark) and Listen, then for a
 // sign-up step its name and a progress bar, then the title and one line,
 // all aligned to the left like the rest of the app.
@@ -46,7 +47,7 @@ export function AuthBand({
             <Text style={styles.backText}>‹</Text>
           </Pressable>
         ) : (
-          <View style={styles.back} />
+          <View style={styles.spacer} />
         )}
         <ListenButton text={listenText} />
       </View>
@@ -76,18 +77,13 @@ export function AuthBand({
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 24, paddingTop: 12, gap: 20 },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
-  back: { width: 44, height: 44, justifyContent: "center" },
-  backText: { fontSize: 36, lineHeight: 40, color: colors.indigo },
+  back: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: colors.mist },
+  spacer: { width: 44, height: 44 },
+  backText: { fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.lagoon },
   progress: { gap: 10 },
-  eyebrow: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 13,
-    color: "#C2410C", // a darker orange, readable on cotton
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
+  eyebrow: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.lagoon },
   track: { height: 6, borderRadius: 3, backgroundColor: colors.line, overflow: "hidden" },
-  fill: { height: 6, borderRadius: 3, backgroundColor: colors.accent },
+  fill: { height: 6, borderRadius: 3, backgroundColor: colors.lagoon },
   text: { gap: 8 },
   title: { fontFamily: fonts.display, fontSize: 32, lineHeight: 38, color: colors.indigo },
   lede: { fontFamily: fonts.body, fontSize: 16, lineHeight: 23, color: colors.muted },

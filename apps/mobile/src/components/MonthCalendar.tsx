@@ -80,7 +80,7 @@ export function MonthCalendar({ meetings, payments }: { meetings: Set<string>; p
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1.5, borderColor: colors.indigo, borderRadius: 18, backgroundColor: colors.card, padding: 14, gap: 10 },
+  card: { borderWidth: 1, borderColor: colors.line, borderRadius: 18, backgroundColor: colors.card, padding: 14, gap: 10 },
   head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   arrow: {
     width: 40,

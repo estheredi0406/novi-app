@@ -51,13 +51,11 @@ export function HelpDot({ label, onPress }: { label: string; onPress: () => void
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: "rgba(27,31,75,0.55)" },
+  backdrop: { flex: 1, backgroundColor: "rgba(6,41,74,0.5)" },
   sheet: {
-    backgroundColor: colors.shell,
+    backgroundColor: colors.white,
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
-    borderTopWidth: 1.5,
-    borderColor: colors.indigo,
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 20,
@@ -69,8 +67,8 @@ const styles = StyleSheet.create({
   done: {
     minHeight: 52,
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: colors.indigo,
+    borderWidth: 1,
+    borderColor: colors.line,
     backgroundColor: colors.card,
     alignItems: "center",
     justifyContent: "center",
@@ -80,8 +78,8 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: colors.indigo,
+    borderWidth: 1,
+    borderColor: colors.line,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.card,

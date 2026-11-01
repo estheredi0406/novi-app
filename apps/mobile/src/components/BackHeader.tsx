@@ -30,11 +30,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: colors.indigo,
-    backgroundColor: colors.shell,
+    backgroundColor: colors.mist,
     alignItems: "center",
     justifyContent: "center",
   },
-  backText: { fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.indigo },
+  backText: { fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.lagoon },
 });

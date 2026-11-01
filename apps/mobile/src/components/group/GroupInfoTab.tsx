@@ -272,8 +272,8 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.indigo },
   list: {
     borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: colors.indigo,
+    borderWidth: 1,
+    borderColor: colors.line,
     backgroundColor: colors.card,
     overflow: "hidden",
   },
@@ -309,8 +309,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     color: colors.accent,
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
   },
   more: { flex: 1, fontFamily: fonts.body, fontSize: 14, color: colors.muted },
   link: {

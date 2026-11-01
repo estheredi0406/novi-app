@@ -96,8 +96,8 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted },
   list: {
     borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: colors.indigo,
+    borderWidth: 1,
+    borderColor: colors.line,
     backgroundColor: colors.card,
     overflow: "hidden",
   },

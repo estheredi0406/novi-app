@@ -297,8 +297,8 @@ const styles = StyleSheet.create({
   btnYes: { backgroundColor: colors.accent },
   btnYesText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.white },
   btnNo: {
-    borderWidth: 1.5,
-    borderColor: colors.indigo,
+    borderWidth: 1,
+    borderColor: colors.line,
     backgroundColor: colors.card,
   },
   btnNoText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.indigo },
