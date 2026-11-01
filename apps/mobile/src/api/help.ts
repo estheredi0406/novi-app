@@ -66,3 +66,21 @@ export const requestLoan = (
   });
 export const withdrawLoan = (loanId: string) =>
   memberRequest<LoanPage>("POST", `/v1/me/loans/${loanId}/withdraw`, {});
+
+// D91: her documents, once preselected.
+export const consentToDocuments = (loanId: string) =>
+  memberRequest<LoanPage>(
+    "POST",
+    `/v1/me/loans/${loanId}/documents-consent`,
+    {},
+  );
+export const sendDocument = (
+  loanId: string,
+  key: string,
+  photo: { mime: string; base64: string },
+) =>
+  memberRequest<LoanPage>(
+    "PUT",
+    `/v1/me/loans/${loanId}/documents/${key}`,
+    photo,
+  );

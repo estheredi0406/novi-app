@@ -1,20 +1,28 @@
 import type { GroupDetail, RoundDetail, RoundSummary } from "@novi/shared";
-import { router } from "expo-router";
+import { type Href, router } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { errorKey } from "../../api/client";
+import { callGroup } from "../../api/groups";
 import { answerReceipt, getRound } from "../../api/money";
+import { openCall } from "../../lib/openCall";
 import { daysUntil, formatFcfa, shortDay } from "../../lib/format";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 import { NextCycleCard } from "../NextCycleCard";
 import { PrimaryButton } from "../PrimaryButton";
+import { CowrieMark } from "../BottomBar";
+import { ErrorMessage } from "../ErrorMessage";
+import { LineIcon, type LineIconName } from "../LineIcon";
 import { WaxCard } from "../WaxCard";
+import { MemberFaces } from "./MemberFaces";
 
-// The "Cotisation" tab (approved design F1): what she owes this round and
-// the button to pay, who has paid, who receives on the due day, and when her
-// own turn comes. Only amounts, dates, names and buttons: the explanations
-// are behind "?" and Listen.
+// The "Cotisation" tab (approved design F1, restyled as board E5, D92): this
+// round with every member as a face in turn order, who receives the pot,
+// her own turn, the Payer button with its cowrie, then the group's own
+// actions (call, swap a turn, an advance). Only amounts, dates, names and
+// buttons: the explanations are behind "?" and Listen.
 export function CotisationTab({
   group,
   rounds,
@@ -72,6 +80,22 @@ export function CotisationTab({
   // Ahead of time only after paying the round before it (the API's rule too).
   const canPay = focus ? unpaid(focus) && (focus === current || current?.myStatus === "PAID") : false;
   const days = myRound ? daysUntil(myRound.dueDate) : 0;
+  const [calling, setCalling] = useState(false);
+  const [callError, setCallError] = useState<string | null>(null);
+
+  // "Appeler le groupe": joins the open call or starts one (D76, D85).
+  async function call() {
+    setCalling(true);
+    setCallError(null);
+    try {
+      const { url } = await callGroup(group.id);
+      await openCall(url, group.name);
+    } catch (err) {
+      setCallError(errorKey(err));
+    } finally {
+      setCalling(false);
+    }
+  }
 
   return (
     <View style={styles.wrap}>
@@ -122,16 +146,49 @@ export function CotisationTab({
 
       {focus ? (
         <WaxCard style={styles.card}>
-          <Text style={styles.kicker}>
-            {finished ? `${t("groupView.nextRound")} · ` : ""}
-            {t("groupView.roundOf", { number: focus.number, total: rounds.length })} · {shortDay(focus.dueDate, lang)}
-          </Text>
-          <Text style={styles.amount}>{formatFcfa(group.rules.amountFcfa)}</Text>
+          <View style={styles.headRow}>
+            <Text style={styles.roundTitle}>
+              {finished ? `${t("groupView.nextRound")} · ` : ""}
+              {t("groupView.roundOf", { number: focus.number, total: rounds.length })} · {shortDay(focus.dueDate, lang)}
+            </Text>
+            <Text style={styles.count}>{t("hub.paidCount", { paid: focus.paidCount, size: focus.size })}</Text>
+          </View>
+          {detail ? (
+            <>
+              <Text style={styles.hint}>{t("hub.inTurnOrder")}</Text>
+              <MemberFaces payments={detail.payments} memberId={memberId} receiverIndex={focus.number - 1} />
+            </>
+          ) : null}
+          <View style={styles.pills}>
+            <Text style={[styles.pill, styles.pillTurn]}>
+              {receiver(focus.number)?.memberId === memberId
+                ? t("hub.youReceive", { pot: formatFcfa(focus.potFcfa).replace(" FCFA", " F") })
+                : t("hub.receives", {
+                    name: receiver(focus.number)?.displayName ?? focus.beneficiaryName,
+                    pot: formatFcfa(focus.potFcfa).replace(" FCFA", " F"),
+                  })}
+            </Text>
+            {myRound && myRound.number !== focus.number ? (
+              <Text style={[styles.pill, styles.pillMine]}>
+                {myRound.payoutStatus === "PAID"
+                  ? `✓ ${t("groupView.received")} · ${t("hub.yourSeat", { number: myRound.number })}`
+                  : t("hub.yourSeatDate", {
+                      number: myRound.number,
+                      date: shortDay(myRound.dueDate, lang),
+                      when: days <= 0 ? t("home.today") : t("home.inDays", { count: days }),
+                    })}
+              </Text>
+            ) : null}
+          </View>
           {canPay ? (
-            <PrimaryButton
-              label={focus === current ? t("groupView.pay") : t("groupView.payAhead")}
-              onPress={() => openRound(focus.number)}
-            />
+            <Pressable accessibilityRole="button" onPress={() => openRound(focus.number)} style={styles.pay}>
+              <CowrieMark size={30} />
+              <Text style={styles.payText}>
+                {focus === current
+                  ? t("hub.pay", { amount: formatFcfa(group.rules.amountFcfa).replace(" FCFA", " F") })
+                  : t("groupView.payAhead")}
+              </Text>
+            </Pressable>
           ) : (
             <Text style={[styles.status, focus.myStatus === "PAID" && styles.paid]}>
               {focus.myStatus === "PAID"
@@ -144,64 +201,47 @@ export function CotisationTab({
         </WaxCard>
       ) : null}
 
-      {focus && detail ? (
+      {group.state === "ACTIVE" ? (
         <View style={styles.section}>
-          <Text style={styles.title}>{t("groupView.paidOf", { paid: focus.paidCount, size: focus.size })}</Text>
-          <View style={styles.list}>
-            {detail.payments.map((p, i) => {
-              const paid = p.status === "PAID";
-              const covered = p.coveredByReserve && !paid;
-              const me = p.memberId === memberId;
-              return (
-                <View key={p.memberId} style={[styles.row, i < detail.payments.length - 1 && styles.line]}>
-                  <Text style={styles.name}>{me ? t("groupView.you") : p.displayName}</Text>
-                  <Text style={[styles.tag, paid && styles.paid, covered && styles.covered]}>
-                    {paid
-                      ? `✓ ${t("groupView.paid")}`
-                      : covered
-                        ? t("groupView.coveredTag")
-                        : p.status === "PENDING"
-                          ? t("groupView.onItsWay")
-                          : me
-                            ? t("groupView.toPay")
-                            : t("groupView.notYet")}
-                  </Text>
-                </View>
-              );
-            })}
+          <Text style={styles.title}>{t("hub.forGroup")}</Text>
+          <View style={styles.tiles}>
+            <Tile icon="phone" label={t("hub.callGroup")} onPress={() => void call()} busy={calling} />
+            <Tile
+              icon="swap"
+              label={t("hub.swap")}
+              onPress={() => router.push({ pathname: "/groups/[id]/swap", params: { id: group.id } } as unknown as Href)}
+            />
+            <Tile
+              icon="hand"
+              label={t("hub.advance")}
+              onPress={() => router.push({ pathname: "/groups/[id]/advance", params: { id: group.id } } as unknown as Href)}
+            />
           </View>
-        </View>
-      ) : null}
-
-      {focus || myRound ? (
-        <View style={styles.tiles}>
-          {focus ? (
-            <View style={[styles.tile, styles.tileSoft]}>
-              <Text style={styles.tileLabel}>{t("groupView.receivesOn", { day: shortDay(focus.dueDate, lang) })}</Text>
-              <Text style={styles.tileMain} numberOfLines={1}>
-                {receiver(focus.number)?.memberId === memberId
-                  ? t("groupView.you")
-                  : (receiver(focus.number)?.displayName ?? focus.beneficiaryName)}
-              </Text>
-              <Text style={styles.tileSub}>{formatFcfa(focus.potFcfa)}</Text>
-            </View>
-          ) : null}
-          {myRound ? (
-            <View style={[styles.tile, styles.tileMine]}>
-              <Text style={[styles.tileLabel, styles.onDarkSoft]}>{t("groupView.yourTurn")}</Text>
-              <Text style={[styles.tileMain, styles.onDark]}>{shortDay(myRound.dueDate, lang)}</Text>
-              <Text style={[styles.tileSub, styles.onDarkSoft]}>
-                {myRound.payoutStatus === "PAID"
-                  ? `✓ ${t("groupView.received")}`
-                  : days <= 0
-                    ? t("home.today")
-                    : t("home.inDays", { count: days })}
-              </Text>
-            </View>
-          ) : null}
+          <ErrorMessage messageKey={callError} />
         </View>
       ) : null}
     </View>
+  );
+}
+
+function Tile({
+  icon,
+  label,
+  onPress,
+  busy,
+}: {
+  icon: LineIconName;
+  label: string;
+  onPress: () => void;
+  busy?: boolean;
+}) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} disabled={busy} style={[styles.tile, busy && styles.busy]}>
+      <View style={styles.tileIcon}>
+        <LineIcon name={icon} />
+      </View>
+      <Text style={styles.tileText}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -230,15 +270,54 @@ const styles = StyleSheet.create({
   tag: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.muted },
   paid: { color: colors.paid },
   covered: { color: colors.teal },
-  tiles: { flexDirection: "row", gap: 12 },
-  tile: { flex: 1, padding: 14, borderRadius: 16, gap: 2 },
-  tileSoft: { backgroundColor: colors.mist },
-  tileMine: { backgroundColor: colors.indigo },
-  tileLabel: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
-  tileMain: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.ink },
-  tileSub: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
-  onDark: { color: colors.white },
-  onDarkSoft: { color: colors.mist },
+  tiles: { flexDirection: "row", gap: 10 },
+  tile: {
+    flex: 1,
+    alignItems: "center",
+    gap: 8,
+    paddingTop: 14,
+    paddingBottom: 12,
+    paddingHorizontal: 6,
+    borderRadius: 18,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  busy: { opacity: 0.5 },
+  tileIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: colors.mist,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tileText: { fontFamily: fonts.bodyBold, fontSize: 13, lineHeight: 17, color: colors.ink, textAlign: "center" },
+  headRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 8 },
+  roundTitle: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 16, color: colors.ink },
+  count: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
+  hint: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: -6 },
+  pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  pill: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  pillTurn: { backgroundColor: "#FDF1DC", color: "#8A5A00" },
+  pillMine: { backgroundColor: colors.mist, color: colors.lagoon },
+  pay: {
+    minHeight: 56,
+    borderRadius: 16,
+    backgroundColor: colors.accent,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  payText: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
   second: {
     minHeight: 48,
     borderRadius: 16,

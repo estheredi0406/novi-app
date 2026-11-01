@@ -103,7 +103,8 @@ export function checkRules(rules: ProposedRules): RuleResult {
   if (!Number.isInteger(amountFcfa) || amountFcfa < LIMITS.minAmountFcfa || amountFcfa > LIMITS.maxAmountFcfa) {
     return refused("AMOUNT_OUT_OF_RANGE");
   }
-  const lastDay = frequency === "WEEKLY" ? 7 : 28;
+  // A daily group has no due day to choose: it is stored as 1 (D92).
+  const lastDay = frequency === "DAILY" ? 1 : frequency === "WEEKLY" ? 7 : 28;
   if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > lastDay) {
     return refused("DUE_DAY_OUT_OF_RANGE");
   }

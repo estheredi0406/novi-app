@@ -4,7 +4,7 @@ import type { PayoutStatus } from "./money.js";
 
 export type GroupState =
   "DRAFT" | "PROPOSED" | "STARTING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
-export type Frequency = "WEEKLY" | "MONTHLY";
+export type Frequency = "DAILY" | "WEEKLY" | "MONTHLY";
 export type PayoutOrder = "DRAWN" | "FIXED";
 export type MemberRole = "ORGANISER" | "MEMBER";
 export type SeatState =
@@ -112,6 +112,10 @@ export type CurrentRound = {
   isMyTurn: boolean;
   potFcfa: number;
   paidCount: number; // how many members have paid this round: the pot filling
+  receiverName: string; // D92: whose turn it is, as her group sees her
+  // D92: has each seat paid this round, in turn order (seat i receives the pot
+  // of round i + 1). Her seat is myTurn.number - 1; the receiver's is number - 1.
+  paidSeats: boolean[];
   // The round whose pot is hers, and where that pot is: not due yet, held,
   // on its way, or received (PAID).
   myTurn: {

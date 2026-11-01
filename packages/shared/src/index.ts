@@ -6,6 +6,7 @@ export * from "./groups.js";
 export * from "./health.js";
 export * from "./help.js";
 export * from "./money.js";
+export * from "./news.js";
 export * from "./pinRules.js";
 export * from "./record.js";
 export * from "./staff.js";

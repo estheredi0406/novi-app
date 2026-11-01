@@ -62,7 +62,7 @@ export function GroupPage({
           ) : null}
           <p className="card-meta">
             {fcfa(data.amountFcfa)} {t.perMember} ·{" "}
-            {data.frequency === "WEEKLY" ? t.weekly : t.monthly} · {t.account}{" "}
+            {t.frequency[data.frequency]} · {t.account}{" "}
             {data.accountRef ?? "…"}
           </p>
         </div>

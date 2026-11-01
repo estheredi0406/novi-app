@@ -1,99 +1,142 @@
+import type { GroupSummary } from "@novi/shared";
 import { type Href, router } from "expo-router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, Path } from "react-native-svg";
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg from "react-native-svg";
+import { listMyGroups } from "../api/groups";
+import { formatDay, formatFcfa } from "../lib/format";
 import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
 import { Cowrie } from "./art/Cowrie";
+import { LineIcon, type LineIconName } from "./LineIcon";
 
-// The bar at the bottom of home, record and me (option B, 25 Oct): white,
-// fine navy line, the active tab sitting on an orange cowrie. It fills the
-// space under it down to the phone's edge. (Href: "/me" is typed once Expo
-// regenerates its route list.)
-type Tab = "home" | "record" | "me";
-const ROUTES = { home: "/home", record: "/record", me: "/me" } as const;
+// The bar at the bottom of every main screen (D92), as in the bank and mobile
+// money apps people already use: four places and, raised in the middle, an
+// orange Payer with a cowrie, West Africa's old money. Payer goes straight to
+// the one round she owes; if she owes in several groups it asks which one,
+// and if she owes nothing it says so.
+export type Tab = "home" | "groups" | "record" | "me";
+const ROUTES: Record<Tab, string> = { home: "/home", groups: "/groups", record: "/record", me: "/me" };
+const ICONS: Record<Tab, LineIconName> = { home: "home", groups: "groups", record: "clock", me: "user" };
 
-function Icon({ tab, active }: { tab: Tab; active: boolean }) {
+const owes = (g: GroupSummary) => g.currentRound?.myStatus === "UNPAID" || g.currentRound?.myStatus === "FAILED";
+
+export function openRound(group: GroupSummary) {
+  if (!group.currentRound) return;
+  router.push({
+    pathname: "/groups/[id]/rounds/[number]",
+    params: { id: group.id, number: String(group.currentRound.number) },
+  });
+}
+
+export function CowrieMark({ size = 30, fill = "#FFF6E6", rotate = 35 }: { size?: number; fill?: string; rotate?: number }) {
   return (
-    <Svg width={48} height={36} viewBox="-2 -1 48 36">
-      {/* The active tab sits on an orange cowrie, as the leaf did before. */}
-      {active ? <Cowrie cx={19} cy={19} rx={10} ry={17} rotate={70} strokeWidth={1.3} /> : null}
-      {tab === "home" ? (
-        <>
-          <Path
-            d="M13 17 L22 9.5 L31 17"
-            stroke={colors.indigo}
-            strokeWidth={1.8}
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <Path
-            d="M15 16 V26 H29 V16"
-            stroke={colors.indigo}
-            strokeWidth={1.8}
-            fill={colors.mist}
-            strokeLinejoin="round"
-          />
-          <Path
-            d="M20 26 V21.5 C20 20 24 20 24 21.5 V26"
-            stroke={colors.indigo}
-            strokeWidth={1.6}
-            fill={colors.teal}
-            strokeLinejoin="round"
-          />
-        </>
-      ) : tab === "record" ? (
-        <>
-          <Path
-            d="M17 20 L15 30 L22 27 L29 30 L27 20"
-            stroke={colors.indigo}
-            strokeWidth={1.5}
-            fill={colors.mist}
-            strokeLinejoin="round"
-          />
-          <Circle cx={22} cy={14} r={8} stroke={colors.indigo} strokeWidth={1.5} fill={colors.shell} />
-          <Circle cx={22} cy={14} r={4} fill={colors.accent} stroke={colors.indigo} strokeWidth={1.3} />
-        </>
-      ) : (
-        <>
-          <Circle cx={22} cy={17} r={10} fill={colors.mist} stroke={colors.indigo} strokeWidth={1.5} />
-          <Circle cx={22} cy={14.5} r={3.6} fill={colors.shell} stroke={colors.indigo} strokeWidth={1.5} />
-          <Path
-            d="M15.8 24 C16.8 20.8 19 19.5 22 19.5 C25 19.5 27.2 20.8 28.2 24"
-            fill={colors.teal}
-            stroke={colors.indigo}
-            strokeWidth={1.5}
-            strokeLinejoin="round"
-          />
-        </>
-      )}
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Cowrie cx={12} cy={12} rx={6.2} ry={10.5} rotate={rotate} fill={fill} strokeWidth={1.3} />
     </Svg>
   );
 }
 
-export function BottomBar({ active }: { active: Tab }) {
+export function BottomBar({ active }: { active: Tab | null }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const [picking, setPicking] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [owing, setOwing] = useState<GroupSummary[]>([]);
+
+  async function pay() {
+    setLoading(true);
+    try {
+      const groups = (await listMyGroups()).filter(owes);
+      const only = groups[0];
+      if (groups.length === 1 && only) openRound(only);
+      else {
+        setOwing(groups);
+        setPicking(true);
+      }
+    } catch {
+      setOwing([]);
+      setPicking(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const tab = (key: Tab) => {
+    const on = key === active;
+    return (
+      <Pressable
+        key={key}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: on }}
+        onPress={() => (on ? undefined : router.replace(ROUTES[key] as Href))}
+        style={styles.tab}
+      >
+        <LineIcon name={ICONS[key]} color={on ? colors.lagoon : colors.muted} />
+        <Text style={[styles.label, on && styles.on]}>{t(`nav.${key}`)}</Text>
+      </Pressable>
+    );
+  };
+
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(4, insets.bottom) }]} accessibilityRole="tablist">
-      {(["home", "record", "me"] as const).map((tab) => {
-        const on = tab === active;
-        return (
-          <Pressable
-            key={tab}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: on }}
-            onPress={() => (on ? undefined : router.replace(ROUTES[tab] as Href))}
-            style={styles.tab}
-          >
-            <Icon tab={tab} active={on} />
-            <Text style={[styles.label, on && styles.on]}>{t(`nav.${tab}`)}</Text>
+    <>
+      <View style={[styles.bar, { paddingBottom: Math.max(6, insets.bottom) }]} accessibilityRole="tablist">
+        {tab("home")}
+        {tab("groups")}
+        <Pressable accessibilityRole="button" accessibilityLabel={t("nav.pay")} onPress={() => void pay()} style={styles.tab}>
+          <View style={styles.payDisc}>
+            {loading ? <ActivityIndicator color={colors.white} /> : <CowrieMark size={36} />}
+          </View>
+          <Text style={[styles.label, styles.payLabel]}>{t("nav.pay")}</Text>
+        </Pressable>
+        {tab("record")}
+        {tab("me")}
+      </View>
+
+      <Modal visible={picking} transparent animationType="slide" onRequestClose={() => setPicking(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setPicking(false)} accessibilityLabel={t("hub.close")} />
+        <SafeAreaView edges={["bottom"]} style={styles.sheet}>
+          <View style={styles.handle} />
+          {owing.length > 0 ? (
+            <>
+              <Text style={styles.sheetTitle}>{t("hub.pickTitle")}</Text>
+              {owing.map((g) => (
+                <Pressable
+                  key={g.id}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setPicking(false);
+                    openRound(g);
+                  }}
+                  style={styles.pick}
+                >
+                  <View style={styles.pickText}>
+                    <Text style={styles.pickName}>{g.name}</Text>
+                    <Text style={styles.pickSub}>
+                      {t("hub.pickLine", {
+                        amount: formatFcfa(g.amountFcfa),
+                        date: g.currentRound ? formatDay(g.currentRound.dueDate) : "",
+                      })}
+                    </Text>
+                  </View>
+                  <LineIcon name="chevron" color={colors.accent} />
+                </Pressable>
+              ))}
+            </>
+          ) : (
+            <>
+              <Text style={styles.sheetTitle}>{t("hub.nothingTitle")}</Text>
+              <Text style={styles.sheetText}>{t("hub.nothingText")}</Text>
+            </>
+          )}
+          <Pressable accessibilityRole="button" onPress={() => setPicking(false)} style={styles.done}>
+            <Text style={styles.doneText}>{t("hub.close")}</Text>
           </Pressable>
-        );
-      })}
-    </View>
+        </SafeAreaView>
+      </Modal>
+    </>
   );
 }
 
@@ -102,10 +145,54 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: colors.indigo,
-    paddingTop: 6,
+    borderTopColor: colors.line,
+    paddingTop: 8,
   },
-  tab: { flex: 1, alignItems: "center", gap: 0, minHeight: 56, justifyContent: "center" },
+  tab: { flex: 1, alignItems: "center", gap: 3, minHeight: 52, justifyContent: "flex-start" },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.muted },
-  on: { fontFamily: fonts.bodyBold, color: colors.indigo },
+  on: { fontFamily: fonts.bodyBold, color: colors.lagoon },
+  payDisc: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginTop: -30,
+    backgroundColor: colors.accent,
+    borderWidth: 5,
+    borderColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 6,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  payLabel: { fontFamily: fonts.bodyBold, color: colors.accent },
+  backdrop: { flex: 1, backgroundColor: "rgba(6,41,74,0.5)" },
+  sheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 12,
+    gap: 10,
+  },
+  handle: { alignSelf: "center", width: 44, height: 5, borderRadius: 3, backgroundColor: colors.line, marginBottom: 6 },
+  sheetTitle: { fontFamily: fonts.bodyBold, fontSize: 20, color: colors.indigo },
+  sheetText: { fontFamily: fonts.body, fontSize: 16, lineHeight: 23, color: colors.muted },
+  pick: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.accent,
+  },
+  pickText: { flex: 1, gap: 2 },
+  pickName: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.ink },
+  pickSub: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
+  done: { alignSelf: "center", paddingVertical: 12, paddingHorizontal: 24 },
+  doneText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.lagoon },
 });

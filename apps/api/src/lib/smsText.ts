@@ -38,12 +38,12 @@ export function inviteSms(
   const amount = formatFcfa(invite.amountFcfa);
   switch (language) {
     case "EN": {
-      const every = invite.frequency === "WEEKLY" ? "every week" : "every month";
+      const every = invite.frequency === "DAILY" ? "every day but Sunday" : invite.frequency === "WEEKLY" ? "every week" : "every month";
       return `Novi: ${invite.organiserName} invites you to join "${invite.groupName}" (${amount} FCFA ${every}). Open or install Novi to answer.`;
     }
     case "FR":
     case "EE": {
-      const every = invite.frequency === "WEEKLY" ? "chaque semaine" : "chaque mois";
+      const every = invite.frequency === "DAILY" ? "chaque jour sauf dimanche" : invite.frequency === "WEEKLY" ? "chaque semaine" : "chaque mois";
       return `Novi : ${invite.organiserName} vous invite à rejoindre « ${invite.groupName} » (${amount} FCFA ${every}). Ouvrez ou installez Novi pour répondre.`;
     }
   }

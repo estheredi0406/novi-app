@@ -87,6 +87,14 @@ describe("the rules a group proposes", () => {
     });
     expect(checkRules({ ...FRIDAY_GROUP, frequency: "MONTHLY", dueDay: 28 })).toEqual({ ok: true });
   });
+
+  it("stores a daily group's day as 1, since it pays every market day (D92)", () => {
+    expect(checkRules({ ...FRIDAY_GROUP, frequency: "DAILY", dueDay: 1 })).toEqual({ ok: true });
+    expect(checkRules({ ...FRIDAY_GROUP, frequency: "DAILY", dueDay: 5 })).toEqual({
+      ok: false,
+      reason: "DUE_DAY_OUT_OF_RANGE",
+    });
+  });
 });
 
 describe("answering the rules", () => {

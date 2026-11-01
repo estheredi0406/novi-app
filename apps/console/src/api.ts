@@ -20,7 +20,11 @@ export class ApiFailure extends Error {
   }
 }
 
-export async function api<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+export async function api<T>(
+  method: "GET" | "POST" | "PUT",
+  path: string,
+  body?: unknown,
+): Promise<T> {
   const token = session.get();
   const res = await fetch(path, {
     method,
@@ -42,7 +46,20 @@ export async function api<T>(method: "GET" | "POST", path: string, body?: unknow
 // A page the API renders itself, such as the ACEV document (D65).
 export async function apiHtml(path: string): Promise<string> {
   const token = session.get();
-  const res = await fetch(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  const res = await fetch(path, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
   if (!res.ok) throw new ApiFailure(res.status, "INTERNAL");
   return res.text();
+}
+
+// D91: a photo of a document, as a local address the page can show. The
+// officer's token travels in the header, never in the address.
+export async function apiImage(path: string): Promise<string> {
+  const token = session.get();
+  const res = await fetch(path, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new ApiFailure(res.status, "INTERNAL");
+  return URL.createObjectURL(await res.blob());
 }

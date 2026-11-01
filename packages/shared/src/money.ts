@@ -31,6 +31,7 @@ export type RoundSummary = {
   dueDate: string;
   beneficiaryName: string; // whose turn it is: the pot goes to her
   isCurrent: boolean; // the round open for payment today
+  amountFcfa: number; // what each member pays this round (the pot is a little less: D68)
   paidCount: number;
   size: number;
   collectedFcfa: number; // paid so far

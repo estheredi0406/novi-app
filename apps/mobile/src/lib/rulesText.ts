@@ -4,6 +4,7 @@ import { formatFcfa } from "./format";
 
 // "every Friday" or "on the 15th of each month", in her language.
 export function scheduleText(t: TFunction, frequency: Frequency, dueDay: number): string {
+  if (frequency === "DAILY") return t("rules.everyDay"); // D92: Monday to Saturday
   return frequency === "WEEKLY"
     ? t("rules.everyWeekday", { day: t(`days.${dueDay}`) })
     : t("rules.everyMonthDay", { day: dueDay });

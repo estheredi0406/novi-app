@@ -25,6 +25,18 @@ describe("the first due date", () => {
 });
 
 describe("the calendar of rounds", () => {
+  it("makes daily rounds every day but Sunday (D92)", () => {
+    expect(dueDates(WEDNESDAY, "DAILY", 1, 5).map(isoDay)).toEqual([
+      "2026-10-22",
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-26",
+      "2026-10-27",
+    ]);
+    // Started on a Saturday: the first round is Monday, not Sunday.
+    expect(isoDay(firstDueDate(new Date("2026-10-24T10:00:00Z"), "DAILY", 1))).toBe("2026-10-26");
+  });
+
   it("spaces weekly rounds 7 days apart", () => {
     expect(dueDates(WEDNESDAY, "WEEKLY", 5, 3).map(isoDay)).toEqual(["2026-10-23", "2026-10-30", "2026-11-06"]);
   });

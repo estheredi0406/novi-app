@@ -1,11 +1,25 @@
-import type { LoanPage, LoanPurpose } from "@novi/shared";
+import type {
+  LoanCheck,
+  LoanDocumentView,
+  LoanPage,
+  LoanPurpose,
+  LoanRequestView,
+} from "@novi/shared";
 import { useFocusEffect } from "expo-router";
+import type { TFunction } from "i18next";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
-import { getLoans, requestLoan, withdrawLoan } from "../../api/help";
+import {
+  consentToDocuments,
+  getLoans,
+  requestLoan,
+  sendDocument,
+  withdrawLoan,
+} from "../../api/help";
 import { BackHeader } from "../../components/BackHeader";
+import { CheckRow } from "../../components/CheckRow";
 import { Chip } from "../../components/Chip";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { Field } from "../../components/Field";
@@ -13,31 +27,68 @@ import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
 import { TextButton } from "../../components/TextButton";
 import { formatDay, formatFcfa } from "../../lib/format";
+import { canPickPhotos, pickPhoto } from "../../lib/pickPhoto";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
 
 const PURPOSES: LoanPurpose[] = ["STOCK", "EQUIPMENT", "OTHER"];
-const MONTHS = [3, 6, 12];
 
-// D89: "Crédit FUCEC". Her record opens the door: the conditions, ticked or
-// not; when they are all met, the request (amount, what for, how long). The
-// MFI decides and lends at its agency: Novi carries the request and her record.
+// One of the MFI's conditions, in words, with her own figure (D91).
+function checkText(t: TFunction, c: LoanCheck): [string, string] {
+  const f = c.figures;
+  switch (c.key) {
+    case "CYCLE_OR_STREAK":
+      return [
+        t("loan.cond.cycle", { cycles: f.minCycles, streak: f.minStreak }),
+        t("loan.cond.cycleHave", { cycles: f.cycles, streak: f.streak }),
+      ];
+    case "ON_TIME":
+      return [
+        t("loan.cond.onTime", { min: f.min }),
+        t("loan.cond.onTimeHave", {
+          percent: f.percent,
+          on: f.onTime,
+          made: f.made,
+        }),
+      ];
+    case "NO_DEBT":
+      return [
+        t("loan.cond.noDebt"),
+        f.owes
+          ? t("loan.cond.owes", { amount: formatFcfa(f.owes) })
+          : t("loan.cond.owesNothing"),
+      ];
+    case "WAIT_AFTER_REFUSAL":
+      return [
+        t("loan.cond.wait", { days: f.wait }),
+        f.days ? t("loan.cond.refusedAgo", { days: f.days }) : "",
+      ];
+    default:
+      return [t("loan.cond.open"), ""];
+  }
+}
+
+// D89, D91: "Crédit FUCEC". The MFI's conditions with her figures; when they
+// are met, the request. Then, once preselected, her documents: she agrees,
+// photographs each one, and sees the officer's answer. When all are accepted
+// she goes to the agency with the originals; the MFI decides there.
 export default function LoanScreen() {
   const { t } = useTranslation();
   const [page, setPage] = useState<LoanPage | null>(null);
   const [amount, setAmount] = useState("");
   const [purpose, setPurpose] = useState<LoanPurpose>("STOCK");
-  const [months, setMonths] = useState(6);
+  const [months, setMonths] = useState<number | null>(null);
+  const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(() => {
     getLoans().then(setPage, (err: unknown) => setError(errorKey(err)));
   }, []);
   useFocusEffect(load);
 
-  async function run(action: () => Promise<LoanPage>) {
-    setBusy(true);
+  async function run(key: string, action: () => Promise<LoanPage>) {
+    setBusy(key);
     setError(null);
     try {
       setPage(await action());
@@ -45,21 +96,23 @@ export default function LoanScreen() {
     } catch (err) {
       setError(errorKey(err));
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
   if (!page) {
     return (
       <Screen>
-        <BackHeader listenText={t("loan.title")} />
+        <BackHeader listenText={t("loan.title", { mfi: "FUCEC" })} />
         <ErrorMessage messageKey={error} />
       </Screen>
     );
   }
 
   const mfi = page.mfiName ?? "FUCEC";
-  const latest = page.requests[0];
+  const latest = page.requests.find((r) => r.status !== "WITHDRAWN");
+  const chosenMonths =
+    months ?? page.months[Math.min(1, page.months.length - 1)] ?? 6;
   const value = Number(amount.replace(/\D/g, ""));
   const valid = value >= 5000 && value <= page.ceilingFcfa;
 
@@ -71,10 +124,26 @@ export default function LoanScreen() {
         { text: t("common.back"), style: "cancel" },
         {
           text: t("loan.send"),
-          onPress: () => void run(() => requestLoan(value, purpose, months)),
+          onPress: () =>
+            void run("send", () => requestLoan(value, purpose, chosenMonths)),
         },
       ],
     );
+  }
+
+  async function photo(loan: LoanRequestView, doc: LoanDocumentView) {
+    const take = async (source: "camera" | "library") => {
+      const picked = await pickPhoto(source);
+      if (picked === "cancelled") return;
+      if (picked === "denied") return setError("loan.photoDenied");
+      if (picked === "tooLarge") return setError("loan.documentInvalid");
+      await run(doc.key, () => sendDocument(loan.id, doc.key, picked));
+    };
+    Alert.alert(doc.label, t("loan.photoHow"), [
+      { text: t("loan.photoCamera"), onPress: () => void take("camera") },
+      { text: t("loan.photoLibrary"), onPress: () => void take("library") },
+      { text: t("common.back"), style: "cancel" },
+    ]);
   }
 
   return (
@@ -91,60 +160,130 @@ export default function LoanScreen() {
         </Text>
       </View>
 
-      {latest && latest.status !== "WITHDRAWN" ? (
-        <View
-          style={[
-            styles.status,
-            latest.status === "APPROVED" && styles.statusOk,
-          ]}
-        >
-          <Text style={styles.statusTitle}>
-            {latest.status === "APPROVED"
-              ? t("loan.approved", {
-                  amount: formatFcfa(latest.grantedFcfa ?? latest.amountFcfa),
-                })
-              : latest.status === "DECLINED"
-                ? t("loan.declined")
-                : t("loan.pending", { mfi })}
-          </Text>
-          <Text style={styles.statusSub}>
-            {t("loan.requestLine", {
-              amount: formatFcfa(latest.amountFcfa),
-              purpose: t(`loan.purpose.${latest.purpose}`),
-              months: latest.months,
-              day: formatDay(latest.createdAt.slice(0, 10)),
-            })}
-          </Text>
-          {latest.status === "APPROVED" ? (
-            <Text style={styles.statusSub}>
-              {t("loan.goToAgency", { mfi })}
-            </Text>
-          ) : null}
-          {latest.decisionNote ? (
-            <Text style={styles.statusSub}>« {latest.decisionNote} »</Text>
-          ) : null}
-          {latest.status === "PENDING" ? (
-            <TextButton
-              label={t("loan.withdraw")}
-              disabled={busy}
-              onPress={() => void run(() => withdrawLoan(latest.id))}
-            />
-          ) : null}
+      {latest ? <RequestStatus loan={latest} mfi={mfi} /> : null}
+
+      {latest?.status === "PRESELECTED" ? (
+        <View style={styles.box}>
+          <Text style={styles.boxTitle}>{t("loan.docsTitle")}</Text>
+          {!latest.documentsConsented ? (
+            <>
+              <Text style={[type.small, styles.ink]}>
+                {t("loan.docsConsentText", { mfi })}
+              </Text>
+              <CheckRow checked={consent} onToggle={() => setConsent(!consent)}>
+                {t("loan.docsConsent", { mfi })}
+              </CheckRow>
+              <PrimaryButton
+                label={t("loan.docsStart")}
+                disabled={!consent || busy !== null}
+                onPress={() =>
+                  void run("consent", () => consentToDocuments(latest.id))
+                }
+              />
+            </>
+          ) : (
+            <>
+              {!canPickPhotos() ? (
+                <Text style={[type.small, styles.muted]}>
+                  {t("loan.photoUpdateApp")}
+                </Text>
+              ) : null}
+              {latest.documents.map((d) => (
+                <View key={d.key} style={styles.doc}>
+                  <View style={styles.docText}>
+                    <Text style={styles.docLabel}>{d.label}</Text>
+                    <Text
+                      style={[
+                        styles.docStatus,
+                        d.status === "ACCEPTED" && styles.ok,
+                        d.status === "REDO" && styles.problem,
+                      ]}
+                    >
+                      {t(`loan.docStatus.${d.status}`, { mfi })}
+                      {d.note ? ` : « ${d.note} »` : ""}
+                    </Text>
+                  </View>
+                  {d.status !== "ACCEPTED" && canPickPhotos() ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={busy !== null}
+                      onPress={() => void photo(latest, d)}
+                      style={styles.docButton}
+                    >
+                      <Text style={styles.docButtonText}>
+                        {busy === d.key
+                          ? "…"
+                          : d.status === "MISSING"
+                            ? t("loan.photoSend")
+                            : t("loan.photoRedo")}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ))}
+              <Text style={[type.small, styles.muted]}>
+                {t("loan.docsPrivacy", { mfi })}
+              </Text>
+            </>
+          )}
         </View>
       ) : null}
 
-      <View style={styles.checks}>
-        <Text style={styles.checksTitle}>{t("loan.conditions")}</Text>
-        {page.checks.map((c) => (
-          <Text
-            key={c.key}
-            style={[styles.check, c.ok ? styles.ok : styles.notYet]}
-          >
-            {c.ok ? "✓" : "–"}{" "}
-            {t(`loan.check.${c.key}`, { percent: page.onTimePercent ?? 0 })}
+      {latest &&
+      (latest.status === "PENDING" || latest.status === "PRESELECTED") ? (
+        <TextButton
+          label={t("loan.withdraw")}
+          disabled={busy !== null}
+          onPress={() => void run("withdraw", () => withdrawLoan(latest.id))}
+        />
+      ) : null}
+
+      {!page.enabled ? (
+        <Text style={[type.body, styles.muted]}>
+          {t("loan.closed", { mfi })}
+        </Text>
+      ) : null}
+
+      {page.enabled ? (
+        <View style={styles.checks}>
+          <Text style={styles.boxTitle}>{t("loan.conditions", { mfi })}</Text>
+          {page.checks.map((c) => {
+            const [text, have] = checkText(t, c);
+            return (
+              <View key={c.key} style={styles.check}>
+                <Text
+                  style={[styles.mark, c.ok ? styles.markOk : styles.markNo]}
+                >
+                  {c.ok ? "✓" : "–"}
+                </Text>
+                <View style={styles.checkText}>
+                  <Text style={styles.checkLine}>{text}</Text>
+                  {have ? (
+                    <Text style={[styles.have, c.ok && styles.ok]}>
+                      {t("loan.you", { what: have })}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {page.enabled &&
+      !page.eligible &&
+      page.onTimeNeeded &&
+      page.onTimeNeeded > 0 ? (
+        <View style={styles.box}>
+          <Text style={styles.boxTitle}>{t("loan.almost")}</Text>
+          <Text style={[type.small, styles.ink]}>
+            {t("loan.almostText", {
+              count: page.onTimeNeeded,
+              amount: formatFcfa(page.ceilingFcfa),
+            })}
           </Text>
-        ))}
-      </View>
+        </View>
+      ) : null}
 
       {page.eligible ? (
         <View style={styles.form}>
@@ -169,11 +308,11 @@ export default function LoanScreen() {
           </View>
           <Text style={styles.label}>{t("loan.monthsLabel")}</Text>
           <View style={styles.chips}>
-            {MONTHS.map((m) => (
+            {page.months.map((m) => (
               <Chip
                 key={m}
                 label={t("loan.months", { count: m })}
-                selected={months === m}
+                selected={chosenMonths === m}
                 onPress={() => setMonths(m)}
               />
             ))}
@@ -183,7 +322,7 @@ export default function LoanScreen() {
           </Text>
           <PrimaryButton
             label={t("loan.send")}
-            disabled={busy || !valid}
+            disabled={busy !== null || !valid}
             onPress={send}
           />
         </View>
@@ -193,10 +332,61 @@ export default function LoanScreen() {
   );
 }
 
+// Where her latest request stands, in one card.
+function RequestStatus({ loan, mfi }: { loan: LoanRequestView; mfi: string }) {
+  const { t } = useTranslation();
+  const ok =
+    loan.status === "GRANTED" ||
+    loan.status === "APPROVED" ||
+    (loan.status === "PRESELECTED" && loan.documentsComplete);
+  const title =
+    loan.status === "PENDING"
+      ? t("loan.pending", { mfi })
+      : loan.status === "PRESELECTED"
+        ? loan.documentsComplete
+          ? t("loan.fileComplete")
+          : t("loan.preselected")
+        : loan.status === "GRANTED" || loan.status === "APPROVED"
+          ? t("loan.approved", {
+              amount: formatFcfa(loan.grantedFcfa ?? loan.amountFcfa),
+            })
+          : loan.status === "NOT_GRANTED"
+            ? t("loan.notGranted")
+            : t("loan.declined");
+  const sub =
+    loan.status === "PENDING"
+      ? t("loan.pendingSub")
+      : loan.status === "PRESELECTED"
+        ? loan.documentsComplete
+          ? t("loan.fileCompleteSub", { mfi })
+          : t("loan.preselectedSub", { mfi })
+        : loan.status === "APPROVED"
+          ? t("loan.goToAgency", { mfi })
+          : null;
+  return (
+    <View style={[styles.status, ok && styles.statusOk]}>
+      <Text style={styles.statusTitle}>{title}</Text>
+      {sub ? <Text style={styles.statusSub}>{sub}</Text> : null}
+      <Text style={styles.statusSub}>
+        {t("loan.requestLine", {
+          amount: formatFcfa(loan.amountFcfa),
+          purpose: t(`loan.purpose.${loan.purpose}`),
+          months: loan.months,
+          day: formatDay(loan.createdAt.slice(0, 10)),
+        })}
+      </Text>
+      {loan.decisionNote ? (
+        <Text style={styles.statusSub}>« {loan.decisionNote} »</Text>
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   intro: { gap: 8 },
   indigo: { color: colors.indigo },
   muted: { color: colors.muted },
+  ink: { color: colors.ink },
   status: {
     gap: 4,
     padding: 16,
@@ -218,21 +408,72 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: colors.ink,
   },
+  box: {
+    gap: 10,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.indigo,
+    backgroundColor: colors.card,
+  },
+  boxTitle: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.indigo },
+  doc: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
+  docText: { flex: 1, gap: 2 },
+  docLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 15,
+    lineHeight: 20,
+    color: colors.ink,
+  },
+  docStatus: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
+  docButton: {
+    minHeight: 40,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: colors.accent,
+    justifyContent: "center",
+  },
+  docButtonText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+    color: colors.white,
+  },
+  ok: { color: colors.paid },
+  problem: { color: colors.problem },
   checks: {
-    gap: 6,
+    gap: 4,
     padding: 16,
     borderRadius: 16,
     backgroundColor: colors.mist,
   },
-  checksTitle: {
+  check: { flexDirection: "row", gap: 10, paddingVertical: 6 },
+  mark: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    textAlign: "center",
+    lineHeight: 24,
     fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    color: colors.indigo,
-    marginBottom: 2,
+    fontSize: 13,
+    overflow: "hidden",
   },
-  check: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21 },
-  ok: { color: colors.paid },
-  notYet: { color: colors.muted },
+  markOk: { backgroundColor: colors.paid, color: colors.white },
+  markNo: { backgroundColor: colors.card, color: colors.indigo },
+  checkText: { flex: 1, gap: 2 },
+  checkLine: {
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 21,
+    color: colors.ink,
+  },
+  have: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.muted },
   form: { gap: 12 },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.ink },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

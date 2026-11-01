@@ -11,7 +11,7 @@ import { Analytics } from "./pages/Analytics";
 import { Members } from "./pages/Members";
 import { FirstPassword } from "./pages/FirstPassword";
 import { Team } from "./pages/Team";
-import { LoanPage, Loans } from "./pages/Loans";
+import { LoanPage, LoanPolicy, Loans } from "./pages/Loans";
 
 // The console's pages, read from the address bar after "#", so the browser's
 // back button works without a routing library: #/, #/groups/<id>,
@@ -127,6 +127,8 @@ export function App() {
       <LoanPage key={id} t={t} loanId={id} onExpired={expired} />
     ) : section === "loans" ? (
       <Loans t={t} onExpired={expired} />
+    ) : section === "loan-policy" ? (
+      <LoanPolicy t={t} onExpired={expired} isAdmin={staff.role === "ADMIN"} />
     ) : section === "records" && id ? (
       <RecordPage key={id} t={t} shareId={id} onExpired={expired} />
     ) : section === "records" ? (
@@ -163,7 +165,12 @@ export function App() {
             >
               {t.analytics}
             </a>
-            <a href="#/loans" className={section === "loans" ? "on" : ""}>
+            <a
+              href="#/loans"
+              className={
+                section === "loans" || section === "loan-policy" ? "on" : ""
+              }
+            >
               {t.loansNav}
             </a>
             <a href="#/records" className={section === "records" ? "on" : ""}>

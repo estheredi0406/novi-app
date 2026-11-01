@@ -14,9 +14,12 @@ function startOfDay(moment: Date): Date {
 // Round 1 is due on the first due day AFTER the group starts, never on the
 // same day (D44). A group started on a Friday that pays on Fridays is due
 // the next Friday, so nobody is asked to pay within hours of the start.
-// WEEKLY dueDay: 1 Monday to 7 Sunday. MONTHLY dueDay: 1 to 28.
+// WEEKLY dueDay: 1 Monday to 7 Sunday. MONTHLY dueDay: 1 to 28. DAILY has no
+// due day: every day but Sunday, when the markets of Lomé are quiet (D92).
 export function firstDueDate(startedAt: Date, frequency: Frequency, dueDay: number): Date {
   const start = startOfDay(startedAt);
+
+  if (frequency === "DAILY") return nextMarketDay(start);
 
   if (frequency === "WEEKLY") {
     // JavaScript counts Sunday as 0; Novi counts it as 7.
@@ -29,10 +32,21 @@ export function firstDueDate(startedAt: Date, frequency: Frequency, dueDay: numb
   return thisMonth > start ? thisMonth : new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, dueDay));
 }
 
-// The due date of every round: one week or one month apart. Monthly days
-// stop at 28 (D30), so every month has the day and no date slips.
+// The day after `day`, skipping Sunday (D92).
+function nextMarketDay(day: Date): Date {
+  const next = new Date(day.getTime() + DAY_MS);
+  return next.getUTCDay() === 0 ? new Date(next.getTime() + DAY_MS) : next;
+}
+
+// The due date of every round: one market day, one week or one month apart.
+// Monthly days stop at 28 (D30), so every month has the day and no date slips.
 export function dueDates(startedAt: Date, frequency: Frequency, dueDay: number, rounds: number): Date[] {
   const first = firstDueDate(startedAt, frequency, dueDay);
+  if (frequency === "DAILY") {
+    const days = [first];
+    while (days.length < rounds) days.push(nextMarketDay(days.at(-1) as Date));
+    return days;
+  }
   return Array.from({ length: rounds }, (_, i) =>
     frequency === "WEEKLY"
       ? new Date(first.getTime() + i * 7 * DAY_MS)

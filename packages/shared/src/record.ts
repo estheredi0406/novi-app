@@ -6,7 +6,7 @@ export type RecordGroup = {
   name: string;
   mfiName: string; // the institution that held this group's money
   amountFcfa: number;
-  frequency: "WEEKLY" | "MONTHLY";
+  frequency: "DAILY" | "WEEKLY" | "MONTHLY";
   completed: boolean; // every member received the pot (D27)
   roundsDue: number; // rounds whose due date has passed
   paid: number;

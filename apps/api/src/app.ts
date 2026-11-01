@@ -33,6 +33,8 @@ app.use("/v1/ussd", ussdRouter);
 // A voice note arrives as base64 (up to about 800 KB): only that route
 // accepts a body this large.
 app.use("/v1/groups/:id/voice", express.json({ limit: "1mb" }));
+// D91: a photo of a document, sent as base64 (at most about 2.5 MB once decoded).
+app.use("/v1/me/loans/:loanId/documents/:key", express.json({ limit: "4mb" }));
 // Turns JSON request bodies into objects that routes can read.
 app.use(express.json());
 

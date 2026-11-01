@@ -44,6 +44,13 @@
       "expo-font",
       "expo-audio",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Novi utilise vos photos pour envoyer vos pièces à FUCEC, seulement quand vous le choisissez.",
+          "cameraPermission": "Novi utilise l'appareil photo pour photographier vos pièces pour FUCEC."
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/android-icon-monochrome.png",

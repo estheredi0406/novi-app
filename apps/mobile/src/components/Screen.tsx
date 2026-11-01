@@ -12,16 +12,19 @@ export function Screen({
   dark = false,
   top,
   bar,
+  bleedTop = false,
 }: {
   children: ReactNode;
   dark?: boolean;
   top?: ReactNode;
   bar?: ReactNode;
+  bleedTop?: boolean; // the top band draws under the status bar itself (LaguneBand)
 }) {
+  const edges = [...(bleedTop ? [] : (["top"] as const)), "left", "right", ...(bar ? [] : (["bottom"] as const))] as const;
   return (
     // With a tab bar, the bar itself fills the space under it down to the
     // phone's edge, so the bottom stays white.
-    <SafeAreaView style={[styles.safe, dark && styles.dark]} edges={bar ? ["top", "left", "right"] : undefined}>
+    <SafeAreaView style={[styles.safe, dark && styles.dark]} edges={edges}>
       {/* Keeps the field she is typing in above the keyboard. */}
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView

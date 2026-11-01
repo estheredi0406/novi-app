@@ -6,7 +6,7 @@ export type GroupAccountRequest = {
   groupId: string; // Novi's reference; sent again on a retry, so one group never gets two accounts
   contributionFcfa: number; // what each member pays each time
   members: number;
-  frequency: "WEEKLY" | "MONTHLY";
+  frequency: "DAILY" | "WEEKLY" | "MONTHLY";
 };
 
 // An instruction to send one round's pot from the group's account to the

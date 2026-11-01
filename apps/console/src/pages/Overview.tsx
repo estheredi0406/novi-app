@@ -161,7 +161,7 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
                     </a>
                     <span className="flag-meta">
                       {fcfa(group.amountFcfa)} {t.perMember} ·{" "}
-                      {group.frequency === "WEEKLY" ? t.weekly : t.monthly} ·{" "}
+                      {t.frequency[group.frequency]} ·{" "}
                       {group.size} {t.members.toLowerCase()} ·{" "}
                       <a href={`#/groups/${group.id}`} className="link">
                         {t.seeMembers}
@@ -281,7 +281,7 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
               <span className="card-title">{group.name}</span>
               <span className="card-meta">
                 {fcfa(group.amountFcfa)} {t.perMember} ·{" "}
-                {group.frequency === "WEEKLY" ? t.weekly : t.monthly}
+                {t.frequency[group.frequency]}
               </span>
               <span className="card-number">{fcfa(group.balanceFcfa)}</span>
               <span className="card-meta">

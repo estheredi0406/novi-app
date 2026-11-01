@@ -67,6 +67,7 @@ function toSummary(loaded: Loaded, round: LoadedRound, userId: string): RoundSum
     dueDate: isoDay(round.dueDate),
     beneficiaryName: round.beneficiary.displayName,
     isCurrent: round.number === loaded.current,
+    amountFcfa: loaded.rules.amountFcfa,
     paidCount: paid.length,
     size: loaded.rules.size,
     collectedFcfa: paid.reduce((sum, c) => sum + c.amountFcfa, 0),

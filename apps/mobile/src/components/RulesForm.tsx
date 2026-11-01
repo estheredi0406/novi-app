@@ -45,9 +45,12 @@ export function RulesForm({
   const complete = (!withName || name.trim().length >= 2) && amountFcfa > 0 && dueDay >= 1;
 
   // Switching to monthly keeps the day only if every month has it (D30).
+  // A daily group pays every day but Sunday: its day is stored as 1 (D92).
   function chooseFrequency(next: Frequency) {
     setFrequency(next);
-    if (next === "WEEKLY" && dueDay > 7) setDueDay(5);
+    if (next === "DAILY") setDueDay(1);
+    else if (frequency === "DAILY") setDueDay(5);
+    else if (next === "WEEKLY" && dueDay > 7) setDueDay(5);
   }
 
   async function submit() {
@@ -80,12 +83,15 @@ export function RulesForm({
       <View style={styles.group}>
         <Text style={styles.label}>{t("rules.frequencyLabel")}</Text>
         <View style={styles.chips}>
+          <Chip label={t("rules.daily")} selected={frequency === "DAILY"} onPress={() => chooseFrequency("DAILY")} />
           <Chip label={t("rules.weekly")} selected={frequency === "WEEKLY"} onPress={() => chooseFrequency("WEEKLY")} />
           <Chip label={t("rules.monthly")} selected={frequency === "MONTHLY"} onPress={() => chooseFrequency("MONTHLY")} />
         </View>
       </View>
 
-      {frequency === "WEEKLY" ? (
+      {frequency === "DAILY" ? (
+        <Text style={styles.hint}>{t("rules.dailyHint")}</Text>
+      ) : frequency === "WEEKLY" ? (
         <View style={styles.group}>
           <Text style={styles.label}>{t("rules.weekdayLabel")}</Text>
           <View style={styles.chips}>
@@ -139,6 +145,7 @@ const styles = StyleSheet.create({
   form: { gap: 20 },
   group: { gap: 10 },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.ink },
+  hint: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.muted },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   muted: { color: colors.muted },
   ink: { color: colors.ink },

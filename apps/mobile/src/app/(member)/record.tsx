@@ -6,7 +6,9 @@ import { errorKey } from "../../api/client";
 import { getRecord, listLenders, listShares, revokeShare, shareRecord, verifyUrl } from "../../api/record";
 import { Badge } from "../../components/art/Badge";
 import { BottomBar } from "../../components/BottomBar";
+import { StatementView } from "../../components/hub/StatementView";
 import { ListenButton } from "../../components/ListenButton";
+import { LoanCard } from "../../components/LoanCard";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { QrCode } from "../../components/QrCode";
@@ -99,6 +101,9 @@ export default function RecordScreen() {
         <Text style={[type.body, styles.muted]}>{t("record.lede")}</Text>
       </View>
 
+      {/* D92: her statement, line by line, before the badges and the facts. */}
+      <StatementView record={record} />
+
       <View style={styles.badges}>
         <Badge mark="coin" label={t("record.badgeFirstPayment")} earned={record.paymentsMade > 0} />
         <Badge mark="pot" label={t("record.badgeFirstPot")} earned={record.potsReceived > 0} />
@@ -131,6 +136,9 @@ export default function RecordScreen() {
           </Text>
         </View>
       ))}
+
+      {/* D89: her record is what opens a loan request. */}
+      <LoanCard always />
 
       <ErrorMessage messageKey={error} />
 

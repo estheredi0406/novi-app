@@ -59,6 +59,8 @@ export const errors = {
   FUND_TOO_LOW: { messageKey: "help.fundTooLow" }, // the solidarity fund cannot spare it now
   LOAN_NOT_ELIGIBLE: { messageKey: "loan.notEligible" },
   LOAN_TOO_LARGE: { messageKey: "loan.tooLarge" },
+  DOCUMENT_INVALID: { messageKey: "loan.documentInvalid" }, // D91: not a photo, or too large
+  DOCUMENTS_CONSENT_REQUIRED: { messageKey: "loan.documentsConsentRequired" },
 
   // Money in (Sprint 3)
   ROUND_NOT_OPEN: { messageKey: "money.roundNotOpen" },

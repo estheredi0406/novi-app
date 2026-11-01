@@ -33,9 +33,112 @@ export const text = {
     declineAsk: "Motif du refus (lu par l'organisatrice) :",
     seeMembers: "Voir les membres",
     loansNav: "Crédits",
+    loansTabRequests: "Demandes",
+    loansTabPolicy: "Conditions de crédit",
+    loanFileComplete: "Dossier complet : rendez-vous à l'agence",
+    loanDocsToCheck: (n: number) => `${n} pièce(s) à vérifier`,
+    loanWaitingDocs: "Présélectionnée : en attente des pièces",
+    condTitle: "Vos conditions de crédit",
+    condSetOn: (d: string) => `fixées par vous le ${d}`,
+    condDefaults: "conditions par défaut de Novi",
+    condEdit: "modifier",
+    condCycle: (c: number, s: number) =>
+      `Au moins ${c} tontine(s) terminée(s) sur Novi, ou ${s} paiements à l'heure de suite`,
+    condCycleHave: (c: number, s: number) => `${c} terminée(s), ${s} de suite`,
+    condOnTime: (min: number) => `Au moins ${min} % des paiements à l'heure`,
+    condNoDebt: "Rien dû au fonds solidaire",
+    condWait: (d: number) => `Pas de refus dans les ${d} derniers jours`,
+    condDays: (n: number) => `refus il y a ${n} jour(s)`,
+    condNoRefusal: "aucun refus",
+    condCeiling: (x: number) =>
+      `Montant au plus ${x} fois sa plus grosse cagnotte`,
+    condOpen: "Pas d'autre demande en cours",
+    condAllMet: "Toutes vos conditions sont remplies.",
+    condNotAll:
+      "Une condition n'est plus remplie aujourd'hui : regardez avant de décider.",
+    docTitle: "Ses pièces",
+    docCount: (a: number, n: number) => `${a} acceptée(s) sur ${n}`,
+    docNoConsent: "Elle n'a pas encore accepté d'envoyer ses pièces par Novi.",
+    docPrivacy:
+      "Photos visibles par votre équipe seulement, chaque ouverture est écrite au Journal. Elles sont supprimées 30 jours après la clôture du dossier.",
+    docStatus: {
+      MISSING: "Pas encore envoyée",
+      SENT: "Envoyée, à vérifier",
+      ACCEPTED: "Acceptée",
+      REDO: "À refaire",
+    } as Record<"MISSING" | "SENT" | "ACCEPTED" | "REDO", string>,
+    docDeleted: "photo supprimée",
+    docOpen: "Voir la photo",
+    docAccept: "Accepter",
+    docRedo: "À refaire",
+    docRedoAsk: "Que faut-il refaire ? (elle le lira)",
+    loanPreselect: "Présélectionner : demander les pièces",
+    loanDecline: "Refuser, avec une raison",
+    loanPreselectHint:
+      "Présélectionner n'accorde rien : elle est invitée à envoyer ses pièces, puis à venir à l'agence, où vous décidez.",
+    loanPreselectConfirm: (name: string) =>
+      `Présélectionner ${name} ? Elle sera invitée à envoyer ses pièces dans Novi.`,
+    loanWaitingDocsLong: (a: number, n: number) =>
+      `Présélectionnée : ${a} pièce(s) acceptée(s) sur ${n}`,
+    loanPreselectedHint:
+      "Elle reçoit une notification à chaque pièce acceptée ou à refaire.",
+    loanFileCompleteLong:
+      "Dossier complet : elle est invitée à venir à l'agence avec les originaux.",
+    loanOutcomeTitle: "Après le rendez-vous, notez la décision :",
+    loanGrant: "Crédit accordé",
+    loanNotGranted: "Non accordé, avec une raison",
+    loanGrantConfirm: (amount: string, name: string) =>
+      `Noter un crédit de ${amount} accordé à ${name} ?`,
+    loanNotGrantedAsk:
+      "Pourquoi le crédit n'est-il pas accordé ? (elle le lira)",
+    policySaved:
+      "Conditions enregistrées. Les membres les voient dès maintenant.",
+    policyInvalid:
+      "Vérifiez les valeurs : une durée au moins, une pièce au moins.",
+    policyTitle: "Conditions de crédit",
+    policyHint:
+      "Qui peut vous envoyer une demande depuis Novi, et quelles pièces vous demandez. Novi les applique et montre la preuve ; vous décidez toujours.",
+    policyEnabled: "Recevoir des demandes de crédit",
+    policyEnabledHint: "Décoché : le bouton disparaît de l'application.",
+    policyCycles: "Tontines terminées sur Novi",
+    policyAtLeast: "au moins",
+    policyCyclesUnit: "tontine(s)",
+    policyStreak: "ou paiements à l'heure de suite",
+    policyStreakHint: "pour une membre sans tontine terminée",
+    policyStreakUnit: "paiements",
+    policyOnTime: "Paiements à l'heure",
+    policyCeiling: "Plafond suggéré",
+    policyCeilingHint: "fois sa plus grosse cagnotte",
+    policyCeilingUnit: "× cagnotte",
+    policyWait: "Délai après un refus",
+    policyWaitHint: "avant une nouvelle demande",
+    policyDays: "jours",
+    policyMonths: "Durées proposées",
+    policyMonthsHint: "séparées par des virgules",
+    policyMonthsUnit: "mois",
+    policyDocs: "Pièces à fournir",
+    policyDocsHint:
+      "Demandées à une membre présélectionnée, qui les envoie en photo puis apporte les originaux à l'agence.",
+    policyRemove: "Retirer",
+    policyAddDoc: "Ajouter une pièce",
+    policySave: "Enregistrer",
+    policyPreview: "Voir l'effet",
+    policyAdminNote:
+      "Réservé aux administrateurs ; chaque changement est écrit au Journal.",
+    policyReadOnly: "Seul un administrateur peut les modifier.",
+    policyLast: (d: string, name: string) =>
+      `Dernière modification le ${d}${name ? ` par ${name}` : ""}.`,
+    policyPreviewTitle: "Avec ces conditions, aujourd'hui",
+    policyPreviewLine: (n: number) =>
+      `membre(s) sur ${n} pourraient demander un crédit`,
+    policyPreviewHint:
+      "Touchez « Voir l'effet » pour compter les membres qui remplissent ces conditions.",
+    policyKeepsTitle: "Ce que vous gardez en main",
+    policyKeeps:
+      "Le taux (dans la limite du taux d'usure de 24 % par an), les garanties, le montant accordé et la décision. Le crédit se remet et se rembourse à l'agence.",
     loansTitle: "Demandes de crédit",
     loansHint:
-      "Des membres qui remplissent les conditions de Novi : une tontine terminée ou 8 paiements à l'heure de suite, 90 % à l'heure, rien dû au fonds. FUCEC décide, prête et se fait rembourser à l'agence.",
+      "Des membres qui remplissent vos conditions de crédit. Présélectionner n'accorde rien : vous demandez ses pièces, puis vous décidez à l'agence.",
     loansPending: (n: number) => `À examiner (${n})`,
     loansDecided: "Déjà décidées",
     loansNone: "Aucune demande en attente.",
@@ -54,10 +157,22 @@ export const text = {
     loanMonths: (m: number) => `${m} mois`,
     loanStatus: {
       PENDING: "À examiner",
-      APPROVED: "Accordé",
+      APPROVED: "Accordé (ancien)",
+      PRESELECTED: "Présélectionnée",
+      GRANTED: "Crédit accordé",
+      NOT_GRANTED: "Non accordé",
       DECLINED: "Refusé",
       WITHDRAWN: "Retiré",
-    } as Record<"PENDING" | "APPROVED" | "DECLINED" | "WITHDRAWN", string>,
+    } as Record<
+      | "PENDING"
+      | "APPROVED"
+      | "PRESELECTED"
+      | "GRANTED"
+      | "NOT_GRANTED"
+      | "DECLINED"
+      | "WITHDRAWN",
+      string
+    >,
     loanGranted: (amount: string) => `Accordé : ${amount}`,
     recordTitleOne: "Son historique Novi",
     loanCycles: "Tontines terminées",
@@ -230,6 +345,7 @@ export const text = {
     account: "Compte",
     perMember: "par membre",
     weekly: "chaque semaine",
+    frequency: { DAILY: "chaque jour sauf dimanche", WEEKLY: "chaque semaine", MONTHLY: "chaque mois" },
     monthly: "chaque mois",
     turn: (n: number) => `bénéficiaire : tour ${n}`,
     payments: (a: number, b: number) => `${a}/${b} paiements`,
@@ -351,9 +467,105 @@ export const text = {
       `Validate "${name}"? The MFI will open the group's account and schedule the first round.`,
     seeMembers: "See the members",
     loansNav: "Loans",
+    loansTabRequests: "Requests",
+    loansTabPolicy: "Credit conditions",
+    loanFileComplete: "File complete: branch meeting",
+    loanDocsToCheck: (n: number) => `${n} document(s) to check`,
+    loanWaitingDocs: "Shortlisted: waiting for documents",
+    condTitle: "Your credit conditions",
+    condSetOn: (d: string) => `set by you on ${d}`,
+    condDefaults: "Novi's default conditions",
+    condEdit: "edit",
+    condCycle: (c: number, s: number) =>
+      `At least ${c} tontine(s) completed on Novi, or ${s} payments on time in a row`,
+    condCycleHave: (c: number, s: number) => `${c} completed, ${s} in a row`,
+    condOnTime: (min: number) => `At least ${min}% of payments on time`,
+    condNoDebt: "Nothing owed to the solidarity fund",
+    condWait: (d: number) => `No refusal in the last ${d} days`,
+    condDays: (n: number) => `refused ${n} day(s) ago`,
+    condNoRefusal: "no refusal",
+    condCeiling: (x: number) => `Amount at most ${x} times her largest pot`,
+    condOpen: "No other request open",
+    condAllMet: "All your conditions are met.",
+    condNotAll: "A condition is no longer met today: look before deciding.",
+    docTitle: "Her documents",
+    docCount: (a: number, n: number) => `${a} accepted of ${n}`,
+    docNoConsent: "She has not yet agreed to send her documents through Novi.",
+    docPrivacy:
+      "Photos visible to your team only; every opening is written to the Log. They are deleted 30 days after the file closes.",
+    docStatus: {
+      MISSING: "Not sent yet",
+      SENT: "Sent, to check",
+      ACCEPTED: "Accepted",
+      REDO: "To redo",
+    } as Record<"MISSING" | "SENT" | "ACCEPTED" | "REDO", string>,
+    docDeleted: "photo deleted",
+    docOpen: "See the photo",
+    docAccept: "Accept",
+    docRedo: "To redo",
+    docRedoAsk: "What needs redoing? (she will read it)",
+    loanPreselect: "Shortlist: ask for documents",
+    loanDecline: "Decline, with a reason",
+    loanPreselectHint:
+      "Shortlisting grants nothing: she is asked to send her documents, then to come to the branch, where you decide.",
+    loanPreselectConfirm: (name: string) =>
+      `Shortlist ${name}? She will be asked to send her documents in Novi.`,
+    loanWaitingDocsLong: (a: number, n: number) =>
+      `Shortlisted: ${a} document(s) accepted of ${n}`,
+    loanPreselectedHint:
+      "She is notified each time a document is accepted or needs redoing.",
+    loanFileCompleteLong:
+      "File complete: she is asked to come to the branch with the originals.",
+    loanOutcomeTitle: "After the meeting, record the decision:",
+    loanGrant: "Loan granted",
+    loanNotGranted: "Not granted, with a reason",
+    loanGrantConfirm: (amount: string, name: string) =>
+      `Record a loan of ${amount} granted to ${name}?`,
+    loanNotGrantedAsk: "Why is the loan not granted? (she will read it)",
+    policySaved: "Conditions saved. Members see them now.",
+    policyInvalid: "Check the values: at least one length and one document.",
+    policyTitle: "Credit conditions",
+    policyHint:
+      "Who may send you a request from Novi, and which documents you ask for. Novi applies them and shows the evidence; you always decide.",
+    policyEnabled: "Receive loan requests",
+    policyEnabledHint: "Unticked: the button disappears from the app.",
+    policyCycles: "Tontines completed on Novi",
+    policyAtLeast: "at least",
+    policyCyclesUnit: "tontine(s)",
+    policyStreak: "or payments on time in a row",
+    policyStreakHint: "for a member without a completed tontine",
+    policyStreakUnit: "payments",
+    policyOnTime: "Payments on time",
+    policyCeiling: "Suggested ceiling",
+    policyCeilingHint: "times her largest pot",
+    policyCeilingUnit: "× pot",
+    policyWait: "Wait after a refusal",
+    policyWaitHint: "before a new request",
+    policyDays: "days",
+    policyMonths: "Lengths offered",
+    policyMonthsHint: "separated by commas",
+    policyMonthsUnit: "months",
+    policyDocs: "Documents required",
+    policyDocsHint:
+      "Asked of a shortlisted member, who sends photos, then brings the originals to the branch.",
+    policyRemove: "Remove",
+    policyAddDoc: "Add a document",
+    policySave: "Save",
+    policyPreview: "See the effect",
+    policyAdminNote: "Administrators only; every change is written to the Log.",
+    policyReadOnly: "Only an administrator can change them.",
+    policyLast: (d: string, name: string) =>
+      `Last changed on ${d}${name ? ` by ${name}` : ""}.`,
+    policyPreviewTitle: "With these conditions, today",
+    policyPreviewLine: (n: number) => `member(s) of ${n} could ask for a loan`,
+    policyPreviewHint:
+      'Tap "See the effect" to count the members who meet these conditions.',
+    policyKeepsTitle: "What you keep in hand",
+    policyKeeps:
+      "The rate (within the 24% a year usury ceiling), guarantees, the amount granted and the decision. The loan is paid and repaid at the branch.",
     loansTitle: "Loan requests",
     loansHint:
-      "Members who meet Novi's conditions: a completed tontine or 8 payments on time in a row, 90% on time, nothing owed to the fund. The MFI decides, lends and is repaid at the branch.",
+      "Members who meet your credit conditions. Shortlisting grants nothing: you ask for her documents, then decide at the branch.",
     loansPending: (n: number) => `To review (${n})`,
     loansDecided: "Already decided",
     loansNone: "No request waiting.",
@@ -372,10 +584,22 @@ export const text = {
     loanMonths: (m: number) => `${m} months`,
     loanStatus: {
       PENDING: "To review",
-      APPROVED: "Granted",
+      APPROVED: "Granted (old)",
+      PRESELECTED: "Shortlisted",
+      GRANTED: "Loan granted",
+      NOT_GRANTED: "Not granted",
       DECLINED: "Declined",
       WITHDRAWN: "Withdrawn",
-    } as Record<"PENDING" | "APPROVED" | "DECLINED" | "WITHDRAWN", string>,
+    } as Record<
+      | "PENDING"
+      | "APPROVED"
+      | "PRESELECTED"
+      | "GRANTED"
+      | "NOT_GRANTED"
+      | "DECLINED"
+      | "WITHDRAWN",
+      string
+    >,
     loanGranted: (amount: string) => `Granted: ${amount}`,
     recordTitleOne: "Her Novi record",
     loanCycles: "Tontines completed",
@@ -545,6 +769,7 @@ export const text = {
     account: "Account",
     perMember: "per member",
     weekly: "every week",
+    frequency: { DAILY: "every day but Sunday", WEEKLY: "every week", MONTHLY: "every month" },
     monthly: "every month",
     turn: (n: number) => `receiver: turn ${n}`,
     payments: (a: number, b: number) => `${a}/${b} payments`,

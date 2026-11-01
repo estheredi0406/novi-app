@@ -297,6 +297,7 @@ async function currentRoundFor(
     include: {
       contributions: { where: { userId } },
       payout: { select: { status: true } },
+      beneficiary: { select: { displayName: true } },
     },
   });
   const now = new Date();
@@ -309,9 +310,15 @@ async function currentRoundFor(
   if (!round) return null;
 
   const mine = rounds.find((r) => r.beneficiaryId === userId);
-  const paidCount = await prisma.contribution.count({
-    where: { roundId: round.id, status: "PAID" },
-  });
+  const paidBy = new Set(
+    (
+      await prisma.contribution.findMany({
+        where: { roundId: round.id, status: "PAID" },
+        select: { userId: true },
+      })
+    ).map((c) => c.userId),
+  );
+  const paidCount = paidBy.size;
   const day = (date: Date) =>
     Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
   const upToNow = rounds.filter((r) => r.number <= round.number);
@@ -333,6 +340,9 @@ async function currentRoundFor(
     isMyTurn: round.beneficiaryId === userId,
     potFcfa: potShare(rules.amountFcfa) * rules.size,
     paidCount,
+    receiverName: round.beneficiary.displayName,
+    // D92: one seat per round, in turn order, for the ring on home.
+    paidSeats: rounds.map((r) => paidBy.has(r.beneficiaryId)),
     // Where her own pot is comes from its payout, never from the date alone:
     // a round whose day has passed may still be held (D48).
     myTurn: mine

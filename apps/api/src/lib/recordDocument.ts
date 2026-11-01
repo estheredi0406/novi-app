@@ -73,7 +73,7 @@ export function renderRecordDocument(check: RecordVerification, meta: DocumentMe
           (
             g,
           ) => `<tr><td>${escape(g.name)}</td><td>${escape(g.mfiName)}</td><td class="num">${escape(fcfa(g.amountFcfa))}</td>
-<td>${g.frequency === "WEEKLY" ? "hebdo." : "mensuel"}</td><td class="num">${g.paid}/${g.roundsDue}</td><td class="num">${g.onTime}</td>
+<td>${g.frequency === "DAILY" ? "quotid." : g.frequency === "WEEKLY" ? "hebdo." : "mensuel"}</td><td class="num">${g.paid}/${g.roundsDue}</td><td class="num">${g.onTime}</td>
 <td>${g.completed ? "Terminé" : "En cours"}</td></tr>`,
         )
         .join("")

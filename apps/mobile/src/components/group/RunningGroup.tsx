@@ -1,5 +1,6 @@
 import type { GroupDetail, MeetingsPage, RoundSummary } from "@novi/shared";
 import { router } from "expo-router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,7 +8,13 @@ import { formatFcfa } from "../../lib/format";
 import { rulesSummary } from "../../lib/rulesText";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
-import { BackHeader } from "../BackHeader";
+import { errorKey } from "../../api/client";
+import { callGroup } from "../../api/groups";
+import { openCall } from "../../lib/openCall";
+import { speak } from "../../lib/speak";
+import { ErrorMessage } from "../ErrorMessage";
+import { LaguneBand } from "../LaguneBand";
+import { LineIcon } from "../LineIcon";
 import { CotisationTab } from "./CotisationTab";
 import { GroupChat } from "./GroupChat";
 import { GroupInfoTab } from "./GroupInfoTab";
@@ -15,9 +22,10 @@ import { GroupInfoTab } from "./GroupInfoTab";
 export type GroupTab = "cotisation" | "discussion" | "groupe";
 export const GROUP_TABS: GroupTab[] = ["cotisation", "discussion", "groupe"];
 
-// A running group (approved design F1 to F3): one header with the name and
-// the rules in a line, and three tabs, so nothing is stacked on one long
-// page. The tab is in the address (?tab=), so a notification or the back
+// A running group (approved design F1 to F3, restyled as board E5, D92): the
+// blue pagne band with the name, the rules, who organises and which MFI keeps
+// the money, a phone to call the group, then three tabs as one segmented
+// control, so nothing is stacked on one long page. The tab is in the address (?tab=), so a notification or the back
 // button returns to the same place.
 export function RunningGroup({
   group,
@@ -40,8 +48,7 @@ export function RunningGroup({
     group.cycleNumber > 1
       ? t("cycle.number", { number: group.cycleNumber })
       : null,
-    rulesSummary(t, group.rules),
-    t("groupInfo.members", { count: group.rules.size }),
+    rulesSummary(t, group.rules), // already ends with the number of members
   ]
     .filter(Boolean)
     .join(" · ");
@@ -55,25 +62,80 @@ export function RunningGroup({
         : `${group.name}. ${t("groupInfo.whoWhen")}.`;
 
   const select = (next: GroupTab) => router.setParams({ tab: next });
+  const organiser = group.seats.find((seat) => seat.role === "ORGANISER")?.displayName;
+  const [calling, setCalling] = useState(false);
+  const [callError, setCallError] = useState<string | null>(null);
+
+  // The phone at the top right: joins the group's open call or starts one
+  // (D76), inside Novi (D85).
+  async function call() {
+    setCalling(true);
+    setCallError(null);
+    try {
+      const { url } = await callGroup(group.id);
+      await openCall(url, group.name);
+    } catch (err) {
+      setCallError(errorKey(err));
+    } finally {
+      setCalling(false);
+    }
+  }
 
   return (
     <SafeAreaView
       style={styles.safe}
-      edges={["top", "left", "right", "bottom"]}
+      edges={["left", "right", "bottom"]}
     >
-      <View style={styles.band}>
-        <BackHeader listenText={listen} />
-        <Text style={styles.name} numberOfLines={1}>
+      <LaguneBand overlap={0}>
+        <View style={styles.topRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("common.back")}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace("/home"))}
+            style={styles.round}
+            hitSlop={6}
+          >
+            <Text style={styles.back}>‹</Text>
+          </Pressable>
+          <View style={styles.topActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("hub.listen")}
+              onPress={() => speak(listen)}
+              style={styles.round}
+              hitSlop={6}
+            >
+              <LineIcon name="speaker" color={colors.white} size={22} />
+            </Pressable>
+            {group.state === "ACTIVE" ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("hub.callGroup")}
+                onPress={() => void call()}
+                disabled={calling}
+                style={[styles.round, calling && styles.busy]}
+                hitSlop={6}
+              >
+                <LineIcon name="phone" color={colors.white} size={20} />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+        <Text style={styles.name} numberOfLines={2}>
           {group.name}
         </Text>
-        <Text style={styles.sub} numberOfLines={1}>
-          {sub}
-        </Text>
-        <View style={styles.tabs} accessibilityRole="tablist">
+        <Text style={styles.sub}>{sub}</Text>
+        {organiser ? (
+          <Text style={styles.sub}>
+            {t("groupView.organisedBy", { name: organiser })} · {t("groupView.heldBy", { mfi: group.mfiName })}
+          </Text>
+        ) : null}
+      </LaguneBand>
+      <View style={styles.segmentWrap}>
+        <View style={styles.segment} accessibilityRole="tablist">
           {GROUP_TABS.map((key) => {
             const on = key === tab;
-            const unread =
-              key === "discussion" && !on ? group.unreadMessages : 0;
+            const unread = key === "discussion" && !on ? group.unreadMessages : 0;
             return (
               <Pressable
                 key={key}
@@ -82,20 +144,17 @@ export function RunningGroup({
                 onPress={() => select(key)}
                 style={[styles.tab, on && styles.tabOn]}
               >
-                <Text style={[styles.tabText, on && styles.tabTextOn]}>
-                  {t(`tabs.${key}`)}
-                </Text>
+                <Text style={[styles.tabText, on && styles.tabTextOn]}>{t(`tabs.${key}`)}</Text>
                 {unread > 0 ? (
                   <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {unread > 99 ? "99+" : unread}
-                    </Text>
+                    <Text style={styles.badgeText}>{unread > 99 ? "99+" : unread}</Text>
                   </View>
                 ) : null}
               </Pressable>
             );
           })}
         </View>
+        <ErrorMessage messageKey={callError} />
       </View>
 
       {tab === "discussion" ? (
@@ -128,39 +187,40 @@ export function RunningGroup({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.shell },
-  band: {
-    backgroundColor: colors.mist,
-    borderBottomWidth: 1.5,
-    borderBottomColor: colors.indigo,
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    gap: 4,
+  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  topActions: { flexDirection: "row", gap: 8 },
+  round: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  name: {
-    fontFamily: fonts.display,
-    fontSize: 26,
-    lineHeight: 32,
-    color: colors.indigo,
-    marginTop: 4,
-  },
-  sub: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },
-  tabs: { flexDirection: "row", marginTop: 8 },
+  busy: { opacity: 0.5 },
+  back: { fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.white },
+  name: { fontFamily: fonts.bodyBold, fontSize: 24, lineHeight: 30, color: colors.white, marginTop: 8 },
+  sub: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.onDark, opacity: 0.88 },
+  segmentWrap: { paddingHorizontal: 16, paddingTop: 12, gap: 6 },
+  segment: { flexDirection: "row", gap: 4, padding: 4, borderRadius: 14, backgroundColor: colors.mist },
   tab: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    minHeight: 48,
-    borderBottomWidth: 4,
-    borderBottomColor: "transparent",
+    minHeight: 44,
+    borderRadius: 11,
   },
-  tabOn: { borderBottomColor: colors.accent },
-  tabText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 15,
-    color: colors.muted,
+  tabOn: {
+    backgroundColor: colors.white,
+    elevation: 2,
+    shadowColor: colors.indigo,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
   },
+  tabText: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.muted },
   tabTextOn: { fontFamily: fonts.bodyBold, color: colors.indigo },
   badge: {
     minWidth: 20,
@@ -172,5 +232,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   badgeText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.white },
-  content: { paddingHorizontal: 20, paddingVertical: 18, gap: 18, flexGrow: 1 },
+  content: { paddingHorizontal: 16, paddingVertical: 16, gap: 18, flexGrow: 1 },
 });

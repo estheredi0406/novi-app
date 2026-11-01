@@ -3,10 +3,13 @@ import { z } from "zod";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
 import { getProfile, updateProfile } from "../services/memberService.js";
 import {
+  consentToDocuments,
   getLoanPage,
   requestLoan,
+  sendDocument,
   withdrawLoan,
 } from "../services/loanService.js";
+import { getStatement, listNews } from "../services/newsService.js";
 import { savePushToken } from "../services/notifyService.js";
 import { answerReceipt } from "../services/payoutService.js";
 import {
@@ -52,6 +55,17 @@ meRouter.get("/", async (_req, res) => {
 meRouter.patch("/", async (req, res) => {
   const changes = profileChanges.parse(req.body);
   res.json(await updateProfile(currentMember(res).userId, changes));
+});
+
+// D92: what moved in her groups lately, for home and the bell.
+meRouter.get("/news", async (req, res) => {
+  const limit = z.coerce.number().int().min(1).max(50).catch(30).parse(req.query.limit);
+  res.json(await listNews(currentMember(res).userId, limit));
+});
+
+// D92: her payments and pots, line by line, for "Mon relevé".
+meRouter.get("/statement", async (_req, res) => {
+  res.json(await getStatement(currentMember(res).userId));
 });
 
 // D79: where this phone receives notifications (Expo's token), or null to
@@ -130,7 +144,7 @@ meRouter.post("/loans", async (req, res) => {
     .object({
       amountFcfa: z.number().int().min(5000).max(5_000_000),
       purpose: z.enum(["STOCK", "EQUIPMENT", "OTHER"]),
-      months: z.union([z.literal(3), z.literal(6), z.literal(12)]),
+      months: z.number().int().min(1).max(36), // one of the MFI's lengths (D91)
     })
     .strict()
     .parse(req.body);
@@ -140,4 +154,26 @@ meRouter.post("/loans", async (req, res) => {
 meRouter.post("/loans/:loanId/withdraw", async (req, res) => {
   const loanId = z.string().uuid().parse(req.params.loanId);
   res.json(await withdrawLoan(currentMember(res).userId, loanId));
+});
+
+// D91: once preselected, she agrees to send photos, then sends one per document.
+meRouter.post("/loans/:loanId/documents-consent", async (req, res) => {
+  const loanId = z.string().uuid().parse(req.params.loanId);
+  res.json(await consentToDocuments(currentMember(res).userId, loanId));
+});
+
+meRouter.put("/loans/:loanId/documents/:key", async (req, res) => {
+  const loanId = z.string().uuid().parse(req.params.loanId);
+  const key = z
+    .string()
+    .regex(/^[A-Z0-9_]{2,30}$/)
+    .parse(req.params.key);
+  const file = z
+    .object({
+      mime: z.string().max(40),
+      base64: z.string().min(10).max(3_500_000),
+    })
+    .strict()
+    .parse(req.body);
+  res.json(await sendDocument(currentMember(res).userId, loanId, key, file));
 });

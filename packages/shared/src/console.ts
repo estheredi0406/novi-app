@@ -11,7 +11,7 @@ export type ConsoleGroup = {
   state: "STARTING" | "ACTIVE" | "COMPLETED";
   accountRef: string | null; // the MFI's own account for the group
   amountFcfa: number; // each member's contribution
-  frequency: "WEEKLY" | "MONTHLY";
+  frequency: "DAILY" | "WEEKLY" | "MONTHLY";
   size: number;
   startedAt: string | null;
   currentRound: number | null;

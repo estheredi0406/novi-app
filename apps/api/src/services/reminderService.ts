@@ -38,6 +38,9 @@ export async function runReminders(now = new Date()): Promise<number> {
     const dueToday = round.dueDate.getTime() === today.getTime();
     const kind: ReminderKind = dueToday ? "DUE_DAY" : "DAY_BEFORE";
     const rules = round.group.rulesVersions.find((r) => r.version === round.group.currentVersion);
+    // A daily group pays every market day: one reminder that morning is
+    // enough, not two SMS a day (D92).
+    if (rules?.frequency === "DAILY" && !dueToday) continue;
     const paying = new Set(round.contributions.map((c) => c.userId));
 
     for (const seat of round.group.memberships) {

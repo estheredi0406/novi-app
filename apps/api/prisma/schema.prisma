@@ -52,6 +52,7 @@ enum GroupState {
 
 // How often members pay in.
 enum Frequency {
+  DAILY // D92: Monday to Saturday, as market traders pay
   WEEKLY
   MONTHLY
 }
@@ -291,6 +292,7 @@ model Mfi {
   staff        StaffUser[]
   recordShares RecordShare[]
   loanRequests LoanRequest[]
+  creditPolicy CreditPolicy?
 
   @@map("mfis")
 }
@@ -864,8 +866,11 @@ enum LoanPurpose {
 
 enum LoanStatus {
   PENDING
-  APPROVED  // FUCEC said yes: she goes to the agency, where the loan is paid and repaid
-  DECLINED
+  APPROVED    // D89, before D91: an approval that sent her to the agency (no longer given)
+  PRESELECTED // D91: her record convinces the MFI; it asks for her documents
+  GRANTED     // D91: decided at the agency: the MFI lends (grantedFcfa)
+  NOT_GRANTED // D91: decided at the agency: no loan
+  DECLINED    // refused at the first look, with a reason she reads
   WITHDRAWN
 }
 
@@ -883,10 +888,18 @@ model LoanRequest {
   decisionNote  String?     // the reason for a refusal, or the officer's note
   decidedById   String?
   decidedAt     DateTime?
+  // D91: the documents the MFI asked for when it preselected her, kept as
+  // they were then; her consent to send photos; when they were all checked;
+  // and the outcome at the agency.
+  requiredDocs       Json?
+  documentsConsentAt DateTime?
+  documentsCheckedAt DateTime?
+  closedAt           DateTime?
   createdAt     DateTime    @default(now())
 
-  user User @relation(fields: [userId], references: [id])
-  mfi  Mfi  @relation(fields: [mfiId], references: [id])
+  user      User           @relation(fields: [userId], references: [id])
+  mfi       Mfi            @relation(fields: [mfiId], references: [id])
+  documents LoanDocument[]
 
   @@index([mfiId, status])
   @@index([userId, createdAt])
@@ -907,4 +920,53 @@ model StaffAlert {
   @@unique([kind, refId]) // one alert per thing
   @@index([mfiId, resolvedAt])
   @@map("staff_alerts")
+}
+
+// D91: the MFI's own credit conditions. Novi applies them and shows the
+// evidence; the MFI decides. One row per MFI; without it, the defaults below.
+model CreditPolicy {
+  mfiId           String   @id
+  enabled         Boolean  @default(true)
+  minCycles       Int      @default(1)  // tontines completed on Novi...
+  minStreak       Int      @default(8)  // ...or this many payments on time in a row
+  minOnTimePct    Int      @default(90)
+  ceilingTimesPot Int      @default(3)
+  waitDays        Int      @default(30) // after a refusal
+  months          Int[]    @default([3, 6, 12])
+  documents       Json     // [{ key, label }]: what she sends once preselected
+  updatedById     String?
+  updatedAt       DateTime @updatedAt
+
+  mfi Mfi @relation(fields: [mfiId], references: [id])
+
+  @@map("credit_policies")
+}
+
+enum DocumentStatus {
+  SENT     // the officer has not looked yet
+  ACCEPTED
+  REDO     // the officer asks for a new photo, with a note
+}
+
+// D91: a photo of one document for a preselected loan request. Seen only by
+// that MFI's staff, each view logged; the photo itself is deleted 30 days
+// after the file is complete or closed (data stays null, deletedAt set).
+model LoanDocument {
+  id           String         @id @default(uuid())
+  loanId       String
+  key          String         // which required document
+  mime         String
+  data         Bytes?
+  status       DocumentStatus @default(SENT)
+  note         String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  loan LoanRequest @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@unique([loanId, key])
+  @@map("loan_documents")
 }

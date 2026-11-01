@@ -64,7 +64,7 @@ groupsRouter.use(requireAuth);
 const rules = z
   .object({
     amountFcfa: z.number(),
-    frequency: z.enum(["WEEKLY", "MONTHLY"]),
+    frequency: z.enum(["DAILY", "WEEKLY", "MONTHLY"]),
     dueDay: z.number(),
     size: z.number(),
     payoutOrder: z.enum(["DRAWN", "FIXED"]).default("DRAWN"),
