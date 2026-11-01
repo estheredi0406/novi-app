@@ -15,6 +15,7 @@ import { LineIcon, type LineIconName } from "../../components/LineIcon";
 import { LoanCard } from "../../components/LoanCard";
 import { Screen } from "../../components/Screen";
 import { SeatRing } from "../../components/art/SeatRing";
+import { cardsInOrder, owes } from "../../lib/hub";
 import { rulesSummary, stateLabel } from "../../lib/rulesText";
 import { speak } from "../../lib/speak";
 import { useSession } from "../../session/SessionProvider";
@@ -108,8 +109,7 @@ export function HomeView({
   const firstName = name.split(" ")[0] ?? name;
 
   // Running groups as cards, the ones where she still owes first.
-  const owes = (g: GroupSummary) => g.currentRound?.myStatus === "UNPAID" || g.currentRound?.myStatus === "FAILED";
-  const running = groups.filter((g) => g.currentRound).sort((a, b) => Number(owes(b)) - Number(owes(a)));
+  const running = cardsInOrder(groups);
   const preparing = groups.filter((g) => !g.currentRound && g.state !== "COMPLETED" && g.state !== "CANCELLED");
   const isNew = loaded && groups.length === 0;
   const cardWidth = width - 48;

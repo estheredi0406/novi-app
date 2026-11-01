@@ -1,7 +1,12 @@
 import "../i18n";
-import { NotoSans_400Regular, NotoSans_600SemiBold, NotoSans_700Bold, useFonts } from "@expo-google-fonts/noto-sans";
-import { NotoSansDisplay_800ExtraBold } from "@expo-google-fonts/noto-sans-display";
+// One file per weight: importing the package root pulls in all 36 weights
+// (about 18 MB) although the app uses four.
+import { NotoSans_400Regular } from "@expo-google-fonts/noto-sans/400Regular";
+import { NotoSans_600SemiBold } from "@expo-google-fonts/noto-sans/600SemiBold";
+import { NotoSans_700Bold } from "@expo-google-fonts/noto-sans/700Bold";
+import { NotoSansDisplay_800ExtraBold } from "@expo-google-fonts/noto-sans-display/800ExtraBold";
 import { setAudioModeAsync } from "expo-audio";
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";

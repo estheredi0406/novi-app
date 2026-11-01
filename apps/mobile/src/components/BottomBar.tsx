@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import Svg from "react-native-svg";
 import { listMyGroups } from "../api/groups";
 import { formatDay, formatFcfa } from "../lib/format";
+import { payTarget } from "../lib/hub";
 import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
 import { Cowrie } from "./art/Cowrie";
@@ -21,7 +22,6 @@ export type Tab = "home" | "groups" | "record" | "me";
 const ROUTES: Record<Tab, string> = { home: "/home", groups: "/groups", record: "/record", me: "/me" };
 const ICONS: Record<Tab, LineIconName> = { home: "home", groups: "groups", record: "clock", me: "user" };
 
-const owes = (g: GroupSummary) => g.currentRound?.myStatus === "UNPAID" || g.currentRound?.myStatus === "FAILED";
 
 export function openRound(group: GroupSummary) {
   if (!group.currentRound) return;
@@ -49,11 +49,10 @@ export function BottomBar({ active }: { active: Tab | null }) {
   async function pay() {
     setLoading(true);
     try {
-      const groups = (await listMyGroups()).filter(owes);
-      const only = groups[0];
-      if (groups.length === 1 && only) openRound(only);
+      const target = payTarget(await listMyGroups());
+      if (target.kind === "one") openRound(target.group);
       else {
-        setOwing(groups);
+        setOwing(target.kind === "pick" ? target.groups : []);
         setPicking(true);
       }
     } catch {

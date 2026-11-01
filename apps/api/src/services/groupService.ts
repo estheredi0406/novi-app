@@ -261,6 +261,14 @@ export async function listMyGroups(userId: string): Promise<GroupSummary[]> {
   return Promise.all(
     seats.map(async ({ group, state, chatReadAt }) => {
       const detail = toDetail(group, userId);
+      // The round and the unread count are independent: asked together,
+      // home waits for the slower of the two, not their sum.
+      const [currentRound, unreadMessages] = await Promise.all([
+        group.state === "ACTIVE"
+          ? currentRoundFor(group.id, userId, detail.rules)
+          : Promise.resolve(null),
+        unreadCount(group.id, userId, chatReadAt),
+      ]);
       return {
         id: detail.id,
         name: detail.name,
@@ -274,11 +282,8 @@ export async function listMyGroups(userId: string): Promise<GroupSummary[]> {
         seatsHeld: detail.seats.length,
         myRole: detail.myRole,
         mySeatState: state,
-        currentRound:
-          group.state === "ACTIVE"
-            ? await currentRoundFor(group.id, userId, detail.rules)
-            : null,
-        unreadMessages: await unreadCount(group.id, userId, chatReadAt),
+        currentRound,
+        unreadMessages,
       };
     }),
   );
