@@ -15,6 +15,7 @@
     "demo:group": "tsx src/scripts/demoGroup.ts",
     "staff:create": "tsx src/scripts/createStaff.ts",
     "demo:payout": "tsx src/scripts/demoPayout.ts",
+    "demo:reset": "tsx src/scripts/demoReset.ts",
     "fedapay:probe": "tsx src/scripts/fedapayProbe.ts",
     "daily:probe": "tsx src/scripts/dailyProbe.ts"
   },
