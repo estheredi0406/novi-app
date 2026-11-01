@@ -25,3 +25,20 @@ export async function openCall(url: string, title: string): Promise<void> {
     await Linking.openURL(url);
   }
 }
+
+// D86: the payment page (the FedaPay test page, in the pilot) opens inside
+// Novi the same way; an older Novi opens it in the browser.
+export async function openPaymentPage(
+  url: string,
+  contributionId: string,
+  amount: string,
+): Promise<void> {
+  if (canCallInApp()) {
+    router.push({
+      pathname: "/pay",
+      params: { url, contributionId, amount },
+    } as unknown as Href);
+  } else {
+    await Linking.openURL(url);
+  }
+}

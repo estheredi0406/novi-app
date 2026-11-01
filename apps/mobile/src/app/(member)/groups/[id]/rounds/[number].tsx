@@ -1,10 +1,18 @@
-import type { ContributionView, MobileOperator, RoundDetail } from "@novi/shared";
+import type {
+  ContributionView,
+  MobileOperator,
+  RoundDetail,
+} from "@novi/shared";
 import { useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Linking, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../../../../api/client";
-import { checkContribution, getRound, payRound } from "../../../../../api/money";
+import {
+  checkContribution,
+  getRound,
+  payRound,
+} from "../../../../../api/money";
 import { Celebrate } from "../../../../../components/art/Celebrate";
 import { BackHeader } from "../../../../../components/BackHeader";
 import { Chip } from "../../../../../components/Chip";
@@ -14,6 +22,7 @@ import { RoundCard } from "../../../../../components/RoundCard";
 import { Screen } from "../../../../../components/Screen";
 import { TextButton } from "../../../../../components/TextButton";
 import { formatDay, formatFcfa } from "../../../../../lib/format";
+import { openPaymentPage } from "../../../../../lib/openCall";
 import { colors } from "../../../../../theme/colors";
 import { fonts, type } from "../../../../../theme/typography";
 
@@ -39,7 +48,9 @@ export default function RoundScreen() {
   const pollStarted = useRef(0);
 
   const load = useCallback(() => {
-    getRound(id, roundNumber).then(setRound, (err: unknown) => setError(errorKey(err)));
+    getRound(id, roundNumber).then(setRound, (err: unknown) =>
+      setError(errorKey(err)),
+    );
   }, [id, roundNumber]);
 
   useEffect(load, [load]);
@@ -77,7 +88,12 @@ export default function RoundScreen() {
       // Novi keeps checking until the payment is confirmed.
       if (started.paymentUrl) {
         setPageUrl(started.paymentUrl);
-        void Linking.openURL(started.paymentUrl);
+        // D86: inside Novi when the app has its web view, else the browser.
+        void openPaymentPage(
+          started.paymentUrl,
+          started.id,
+          formatFcfa(round ? round.potFcfa / round.size : 0),
+        );
       }
     } catch (err) {
       setError(errorKey(err));
@@ -97,9 +113,12 @@ export default function RoundScreen() {
 
   const amount = formatFcfa(round.potFcfa / round.size);
   const canPay = round.myStatus === "UNPAID" || round.myStatus === "FAILED";
-  const listen = `${t("money.roundTitle", { number: round.number, date: formatDay(round.dueDate) })}. ${t("money.turnOf", {
-    name: round.beneficiaryName,
-  })}.`;
+  const listen = `${t("money.roundTitle", { number: round.number, date: formatDay(round.dueDate) })}. ${t(
+    "money.turnOf",
+    {
+      name: round.beneficiaryName,
+    },
+  )}.`;
 
   return (
     <Screen>
@@ -108,14 +127,27 @@ export default function RoundScreen() {
 
       {payment?.status === "PENDING" ? (
         <View style={styles.note}>
-          <Text style={[type.title, styles.indigo]}>{t("money.confirmOnPhone")}</Text>
-          <Text style={[type.body, styles.ink]}>
-            {pageUrl ? t("money.confirmOnPageHint", { amount }) : t("money.confirmOnPhoneHint", { amount })}
+          <Text style={[type.title, styles.indigo]}>
+            {t("money.confirmOnPhone")}
           </Text>
-          {pageUrl ? <TextButton label={t("money.openPage")} onPress={() => void Linking.openURL(pageUrl)} /> : null}
+          <Text style={[type.body, styles.ink]}>
+            {pageUrl
+              ? t("money.confirmOnPageHint", { amount })
+              : t("money.confirmOnPhoneHint", { amount })}
+          </Text>
+          {pageUrl ? (
+            <TextButton
+              label={t("money.openPage")}
+              onPress={() =>
+                payment && void openPaymentPage(pageUrl, payment.id, amount)
+              }
+            />
+          ) : null}
           {waitedTooLong ? (
             <>
-              <Text style={[type.small, styles.muted]}>{t("money.stillWaiting")}</Text>
+              <Text style={[type.small, styles.muted]}>
+                {t("money.stillWaiting")}
+              </Text>
               <TextButton
                 label={t("money.checkAgain")}
                 onPress={() => {
@@ -129,25 +161,44 @@ export default function RoundScreen() {
         </View>
       ) : null}
 
-      {payment?.status === "PAID" || (round.myStatus === "PAID" && payment === null) ? (
+      {payment?.status === "PAID" ||
+      (round.myStatus === "PAID" && payment === null) ? (
         <View style={styles.receipt} accessibilityLiveRegion="polite">
           {payment?.status === "PAID" ? (
             <Celebrate paid={round.paidCount} label={t("money.receiptTitle")} />
           ) : null}
-          <Text style={[type.title, styles.paid]}>{t("money.receiptTitle")}</Text>
-          <Text style={[type.body, styles.ink]}>{t("money.receiptBody", { amount, number: round.number })}</Text>
-          {payment?.receiptRef ? <Text style={[type.small, styles.muted]}>{t("money.receiptRef", { ref: payment.receiptRef })}</Text> : null}
+          <Text style={[type.title, styles.paid]}>
+            {t("money.receiptTitle")}
+          </Text>
+          <Text style={[type.body, styles.ink]}>
+            {t("money.receiptBody", { amount, number: round.number })}
+          </Text>
+          {payment?.receiptRef ? (
+            <Text style={[type.small, styles.muted]}>
+              {t("money.receiptRef", { ref: payment.receiptRef })}
+            </Text>
+          ) : null}
         </View>
       ) : null}
 
-      {payment?.status === "FAILED" ? <ErrorMessage messageKey="money.paymentFailed" /> : null}
+      {payment?.status === "FAILED" ? (
+        <ErrorMessage messageKey="money.paymentFailed" />
+      ) : null}
 
       {canPay && payment?.status !== "PENDING" && payment?.status !== "PAID" ? (
         <View style={styles.section}>
           <Text style={styles.label}>{t("money.chooseOperator")}</Text>
           <View style={styles.chips}>
-            <Chip label={t("money.moov")} selected={operator === "MOOV_TG"} onPress={() => setOperator("MOOV_TG")} />
-            <Chip label={t("money.togocel")} selected={operator === "TOGOCEL"} onPress={() => setOperator("TOGOCEL")} />
+            <Chip
+              label={t("money.moov")}
+              selected={operator === "MOOV_TG"}
+              onPress={() => setOperator("MOOV_TG")}
+            />
+            <Chip
+              label={t("money.togocel")}
+              selected={operator === "TOGOCEL"}
+              onPress={() => setOperator("TOGOCEL")}
+            />
           </View>
           <PrimaryButton
             label={t("money.pay", { amount })}
@@ -165,7 +216,11 @@ export default function RoundScreen() {
         {round.payments.map((member) => (
           <View key={member.memberId} style={styles.row}>
             <Text style={[type.body, styles.name]}>{member.displayName}</Text>
-            <Text style={member.status === "PAID" ? styles.paidLabel : styles.waitLabel}>
+            <Text
+              style={
+                member.status === "PAID" ? styles.paidLabel : styles.waitLabel
+              }
+            >
               {member.status === "PAID" && member.paidAt
                 ? t("money.paidOn", { date: formatDay(member.paidAt) })
                 : t(`money.status.${member.status}`)}
@@ -186,7 +241,14 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.ink },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   note: { gap: 8, padding: 16, borderRadius: 14, backgroundColor: colors.mist },
-  receipt: { gap: 6, padding: 16, borderRadius: 14, borderWidth: 2, borderColor: colors.paid, backgroundColor: colors.card },
+  receipt: {
+    gap: 6,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: colors.paid,
+    backgroundColor: colors.card,
+  },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -198,6 +260,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   name: { fontFamily: fonts.bodySemiBold, color: colors.ink },
-  paidLabel: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.paid },
-  waitLabel: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },
+  paidLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.paid,
+  },
+  waitLabel: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    color: colors.muted,
+  },
 });
