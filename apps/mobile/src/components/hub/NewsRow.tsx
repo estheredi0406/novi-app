@@ -75,7 +75,7 @@ export function NewsRow({ item, first }: { item: NewsItem; first?: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
+  row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 15 },
   divider: { borderTopWidth: 1, borderTopColor: colors.line },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   avatarText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.white },

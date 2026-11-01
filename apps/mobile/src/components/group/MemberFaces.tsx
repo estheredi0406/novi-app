@@ -75,7 +75,7 @@ function initials(name: string): string {
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: "row", flexWrap: "wrap", rowGap: 10 },
+  grid: { flexDirection: "row", flexWrap: "wrap", rowGap: 14 },
   cell: { width: "16.66%", alignItems: "center", gap: 3 },
   halo: { padding: 2, borderRadius: 24, borderWidth: 2.5, borderColor: "transparent" },
   haloOn: { borderColor: colors.yourTurn },

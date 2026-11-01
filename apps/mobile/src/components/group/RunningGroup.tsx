@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   back: { fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.white },
   name: { fontFamily: fonts.bodyBold, fontSize: 24, lineHeight: 30, color: colors.white, marginTop: 8 },
   sub: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.onDark, opacity: 0.88 },
-  segmentWrap: { paddingHorizontal: 16, paddingTop: 12, gap: 6 },
+  segmentWrap: { paddingHorizontal: 20, paddingTop: 16, gap: 6 },
   segment: { flexDirection: "row", gap: 4, padding: 4, borderRadius: 14, backgroundColor: colors.mist },
   tab: {
     flex: 1,
@@ -232,5 +232,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   badgeText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.white },
-  content: { paddingHorizontal: 16, paddingVertical: 16, gap: 18, flexGrow: 1 },
+  content: { paddingHorizontal: 20, paddingVertical: 20, gap: 24, flexGrow: 1 },
 });

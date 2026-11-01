@@ -134,12 +134,12 @@ function Line({ line, first, locale }: { line: StatementLine; first: boolean; lo
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 14 },
+  wrap: { gap: 20 },
   summary: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    padding: 16,
+    gap: 18,
+    padding: 20,
     borderRadius: 22,
     backgroundColor: colors.indigo,
   },
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   filterText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.ink },
   filterTextOn: { color: colors.white },
   empty: { fontFamily: fonts.body, fontSize: 15, color: colors.muted },
-  month: { gap: 8 },
+  month: { gap: 10 },
   monthHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
   monthTitle: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.indigo },
   monthSum: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     paddingHorizontal: 14,
   },
-  line: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
+  line: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 15 },
   divider: { borderTopWidth: 1, borderTopColor: colors.line },
   day: { width: 42, alignItems: "center" },
   dayNumber: { fontFamily: fonts.display, fontSize: 20, lineHeight: 24, color: colors.indigo },

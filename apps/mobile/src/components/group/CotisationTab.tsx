@@ -246,8 +246,8 @@ function Tile({
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 18 },
-  card: { padding: 18, gap: 10 },
+  wrap: { gap: 24 },
+  card: { padding: 20, gap: 16 },
   done: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14, backgroundColor: "#E3F1E9" },
   doneText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.paid },
   soft: { backgroundColor: colors.mist },
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   },
   amount: { fontFamily: fonts.display, fontSize: 32, lineHeight: 40, color: colors.indigo },
   status: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.muted },
-  section: { gap: 8 },
+  section: { gap: 12 },
   title: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.indigo },
   list: { borderRadius: 16, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
@@ -270,13 +270,13 @@ const styles = StyleSheet.create({
   tag: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.muted },
   paid: { color: colors.paid },
   covered: { color: colors.teal },
-  tiles: { flexDirection: "row", gap: 10 },
+  tiles: { flexDirection: "row", gap: 12 },
   tile: {
     flex: 1,
     alignItems: "center",
-    gap: 8,
-    paddingTop: 14,
-    paddingBottom: 12,
+    gap: 10,
+    paddingTop: 18,
+    paddingBottom: 16,
     paddingHorizontal: 6,
     borderRadius: 18,
     backgroundColor: colors.card,
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   roundTitle: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 16, color: colors.ink },
   count: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
   hint: { fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: -6 },
-  pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  pills: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   pill: {
     fontFamily: fonts.bodyBold,
     fontSize: 13,

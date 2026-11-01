@@ -303,6 +303,9 @@ describe("payouts that need a look (D53)", () => {
       canRelease: false,
       canRetry: false,
     });
+    // D92: "since" is when she said it had not arrived.
+    const answered = await prisma.payout.findUniqueOrThrow({ where: { id: payout.id } });
+    expect(disputed.since).toBe(answered.receiptDisputedAt?.toISOString());
   });
 
   it("sums it all up on the overview", async () => {
@@ -463,10 +466,16 @@ describe("analytics and the officers' log (D67)", () => {
     await desk.post(`/v1/console/payouts/${ready.payoutId}/release`);
 
     const log = (await desk.get("/v1/console/activity")).body;
+    // D92: the line names the group, the round and the amount, in the
+    // officer's language (the console words it), never an English fragment.
     expect(log[0]).toMatchObject({
       action: "STAFF_PAYOUT_RELEASED",
+      category: "MONEY",
       staffName: expect.any(String),
-      detail: "round 1",
+      subject: expect.any(String),
+      round: 1,
+      amountFcfa: ready.amountFcfa,
+      detail: null,
     });
   });
 });

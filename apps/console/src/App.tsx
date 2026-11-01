@@ -12,6 +12,8 @@ import { Members } from "./pages/Members";
 import { FirstPassword } from "./pages/FirstPassword";
 import { Team } from "./pages/Team";
 import { LoanPage, LoanPolicy, Loans } from "./pages/Loans";
+import { Icon, type IconName } from "./Icon";
+import { useCounts } from "./useCounts";
 
 // The console's pages, read from the address bar after "#", so the browser's
 // back button works without a routing library: #/, #/groups/<id>,
@@ -56,6 +58,9 @@ export function App() {
   const [temporary, setTemporary] = useState<string | null>(null);
   const route = useRoute();
   const t = text[lang];
+  // D92: how many things wait in "Aujourd'hui" and in "Crédits", for the
+  // sidebar. Refreshed on every page change.
+  const counts = useCounts(Boolean(staff && !staff.mustChangePassword), route.join("/"));
 
   // A token from earlier in this tab: check it is still valid.
   useEffect(() => {
@@ -145,60 +150,43 @@ export function App() {
       <Overview t={t} onExpired={expired} />
     );
 
+  const link = (href: string, on: boolean, icon: IconName, label: string, count = 0) => (
+    <a href={href} className={on ? "on" : ""}>
+      <Icon name={icon} />
+      {label}
+      {count > 0 ? <span className="count">{count}</span> : null}
+    </a>
+  );
+
   return (
     <div className="shell">
-      <header className="top">
-        <div className="top-inner">
-          <a href="#/" className="wordmark">
-            Novi <span>{t.console}</span>
-          </a>
-          <nav>
-            <a
-              href="#/"
-              className={!section || section === "groups" ? "on" : ""}
-            >
-              {t.overview}
-            </a>
-            <a
-              href="#/analytics"
-              className={section === "analytics" ? "on" : ""}
-            >
-              {t.analytics}
-            </a>
-            <a
-              href="#/loans"
-              className={
-                section === "loans" || section === "loan-policy" ? "on" : ""
-              }
-            >
-              {t.loansNav}
-            </a>
-            <a href="#/records" className={section === "records" ? "on" : ""}>
-              {t.records}
-            </a>
-            <a href="#/members" className={section === "members" ? "on" : ""}>
-              {t.membersNav}
-            </a>
-            <a href="#/activity" className={section === "activity" ? "on" : ""}>
-              {t.activity}
-            </a>
-            {staff.role === "ADMIN" ? (
-              <a href="#/team" className={section === "team" ? "on" : ""}>
-                {t.team}
-              </a>
-            ) : null}
-          </nav>
-          <div className="who">
-            <strong>{staff.mfi.name}</strong>
-            <span>{staff.name}</span>
+      <aside className="side">
+        <a href="#/" className="brand">
+          <strong>Novi</strong>
+          <span>
+            {t.console} · {staff.mfi.name}
+          </span>
+        </a>
+        <nav>
+          {link("#/", !section || section === "groups", "home", t.overview, counts.toDo)}
+          {link("#/analytics", section === "analytics", "chart", t.analytics)}
+          {link("#/loans", section === "loans" || section === "loan-policy", "bank", t.loansNav, counts.loans)}
+          {link("#/records", section === "records", "doc", t.records)}
+          {link("#/members", section === "members", "user", t.membersNav)}
+          {link("#/activity", section === "activity", "list", t.activity)}
+          {staff.role === "ADMIN" ? link("#/team", section === "team", "team", t.team) : null}
+        </nav>
+        <div className="who">
+          <strong>{staff.name}</strong>
+          <span>{t.roles[staff.role]}</span>
+          <div className="row">
             {languageButton}
             <button className="link" onClick={() => void logout()}>
               {t.logout}
             </button>
           </div>
         </div>
-        <div className="band" aria-hidden="true" />
-      </header>
+      </aside>
       <main>{page}</main>
     </div>
   );

@@ -283,7 +283,9 @@ export async function listAttention(mfiId: string): Promise<AttentionItem[]> {
         0,
         expected - round.contributions.length - round.reserveCovers.length,
       ),
+      // A dispute dates from her "not received", not from when the pot left.
       since: (
+        (payout.status === "PAID" ? payout.receiptDisputedAt : null) ??
         payout.heldSince ??
         payout.requestedAt ??
         payout.createdAt
@@ -594,25 +596,48 @@ export async function getAnalytics(
 
 // ---------- What the officers did (D67) ----------
 
-const ACTIVITY_LABELS = [
-  "STAFF_GROUP_APPROVED",
-  "STAFF_GROUP_DECLINED",
-  "STAFF_PAYOUT_RELEASED",
-  "STAFF_PAYOUT_RETRY",
-  "STAFF_RECORD_OPENED",
-  "STAFF_MEMBER_LOOKUP",
-  "STAFF_MEMBER_EXIT",
-  "STAFF_PHONE_CHANGED",
-  "STAFF_ORGANISER_CHANGED",
-  "STAFF_DEMO_DUE",
-  "STAFF_ADDED",
-  "STAFF_DEACTIVATED",
-  "STAFF_REACTIVATED",
-  "STAFF_ACCESS_RESET",
-] as const;
+const ACTIVITY: Record<ConsoleActivity["action"], ConsoleActivity["category"]> = {
+  STAFF_GROUP_APPROVED: "GROUPS",
+  STAFF_GROUP_DECLINED: "GROUPS",
+  STAFF_DEMO_DUE: "GROUPS",
+  STAFF_PAYOUT_RELEASED: "MONEY",
+  STAFF_PAYOUT_RETRY: "MONEY",
+  STAFF_ADVANCE_SENT: "MONEY",
+  STAFF_RECORD_OPENED: "CREDIT",
+  STAFF_CREDIT_POLICY_CHANGED: "CREDIT",
+  STAFF_LOAN_PRESELECT: "CREDIT",
+  STAFF_LOAN_DECLINE: "CREDIT",
+  STAFF_LOAN_GRANT: "CREDIT",
+  STAFF_LOAN_NOTGRANTED: "CREDIT",
+  STAFF_LOAN_DOCUMENT_VIEWED: "CREDIT",
+  STAFF_LOAN_DOCUMENT_REVIEWED: "CREDIT",
+  STAFF_MEMBER_LOOKUP: "MEMBERS",
+  STAFF_MEMBER_EXIT: "MEMBERS",
+  STAFF_PHONE_CHANGED: "MEMBERS",
+  STAFF_ORGANISER_CHANGED: "MEMBERS",
+  STAFF_ADDED: "TEAM",
+  STAFF_DEACTIVATED: "TEAM",
+  STAFF_REACTIVATED: "TEAM",
+  STAFF_ACCESS_RESET: "TEAM",
+};
+const ACTIVITY_LABELS = Object.keys(ACTIVITY) as ConsoleActivity["action"][];
 
-// Every action taken by this MFI's officers, newest first: who did what and
-// when. Opening a shared record is included (each opening is logged, D54).
+type AuditDetails = {
+  staffId?: string;
+  round?: number;
+  groupId?: string;
+  payoutId?: string;
+  advanceId?: string;
+  loanId?: string;
+  userId?: string;
+  key?: string;
+  accepted?: boolean;
+  reason?: string;
+};
+
+// Every action taken by this MFI's officers, newest first: who did what, to
+// which group or member, and when (D67). Opening a shared record is included
+// (each opening is logged, D54), and so is every credit step (D91, D92).
 export async function listActivity(
   mfiId: string,
   limit = 100,
@@ -624,7 +649,7 @@ export async function listActivity(
   const names = new Map(staff.map((s) => [s.id, s.name]));
   const [events, views] = await Promise.all([
     prisma.auditEvent.findMany({
-      where: { type: { in: [...ACTIVITY_LABELS] } },
+      where: { type: { in: ACTIVITY_LABELS } },
       orderBy: { createdAt: "desc" },
       take: limit * 3,
     }),
@@ -635,32 +660,80 @@ export async function listActivity(
       include: { share: { select: { payloadText: true } } },
     }),
   ]);
+  const mine = events
+    .map((e) => ({ e, d: (e.details ?? {}) as AuditDetails }))
+    .filter(({ d }) => d.staffId && names.has(d.staffId));
 
-  const fromEvents = events.flatMap((event) => {
-    const details = (event.details ?? {}) as {
-      staffId?: string;
-      round?: number;
-      groupId?: string;
-      reason?: string;
+  // What each line is about, fetched once for all lines.
+  const ids = (k: keyof AuditDetails) => [
+    ...new Set(mine.map(({ d }) => d[k]).filter((v): v is string => typeof v === "string")),
+  ];
+  const [groups, payouts, advances, loans, users] = await Promise.all([
+    prisma.group.findMany({ where: { id: { in: ids("groupId") } }, select: { id: true, name: true } }),
+    prisma.payout.findMany({
+      where: { id: { in: ids("payoutId") } },
+      select: { id: true, amountFcfa: true, round: { select: { group: { select: { name: true } } } } },
+    }),
+    prisma.advance.findMany({
+      where: { id: { in: ids("advanceId") } },
+      select: { id: true, amountFcfa: true, group: { select: { name: true } } },
+    }),
+    prisma.loanRequest.findMany({
+      where: { id: { in: ids("loanId") } },
+      select: { id: true, amountFcfa: true, grantedFcfa: true, user: { select: { legalName: true } } },
+    }),
+    prisma.user.findMany({ where: { id: { in: ids("userId") } }, select: { id: true, legalName: true } }),
+  ]);
+  const groupName = new Map(groups.map((g) => [g.id, g.name]));
+  const payout = new Map(payouts.map((p) => [p.id, p]));
+  const advance = new Map(advances.map((a) => [a.id, a]));
+  const loan = new Map(loans.map((l) => [l.id, l]));
+  const userName = new Map(users.map((u) => [u.id, u.legalName]));
+
+  const fromEvents: ConsoleActivity[] = mine.map(({ e, d }) => {
+    const action = e.type as ConsoleActivity["action"];
+    const p = d.payoutId ? payout.get(d.payoutId) : undefined;
+    const a = d.advanceId ? advance.get(d.advanceId) : undefined;
+    const l = d.loanId ? loan.get(d.loanId) : undefined;
+    const subject =
+      p?.round.group.name ??
+      a?.group.name ??
+      l?.user.legalName ??
+      (d.userId ? userName.get(d.userId) : undefined) ??
+      (d.groupId ? groupName.get(d.groupId) : undefined) ??
+      // Team events keep the officer's name in "reason".
+      (ACTIVITY[action] === "TEAM" ? d.reason : undefined) ??
+      null;
+    const detail =
+      action === "STAFF_LOAN_DOCUMENT_REVIEWED"
+        ? d.accepted
+          ? "ACCEPTED"
+          : "REDO"
+        : action === "STAFF_LOAN_DOCUMENT_VIEWED"
+          ? (d.key ?? null)
+          : ACTIVITY[action] === "TEAM"
+            ? null
+            : (d.reason ?? null);
+    return {
+      at: e.createdAt.toISOString(),
+      staffName: names.get(d.staffId as string) ?? "",
+      action,
+      category: ACTIVITY[action],
+      subject,
+      round: typeof d.round === "number" ? d.round : null,
+      amountFcfa: p?.amountFcfa ?? a?.amountFcfa ?? l?.grantedFcfa ?? l?.amountFcfa ?? null,
+      detail,
     };
-    const name = details.staffId ? names.get(details.staffId) : undefined;
-    if (!name) return [];
-    return [
-      {
-        at: event.createdAt.toISOString(),
-        staffName: name,
-        action: event.type as ConsoleActivity["action"],
-        detail:
-          details.reason ?? (details.round ? `round ${details.round}` : null),
-      },
-    ];
   });
-  const fromViews = views.map((view) => ({
+  const fromViews: ConsoleActivity[] = views.map((view) => ({
     at: view.viewedAt.toISOString(),
     staffName: names.get(view.staffId as string) ?? "",
-    action: "STAFF_RECORD_OPENED" as const,
-    detail: (JSON.parse(view.share.payloadText) as { legalName: string })
-      .legalName,
+    action: "STAFF_RECORD_OPENED",
+    category: "CREDIT",
+    subject: (JSON.parse(view.share.payloadText) as { legalName: string }).legalName,
+    round: null,
+    amountFcfa: null,
+    detail: null,
   }));
   return [...fromEvents, ...fromViews]
     .sort((a, b) => b.at.localeCompare(a.at))

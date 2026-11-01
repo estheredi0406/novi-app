@@ -46,5 +46,5 @@ const styles = StyleSheet.create({
   dark: { backgroundColor: colors.indigo },
   fill: { flex: 1 },
   scroll: { flexGrow: 1 },
-  content: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 16, gap: 20 },
+  content: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 20, gap: 28 },
 });

@@ -145,6 +145,7 @@ export type ConsoleActivity = {
     | "STAFF_GROUP_DECLINED"
     | "STAFF_PAYOUT_RELEASED"
     | "STAFF_PAYOUT_RETRY"
+    | "STAFF_ADVANCE_SENT"
     | "STAFF_RECORD_OPENED"
     | "STAFF_MEMBER_LOOKUP"
     | "STAFF_MEMBER_EXIT"
@@ -154,8 +155,22 @@ export type ConsoleActivity = {
     | "STAFF_DEACTIVATED"
     | "STAFF_REACTIVATED"
     | "STAFF_ACCESS_RESET"
-    | "STAFF_DEMO_DUE";
-  detail: string | null; // the round, the decline reason, or whose record was opened
+    | "STAFF_DEMO_DUE"
+    | "STAFF_CREDIT_POLICY_CHANGED"
+    | "STAFF_LOAN_PRESELECT"
+    | "STAFF_LOAN_DECLINE"
+    | "STAFF_LOAN_GRANT"
+    | "STAFF_LOAN_NOTGRANTED"
+    | "STAFF_LOAN_DOCUMENT_VIEWED"
+    | "STAFF_LOAN_DOCUMENT_REVIEWED";
+  // D92: the Journal's filters.
+  category: "MONEY" | "GROUPS" | "CREDIT" | "MEMBERS" | "TEAM";
+  subject: string | null; // the group, the member or the officer it is about
+  round: number | null;
+  amountFcfa: number | null;
+  // The decline reason, the document (ID_CARD...), "ACCEPTED"/"REDO" for a
+  // reviewed document, or the exit reason.
+  detail: string | null;
 };
 
 // D69: one member as an officer sees her at the counter, found by her phone
