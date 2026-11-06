@@ -1,6 +1,6 @@
 import type { GroupDetail, MeetingsPage, RoundSummary } from "@novi/shared";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,10 +11,11 @@ import { fonts } from "../../theme/typography";
 import { errorKey } from "../../api/client";
 import { callGroup } from "../../api/groups";
 import { openCall } from "../../lib/openCall";
-import { speak } from "../../lib/speak";
+import { stopSpeaking } from "../../lib/speak";
 import { ErrorMessage } from "../ErrorMessage";
 import { LaguneBand } from "../LaguneBand";
 import { LineIcon } from "../LineIcon";
+import { ListenRound } from "../ListenButton";
 import { CotisationTab } from "./CotisationTab";
 import { GroupChat } from "./GroupChat";
 import { GroupInfoTab } from "./GroupInfoTab";
@@ -52,6 +53,9 @@ export function RunningGroup({
   ]
     .filter(Boolean)
     .join(" · ");
+
+  // A reading about one tab stops when she opens another (D99).
+  useEffect(() => stopSpeaking, [tab]);
 
   // Listen reads what the open tab is about, in a few words.
   const listen =
@@ -98,15 +102,7 @@ export function RunningGroup({
             <Text style={styles.back}>‹</Text>
           </Pressable>
           <View style={styles.topActions}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("hub.listen")}
-              onPress={() => speak(listen)}
-              style={styles.round}
-              hitSlop={6}
-            >
-              <LineIcon name="speaker" color={colors.white} size={22} />
-            </Pressable>
+            <ListenRound text={listen} style={styles.round} />
             {group.state === "ACTIVE" ? (
               <Pressable
                 accessibilityRole="button"

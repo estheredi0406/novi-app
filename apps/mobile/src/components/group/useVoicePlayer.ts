@@ -3,6 +3,7 @@ import { File, Paths } from "expo-file-system";
 import { useEffect, useState } from "react";
 import { errorKey } from "../../api/client";
 import { getVoice } from "../../api/groups";
+import { stopSpeaking } from "../../lib/speak";
 
 // One player for the whole chat, so only one voice note plays at a time.
 // A note is fetched once and kept in the phone's cache, so listening again
@@ -23,6 +24,8 @@ export function useVoicePlayer(groupId: string, onError: (key: string) => void) 
   }, [status.didJustFinish, player]);
 
   async function toggle(messageId: string) {
+    // A voice note never plays over a Listen reading (D99).
+    stopSpeaking();
     if (playingId === messageId) {
       if (status.playing) player.pause();
       else player.play();

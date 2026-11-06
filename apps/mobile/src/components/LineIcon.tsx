@@ -16,6 +16,7 @@ export type LineIconName =
   | "user"
   | "bell"
   | "speaker"
+  | "stop"
   | "more"
   | "qr"
   | "calendar"
@@ -79,6 +80,8 @@ export function LineIcon({
           <Path {...p} d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
           <Path {...p} d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
         </>
+      ) : name === "stop" ? (
+        <Rect x={6.5} y={6.5} width={11} height={11} rx={2.5} fill={color} stroke="none" />
       ) : name === "more" ? (
         <>
           <Circle cx={5.5} cy={12} r={1.7} fill={color} />

@@ -7,11 +7,13 @@ import { NotoSans_700Bold } from "@expo-google-fonts/noto-sans/700Bold";
 import { NotoSansDisplay_800ExtraBold } from "@expo-google-fonts/noto-sans-display/800ExtraBold";
 import { setAudioModeAsync } from "expo-audio";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
+import { AppState } from "react-native";
 import { SplashIntro } from "../components/SplashIntro";
+import { stopSpeaking } from "../lib/speak";
 import { SessionProvider, useSession } from "../session/SessionProvider";
 import { colors } from "../theme/colors";
 
@@ -22,6 +24,21 @@ import { colors } from "../theme/colors";
 // only while she has not. When the status
 // changes (she logs in, or logs out), Expo Router leaves any screen that
 // is no longer allowed, so the back button cannot reopen it.
+// A Listen reading belongs to the screen it describes (D99): it stops when
+// she moves to another screen (a call or a payment page is a screen too), and
+// when Novi leaves the foreground or the phone locks.
+function SpeechGuard() {
+  const pathname = usePathname();
+  useEffect(() => stopSpeaking, [pathname]);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") stopSpeaking();
+    });
+    return () => sub.remove();
+  }, []);
+  return null;
+}
+
 function AppStack() {
   const { status } = useSession();
   if (status === "loading") return null;
@@ -74,6 +91,7 @@ export default function RootLayout() {
     <SessionProvider>
       <StatusBar style={introDone ? "dark" : "light"} />
       <AppStack />
+      <SpeechGuard />
       {introDone ? null : <SplashIntro onDone={endIntro} />}
     </SessionProvider>
   );

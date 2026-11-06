@@ -39,21 +39,60 @@ function pieces(text: string): Piece[] {
 let run = 0;
 let player: AudioPlayer | null = null;
 
+// Which Listen button is speaking right now (null: silence), so that button
+// can show "Arrêter" and stop the reading when tapped again (D99). Screens
+// subscribe with onSpeakingChange; every way the sound ends sets it back.
+let owner: string | null = null;
+const listeners = new Set<(owner: string | null) => void>();
+
+function setOwner(next: string | null): void {
+  if (owner === next) return;
+  owner = next;
+  for (const listener of listeners) listener(owner);
+}
+
+export function speakingOwner(): string | null {
+  return owner;
+}
+
+export function onSpeakingChange(listener: (owner: string | null) => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+// A reading that ended by itself clears the owner, unless a newer reading
+// has started since (run moved on).
+function finished(mine: number): void {
+  if (mine === run) setOwner(null);
+}
+
 export function stopSpeaking(): void {
   run++;
   void Speech.stop();
   player?.remove();
   player = null;
+  setOwner(null);
 }
 
-export function speak(text: string): void {
+// `by` names the button that asked, so only that button shows "Arrêter".
+export function speak(text: string, by: string = text): void {
   stopSpeaking();
+  const mine = run;
+  setOwner(by);
   const lang = i18n.language;
   if (lang !== "ee" || Object.keys(clips).length === 0) {
-    Speech.speak(text, { language: lang === "en" ? "en-US" : "fr-FR", rate: 0.9 });
+    Speech.speak(text, {
+      language: lang === "en" ? "en-US" : "fr-FR",
+      rate: 0.9,
+      onDone: () => finished(mine),
+      onStopped: () => finished(mine),
+      onError: () => finished(mine),
+    });
     return;
   }
-  void playAll(pieces(text), ++run);
+  void playAll(pieces(text), mine).finally(() => finished(mine));
 }
 
 async function playAll(list: Piece[], mine: number) {

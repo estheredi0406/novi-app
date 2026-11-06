@@ -226,7 +226,11 @@ export function GroupChat({
       : t("chat.paid", { round: m.round, name: who });
   }
 
-  const say = (text: string) => speak(text);
+  // One sound at a time: reading a line stops a voice note, and the reverse.
+  const say = (text: string) => {
+    voice.stop();
+    speak(text);
+  };
 
   const time = (iso: string) =>
     new Date(iso).toLocaleTimeString(
