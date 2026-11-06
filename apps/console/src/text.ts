@@ -249,7 +249,9 @@ export const text = {
     advanceSent: "Versée",
     recordTitle: "Les membres",
     recordHint:
-      "Chaque membre a choisi, en rejoignant, de partager son historique Novi avec FUCEC. Ses messages et le détail de ses paiements restent privés.",
+      "Pour valider le groupe : l'historique Novi de chaque membre qui a accepté de le partager. Ses messages et le détail de ses paiements restent privés.",
+    recordClosed:
+      "Les historiques des membres ne sont visibles que pendant la validation du groupe.",
     colMember: "Membre",
     colRecord: "Historique Novi",
     colCaisse: "Caisse de secours",
@@ -725,7 +727,9 @@ export const text = {
     advanceSent: "Sent",
     recordTitle: "Members",
     recordHint:
-      "Each member chose, when joining, to share her Novi record with the MFI. Her messages and her individual payments stay private.",
+      "To validate the group: the Novi record of each member who agreed to share it. Her messages and her individual payments stay private.",
+    recordClosed:
+      "Members' records are visible only while the group is being validated.",
     colMember: "Member",
     colRecord: "Novi record",
     colCaisse: "Emergency fund",

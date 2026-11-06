@@ -316,7 +316,7 @@ export async function answerReceipt(
         subject: `Cagnotte non reçue : ${round.group.name}, tour ${round.number}`,
         lines: [
           `La bénéficiaire du tour ${round.number} de « ${round.group.name} » dit ne pas avoir reçu sa cagnotte.`,
-          "Vérifiez le transfert avec FUCEC.",
+          "Vérifiez ce transfert dans votre système.",
         ],
       });
     }

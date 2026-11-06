@@ -1,9 +1,9 @@
-import type { Frequency, GroupRules, PayoutOrder } from "@novi/shared";
-import { useState } from "react";
+import type { Frequency, GroupRules, PartnerMfi, PayoutOrder } from "@novi/shared";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../api/client";
-import type { RulesInput } from "../api/groups";
+import { listMfis, type RulesInput } from "../api/groups";
 import { formatFcfa } from "../lib/format";
 import { colors } from "../theme/colors";
 import { fonts, type } from "../theme/typography";
@@ -38,6 +38,18 @@ export function RulesForm({
   const [dueDay, setDueDay] = useState(initial?.dueDay ?? 5);
   const [size, setSize] = useState(initial?.size ?? 10);
   const [payoutOrder, setPayoutOrder] = useState<PayoutOrder>(initial?.payoutOrder ?? "DRAWN");
+  // D95: where the money is kept. The partners come from the API; until they
+  // arrive (or if they cannot), the group keeps its MFI or gets the default.
+  const [mfis, setMfis] = useState<PartnerMfi[]>([]);
+  const [mfiId, setMfiId] = useState<string | undefined>(initial?.mfiId);
+  useEffect(() => {
+    listMfis()
+      .then((list) => {
+        setMfis(list);
+        setMfiId((current) => current ?? list[0]?.id);
+      })
+      .catch(() => undefined);
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -57,7 +69,7 @@ export function RulesForm({
     setBusy(true);
     setError(null);
     try {
-      await onSubmit({ name: name.trim(), amountFcfa, frequency, dueDay, size, payoutOrder });
+      await onSubmit({ name: name.trim(), amountFcfa, frequency, dueDay, size, payoutOrder, mfiId });
     } catch (err) {
       setError(errorKey(err));
     } finally {
@@ -128,6 +140,18 @@ export function RulesForm({
           {payoutOrder === "DRAWN" ? t("rules.orderDrawnHint") : t("rules.orderFixedHint")}
         </Text>
       </View>
+
+      {mfis.length > 0 ? (
+        <View style={styles.group}>
+          <Text style={styles.label}>{t("rules.mfiLabel")}</Text>
+          <View style={styles.chips}>
+            {mfis.map((m) => (
+              <Chip key={m.id} label={m.name} selected={mfiId === m.id} onPress={() => setMfiId(m.id)} />
+            ))}
+          </View>
+          <Text style={[type.small, styles.muted]}>{t("rules.mfiHint")}</Text>
+        </View>
+      ) : null}
 
       {amountFcfa > 0 ? (
         <View style={styles.note}>

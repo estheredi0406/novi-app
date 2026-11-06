@@ -45,6 +45,7 @@ export const errors = {
   DUE_DAY_OUT_OF_RANGE: { messageKey: "groups.dueDayOutOfRange" },
   GROUP_FULL: { messageKey: "groups.full" },
   GROUP_LIMIT_REACHED: { messageKey: "groups.limitReached" },
+  MFI_UNKNOWN: { messageKey: "groups.mfiUnknown" },
   START_LIMIT_REACHED: { messageKey: "groups.startLimitReached" },
   SEATS_NOT_FILLED: { messageKey: "groups.seatsNotFilled" },
   NOT_EVERYONE_ACCEPTED: { messageKey: "groups.notEveryoneAccepted" },

@@ -14,6 +14,7 @@
     "db:migrate": "prisma migrate dev && prisma generate",
     "demo:group": "tsx src/scripts/demoGroup.ts",
     "staff:create": "tsx src/scripts/createStaff.ts",
+    "mfi:create": "tsx src/scripts/createMfi.ts",
     "demo:payout": "tsx src/scripts/demoPayout.ts",
     "demo:reset": "tsx src/scripts/demoReset.ts",
     "fedapay:probe": "tsx src/scripts/fedapayProbe.ts",

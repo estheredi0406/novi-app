@@ -68,6 +68,7 @@ const rules = z
     dueDay: z.number(),
     size: z.number(),
     payoutOrder: z.enum(["DRAWN", "FIXED"]).default("DRAWN"),
+    mfiId: z.string().uuid().optional(), // D95
   })
   .strict();
 

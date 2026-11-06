@@ -19,12 +19,11 @@ import { ErrorMessage } from "../../../../../components/ErrorMessage";
 import { CowrieMark } from "../../../../../components/BottomBar";
 import { MemberFaces } from "../../../../../components/group/MemberFaces";
 import { LaguneBand } from "../../../../../components/LaguneBand";
-import { LineIcon } from "../../../../../components/LineIcon";
+import { ListenRound } from "../../../../../components/ListenButton";
 import { Screen } from "../../../../../components/Screen";
 import { TextButton } from "../../../../../components/TextButton";
 import { formatDay, formatFcfa } from "../../../../../lib/format";
 import { openPaymentPage } from "../../../../../lib/openCall";
-import { speak } from "../../../../../lib/speak";
 import { useSession } from "../../../../../session/SessionProvider";
 import { colors } from "../../../../../theme/colors";
 import { fonts, type } from "../../../../../theme/typography";
@@ -149,15 +148,7 @@ export default function RoundScreen() {
             >
               <Text style={styles.back}>‹</Text>
             </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("hub.listen")}
-              onPress={() => speak(listen)}
-              style={styles.round}
-              hitSlop={6}
-            >
-              <LineIcon name="speaker" color={colors.white} size={22} />
-            </Pressable>
+            <ListenRound text={listen} style={styles.round} />
           </View>
           <Text style={styles.bandTitle}>
             {canPay ? t("pay.bandTitle") : t("money.roundTitle", { number: round.number, date: formatDay(round.dueDate) })}

@@ -18,6 +18,7 @@ import { TextButton } from "./TextButton";
 // - waiting: when she cannot answer, explain that the rules are not sent yet
 export function AnswerPanel({
   groupId,
+  mfiName,
   version,
   canAnswer,
   hasSeat,
@@ -27,6 +28,7 @@ export function AnswerPanel({
   onRulesChanged,
 }: {
   groupId: string;
+  mfiName: string;
   version: number;
   canAnswer: boolean;
   hasSeat: boolean;
@@ -78,19 +80,20 @@ export function AnswerPanel({
     <View style={styles.panel}>
       {canAnswer ? (
         <>
-          {/* D84: FUCEC sees her Novi record only if she agrees; joining needs it. */}
+          {/* D98: sharing her record with the MFI is her choice; she can
+              join without it, and the MFI sees it only while it validates. */}
           <Text style={[type.small, styles.muted]}>
-            {t("answer.shareConsentNeeded")}
+            {t("answer.shareConsentNeeded", { mfi: mfiName })}
           </Text>
           <CheckRow checked={consent} onToggle={() => setConsent(!consent)}>
-            {t("answer.shareConsent")}
+            {t("answer.shareConsent", { mfi: mfiName })}
           </CheckRow>
           <PrimaryButton
             label={t("answer.accept", { version })}
             onPress={() =>
-              void run(() => acceptRules(groupId, version, true), onSeat)
+              void run(() => acceptRules(groupId, version, consent), onSeat)
             }
-            disabled={busy || !consent}
+            disabled={busy}
           />
           {asking ? (
             <View style={styles.ask}>

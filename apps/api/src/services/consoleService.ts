@@ -166,7 +166,9 @@ export async function getConsoleGroup(
   return {
     ...(await withReserve(toConsoleGroup(group))),
     roundList,
-    members: await memberCards(groupId),
+    // D98: members' records help the officer decide; once the group is
+    // validated or declined, they are no longer shown.
+    members: group.state === "STARTING" ? await memberCards(groupId) : [],
   };
 }
 

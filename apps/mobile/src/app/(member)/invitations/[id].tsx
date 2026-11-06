@@ -65,6 +65,7 @@ export default function InvitationScreen() {
 
       <AnswerPanel
         groupId={invitation.groupId}
+        mfiName={invitation.mfiName}
         version={invitation.rules.version}
         canAnswer={invitation.groupState === "PROPOSED"}
         hasSeat={false}

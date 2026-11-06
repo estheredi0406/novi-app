@@ -4,6 +4,7 @@ import type {
   GroupRules,
   GroupSummary,
   Invitation,
+  PartnerMfi,
 } from "@novi/shared";
 import { Prisma } from "../generated/prisma/client.js";
 import type {
@@ -57,7 +58,29 @@ export type RulesInput = {
   dueDay: number;
   size: number;
   payoutOrder: PayoutOrder;
+  // D95: the MFI chosen to keep the money. Left out by older app versions:
+  // the group then keeps its MFI, or a new group gets the default partner.
+  mfiId?: string;
 };
+
+// Every partner MFI a group can choose (D95), the default partner first.
+export async function listPartnerMfis(): Promise<PartnerMfi[]> {
+  await prisma.mfi.upsert({ where: { code: PARTNER_MFI.code }, create: PARTNER_MFI, update: {} });
+  const mfis = await prisma.mfi.findMany({ orderBy: { createdAt: "asc" } });
+  return mfis
+    .map(({ id, code, name }) => ({ id, code, name }))
+    .sort((a, b) => Number(b.code === PARTNER_MFI.code) - Number(a.code === PARTNER_MFI.code));
+}
+
+// The MFI a group asked for, or the default partner when none was given.
+async function chooseMfi(db: Prisma.TransactionClient | typeof prisma, mfiId: string | undefined) {
+  if (mfiId === undefined) {
+    return db.mfi.upsert({ where: { code: PARTNER_MFI.code }, create: PARTNER_MFI, update: {} });
+  }
+  const mfi = await db.mfi.findUnique({ where: { id: mfiId } });
+  if (!mfi) throw new AppError("MFI_UNKNOWN", 400);
+  return mfi;
+}
 
 // ---------- Reading ----------
 
@@ -128,6 +151,7 @@ function toRules(
     size: rules.size,
     payoutOrder: rules.payoutOrder,
     fixedOrder: rules.fixedOrder,
+    mfiId: rules.mfiId,
   };
 }
 
@@ -393,19 +417,21 @@ export async function createGroup(
 ): Promise<GroupDetail> {
   enforce(checkRules(input));
   await refuseIfOwing(userId);
-  const { name, ...rules } = input;
+  const { name, mfiId, ...rules } = input;
 
   const groupId = await prisma.$transaction(async (tx) => {
-    const mfi = await tx.mfi.upsert({
-      where: { code: PARTNER_MFI.code },
-      create: PARTNER_MFI,
-      update: {},
-    });
+    const mfi = await chooseMfi(tx, mfiId);
     const group = await tx.group.create({
       data: { name, mfiId: mfi.id, organiserId: userId, currentVersion: 1 },
     });
     await tx.rulesVersion.create({
-      data: { groupId: group.id, version: 1, proposedById: userId, ...rules },
+      data: {
+        groupId: group.id,
+        version: 1,
+        proposedById: userId,
+        mfiId: mfi.id,
+        ...rules,
+      },
     });
     await tx.membership.create({
       data: {
@@ -438,11 +464,12 @@ async function authorise(groupId: string, userId: string, action: GroupAction) {
 async function saveNextVersion(
   group: LoadedGroup,
   userId: string,
-  rules: RulesInput & { fixedOrder: string[] },
+  rules: Omit<RulesInput, "mfiId"> & { fixedOrder: string[]; mfiId: string },
   audit: "GROUP_RULES_REVISED" | "GROUP_ORDER_SET",
 ) {
   const groupId = group.id;
   const version = group.currentVersion + 1;
+  const mfiChanged = rules.mfiId !== group.mfiId;
 
   await prisma.$transaction(async (tx) => {
     await tx.rulesVersion.create({
@@ -450,8 +477,16 @@ async function saveNextVersion(
     });
     await tx.group.update({
       where: { id: groupId },
-      data: { currentVersion: version },
+      data: { currentVersion: version, mfiId: rules.mfiId },
     });
+    // D95, D98: an agreement to share her record was given to one MFI; it
+    // does not carry over to another.
+    if (mfiChanged) {
+      await tx.membership.updateMany({
+        where: { groupId },
+        data: { shareConsentAt: null },
+      });
+    }
     await tx.membership.updateMany({
       where: {
         groupId,
@@ -484,12 +519,16 @@ export async function reviseRules(
 ): Promise<GroupDetail> {
   const { group } = await authorise(groupId, userId, "EDIT_RULES");
   enforce(checkRules(rules));
-  const fixedOrder =
-    rules.payoutOrder === "FIXED" ? currentRules(group).fixedOrder : [];
+  const current = currentRules(group);
+  const fixedOrder = rules.payoutOrder === "FIXED" ? current.fixedOrder : [];
+  const mfiId =
+    rules.mfiId === undefined
+      ? current.mfiId
+      : (await chooseMfi(prisma, rules.mfiId)).id;
   await saveNextVersion(
     group,
     userId,
-    { ...rules, fixedOrder },
+    { ...rules, fixedOrder, mfiId },
     "GROUP_RULES_REVISED",
   );
   return getGroup(groupId, userId);
@@ -861,6 +900,7 @@ export async function setPayoutOrder(
       size,
       payoutOrder: "FIXED",
       fixedOrder: memberIds,
+      mfiId: rules.mfiId,
     },
     "GROUP_ORDER_SET",
   );
@@ -1076,6 +1116,7 @@ export async function startNextCycle(
     dueDay: rules.dueDay,
     size: rules.size,
     payoutOrder: rules.payoutOrder,
+    mfiId: rules.mfiId, // the next cycle stays at the same MFI unless changed (D95)
   });
   try {
     await prisma.group.update({

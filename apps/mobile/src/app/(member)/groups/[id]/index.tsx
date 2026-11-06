@@ -287,14 +287,14 @@ export default function GroupScreen() {
 
       {isOrganiser && state === "DRAFT" ? (
         <View style={styles.section}>
-          {/* D84: the organiser agrees too, for her own seat. */}
+          {/* D98: the organiser chooses too, for her own seat. */}
           <CheckRow checked={consent} onToggle={() => setConsent(!consent)}>
-            {t("answer.shareConsent")}
+            {t("answer.shareConsent", { mfi: group.mfiName })}
           </CheckRow>
           <PrimaryButton
             label={t("group.propose")}
-            disabled={busy || !consent}
-            onPress={() => void run(() => proposeGroup(group.id, true))}
+            disabled={busy}
+            onPress={() => void run(() => proposeGroup(group.id, consent))}
           />
           <Text style={[type.small, styles.muted]}>
             {t("group.proposeHint")}
@@ -359,6 +359,7 @@ export default function GroupScreen() {
             </Text>
             <AnswerPanel
               groupId={group.id}
+              mfiName={group.mfiName}
               version={rules.version}
               canAnswer={false}
               hasSeat
@@ -371,6 +372,7 @@ export default function GroupScreen() {
         ) : (
           <AnswerPanel
             groupId={group.id}
+            mfiName={group.mfiName}
             version={rules.version}
             canAnswer={state === "PROPOSED"}
             hasSeat

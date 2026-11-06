@@ -8,6 +8,7 @@ import type {
   GroupSummary,
   Invitation,
   MeetingsPage,
+  PartnerMfi,
   PayoutOrder,
   VoiceAudio,
 } from "@novi/shared";
@@ -23,6 +24,7 @@ export type RulesInput = {
   dueDay: number;
   size: number;
   payoutOrder: PayoutOrder;
+  mfiId?: string; // D95: where the money is kept
 };
 
 export const listMyGroups = () =>
@@ -32,11 +34,14 @@ export const listMyInvitations = () =>
 export const getGroup = (id: string) =>
   memberRequest<GroupDetail>("GET", `/v1/groups/${id}`);
 
+// D95: the MFIs a group can choose to keep its money.
+export const listMfis = () => memberRequest<PartnerMfi[]>("GET", "/v1/mfis");
 export const createGroup = (input: { name: string } & RulesInput) =>
   memberRequest<GroupDetail>("POST", "/v1/groups", input);
 export const reviseRules = (id: string, rules: RulesInput) =>
   memberRequest<GroupDetail>("POST", `/v1/groups/${id}/rules`, rules);
-// D84: shareConsent, her agreement that FUCEC sees her Novi record.
+// D84, D98: shareConsent, her optional agreement that the group's MFI sees
+// her Novi record while it validates the group.
 export const proposeGroup = (id: string, shareConsent = false) =>
   memberRequest<GroupDetail>("POST", `/v1/groups/${id}/propose`, {
     shareConsent,

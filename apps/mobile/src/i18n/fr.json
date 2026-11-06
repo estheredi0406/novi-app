@@ -3,6 +3,7 @@
     "continue": "Continuer",
     "back": "Retour",
     "listen": "Écouter",
+    "stop": "Arrêter",
     "tryAgain": "Réessayer",
     "next": "Suivant",
     "close": "Fermer",
@@ -222,6 +223,8 @@
     "orderFixed": "Fixé par la personne qui organise",
     "orderDrawnHint": "Tiré au sort au démarrage. Personne ne le choisit.",
     "orderFixedHint": "Vous fixez l'ordre, chaque membre l'accepte.",
+    "mfiLabel": "Où l'argent est gardé",
+    "mfiHint": "L'institution qui garde l'argent du groupe et verse chaque cagnotte. Chaque membre l'accepte avec les règles. Elle ne change plus une fois le groupe lancé.",
     "heldAt": "Argent conservé chez",
     "everyWeekday": "chaque {{day}}",
     "everyMonthDay": "le {{day}} de chaque mois",
@@ -304,8 +307,8 @@
     "leave": "Quitter le groupe",
     "leaveTitle": "Quitter ce groupe ?",
     "declinePrivate": "Si vous refusez, le groupe ne voit pas votre nom.",
-    "shareConsent": "J'accepte que FUCEC voie mon historique Novi (tontines terminées, paiements à l'heure, caisse de secours). Pas mes messages.",
-    "shareConsentNeeded": "FUCEC vérifie chaque membre avant d'ouvrir le compte du groupe."
+    "shareConsent": "Facultatif : j'accepte que {{mfi}} voie mon historique Novi pour vérifier ce groupe : toutes mes tontines Novi, mes paiements à l'heure, ce que je dois à la caisse de secours. Pas mes messages. Il ne le voit plus une fois le groupe vérifié.",
+    "shareConsentNeeded": "{{mfi}} vérifie chaque membre avant d'ouvrir le compte du groupe. Sans votre accord, il ne voit pas votre historique."
   },
   "money": {
     "rounds": "Tours",
@@ -470,6 +473,7 @@
     "dueDayOutOfRange": "Choisissez un jour de la semaine, ou une date du 1er au 28.",
     "full": "Toutes les places de ce groupe sont prises.",
     "limitReached": "Vous êtes déjà dans 3 groupes. Terminez-en un ou quittez-le avant d'en rejoindre un autre.",
+    "mfiUnknown": "Cette institution n'est pas partenaire de Novi. Choisissez-en une dans la liste.",
     "startLimitReached": "Vous pourrez lancer un troisième groupe quand un de vos groupes aura terminé son cycle.",
     "seatsNotFilled": "Toutes les places doivent être prises avant le démarrage du groupe.",
     "notEveryoneAccepted": "Tous les membres doivent accepter les dernières règles avant le démarrage.",

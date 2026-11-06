@@ -3,6 +3,7 @@
     "continue": "Continue",
     "back": "Back",
     "listen": "Listen",
+    "stop": "Stop",
     "tryAgain": "Try again",
     "next": "Next",
     "close": "Close",
@@ -222,6 +223,8 @@
     "orderFixed": "Set by the organiser",
     "orderDrawnHint": "Drawn at random at the start. Nobody chooses it.",
     "orderFixedHint": "You set the order, each member accepts it.",
+    "mfiLabel": "Where the money is kept",
+    "mfiHint": "The institution that keeps the group's money and pays each pot. Every member accepts it with the rules. It cannot change once the group has started.",
     "heldAt": "Money held at",
     "everyWeekday": "every {{day}}",
     "everyMonthDay": "on day {{day}} of each month",
@@ -304,8 +307,8 @@
     "leave": "Leave the group",
     "leaveTitle": "Leave this group?",
     "declinePrivate": "If you say no, the group does not see your name.",
-    "shareConsent": "I agree that FUCEC sees my Novi record (completed tontines, payments on time, emergency fund). Not my messages.",
-    "shareConsentNeeded": "FUCEC checks each member before opening the group's account."
+    "shareConsent": "Optional: I agree that {{mfi}} sees my Novi record to check this group: all my Novi tontines, my payments on time, what I owe the emergency fund. Not my messages. It stops seeing it once the group is checked.",
+    "shareConsentNeeded": "{{mfi}} checks each member before opening the group's account. Without your agreement, it does not see your record."
   },
   "money": {
     "rounds": "Rounds",
@@ -470,6 +473,7 @@
     "dueDayOutOfRange": "Choose a day of the week, or a date from the 1st to the 28th.",
     "full": "Every seat in this group is taken.",
     "limitReached": "You are already in 3 groups. Finish or leave one before joining another.",
+    "mfiUnknown": "This institution is not a Novi partner. Choose one from the list.",
     "startLimitReached": "You can start a third group once a group you are in has completed its cycle.",
     "seatsNotFilled": "Every seat must be filled before the group starts.",
     "notEveryoneAccepted": "Everyone must accept the latest rules before the group starts.",

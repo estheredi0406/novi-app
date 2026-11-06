@@ -19,6 +19,15 @@ export type GroupRules = {
   size: number;
   payoutOrder: PayoutOrder;
   fixedOrder: string[]; // FIXED only: member IDs, first to be paid first (D41)
+  mfiId: string; // D95: where the money is kept, accepted with the rest
+};
+
+// D95: an MFI a group can choose to keep its money. The list comes from the
+// API, so a new partner appears without a new version of the app.
+export type PartnerMfi = {
+  id: string;
+  code: string;
+  name: string;
 };
 
 // One seat as every member of the group sees it. Only the display name is

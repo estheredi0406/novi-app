@@ -12,12 +12,12 @@ import { GroupCard } from "../../components/hub/GroupCard";
 import { NewsRow, newsTitle } from "../../components/hub/NewsRow";
 import { LaguneBand } from "../../components/LaguneBand";
 import { LineIcon, type LineIconName } from "../../components/LineIcon";
+import { ListenRound } from "../../components/ListenButton";
 import { LoanCard } from "../../components/LoanCard";
 import { Screen } from "../../components/Screen";
 import { SeatRing } from "../../components/art/SeatRing";
 import { cardsInOrder, owes } from "../../lib/hub";
 import { rulesSummary, stateLabel } from "../../lib/rulesText";
-import { speak } from "../../lib/speak";
 import { useSession } from "../../session/SessionProvider";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
@@ -146,15 +146,7 @@ export function HomeView({
                 {t("hub.hello", { name: firstName })}
               </Text>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("hub.listen")}
-              onPress={() => speak(listenText)}
-              style={styles.round}
-              hitSlop={6}
-            >
-              <LineIcon name="speaker" color={colors.white} size={22} />
-            </Pressable>
+            <ListenRound text={listenText} style={styles.round} />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("hub.news")}

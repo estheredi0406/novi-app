@@ -150,85 +150,92 @@ export function GroupPage({
       </div>
 
       <h2>{t.recordTitle}</h2>
-      <p className="muted small">{t.recordHint}</p>
-      <table className="members">
-        <thead>
-          <tr>
-            <th>{t.colMember}</th>
-            <th>{t.colRecord}</th>
-            <th>{t.colCaisse}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.members.map((m, i) => (
-            <tr key={i}>
-              <td>
-                {m.consent ? (
-                  <>
-                    <strong>{m.name}</strong>
-                    {m.organiser ? (
-                      <span className="muted small"> ({t.organiserTag})</span>
-                    ) : null}
-                    <br />
-                    <span className="small paid-text">
-                      ✓ {t.verifiedOn(day(m.verifiedAt ?? ""))}
-                    </span>
-                  </>
-                ) : (
-                  <span className="muted">
-                    {m.turn ? `${t.turn(m.turn)} · ` : ""}
-                    {t.noConsent}
-                  </span>
-                )}
-              </td>
-              <td>
-                {!m.consent ? (
-                  "…"
-                ) : m.paymentsMade === 0 && m.cyclesCompleted === 0 ? (
-                  <span className="muted">{t.newOnNovi}</span>
-                ) : (
-                  <>
-                    <span className="dots" aria-hidden="true">
-                      {Array.from(
-                        { length: Math.min(m.paymentsMade, 24) },
-                        (_, k) => (
-                          <span
-                            key={k}
-                            className={
-                              k < m.paymentsOnTime
-                                ? "rec-dot rec-dot-ok"
-                                : "rec-dot rec-dot-late"
-                            }
-                          />
-                        ),
-                      )}
-                    </span>
-                    <br />
-                    <span className="small">
-                      {t.record(
-                        m.cyclesCompleted,
-                        m.paymentsMade,
-                        m.paymentsOnTime,
-                      )}
-                    </span>
-                  </>
-                )}
-              </td>
-              <td>
-                {!m.consent ? (
-                  "…"
-                ) : m.owesCaisseFcfa > 0 ? (
-                  <strong className="problem-text">
-                    {t.owes(fcfa(m.owesCaisseFcfa))}
-                  </strong>
-                ) : (
-                  t.recordOwesNothing
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* D98: records are shown only while the officer decides. */}
+      {data.state !== "STARTING" ? (
+        <p className="muted small">{t.recordClosed}</p>
+      ) : (
+        <>
+          <p className="muted small">{t.recordHint}</p>
+          <table className="members">
+            <thead>
+              <tr>
+                <th>{t.colMember}</th>
+                <th>{t.colRecord}</th>
+                <th>{t.colCaisse}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.members.map((m, i) => (
+                <tr key={i}>
+                  <td>
+                    {m.consent ? (
+                      <>
+                        <strong>{m.name}</strong>
+                        {m.organiser ? (
+                          <span className="muted small"> ({t.organiserTag})</span>
+                        ) : null}
+                        <br />
+                        <span className="small paid-text">
+                          ✓ {t.verifiedOn(day(m.verifiedAt ?? ""))}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="muted">
+                        {m.turn ? `${t.turn(m.turn)} · ` : ""}
+                        {t.noConsent}
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    {!m.consent ? (
+                      "…"
+                    ) : m.paymentsMade === 0 && m.cyclesCompleted === 0 ? (
+                      <span className="muted">{t.newOnNovi}</span>
+                    ) : (
+                      <>
+                        <span className="dots" aria-hidden="true">
+                          {Array.from(
+                            { length: Math.min(m.paymentsMade, 24) },
+                            (_, k) => (
+                              <span
+                                key={k}
+                                className={
+                                  k < m.paymentsOnTime
+                                    ? "rec-dot rec-dot-ok"
+                                    : "rec-dot rec-dot-late"
+                                }
+                              />
+                            ),
+                          )}
+                        </span>
+                        <br />
+                        <span className="small">
+                          {t.record(
+                            m.cyclesCompleted,
+                            m.paymentsMade,
+                            m.paymentsOnTime,
+                          )}
+                        </span>
+                      </>
+                    )}
+                  </td>
+                  <td>
+                    {!m.consent ? (
+                      "…"
+                    ) : m.owesCaisseFcfa > 0 ? (
+                      <strong className="problem-text">
+                        {t.owes(fcfa(m.owesCaisseFcfa))}
+                      </strong>
+                    ) : (
+                      t.recordOwesNothing
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
 
     </>
   );

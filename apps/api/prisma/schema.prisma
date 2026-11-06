@@ -288,8 +288,9 @@ model Mfi {
   name      String   // shown to members on every money screen
   createdAt DateTime @default(now())
 
-  groups       Group[]
-  staff        StaffUser[]
+  groups        Group[]
+  rulesVersions RulesVersion[]
+  staff         StaffUser[]
   recordShares RecordShare[]
   loanRequests LoanRequest[]
   creditPolicy CreditPolicy?
@@ -347,10 +348,14 @@ model RulesVersion {
   size         Int         // number of members, 3 to 15 (D28)
   payoutOrder  PayoutOrder @default(DRAWN)
   fixedOrder   String[]    @default([]) // FIXED only: member IDs, first to be paid first (D41)
+  // D95: where the group's money is kept is part of the rules, so every
+  // member accepts it with the rest. Group.mfiId follows the version in force.
+  mfiId        String
   proposedById String
   createdAt    DateTime    @default(now())
 
   group      Group @relation(fields: [groupId], references: [id])
+  mfi        Mfi   @relation(fields: [mfiId], references: [id])
   proposedBy User  @relation(fields: [proposedById], references: [id])
 
   @@unique([groupId, version])

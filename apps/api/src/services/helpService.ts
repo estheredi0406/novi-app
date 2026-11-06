@@ -623,17 +623,18 @@ export async function decideAdvance(
         "Elle sera reprise sur la cagnotte de la bénéficiaire.",
       ],
     });
+    const mfiName = (await prisma.mfi.findUniqueOrThrow({ where: { id: loaded.group.mfiId } })).name;
     await notifyMembers(
       [advance.userId],
       "money",
       groupUrl(groupId),
       {
         title: "Votre avance est acceptée",
-        body: "FUCEC l'envoie sur votre Mobile Money. Elle sera reprise sur votre cagnotte.",
+        body: `${mfiName} l'envoie sur votre Mobile Money. Elle sera reprise sur votre cagnotte.`,
       },
       {
         title: "Your advance is approved",
-        body: "FUCEC sends it to your mobile money. It comes back out of your pot.",
+        body: `${mfiName} sends it to your mobile money. It comes back out of your pot.`,
       },
     );
   }
