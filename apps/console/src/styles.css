@@ -1324,7 +1324,6 @@ table.members tr:last-child td {
   background: rgba(255, 255, 255, 0.09);
   color: #fff;
   font-weight: 700;
-  box-shadow: inset 3px 0 0 var(--orange);
 }
 .side nav .count {
   margin-left: auto;

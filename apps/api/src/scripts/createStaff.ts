@@ -1,3 +1,4 @@
+import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { createStaff } from "../services/staffService.js";
 
@@ -34,6 +35,13 @@ async function main() {
 
 main()
   .catch((err: unknown) => {
+    // The same email cannot open two accounts, at any MFI: say so plainly
+    // rather than showing the database's own message.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      console.error("This email already has an officer account (at this MFI or another). Use another email.");
+      process.exitCode = 1;
+      return;
+    }
     console.error(err instanceof Error ? err.message : err);
     process.exitCode = 1;
   })
