@@ -1,4 +1,5 @@
 import { app } from "./app.js";
+import { attachCallSignal } from "./services/callSignal.js";
 import { startAlertJob } from "./services/alertService.js";
 import { startPayoutJob } from "./services/payoutService.js";
 import { startReminderJob } from "./services/reminderService.js";
@@ -7,9 +8,11 @@ import { startReminderJob } from "./services/reminderService.js";
 // environment variable; 3000 is the local default.
 const port = Number(process.env.PORT ?? 3000);
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Novi API listening on port ${port}`);
 });
+// D112: the group calls' signalling (WebSocket at /v1/call-signal).
+attachCallSignal(server);
 
 // Sends the pots that are due (Sprint 4). Only the running server does this;
 // tests call runPayouts themselves, with the date they need.

@@ -15,10 +15,14 @@ import { canCallInApp } from "../../lib/openCall";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// D85: the group call, inside Novi. The Daily room runs in a web view with
+// D85: the group call, inside Novi. The call page runs in a web view with
 // her microphone; "Quitter l'appel" closes the page and the call with it.
-// Only Daily's own rooms may load here, nothing else from the web.
+// Only Novi's own call page (D112) may load here, or a Daily room if the
+// server still uses Daily (D71); nothing else from the web.
 const DAILY = /^https:\/\/[a-z0-9-]+\.daily\.co\//i;
+const NOVI_CALL = `${(process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "")}/call/`;
+const allowed = (address: string) =>
+  DAILY.test(address) || (NOVI_CALL !== "/call/" && address.startsWith(NOVI_CALL));
 
 // Loaded only on a Novi built with the web view, so an older Novi never
 // touches a native part it does not have.
@@ -42,7 +46,7 @@ export default function CallScreen() {
       .finally(() => setMicAsked(true));
   }, []);
 
-  const safe = typeof url === "string" && DAILY.test(url) && WebView !== null;
+  const safe = typeof url === "string" && allowed(url) && WebView !== null;
 
   return (
     <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
@@ -50,13 +54,16 @@ export default function CallScreen() {
         <Text style={styles.title} numberOfLines={1}>
           {title || t("call.title")}
         </Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.back()}
-          style={styles.leave}
-        >
-          <Text style={styles.leaveText}>{t("call.leave")}</Text>
-        </Pressable>
+        {/* Novi's own page has its own "Quitter" (D112), once it has loaded. */}
+        {!ready || (typeof url === "string" && DAILY.test(url)) ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.back()}
+            style={styles.leave}
+          >
+            <Text style={styles.leaveText}>{t("call.leave")}</Text>
+          </Pressable>
+        ) : null}
       </View>
       {!safe ? (
         <Text style={styles.note}>{t("call.unavailable")}</Text>
@@ -64,10 +71,14 @@ export default function CallScreen() {
         <View style={styles.room}>
           <WebView
             source={{ uri: url }}
-            originWhitelist={["https://*"]}
+            originWhitelist={["https://*", "http://*"]}
             onShouldStartLoadWithRequest={(req) =>
-              DAILY.test(req.url) || req.url.startsWith("about:")
+              allowed(req.url) || req.url.startsWith("about:")
             }
+            // Novi's call page says "leave" when she taps its own button.
+            onMessage={(event) => {
+              if (event.nativeEvent.data === "leave") router.back();
+            }}
             javaScriptEnabled
             domStorageEnabled
             allowsInlineMediaPlayback

@@ -41,7 +41,9 @@ services:
         sync: false
       - key: MOCK_PAYMENTS_CONFIRM_MS
         value: "4000"
-      # D71: group meetings on Daily. Set in Render's dashboard, never here.
+      # D112: group calls run on this server (RENDER_EXTERNAL_URL, set by
+      # Render, is the call page's address). Daily (D71) only if
+      # MEETINGS_PROVIDER=daily is added with DAILY_API_KEY.
       - key: DAILY_API_KEY
         sync: false
       # D73: the secret in the USSD gateway's address. Set in Render's dashboard.

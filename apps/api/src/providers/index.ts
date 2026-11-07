@@ -11,6 +11,7 @@ import type { PaymentProvider } from "./payment/PaymentProvider.js";
 import { DailyMeetingProvider } from "./meeting/DailyMeetingProvider.js";
 import type { MeetingProvider } from "./meeting/MeetingProvider.js";
 import { MockMeetingProvider } from "./meeting/MockMeetingProvider.js";
+import { NoviMeetingProvider } from "./meeting/NoviMeetingProvider.js";
 import { ExpoPushProvider } from "./push/ExpoPushProvider.js";
 import { MockPushProvider } from "./push/MockPushProvider.js";
 import type { PushProvider } from "./push/PushProvider.js";
@@ -116,13 +117,17 @@ function choosePayments(): PaymentProvider {
 
 export const payments: PaymentProvider = choosePayments();
 
-// Group meetings (D71): Daily when DAILY_API_KEY is set in .env; otherwise
-// the mock, whose rooms lead nowhere. Tests always use the mock.
+// Group calls and meetings: Novi's own (D112), served by this API, with no
+// outside call service. Daily (D71) stays coded, used only when
+// MEETINGS_PROVIDER=daily and DAILY_API_KEY are set. Tests use the mock.
 function chooseMeetings(): MeetingProvider {
+  if (process.env.NODE_ENV === "test") return new MockMeetingProvider();
   const key = process.env.DAILY_API_KEY;
-  if (key && process.env.NODE_ENV !== "test")
-    return new DailyMeetingProvider(key);
-  return new MockMeetingProvider();
+  if (process.env.MEETINGS_PROVIDER === "daily" && key) return new DailyMeetingProvider(key);
+  // The address phones use to reach this API: Render sets RENDER_EXTERNAL_URL.
+  const base =
+    process.env.PUBLIC_URL ?? process.env.RENDER_EXTERNAL_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+  return new NoviMeetingProvider(base.replace(/\/$/, ""));
 }
 
 export const meetings: MeetingProvider = chooseMeetings();

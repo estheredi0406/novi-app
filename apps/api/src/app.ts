@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { authRouter } from "./routes/auth.js";
+import { callPageRouter } from "./routes/callPage.js";
 import { consoleRouter } from "./routes/console.js";
 import { contributionsRouter } from "./routes/contributions.js";
 import { groupsRouter } from "./routes/groups.js";
@@ -59,6 +60,8 @@ app.use("/v1/console", consoleRouter);
 app.use("/v1/verify", verifyApiRouter);
 // The page a lender opens by scanning a shared record's QR code (D50).
 app.use("/verify", verifyPageRouter);
+// D112: the group call page, opened inside Novi with a signed pass.
+app.use("/call", callPageRouter);
 
 // The MFI console's built web app (apps/console/dist), served from the same
 // address as the API so it needs no cross-origin settings (D55, D58). Only
