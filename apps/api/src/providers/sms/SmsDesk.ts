@@ -25,7 +25,9 @@ export class SmsDesk implements SmsProvider {
     return prefix ? (this.options.byPrefix[prefix] as SmsRoute) : this.options.fallback;
   }
 
-  async send(to: string, text: string): Promise<void> {
+  // True when a real SMS left for her phone; false when it was simulated,
+  // over the month's limit, or failed.
+  async send(to: string, text: string): Promise<boolean> {
     const { provider, real } = this.route(to);
     const gsm = toGsm(text);
     if (real) {
@@ -34,17 +36,18 @@ export class SmsDesk implements SmsProvider {
       const sent = await prisma.smsLog.count({ where: { real: true, createdAt: { gte: monthStart } } });
       if (sent >= this.options.monthlyLimit) {
         console.warn(`SMS limit of ${this.options.monthlyLimit} this month reached: not sent to ${to.slice(0, 7)}…`);
-        return;
+        return false;
       }
     }
     try {
       await provider.send(to, gsm);
     } catch (err) {
       console.error("SMS not sent:", err);
-      return;
+      return false;
     }
     await prisma.smsLog
       .create({ data: { real, phone: this.options.keepText ? to : null, text: this.options.keepText ? gsm : null } })
       .catch((err: unknown) => console.error("SMS log failed:", err));
+    return real;
   }
 }

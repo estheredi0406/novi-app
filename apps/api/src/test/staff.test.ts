@@ -2,6 +2,7 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { app } from "../app.js";
 import { prisma } from "../lib/db.js";
+import { isSealed, open, seal } from "../lib/secretBox.js";
 import { base32Decode, codeForStep, totpStep } from "../lib/totp.js";
 import { createStaff } from "../services/staffService.js";
 import { signedUpMember } from "./helpers.js";
@@ -21,6 +22,32 @@ async function mawuli() {
 function login(body: object) {
   return request(app).post("/v1/staff/login").send(body);
 }
+
+describe("authenticator keys kept encrypted (D101)", () => {
+  it("never stores the key as plain text, and still logs him in", async () => {
+    const { password, totpSecret, codeAt } = await mawuli();
+    const row = await prisma.staffUser.findUniqueOrThrow({ where: { email: EMAIL } });
+    expect(row.totpSecret).not.toContain(totpSecret);
+    expect(isSealed(row.totpSecret)).toBe(true);
+    expect(open(row.totpSecret)).toBe(totpSecret);
+    expect((await login({ email: EMAIL, password, code: codeAt() })).status).toBe(200);
+  });
+
+  it("encrypts a key saved before D101 at its owner's next login", async () => {
+    const { password, totpSecret, codeAt } = await mawuli();
+    await prisma.staffUser.update({ where: { email: EMAIL }, data: { totpSecret } }); // as an old row
+    expect((await login({ email: EMAIL, password, code: codeAt() })).status).toBe(200);
+    const row = await prisma.staffUser.findUniqueOrThrow({ where: { email: EMAIL } });
+    expect(isSealed(row.totpSecret)).toBe(true);
+    expect(open(row.totpSecret)).toBe(totpSecret);
+  });
+
+  it("refuses a stored value that was changed", () => {
+    const sealed = seal("JBSWY3DPEHPK3PXP");
+    const tampered = `${sealed.slice(0, -2)}${sealed.endsWith("A") ? "B" : "A"}A`;
+    expect(() => open(tampered)).toThrow();
+  });
+});
 
 describe("staff login (D52)", () => {
   it("logs an officer in with email, password and authenticator code", async () => {

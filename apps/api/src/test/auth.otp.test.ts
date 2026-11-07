@@ -53,6 +53,16 @@ describe("SMS codes", () => {
     expect(res.body.pilotCode).toBe(lastCode());
   });
 
+  it("never shows a code that really reached her phone by SMS, even in pilot mode", async () => {
+    vi.stubEnv("PILOT_SHOW_CODES", "true");
+    // The SMS desk says a real SMS left (a Rwandan tester's number, D111).
+    const real = vi.spyOn(sms, "send").mockResolvedValueOnce(true);
+    const res = await askForCode();
+    expect(res.status).toBe(201);
+    expect(res.body.pilotCode).toBeUndefined();
+    real.mockRestore();
+  });
+
   it("refuses a second code within 60 seconds", async () => {
     await askForCode();
     const res = await askForCode();

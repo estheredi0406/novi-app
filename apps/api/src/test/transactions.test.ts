@@ -148,8 +148,11 @@ describe("SMS cost", () => {
       monthlyLimit: 2,
       keepText: true,
     });
-    for (let i = 0; i < 3; i += 1) await desk.send("+250781234567", `Message ${i}`);
-    await desk.send("+22890000002", "Novi : paiement reçu « Pagnes »");
+    const delivered: boolean[] = [];
+    for (let i = 0; i < 3; i += 1) delivered.push(await desk.send("+250781234567", `Message ${i}`));
+    // It says which SMS really left, so a pilot code is shown only for the others.
+    delivered.push(await desk.send("+22890000002", "Novi : paiement reçu « Pagnes »"));
+    expect(delivered).toEqual([true, true, false, false]);
     expect(rwanda.sent).toHaveLength(2); // the third is over the limit
     expect(togo.sent).toEqual([expect.objectContaining({ text: 'Novi : paiement recu " Pagnes "' })]);
     expect(await prisma.smsLog.count({ where: { real: true } })).toBe(2);

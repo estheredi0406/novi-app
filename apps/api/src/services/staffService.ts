@@ -6,6 +6,7 @@ import { pilotMode } from "../lib/pilot.js";
 import { AppError } from "../lib/errors.js";
 import { hashSecret, verifySecret } from "../lib/hashing.js";
 import { createStaffToken } from "../lib/tokens.js";
+import { isSealed, open, seal } from "../lib/secretBox.js";
 import { checkTotp, newTotpSecret, otpauthUri } from "../lib/totp.js";
 
 // MFI staff accounts and console login (Sprint 5, D52).
@@ -64,7 +65,7 @@ export async function createStaff(input: { mfiCode: string; email: string; name:
       name: input.name.trim(),
       role: input.role ?? "OFFICER",
       passwordHash: await hashSecret(password),
-      totpSecret,
+      totpSecret: seal(totpSecret), // D101: kept encrypted
       mustChangePassword: true,
     },
   });
@@ -91,7 +92,7 @@ export async function staffLogin(input: { email: string; password: string; code:
   }
 
   const passwordOk = await verifySecret(staff.passwordHash, input.password);
-  const step = passwordOk ? checkTotp(staff.totpSecret, input.code, now.getTime(), staff.lastTotpStep) : null;
+  const step = passwordOk ? checkTotp(open(staff.totpSecret), input.code, now.getTime(), staff.lastTotpStep) : null;
   if (step === null) {
     const failed = staff.failedAttempts + 1;
     const lock = failed >= MAX_ATTEMPTS;
@@ -110,7 +111,14 @@ export async function staffLogin(input: { email: string; password: string; code:
   // logins racing with the same code cannot both succeed.
   const claimed = await prisma.staffUser.updateMany({
     where: { id: staff.id, OR: [{ lastTotpStep: null }, { lastTotpStep: { lt: step } }] },
-    data: { lastTotpStep: step, failedAttempts: 0, lockedUntil: null, lastLoginAt: now },
+    data: {
+      lastTotpStep: step,
+      failedAttempts: 0,
+      lockedUntil: null,
+      lastLoginAt: now,
+      // An authenticator key saved before D101 is encrypted at this login.
+      ...(isSealed(staff.totpSecret) ? {} : { totpSecret: seal(staff.totpSecret) }),
+    },
   });
   if (claimed.count === 0) throw new AppError("STAFF_LOGIN_FAILED", 401);
 
@@ -208,7 +216,7 @@ export async function addOfficer(actor: Actor, input: { name: string; email: str
       name: input.name.trim(),
       role: input.role,
       passwordHash: await hashSecret(password),
-      totpSecret,
+      totpSecret: seal(totpSecret), // D101: kept encrypted
       mustChangePassword: true,
     },
   });
@@ -254,7 +262,7 @@ export async function resetAccess(actor: Actor, staffId: string): Promise<StaffC
     where: { id: staffId },
     data: {
       passwordHash: await hashSecret(password),
-      totpSecret,
+      totpSecret: seal(totpSecret), // D101: kept encrypted
       lastTotpStep: null,
       mustChangePassword: true,
       failedAttempts: 0,

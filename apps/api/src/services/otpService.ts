@@ -74,15 +74,16 @@ export async function requestOtp(input: {
   const { challengeId, code } = await newChallenge(phone, purpose);
 
   let sent: string | undefined;
+  let delivered: boolean | void = false;
   if (purpose === "SIGN_UP") {
-    await sms.send(phone, hasAccount ? alreadyRegisteredSms(language) : otpSms(language, code));
+    delivered = await sms.send(phone, hasAccount ? alreadyRegisteredSms(language) : otpSms(language, code));
     if (!hasAccount) sent = code;
   } else if (hasAccount) {
-    await sms.send(phone, otpSms(language, code));
+    delivered = await sms.send(phone, otpSms(language, code));
     sent = code;
   }
 
-  return { challengeId, expiresInSec: CODE_LIFETIME_SEC, resendInSec: RESEND_WAIT_SEC, ...pilotCode(sent) };
+  return { challengeId, expiresInSec: CODE_LIFETIME_SEC, resendInSec: RESEND_WAIT_SEC, ...pilotCode(sent, delivered) };
 }
 
 // Sends a code to confirm a new phone. Called by login only after the right PIN.
@@ -91,8 +92,8 @@ export async function sendDeviceCode(
   language: Language,
 ): Promise<{ challengeId: string; pilotCode?: string }> {
   const { challengeId, code } = await newChallenge(phone, "NEW_DEVICE");
-  await sms.send(phone, otpSms(language, code));
-  return { challengeId, ...pilotCode(code) };
+  const delivered = await sms.send(phone, otpSms(language, code));
+  return { challengeId, ...pilotCode(code, delivered) };
 }
 
 // Checks a code. On success the challenge is used up and a 10-minute
