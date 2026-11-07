@@ -2,6 +2,7 @@ import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { decidePayout, potShare } from "../lib/groupRules.js";
+import { runCoverDeadlines } from "./advanceService.js";
 import { isoDay } from "../lib/schedule.js";
 import { payoutSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
@@ -28,6 +29,8 @@ export async function runPayouts(
   now = new Date(),
   groupId?: string,
 ): Promise<void> {
+  // D104: deadlines of covered shares that passed unpaid.
+  await runCoverDeadlines(now).catch((err) => console.error("Cover deadlines failed:", err));
   const rounds = await prisma.round.findMany({
     where: {
       dueDate: { lte: now },
@@ -91,9 +94,14 @@ async function handleRound(round: DueRound, now: Date) {
   const members = await prisma.membership.count({
     where: { groupId: round.groupId, payoutPosition: { not: null } },
   });
-  let covers = await prisma.reserveCover.findMany({
-    where: { roundId: round.id },
-  });
+  // A share covered by the advances counts once: if she then paid the same
+  // round herself (D104), her payment counts and the cover is repaid.
+  const paidBy = new Set(paid.map((c) => c.userId));
+  const unpaidCovers = (rows: { userId: string; amountFcfa: number }[]) =>
+    rows.filter((c) => !paidBy.has(c.userId));
+  let covers = unpaidCovers(
+    await prisma.reserveCover.findMany({ where: { roundId: round.id } }),
+  );
   let decision = decidePayout(
     round.dueDate,
     now,
@@ -102,17 +110,19 @@ async function handleRound(round: DueRound, now: Date) {
   );
   if (decision === "WAIT") return;
 
-  // D68: payments are missing on the due date; the solidarity reserve pays
-  // the missing shares if it can, and the pot leaves full.
+  // D104: payments are missing on the due date; the group's advances pay
+  // the missing shares if they can, and the pot leaves full.
   if (
     decision === "HOLD" &&
     (!round.payout || round.payout.status === "HELD")
   ) {
-    const amount = paid[0]?.amountFcfa ?? (await contributionOf(round.groupId));
+    const amount = paid[0]
+      ? paid[0].amountFcfa - paid[0].advanceFcfa
+      : await contributionOf(round.groupId);
     if (await coverMissing(round, amount, now)) {
-      covers = await prisma.reserveCover.findMany({
-        where: { roundId: round.id },
-      });
+      covers = unpaidCovers(
+        await prisma.reserveCover.findMany({ where: { roundId: round.id } }),
+      );
       decision = "SEND";
     }
   }
@@ -123,7 +133,7 @@ async function handleRound(round: DueRound, now: Date) {
   // Once the officer released it, what her pot repaid to the fund is no
   // longer part of what is sent (D69).
   const amountFcfa =
-    paid.reduce((sum, c) => sum + potShare(c.amountFcfa), 0) +
+    paid.reduce((sum, c) => sum + potShare(c.amountFcfa - c.advanceFcfa), 0) +
     covers.reduce((sum, c) => sum + c.amountFcfa, 0) -
     (round.payout?.coverRepaidFcfa ?? 0);
   const hers = await prisma.contribution.findFirst({

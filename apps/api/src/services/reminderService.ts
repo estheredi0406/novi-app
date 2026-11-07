@@ -1,10 +1,11 @@
+import { advanceOf } from "../lib/groupRules.js";
 import { Prisma } from "../generated/prisma/client.js";
 import type { ReminderKind } from "../generated/prisma/enums.js";
 import { prisma } from "../lib/db.js";
 import { isoDay } from "../lib/schedule.js";
 import { reminderSms } from "../lib/smsText.js";
 import { sms } from "../providers/index.js";
-import { notifyDue } from "./notifyService.js";
+import { notifyDue, hasApp } from "./notifyService.js";
 
 // Reminders before a contribution is due (F16): an SMS the day before, and
 // one on the morning of the due day, to each member who has not paid yet.
@@ -24,6 +25,7 @@ export async function runReminders(now = new Date()): Promise<number> {
     where: { dueDate: { in: [today, tomorrow] }, group: { state: "ACTIVE" } },
     include: {
       contributions: { where: { status: { in: ["PAID", "PENDING"] } }, select: { userId: true } },
+      reserveCovers: { select: { userId: true } },
       group: {
         include: {
           rulesVersions: true,
@@ -41,7 +43,10 @@ export async function runReminders(now = new Date()): Promise<number> {
     // A daily group pays every market day: one reminder that morning is
     // enough, not two SMS a day (D92).
     if (rules?.frequency === "DAILY" && !dueToday) continue;
-    const paying = new Set(round.contributions.map((c) => c.userId));
+    // D104: a member who said she cannot pay this turn is covered: no reminder.
+    const paying = new Set([...round.contributions, ...round.reserveCovers].map((c) => c.userId));
+    // D103: round 1 also carries her advance.
+    const due = (rules?.amountFcfa ?? 0) + (round.number === 1 ? advanceOf(rules?.amountFcfa ?? 0) : 0);
 
     for (const seat of round.group.memberships) {
       if (paying.has(seat.userId)) continue;
@@ -52,16 +57,20 @@ export async function runReminders(now = new Date()): Promise<number> {
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") continue;
         throw err;
       }
-      await sms.send(
-        seat.user.phone,
-        reminderSms(seat.user.language, {
-          groupName: round.group.name,
-          amountFcfa: rules?.amountFcfa ?? 0,
-          date: isoDay(round.dueDate),
-          dueToday,
-        }),
-      );
-      await notifyDue(seat.userId, round.groupId, round.group.name, rules?.amountFcfa ?? 0, dueToday);
+      // D111: with the app, a notification is enough. Without it, one SMS,
+      // on the morning of the due date only (not the day before).
+      if (!(await hasApp(seat.userId)) && dueToday) {
+        await sms.send(
+          seat.user.phone,
+          reminderSms(seat.user.language, {
+            groupName: round.group.name,
+            amountFcfa: due,
+            date: isoDay(round.dueDate),
+            dueToday,
+          }),
+        );
+      }
+      await notifyDue(seat.userId, round.groupId, round.group.name, due, dueToday);
       sent += 1;
     }
   }

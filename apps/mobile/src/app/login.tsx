@@ -17,6 +17,7 @@ import { PilotCode } from "../components/PilotCode";
 import { AuthBand } from "../components/AuthBand";
 import { PinBoxes } from "../components/PinBoxes";
 import { NoviMark } from "../components/art/NoviMark";
+import { usePhoneCountry } from "../lib/phoneCountry";
 
 // The three things this screen can show:
 // - pin: she types her PIN (and her number, on a phone Novi does not know)
@@ -32,14 +33,15 @@ export default function LoginScreen() {
   // The number saved on this phone, unless she chose "Use another number".
   const [knownPhone, setKnownPhone] = useState(session.phone);
   const [digits, setDigits] = useState("");
+  const country = usePhoneCountry();
   const [pin, setPin] = useState("");
   const [code, setCode] = useState("");
   const [mode, setMode] = useState<Mode>({ kind: "pin" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const phone = knownPhone ?? `+228${digits}`;
-  const phoneComplete = knownPhone !== null || /^\d{8}$/.test(digits);
+  const phone = knownPhone ?? country.full(digits);
+  const phoneComplete = knownPhone !== null || country.valid(digits);
 
   // Counts down while locked, then lets her try again.
   useEffect(() => {
@@ -188,13 +190,14 @@ export default function LoginScreen() {
       ) : (
         <Field
           label={t("phone.label")}
-          prefix="+228"
+          prefix={country.prefix}
+          onPrefixPress={country.toggle}
           value={digits}
-          onChangeText={(value) => setDigits(value.replace(/\D/g, "").slice(0, 8))}
+          onChangeText={(value) => setDigits(country.clean(value))}
           keyboardType="number-pad"
           textContentType="telephoneNumber"
           autoComplete="tel"
-          maxLength={8}
+          maxLength={country.length}
         />
       )}
 
@@ -236,8 +239,9 @@ export default function LoginScreen() {
 // "+22890000001" becomes "+228 90 •• •• 01": enough for her to recognise
 // her number, not enough for someone looking over her shoulder.
 function maskPhone(phone: string): string {
-  const d = phone.replace("+228", "");
-  return `+228 ${d.slice(0, 2)} •• •• ${d.slice(6, 8)}`;
+  const prefix = phone.slice(0, 4);
+  const d = phone.slice(4);
+  return `${prefix} ${d.slice(0, 2)} •• •• ${d.slice(-2)}`;
 }
 
 const styles = StyleSheet.create({

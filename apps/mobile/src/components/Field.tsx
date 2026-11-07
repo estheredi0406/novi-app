@@ -1,22 +1,35 @@
 import type { ComponentRef, Ref } from "react";
-import { StyleSheet, Text, TextInput, type TextInputProps, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, type TextInputProps, View } from "react-native";
 import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
 
 // A labelled text input. The optional prefix shows fixed text before the
-// input, such as +228 before a phone number.
+// input, such as +228 before a phone number. With onPrefixPress, the prefix
+// is a button (on the pilot: +228 or +250, D111).
 export function Field({
   label,
   prefix,
+  onPrefixPress,
   style,
   ref,
   ...input
-}: { label: string; prefix?: string; ref?: Ref<ComponentRef<typeof TextInput>> } & TextInputProps) {
+}: {
+  label: string;
+  prefix?: string;
+  onPrefixPress?: () => void;
+  ref?: Ref<ComponentRef<typeof TextInput>>;
+} & TextInputProps) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.box}>
-        {prefix ? <Text style={styles.prefix}>{prefix}</Text> : null}
+        {prefix && onPrefixPress ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={prefix} onPress={onPrefixPress} hitSlop={8}>
+            <Text style={[styles.prefix, styles.prefixButton]}>{prefix} ▾</Text>
+          </Pressable>
+        ) : prefix ? (
+          <Text style={styles.prefix}>{prefix}</Text>
+        ) : null}
         <TextInput
           ref={ref}
           accessibilityLabel={label}
@@ -51,5 +64,6 @@ const styles = StyleSheet.create({
     borderRightWidth: 1.5,
     borderRightColor: colors.line,
   },
+  prefixButton: { color: colors.lagoon },
   input: { flex: 1, fontFamily: fonts.bodySemiBold, fontSize: 22, color: colors.ink, paddingVertical: 12 },
 });

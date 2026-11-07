@@ -105,7 +105,8 @@ describe("phone notifications", () => {
     const morning = new Date(round.dueDate.getTime() - 24 * 60 * 60 * 1000 + 9 * 60 * 60 * 1000);
     await runReminders(morning);
     expect(sent).toHaveLength(3);
-    expect(sent[0]).toMatchObject({ title: "Cotisation de 5 000 FCFA demain", channelId: "money" });
+    // Round 1: the contribution and her advance of half of it (D103).
+    expect(sent[0]).toMatchObject({ title: "Cotisation de 7 500 FCFA demain", channelId: "money" });
   });
 
   it("refuses a token that is not Expo's", async () => {

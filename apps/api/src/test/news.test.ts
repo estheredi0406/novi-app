@@ -103,7 +103,11 @@ describe("home news and statement (D92)", () => {
     const statement = (await akossiwa.get("/v1/me/statement")).body as {
       lines: { kind: string; amountFcfa: number; onTime: boolean; round: number }[];
     };
-    expect(statement.lines).toEqual([expect.objectContaining({ kind: "PAID", amountFcfa: 5000, onTime: true, round: 1 })]);
+    // Her contribution, and her advance on its own line (D103, D110).
+    expect(statement.lines).toEqual([
+      expect.objectContaining({ kind: "PAID", amountFcfa: 5000, onTime: true, round: 1 }),
+      expect.objectContaining({ kind: "ADVANCE", amountFcfa: 2500, round: 1 }),
+    ]);
   });
 
   it("is empty while she has no group, and the statement too", async () => {

@@ -61,15 +61,24 @@ export type GroupDetail = {
   seats: GroupSeat[];
   pendingInvites: PendingInvite[];
   myRole: MemberRole;
-  // D68: the group's solidarity reserve, once it has started.
-  // balanceFcfa: what the group has in the MFI's solidarity fund; fundFcfa:
-  // the whole fund, across the MFI's groups, which is what can cover a share.
+  // D103: the group's advances, once it has started (the 2% reserve of D68
+  // is gone: percent is 0). balanceFcfa: what the advances hold now; fundFcfa:
+  // the same, kept for older apps; owedFcfa: covered shares not yet repaid.
   reserve: {
     percent: number;
     balanceFcfa: number;
     fundFcfa: number;
     owedFcfa: number;
     coversOpen: number;
+    advanceFcfa: number; // what each member pays as her advance with round 1
+    mine: {
+      paidFcfa: number; // her advance, once paid
+      nowFcfa: number; // her part of what the advances hold now (some may be covering a share)
+      owedFcfa: number; // what she owes for shares covered for her
+      dueBy: string | null; // repay before this (D104)
+      skipsLeft: number; // "Je ne peux pas payer ce tour" left in this cycle
+      defaulted: boolean;
+    };
   } | null;
   unreadMessages: number; // D70: chat lines since she last opened the chat
   // D72: which cycle of this circle of members, and the cycles before and after.
@@ -122,6 +131,7 @@ export type CurrentRound = {
   potFcfa: number;
   paidCount: number; // how many members have paid this round: the pot filling
   receiverName: string; // D92: whose turn it is, as her group sees her
+  advanceFcfa: number; // D103: her advance, paid with round 1 on top of the contribution
   // D92: has each seat paid this round, in turn order (seat i receives the pot
   // of round i + 1). Her seat is myTurn.number - 1; the receiver's is number - 1.
   paidSeats: boolean[];

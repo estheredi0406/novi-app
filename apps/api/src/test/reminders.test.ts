@@ -44,11 +44,26 @@ async function groupDueFriday() {
 }
 
 describe("reminders before a due date (F16)", () => {
-  it("texts every member who has not paid, the day before", async () => {
+  it("reminds every member who has not paid the day before, without an SMS (D111)", async () => {
     await groupDueFriday();
     expect(await runReminders(THURSDAY_9AM)).toBe(3);
+    // The day before is a notification only: an SMS costs money.
+    expect(outbox).toHaveLength(0);
+  });
+
+  it("texts a member without the app on the morning of the due day", async () => {
+    await groupDueFriday();
+    expect(await runReminders(FRIDAY_9AM)).toBe(3);
     expect(outbox.map((m) => m.to).sort()).toEqual(["+22890000001", "+22890000002", "+22890000003"]);
-    expect(outbox[0]?.text).toContain("demain, le 30/10/2026");
+    expect(outbox[0]?.text).toContain("aujourd'hui");
+  });
+
+  it("does not text a member who uses the app: a notification is enough (D111)", async () => {
+    await groupDueFriday();
+    const abla = await prisma.user.findFirstOrThrow({ where: { phone: "+22890000002" } });
+    await prisma.device.updateMany({ where: { userId: abla.id }, data: { pushToken: "ExponentPushToken[abla]", lastSeenAt: FRIDAY_9AM } });
+    await runReminders(FRIDAY_9AM);
+    expect(outbox.map((m) => m.to)).not.toContain("+22890000002");
   });
 
   it("does not text a member who already paid", async () => {
@@ -63,14 +78,14 @@ describe("reminders before a due date (F16)", () => {
       .send(delivery.body);
     outbox.length = 0;
 
-    await runReminders(THURSDAY_9AM);
+    await runReminders(FRIDAY_9AM);
     expect(outbox.map((m) => m.to)).not.toContain("+22890000002");
   });
 
   it("sends each reminder once, however often the job runs", async () => {
     await groupDueFriday();
-    await runReminders(THURSDAY_9AM);
-    expect(await runReminders(new Date("2026-10-29T10:00:00Z"))).toBe(0);
+    await runReminders(FRIDAY_9AM);
+    expect(await runReminders(new Date("2026-10-30T10:00:00Z"))).toBe(0);
     expect(outbox).toHaveLength(3);
   });
 

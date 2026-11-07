@@ -97,13 +97,14 @@ describe("the USSD gateway's callback", () => {
 
   it("pays this week's contribution in four key presses", async () => {
     const groupId = await startedGroup();
-    expect((await dial("+22890000002", "4829*1")).text).toContain("1. Pagnes Assigamé 5 000 F");
-    expect((await dial("+22890000002", "4829*1*1")).text).toContain("Payer 5 000 F à Pagnes Assigamé, tour 1");
+    // Round 1: the contribution and her advance of half of it (D103).
+    expect((await dial("+22890000002", "4829*1")).text).toContain("1. Pagnes Assigamé 7 500 F");
+    expect((await dial("+22890000002", "4829*1*1")).text).toContain("Payer 7 500 F à Pagnes Assigamé, tour 1");
     const sent = await dial("+22890000002", "4829*1*1*2");
-    expect(sent.text).toMatch(/^END Demande de 5 000 F envoyée/);
+    expect(sent.text).toMatch(/^END Demande de 7 500 F envoyée/);
     const abla = await prisma.user.findUniqueOrThrow({ where: { phone: "+22890000002" } });
     const contribution = await prisma.contribution.findFirstOrThrow({ where: { userId: abla.id, round: { groupId } } });
-    expect(contribution).toMatchObject({ operator: "TOGOCEL", amountFcfa: 5000 });
+    expect(contribution).toMatchObject({ operator: "TOGOCEL", amountFcfa: 7500, advanceFcfa: 2500 });
   });
 
   it("lists her groups and shows her record, each screen at most 160 characters", async () => {

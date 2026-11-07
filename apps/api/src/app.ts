@@ -1,3 +1,4 @@
+import { pilotRwanda } from "./lib/phone.js";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import express from "express";
@@ -40,6 +41,12 @@ app.use("/v1/me/loans/:loanId/documents/:key", express.json({ limit: "4mb" }));
 app.use(express.json());
 
 app.use("/health", healthRouter);
+// What the app needs to know before sign-up: which countries' numbers this
+// server accepts (D111: Rwanda only on the pilot server) and whether the
+// pilot's SMS inbox is on.
+app.get("/v1/config", (_req, res) => {
+  res.json({ pilotRwanda: pilotRwanda(), pilotSmsInbox: process.env.PILOT_SHOW_SMS === "true" });
+});
 app.use("/v1/auth", authRouter);
 app.use("/v1/me", meRouter);
 app.use("/v1/groups", groupsRouter);

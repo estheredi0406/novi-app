@@ -258,3 +258,15 @@ export async function notifyMembers(
 ): Promise<void> {
   await send(userIds, channel, url, (l) => (en(l) ? english : fr));
 }
+
+// D111: does she use the app? A trusted phone with a notification address,
+// seen in the last 30 days. If so, a notification is enough and most SMS are
+// skipped: an SMS costs money, a notification does not.
+export async function hasApp(userId: string, now = new Date()): Promise<boolean> {
+  const since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const device = await prisma.device.findFirst({
+    where: { userId, pushToken: { not: null }, untrustedAt: null, lastSeenAt: { gte: since } },
+    select: { id: true },
+  });
+  return device !== null;
+}

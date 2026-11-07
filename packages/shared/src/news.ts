@@ -15,14 +15,26 @@ export type NewsItem = {
 };
 
 // One line of her statement: a payment she made, or a pot she received.
+// One line of her own transactions ("Mes transactions"), newest first.
+// PAID: a contribution; ADVANCE: her advance paid with round 1 (D103);
+// RECEIVED: a pot; ADVANCE_BACK: her advance given back at the end;
+// PENDING: sent, the operator has not confirmed yet; FAILED: not confirmed,
+// she can say the money left her account or pay again; COVERED: the group's
+// advances paid her share (D104), to repay before dueBy. No money moved for
+// COVERED, so it is in neither column of the table.
 export type StatementLine = {
   id: string;
-  kind: "PAID" | "RECEIVED";
+  kind: "PAID" | "ADVANCE" | "RECEIVED" | "ADVANCE_BACK" | "PENDING" | "FAILED" | "COVERED";
+  groupId: string;
   groupName: string;
   round: number;
   amountFcfa: number;
-  at: string; // ISO: when the money moved
+  at: string; // ISO: when the money moved (or was asked, or covered)
   onTime: boolean | null; // PAID only: on or before the round's due date
+  advanceFcfa?: number; // PAID only: her advance paid with it (round 1, D103), not in amountFcfa
+  dueBy?: string | null; // COVERED: repay before this
+  repaid?: boolean; // COVERED: already repaid
+  reported?: boolean; // FAILED: she said the money left her account
 };
 
 export type Statement = {

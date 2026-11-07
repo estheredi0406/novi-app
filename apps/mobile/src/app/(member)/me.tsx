@@ -1,3 +1,4 @@
+import { useServerConfig } from "../../api/config";
 import { type Href, router } from "expo-router";
 import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,6 +20,7 @@ import { fonts } from "../../theme/typography";
 // things she may change, and logging out. The FUCEC agency map row waits for
 // the map itself (no link that leads nowhere).
 export default function MeScreen() {
+  const { pilotSmsInbox } = useServerConfig();
   const { t } = useTranslation();
   const { member, phone, lock, setMember } = useSession();
   const [saving, setSaving] = useState(false);
@@ -207,8 +209,24 @@ export default function MeScreen() {
             }
             label={t("me.agreed")}
             onPress={() => router.push("/me-agreed" as Href)}
-            last
+            last={!pilotSmsInbox}
           />
+          {pilotSmsInbox ? (
+            <Row
+              icon={
+                <Path
+                  d="M4 6 H20 V16 H9 L5 20 V16 H4 Z"
+                  stroke={colors.indigo}
+                  strokeWidth={1.8}
+                  fill={colors.shell}
+                  strokeLinejoin="round"
+                />
+              }
+              label={t("me.pilotSms")}
+              onPress={() => router.push("/sms" as Href)}
+              last
+            />
+          ) : null}
         </View>
       </View>
 

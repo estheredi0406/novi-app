@@ -414,7 +414,7 @@ describe("microloan requests (D89, D91)", () => {
     const page = (await abla.get("/v1/me/loans")).body;
     expect(page).toMatchObject({
       eligible: false,
-      ceilingFcfa: 29400,
+      ceilingFcfa: 30000,
       months: [6, 12],
     });
     expect(

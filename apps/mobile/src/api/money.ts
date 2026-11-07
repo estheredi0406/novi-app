@@ -19,3 +19,16 @@ export const checkContribution = (contributionId: string) =>
 // D63: her answer once the pot reached her.
 export const answerReceipt = (payoutId: string, received: boolean) =>
   memberRequest<void>("POST", `/v1/me/payouts/${payoutId}/receipt`, { received });
+
+// D104: "Je ne peux pas payer ce tour": her share is covered by the group's
+// advances; she repays it before the deadline.
+export const skipRound = (groupId: string, number: number) =>
+  memberRequest<{ dueBy: string | null; amountFcfa: number }>("POST", `/v1/groups/${groupId}/rounds/${number}/skip`, {});
+
+// D104: the organiser gives a member more time to repay, once.
+export const extendCover = (groupId: string, memberId: string) =>
+  memberRequest<{ dueBy: string }>("POST", `/v1/groups/${groupId}/members/${memberId}/extend`, {});
+
+// "The money left my account", for a payment the operator did not confirm.
+export const reportPayment = (contributionId: string) =>
+  memberRequest<ContributionView>("POST", `/v1/contributions/${contributionId}/report`, {});

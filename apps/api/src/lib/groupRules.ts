@@ -201,20 +201,100 @@ export function checkCanPay(
   return allowed;
 }
 
-// ---------- The solidarity reserve (D68) ----------
+// ---------- The group's advances (D103, D104) ----------
 
-// The share of each contribution set aside in the group's reserve, in percent.
-export const RESERVE_PERCENT = 2;
+// D103 replaced the 2% reserve (D68): nothing is taken from a contribution
+// any more. Kept at zero so old ledger lines still read the same way.
+export const RESERVE_PERCENT = 0;
 
-// Whole FCFA, rounded down: 100 FCFA of a 5 000 FCFA contribution.
 export function reserveShare(amountFcfa: number): number {
   return Math.floor((amountFcfa * RESERVE_PERCENT) / 100);
 }
 
-// What one member's contribution brings to the pot once the reserve's share
-// is set aside. A full pot is this times the number of members.
+// What one member's contribution brings to the pot. A full pot is this times
+// the number of members.
 export function potShare(amountFcfa: number): number {
   return amountFcfa - reserveShare(amountFcfa);
+}
+
+// D103: each member pays an advance of half a contribution with round 1,
+// rounded up to the franc. It stays at the MFI in the group's advances, covers
+// a missed share (D104), and comes back to her at the end of the cycle.
+export function advanceOf(amountFcfa: number): number {
+  return Math.ceil(amountFcfa / 2);
+}
+
+// D104: "Je ne peux pas payer ce tour", at most twice in a cycle, never for
+// two turns in a row, never while a cover is still to repay, never for her own
+// turn (her share is then simply taken from her pot), and only before the
+// due date has passed.
+export const SKIPS_PER_CYCLE = 2;
+
+export type SkipFacts = {
+  roundNumber: number;
+  currentRound: number;
+  isBeneficiary: boolean;
+  alreadyPaid: boolean;
+  alreadyCovered: boolean;
+  dueDatePassed: boolean;
+  owesCover: boolean;
+  skipsThisCycle: number;
+  skippedPreviousRound: boolean;
+  advancesFcfa: number; // what the group's advances hold now
+  amountFcfa: number;
+};
+
+export type SkipBreak =
+  | "SKIP_NOT_THIS_ROUND"
+  | "SKIP_OWN_TURN"
+  | "ALREADY_PAID"
+  | "SKIP_OWES_COVER"
+  | "SKIP_LIMIT"
+  | "SKIP_TWICE_IN_A_ROW"
+  | "SKIP_NO_ADVANCES";
+
+export function checkCanSkip(f: SkipFacts): { ok: true } | { ok: false; reason: SkipBreak } {
+  const no = (reason: SkipBreak) => ({ ok: false as const, reason });
+  // Round 1 carries the advance itself; only the current round, before its day.
+  if (f.roundNumber === 1 || f.roundNumber !== f.currentRound || f.dueDatePassed || f.alreadyCovered)
+    return no("SKIP_NOT_THIS_ROUND");
+  if (f.isBeneficiary) return no("SKIP_OWN_TURN");
+  if (f.alreadyPaid) return no("ALREADY_PAID");
+  if (f.owesCover) return no("SKIP_OWES_COVER");
+  if (f.skipsThisCycle >= SKIPS_PER_CYCLE) return no("SKIP_LIMIT");
+  if (f.skippedPreviousRound) return no("SKIP_TWICE_IN_A_ROW");
+  if (f.advancesFcfa < f.amountFcfa) return no("SKIP_NO_ADVANCES");
+  return { ok: true };
+}
+
+// D104: a covered share is repaid within 7 days, or before the next turn if
+// that is later (a daily group would otherwise give her one day). The
+// organiser can extend it once by the same length.
+export const REPAY_DAYS = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export function repayDeadline(coveredAt: Date, nextDueDate: Date | null): Date {
+  const week = new Date(coveredAt.getTime() + REPAY_DAYS * DAY_MS);
+  // The next turn's whole day counts.
+  const next = nextDueDate ? new Date(nextDueDate.getTime() + DAY_MS - 1) : null;
+  return next && next > week ? next : week;
+}
+
+export function extendedDeadline(coveredAt: Date, dueBy: Date): Date {
+  return new Date(dueBy.getTime() + (dueBy.getTime() - coveredAt.getTime()));
+}
+
+// D104: a member with no Novi history (no completed cycle) cannot take turn 1,
+// the turn where receiving and disappearing costs the group most. The first
+// member in the order who has a history takes it; with none, the organiser,
+// who vouches for the members she invited. Returns a new order.
+export function guardTurnOne(order: string[], withHistory: Set<string>, organiserId: string): string[] {
+  if (order.length === 0 || withHistory.has(order[0]!)) return order;
+  const pick = order.find((id) => withHistory.has(id)) ?? (order.includes(organiserId) ? organiserId : order[0]!);
+  const index = order.indexOf(pick);
+  const next = [...order];
+  [next[0], next[index]] = [next[index]!, next[0]!];
+  return next;
 }
 
 // ---------- Paying out (Sprint 4) ----------

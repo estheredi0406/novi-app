@@ -43,6 +43,7 @@ import {
   RunningGroup,
 } from "../../../../components/group/RunningGroup";
 import { fonts, type } from "../../../../theme/typography";
+import { usePhoneCountry } from "../../../../lib/phoneCountry";
 
 // One group, as its members see it: rules, members, and the actions this
 // person may take now. The API decides what is allowed; this screen only
@@ -55,6 +56,7 @@ export default function GroupScreen() {
   const [meetings, setMeetings] = useState<MeetingsPage | null>(null);
   const [rounds, setRounds] = useState<RoundSummary[]>([]);
   const [digits, setDigits] = useState("");
+  const country = usePhoneCountry();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [consent, setConsent] = useState(false); // D84
@@ -265,19 +267,18 @@ export default function GroupScreen() {
         <View style={styles.section}>
           <Field
             label={t("group.inviteLabel")}
-            prefix="+228"
+            prefix={country.prefix}
+            onPrefixPress={country.toggle}
             value={digits}
-            onChangeText={(value) =>
-              setDigits(value.replace(/\D/g, "").slice(0, 8))
-            }
+            onChangeText={(value) => setDigits(country.clean(value))}
             keyboardType="number-pad"
             textContentType="telephoneNumber"
-            maxLength={8}
+            maxLength={country.length}
           />
           <PrimaryButton
             label={t("group.sendInvite")}
-            disabled={busy || !/^\d{8}$/.test(digits)}
-            onPress={() => confirmInvite(group.id, `+228${digits}`)}
+            disabled={busy || !country.valid(digits)}
+            onPress={() => confirmInvite(group.id, country.full(digits))}
           />
           <Text style={[type.small, styles.muted]}>
             {t("group.inviteHint")}

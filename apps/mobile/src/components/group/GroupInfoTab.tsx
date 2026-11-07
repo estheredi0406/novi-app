@@ -62,7 +62,7 @@ export function GroupInfoTab({
   const lastDay = rounds.at(-1)?.dueDate;
 
   const reserve = group.reserve;
-  const caisseText = t("caisse.body", { percent: reserve?.percent ?? 2 });
+  const caisseText = t("caisse.body");
 
   return (
     <View style={styles.wrap}>
@@ -238,7 +238,13 @@ export function GroupInfoTab({
             <View style={[styles.fact, styles.line]}>
               <Text style={styles.factLabel}>{t("caisse.setAside")}</Text>
               <Text style={styles.factValue}>
-                {t("caisse.percent", { percent: reserve.percent })}
+                {formatFcfa(reserve.mine?.paidFcfa ?? 0)}
+              </Text>
+            </View>
+            <View style={[styles.fact, styles.line]}>
+              <Text style={styles.factLabel}>{t("caisse.mine")}</Text>
+              <Text style={styles.factValue}>
+                {formatFcfa(reserve.mine?.nowFcfa ?? 0)}
               </Text>
             </View>
             <View style={[styles.fact, styles.line]}>

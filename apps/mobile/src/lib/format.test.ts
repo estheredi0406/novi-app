@@ -33,3 +33,9 @@ describe("formatting for Lomé", () => {
     expect(shortDay("2026-11-06", "en")).toMatch(/Fri,? 6 Nov/);
   });
 });
+
+describe("a Rwandan pilot number (D111)", () => {
+  it("is grouped by threes after +250", () => {
+    expect(formatPhone("+250781234567")).toBe("+250 781 234 567");
+  });
+});

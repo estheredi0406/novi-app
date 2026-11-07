@@ -181,8 +181,9 @@ describe("when the MFI does not answer", () => {
 describe("a fixed payout order (D41)", () => {
   it("is set by the organiser as a new version, which everyone accepts before the start", async () => {
     const { organiser, abla, koffi, groupId, ids } = await fullGroup({ payoutOrder: "FIXED" });
-    // Abla first: her shop rent is due.
-    const order = [ids.abla, ids.akossiwa, ids.koffi];
+    // Abla second: her shop rent is due early. Turn 1 stays with the organiser,
+    // since nobody has a Novi history yet (D104).
+    const order = [ids.akossiwa, ids.abla, ids.koffi];
     const set = await organiser.post(`/v1/groups/${groupId}/order`, { memberIds: order });
 
     expect(set.status).toBe(200);
@@ -192,7 +193,7 @@ describe("a fixed payout order (D41)", () => {
     await abla.post(`/v1/groups/${groupId}/accept`, { version: 2 });
     await koffi.post(`/v1/groups/${groupId}/accept`, { version: 2 });
     const started = await organiser.post(`/v1/groups/${groupId}/start`);
-    expect(namesInOrder(started.body.seats)).toEqual(["Abla", "Akossiwa", "Koffi"]);
+    expect(namesInOrder(started.body.seats)).toEqual(["Akossiwa", "Abla", "Koffi"]);
   });
 
   it("refuses an order that misses someone or names someone twice", async () => {

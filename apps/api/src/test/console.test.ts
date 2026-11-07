@@ -143,10 +143,10 @@ describe("the console's view of groups", () => {
         state: "ACTIVE",
         amountFcfa: 5000,
         size: 3,
-        collectedFcfa: 20000, // 3 x 5 000 for round 1, then 5 000 for round 2
-        paidOutFcfa: 14700, // round 1's pot, less the reserve's 2% (D68)
-        balanceFcfa: 5300, // 20 000 in, 14 700 out; it holds the 400 FCFA reserve (D68)
-        reserveFcfa: 400,
+        collectedFcfa: 27500, // 3 x 7 500 for round 1 (5 000 and the 2 500 advance, D103), then 5 000
+        paidOutFcfa: 15000, // round 1's pot, 3 x 5 000
+        balanceFcfa: 12500, // 27 500 in, 15 000 out; it holds the 7 500 of advances
+        reserveFcfa: 7500,
       }),
     ]);
   });
@@ -159,7 +159,7 @@ describe("the console's view of groups", () => {
     expect(res.status).toBe(200);
     expect(res.body.roundList[0]).toMatchObject({
       number: 1,
-      expectedFcfa: 14700,
+      expectedFcfa: 15000,
       collectedFcfa: 5000,
       paymentsReceived: 1,
       paymentsExpected: 3,
@@ -198,7 +198,7 @@ describe("payouts that need a look (D53)", () => {
         groupId,
         roundNumber: 1,
         status: "HELD",
-        amountFcfa: 9800, // two payments less the reserve's 2% (D68)
+        amountFcfa: 10000, // two payments, without their advances (D103)
         paymentsMissing: 1,
         canRetry: false,
         canRelease: false,
@@ -254,7 +254,7 @@ describe("payouts that need a look (D53)", () => {
       status: "READY",
       canRelease: true,
       receiverTurn: 1,
-      amountFcfa: 14700,
+      amountFcfa: 15000,
     });
     expect(JSON.stringify(ready)).not.toMatch(/Akossiwa|Abla|Koffi/);
 
@@ -320,7 +320,7 @@ describe("payouts that need a look (D53)", () => {
       mfiName: "FUCEC-Togo",
       activeGroups: 1,
       completedGroups: 0,
-      balanceFcfa: 5000,
+      balanceFcfa: 7500, // one payment of 5 000 and its 2 500 advance
       held: 1,
       failed: 0,
       ready: 0,
@@ -448,7 +448,7 @@ describe("analytics and the officers' log (D67)", () => {
       .body;
     expect(analytics.weeks).toHaveLength(8);
     expect(analytics.weeks.at(-1)).toMatchObject({
-      collectedFcfa: 15000,
+      collectedFcfa: 22500, // 3 x (5 000 + 2 500 advance)
       paidOutFcfa: 0,
       payments: 3,
       onTime: 3,

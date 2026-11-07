@@ -8,7 +8,7 @@ import { postEvent } from "./chatService.js";
 import { alertStaff } from "./alertService.js";
 import { owedCovers } from "./memberService.js";
 import { notifyMembers } from "./notifyService.js";
-import { fundBalance } from "./reserveService.js";
+import { reserveBalance } from "./reserveService.js";
 
 // Help inside the group: what traders already do for each other in a
 // tontine, with the group's agreement written down.
@@ -197,9 +197,9 @@ export async function getGroupHelp(
       (s.requesterId === userId || s.partnerId === userId),
   );
   const active = loaded.group.state === "ACTIVE";
-  // The fund is shared by every group at the MFI (D68); in a small pilot it
-  // may hold less than one contribution, so the advance is capped by it too.
-  const fund = await fundBalance(loaded.group.mfiId);
+  // D103: an advance comes from this group's own advances, so it is capped
+  // by what they hold now.
+  const fund = await reserveBalance(loaded.group.id);
   const advanceMaxFcfa = Math.max(
     0,
     Math.min(loaded.contributionFcfa, Math.floor(fund / 100) * 100),
@@ -520,7 +520,7 @@ export async function askAdvance(
   }
   if (!(await canAskAdvance(loaded, userId, now)))
     throw new AppError("ADVANCE_NOT_ALLOWED", 409);
-  if ((await fundBalance(loaded.group.mfiId)) < input.amountFcfa)
+  if ((await reserveBalance(loaded.group.id)) < input.amountFcfa)
     throw new AppError("FUND_TOO_LOW", 409);
 
   await prisma.advance.create({

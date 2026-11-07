@@ -1,5 +1,11 @@
-// "+22890123456" becomes "+228 90 12 34 56", the way Togolese numbers are usually written.
+// "+22890123456" becomes "+228 90 12 34 56", the way Togolese numbers are
+// usually written; a Rwandan pilot number (D111), "+250781234567", becomes
+// "+250 781 234 567".
 export function formatPhone(phone: string): string {
+  if (phone.startsWith("+250")) {
+    const d = phone.slice(4);
+    return `+250 ${d.match(/.{1,3}/g)?.join(" ") ?? d}`;
+  }
   const digits = phone.replace("+228", "");
   return `+228 ${digits.match(/.{1,2}/g)?.join(" ") ?? digits}`;
 }

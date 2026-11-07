@@ -102,3 +102,35 @@ export function reminderSms(
         : `Novi : rappel, vos ${amount} FCFA pour « ${reminder.groupName} » sont à payer demain, le ${date}.`;
   }
 }
+
+// A payment that failed or was never confirmed by the operator. Kept short:
+// she checks her balance and answers in the app, or pays again (D104 screens).
+export function failedSms(
+  language: Language,
+  failed: { amountFcfa: number; roundNumber: number; groupName: string; ref: string },
+): string {
+  const amount = formatFcfa(failed.amountFcfa);
+  switch (language) {
+    case "EN":
+      return `Novi: your payment of ${amount} FCFA for round ${failed.roundNumber} of "${failed.groupName}" is not confirmed. Ref. ${failed.ref}. Open Novi to say whether the money left your account.`;
+    case "FR":
+    case "EE":
+      return `Novi : votre paiement de ${amount} FCFA pour le tour ${failed.roundNumber} de « ${failed.groupName} » n'est pas confirmé. Réf. ${failed.ref}. Ouvrez Novi pour dire si l'argent a quitté votre compte.`;
+  }
+}
+
+// D104: her share was covered by the group's advances; what she repays, by when.
+export function coverSms(
+  language: Language,
+  cover: { amountFcfa: number; roundNumber: number; groupName: string; dueBy: string },
+): string {
+  const amount = formatFcfa(cover.amountFcfa);
+  const [year, month, day] = cover.dueBy.split("-");
+  switch (language) {
+    case "EN":
+      return `Novi: the group's advances paid your ${amount} FCFA for round ${cover.roundNumber} of "${cover.groupName}". Repay it before ${day}/${month}/${year}.`;
+    case "FR":
+    case "EE":
+      return `Novi : les avances du groupe ont payé vos ${amount} FCFA pour le tour ${cover.roundNumber} de « ${cover.groupName} ». À rembourser avant le ${day}/${month}/${year}.`;
+  }
+}

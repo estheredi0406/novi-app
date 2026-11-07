@@ -31,18 +31,26 @@ export type RoundSummary = {
   dueDate: string;
   beneficiaryName: string; // whose turn it is: the pot goes to her
   isCurrent: boolean; // the round open for payment today
-  amountFcfa: number; // what each member pays this round (the pot is a little less: D68)
+  amountFcfa: number; // what each member pays this round (round 1 adds her advance: advanceFcfa)
   paidCount: number;
   size: number;
   collectedFcfa: number; // paid so far
   potFcfa: number; // what the round collects once everyone has paid
   myStatus: ContributionStatus | "UNPAID";
+  // Her latest attempt for this round, if any: a FAILED one can be reported
+  // as "the money left my account" (myReported), for the MFI to check.
+  myContributionId: string | null;
+  myReported: boolean;
   payoutStatus: PayoutStatus;
   paidOutAt: string | null; // when the pot reached the member whose turn it is
   payoutId: string | null;
   // D63: her answer once the pot reached her: received, or not received.
   receipt: "CONFIRMED" | "DISPUTED" | null;
-  coveredCount: number; // D68: members whose share the reserve paid this round
+  coveredCount: number; // members whose share the group's advances paid this round (D104)
+  advanceFcfa: number; // D103: her advance, paid with round 1, on top of the contribution
+  // D104: this round's share was covered for her; repay before dueBy.
+  myCover: { asked: boolean; dueBy: string | null; repaid: boolean; missed: boolean } | null;
+  canSkip: boolean; // "Je ne peux pas payer ce tour" is open to her for this round
 };
 
 // One member's payment in a round. Every member of the group sees every
@@ -56,7 +64,7 @@ export type RoundPayment = {
   coverRepaid: boolean;
 };
 
-export type RoundDetail = RoundSummary & { payments: RoundPayment[] };
+export type RoundDetail = RoundSummary & { payments: RoundPayment[]; mfiName: string };
 
 // One line of the group's ledger, which is never edited (D5).
 export type LedgerLine = {

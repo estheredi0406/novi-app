@@ -1,17 +1,18 @@
 import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
-import { reserveShare } from "../lib/groupRules.js";
-import { mfi } from "../providers/index.js";
+import { advanceOf, repayDeadline, SKIPS_PER_CYCLE } from "../lib/groupRules.js";
+import { mfi, sms } from "../providers/index.js";
+import { coverSms } from "../lib/smsText.js";
 
-// The solidarity reserve (D68). A small share of every contribution
-// (RESERVE_PERCENT, groupRules.ts) is set aside. The shares of all the groups
-// at one MFI form one solidarity fund, as the risk is pooled across many
-// groups: a group's own few hundred francs could never cover a missing share,
-// the fund can, from the first round. On a due date, if a member has not
-// paid, the fund pays her share so the pot leaves full and the member whose
-// turn it is is not penalised. Her late payment refills it. At the end of
-// the cycle, what the group put in, less what its own members still owe,
-// goes back to the members who owe nothing. Every movement is a ledger line.
+// The group's advances (D103, D104), which replaced the 2% solidarity reserve
+// of D68. Each member pays an advance of half a contribution with round 1;
+// the advances stay at the MFI, in this group only (no pooling across groups).
+// When a share is missing, the advances pay it so the pot leaves full, and the
+// member owes it until she repays (her late payment, or her own pot first).
+// At the end of the cycle, what the advances hold goes back to the members who
+// owe nothing, in proportion to what each put in: so a member who owes loses
+// her own advance first, and only a larger loss is shared by the others.
+// Every movement is a ledger line; the line types keep their D68 names.
 
 type Tx = Prisma.TransactionClient;
 
@@ -25,10 +26,12 @@ export async function creditReserve(
     roundId: string;
     userId: string;
     amountFcfa: number;
+    advanceFcfa: number;
   },
   groupId: string,
 ): Promise<void> {
-  const share = reserveShare(contribution.amountFcfa);
+  // D103: the advance paid with round 1 goes into the group's advances.
+  const share = contribution.advanceFcfa;
   if (share > 0) {
     await tx.ledgerEntry.create({
       data: {
@@ -100,9 +103,8 @@ async function sumReserve(
   );
 }
 
-// One group's place in the fund: what it put in and got back, less what the
-// fund paid for its members and they have not repaid. Can be negative while
-// one of its members owes a cover.
+// What the group's advances hold now: what was put in, less what they paid
+// for members and was not repaid yet, less advances to members (D88).
 export function reserveBalance(
   groupId: string,
   db: Db = prisma,
@@ -110,21 +112,29 @@ export function reserveBalance(
   return sumReserve({ groupId }, db);
 }
 
-// The MFI's whole solidarity fund: every group's reserve together.
+// Every group's advances at one MFI, added up: shown to the MFI, never used
+// to cover another group's share (D103).
 export function fundBalance(mfiId: string, db: Db = prisma): Promise<number> {
   return sumReserve({ group: { mfiId } }, db);
 }
 
-// On or after a round's due date, with payments missing: if the reserve can
-// pay every missing share, it does, in one transaction, and the round is
-// treated as full. Returns false (nothing written) when it cannot.
+// On or after a round's due date, with payments missing: if the group's
+// advances can pay every missing share, they do, in one transaction, and the
+// round is treated as full. Returns false (nothing written) when they cannot,
+// and the pot is held (D48). Round 1 is never covered: it carries the advances
+// themselves, so the group only really starts once everyone has paid it.
 export async function coverMissing(
-  round: { id: string; groupId: string },
+  round: { id: string; groupId: string; number?: number },
   amountFcfa: number,
   now: Date,
 ): Promise<boolean> {
-  const net = amountFcfa - reserveShare(amountFcfa);
-  return prisma.$transaction(async (tx) => {
+  const net = amountFcfa;
+  if (round.number === 1) return false;
+  // Members told by SMS once the covers are written: not the one whose turn
+  // it is (her pot repays it), not a member who died.
+  let toTell: string[] = [];
+  let tellBy: Date | null = null;
+  const ok = await prisma.$transaction(async (tx) => {
     const seats = await tx.membership.findMany({
       where: { groupId: round.groupId, payoutPosition: { not: null } },
       select: { userId: true },
@@ -140,22 +150,35 @@ export async function coverMissing(
     const settled = new Set([...paid, ...covered].map((x) => x.userId));
     const missing = seats.filter((s) => !settled.has(s.userId));
     if (missing.length === 0) return true;
-    const group = await tx.group.findUniqueOrThrow({
-      where: { id: round.groupId },
-      select: { mfiId: true },
-    });
-    if ((await fundBalance(group.mfiId, tx)) < missing.length * net)
-      return false;
+    // D104: the member whose turn it is does not need the advances: her
+    // share is taken from her own pot when it is released.
+    const receiver = (
+      await tx.round.findUniqueOrThrow({ where: { id: round.id }, select: { beneficiaryId: true } })
+    ).beneficiaryId;
+    const needed = missing.filter((m) => m.userId !== receiver).length * net;
+    if ((await reserveBalance(round.groupId, tx)) < needed) return false;
+    const dueBy = await deadlineAfter(tx, round.id, now);
 
-    // D69: after a death, nobody owes her shares: the fund carries them.
-    const deceased = new Set(
+    // D69, D104: after a death, nothing is held against her. If her pot is
+    // still to come, it repays her shares; if she had already received it,
+    // nobody owes them and the group's advances carry them.
+    const received = new Set(
       (
-        await tx.membership.findMany({
-          where: { groupId: round.groupId, exitReason: "DEATH" },
-          select: { userId: true },
+        await tx.payout.findMany({
+          where: { round: { groupId: round.groupId }, status: "PAID" },
+          select: { beneficiaryId: true },
         })
-      ).map((m) => m.userId),
+      ).map((p) => p.beneficiaryId),
     );
+    const dead = (
+      await tx.membership.findMany({
+        where: { groupId: round.groupId, exitReason: "DEATH" },
+        select: { userId: true },
+      })
+    ).map((m) => m.userId);
+    const deceased = new Set(dead.filter((id) => received.has(id)));
+    toTell = missing.map((m) => m.userId).filter((id) => id !== receiver && !dead.includes(id));
+    tellBy = dueBy;
     for (const { userId } of missing) {
       const cover = await tx.reserveCover.create({
         data: {
@@ -163,6 +186,7 @@ export async function coverMissing(
           userId,
           amountFcfa: net,
           coveredAt: now,
+          dueBy,
           writtenOffAt: deceased.has(userId) ? now : null,
         },
       });
@@ -189,12 +213,48 @@ export async function coverMissing(
     });
     return true;
   });
+  if (ok && toTell.length > 0 && tellBy) await tellCovered(round.id, toTell, net, tellBy);
+  return ok;
 }
 
-// At the end of the cycle (D68): the group's place in the fund goes back,
-// through the MFI, to the members who owe it nothing, in proportion to what
-// each put in. A member who still owes a covered round gets nothing back.
-// Run once: a second run finds the returns already written.
+// D104: an SMS to each member whose share the advances paid without her
+// asking, with what to repay and by when.
+async function tellCovered(roundId: string, userIds: string[], amountFcfa: number, dueBy: Date) {
+  const round = await prisma.round.findUniqueOrThrow({
+    where: { id: roundId },
+    select: { number: true, group: { select: { name: true } } },
+  });
+  const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { phone: true, language: true } });
+  for (const user of users) {
+    await sms
+      .send(
+        user.phone,
+        coverSms(user.language, {
+          amountFcfa,
+          roundNumber: round.number,
+          groupName: round.group.name,
+          dueBy: dueBy.toISOString().slice(0, 10),
+        }),
+      )
+      .catch((err: unknown) => console.error("Cover SMS failed:", err));
+  }
+}
+
+// D104: when a covered share must be repaid: 7 days, or the next turn's day
+// if that is later.
+export async function deadlineAfter(tx: Tx, roundId: string, now: Date): Promise<Date> {
+  const round = await tx.round.findUniqueOrThrow({ where: { id: roundId } });
+  const next = await tx.round.findFirst({
+    where: { groupId: round.groupId, number: round.number + 1 },
+    select: { dueDate: true },
+  });
+  return repayDeadline(now, next?.dueDate ?? null);
+}
+
+// At the end of the cycle (D103): what the advances hold goes back, through
+// the MFI, to the members who owe nothing, in proportion to what each put in.
+// A member who still owes a covered round gets nothing back: her own advance
+// pays first. Run once: a second run finds the returns already written.
 export async function returnReserve(groupId: string): Promise<void> {
   const group = await prisma.group.findUniqueOrThrow({
     where: { id: groupId },
@@ -202,17 +262,9 @@ export async function returnReserve(groupId: string): Promise<void> {
   if (group.state !== "COMPLETED" || !group.mfiAccountRef) return;
   if ((await prisma.reserveReturn.count({ where: { groupId } })) > 0) return;
 
-  // Shares written off after a death are the whole fund's loss, not this
-  // group's (D69): the members who paid are not made to carry them.
-  const writtenOff = await prisma.reserveCover.aggregate({
-    where: { round: { groupId }, writtenOffAt: { not: null }, repaidAt: null },
-    _sum: { amountFcfa: true },
-  });
-  // Never more than the fund holds, if other groups' losses emptied it.
-  const balance = Math.min(
-    (await reserveBalance(groupId)) + (writtenOff._sum.amountFcfa ?? 0),
-    await fundBalance(group.mfiId),
-  );
+  // Shares written off after a death are carried by the group's advances
+  // (D104): there is no MFI-wide fund any more.
+  const balance = await reserveBalance(groupId);
   if (balance <= 0) return;
   const putIn = await prisma.ledgerEntry.groupBy({
     by: ["userId"],
@@ -307,22 +359,49 @@ export async function returnReserve(groupId: string): Promise<void> {
   });
 }
 
-// What a member or an officer sees of the reserve.
-export async function reserveSummary(groupId: string, mfiId: string) {
-  const [balance, fund, open] = await Promise.all([
+// What a member or an officer sees of the group's advances (D103). With a
+// member, also her own part: her advance, what she owes, her deadline.
+export async function reserveSummary(groupId: string, _mfiId: string, userId?: string, amountFcfa = 0) {
+  const [balance, open, putIn] = await Promise.all([
     reserveBalance(groupId),
-    fundBalance(mfiId),
     prisma.reserveCover.aggregate({
       where: { round: { groupId }, repaidAt: null, writtenOffAt: null },
       _sum: { amountFcfa: true },
       _count: true,
     }),
+    prisma.ledgerEntry.groupBy({
+      by: ["userId"],
+      where: { groupId, type: "RESERVE_IN" },
+      _sum: { amountFcfa: true },
+    }),
   ]);
+  const totalIn = putIn.reduce((sum, p) => sum + (p._sum.amountFcfa ?? 0), 0);
+  const paid = putIn.find((p) => p.userId === userId)?._sum.amountFcfa ?? 0;
+  const [mineOpen, asked, seat] = userId
+    ? await Promise.all([
+        prisma.reserveCover.findMany({
+          where: { userId, round: { groupId }, repaidAt: null, writtenOffAt: null },
+          orderBy: { dueBy: "asc" },
+        }),
+        prisma.reserveCover.count({ where: { userId, round: { groupId }, askedAt: { not: null } } }),
+        prisma.membership.findFirst({ where: { groupId, userId }, select: { defaultedAt: true } }),
+      ])
+    : [[], 0, null];
   return {
+    percent: 0,
     balanceFcfa: balance,
-    fundFcfa: fund,
+    fundFcfa: balance,
     owedFcfa: open._sum.amountFcfa ?? 0,
     coversOpen: open._count,
+    advanceFcfa: advanceOf(amountFcfa),
+    mine: {
+      paidFcfa: paid,
+      nowFcfa: totalIn > 0 ? Math.max(0, Math.floor((paid * Math.min(balance, totalIn)) / totalIn)) : 0,
+      owedFcfa: mineOpen.reduce((sum, c) => sum + c.amountFcfa, 0),
+      dueBy: mineOpen[0]?.dueBy?.toISOString() ?? null,
+      skipsLeft: Math.max(0, SKIPS_PER_CYCLE - asked),
+      defaulted: Boolean(seat?.defaultedAt),
+    },
   };
 }
 

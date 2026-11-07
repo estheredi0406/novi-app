@@ -16,8 +16,9 @@ if (!(payments instanceof MockPaymentProvider) || !(sms instanceof MockSmsProvid
 const mockPayments = payments;
 const outbox = sms.sent;
 
-// Akossiwa's group of 3: 5 000 FCFA every Friday. 2% of each payment goes to
-// the solidarity reserve (D68), so each pot is 3 x 4 900 = 14 700 FCFA.
+// Akossiwa's group of 3: 5 000 FCFA every Friday; round 1 also carries each
+// member's advance of 2 500 FCFA (D103), so each pot is 3 x 5 000 = 15 000 FCFA.
+
 const SMALL_GROUP = {
   name: "Pagnes Assigamé",
   amountFcfa: 5000,
@@ -105,25 +106,25 @@ describe("the calendar of rounds", () => {
       isoDay(new Date(first.getTime() + week)),
       isoDay(new Date(first.getTime() + 2 * week)),
     ]);
-    expect(rounds[0]).toMatchObject({ isCurrent: true, potFcfa: 14700, collectedFcfa: 0, myStatus: "UNPAID" });
+    expect(rounds[0]).toMatchObject({ isCurrent: true, potFcfa: 15000, collectedFcfa: 0, myStatus: "UNPAID", advanceFcfa: 2500 });
   });
 });
 
 describe("paying a contribution", () => {
-  it("sends a request for 5 000 FCFA to her own number and waits for her confirmation", async () => {
+  it("sends a request for 5 000 FCFA plus her 2 500 FCFA advance (D103) to her own number and waits for her confirmation", async () => {
     const { abla, groupId } = await activeGroup();
     const res = await abla.post(`/v1/groups/${groupId}/rounds/1/pay`, { operator: "TOGOCEL" });
 
     expect(res.status).toBe(202);
     expect(res.body).toMatchObject({
       roundNumber: 1,
-      amountFcfa: 5000,
+      amountFcfa: 7500,
       operator: "TOGOCEL",
       status: "PENDING",
       receiptRef: null,
     });
     const sent = [...mockPayments.transactions.values()].at(-1);
-    expect(sent).toMatchObject({ amountFcfa: 5000, phone: "+22890000002", operator: "TOGOCEL" });
+    expect(sent).toMatchObject({ amountFcfa: 7500, phone: "+22890000002", operator: "TOGOCEL" });
   });
 
   it("records the payment once the provider confirms it, writes a ledger line, and sends a receipt", async () => {
@@ -135,15 +136,15 @@ describe("paying a contribution", () => {
     const ledger = await prisma.ledgerEntry.findMany({ where: { groupId } });
     expect(ledger).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ type: "CONTRIBUTION", amountFcfa: 5000, userId: ids.abla }),
-        expect.objectContaining({ type: "RESERVE_IN", amountFcfa: 100, userId: ids.abla }), // D68
+        expect.objectContaining({ type: "CONTRIBUTION", amountFcfa: 7500, userId: ids.abla }),
+        expect.objectContaining({ type: "RESERVE_IN", amountFcfa: 2500, userId: ids.abla }), // D103: her advance
       ]),
     );
     expect(ledger).toHaveLength(2);
 
     const receipt = outbox.at(-1);
     expect(receipt?.to).toBe("+22890000002");
-    expect(receipt?.text).toContain("5 000 FCFA");
+    expect(receipt?.text).toContain("7 500 FCFA");
     expect(receipt?.text).toContain("tour 1");
     expect(receipt?.text).toContain("FUCEC-Togo");
   });
@@ -280,7 +281,7 @@ describe("what each person sees", () => {
     expect(before.currentRound).toMatchObject({
       number: 1,
       myStatus: "UNPAID",
-      potFcfa: 14700,
+      potFcfa: 15000,
       isMyTurn: round1.beneficiaryId === ids.abla,
     });
 
@@ -333,7 +334,7 @@ describe("what each person sees", () => {
     const ledger = (await abla.get(`/v1/groups/${groupId}/ledger`)).body;
     const payments = ledger.filter((line: { type: string }) => line.type === "CONTRIBUTION");
     expect(payments.map((line: { memberName: string }) => line.memberName)).toEqual(["Koffi", "Abla"]);
-    expect(payments[0]).toMatchObject({ type: "CONTRIBUTION", amountFcfa: 5000, roundNumber: 1 });
+    expect(payments[0]).toMatchObject({ type: "CONTRIBUTION", amountFcfa: 7500, roundNumber: 1 });
   });
 });
 
@@ -345,6 +346,6 @@ describe("the ledger is append-only (D5)", () => {
 
     await expect(prisma.ledgerEntry.update({ where: { id: line.id }, data: { amountFcfa: 50000 } })).rejects.toThrow();
     await expect(prisma.ledgerEntry.delete({ where: { id: line.id } })).rejects.toThrow();
-    expect((await prisma.ledgerEntry.findUniqueOrThrow({ where: { id: line.id } })).amountFcfa).toBe(5000);
+    expect((await prisma.ledgerEntry.findUniqueOrThrow({ where: { id: line.id } })).amountFcfa).toBe(7500);
   });
 });

@@ -51,6 +51,19 @@ services:
       # a mock. Remove this once a real SMS provider is connected.
       - key: PILOT_SHOW_CODES
         value: "true"
+      # D111: the pilot is run from Kigali. Rwandan numbers are accepted,
+      # each SMS is shown in "Mes SMS (pilote)", and Rwandan numbers get real
+      # SMS through Pindo once its token and sender ID are set in Render.
+      - key: PILOT_RWANDA
+        value: "true"
+      - key: PILOT_SHOW_SMS
+        value: "true"
+      - key: PINDO_API_TOKEN
+        sync: false
+      - key: PINDO_SENDER
+        sync: false
+      - key: SMS_MONTHLY_LIMIT
+        value: "200"
       # D66: FUCEC's officer validates each group in the console before its
       # account opens.
       - key: MFI_GROUP_APPROVAL

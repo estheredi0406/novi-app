@@ -139,7 +139,9 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
       {owes ? (
         <Pressable accessibilityRole="button" onPress={() => openRound(group)} style={styles.pay}>
           <CowrieMark size={30} />
-          <Text style={styles.payText}>{t("hub.pay", { amount: formatFcfa(group.amountFcfa).replace(" FCFA", " F") })}</Text>
+          <Text style={styles.payText}>{t("hub.pay", {
+              amount: formatFcfa(group.amountFcfa + (group.currentRound?.advanceFcfa ?? 0)).replace(" FCFA", " F"),
+            })}</Text>
         </Pressable>
       ) : null}
 

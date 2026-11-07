@@ -12,6 +12,7 @@ import {
   checkContribution,
   getRound,
   payRound,
+  reportPayment,
 } from "../../../../../api/money";
 import { Celebrate } from "../../../../../components/art/Celebrate";
 import { BackHeader } from "../../../../../components/BackHeader";
@@ -50,6 +51,8 @@ export default function RoundScreen() {
   const [waitedTooLong, setWaitedTooLong] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // "No, the money did not leave": she may pay again.
+  const [retrying, setRetrying] = useState(false);
   const pollStarted = useRef(0);
 
   const load = useCallback(() => {
@@ -81,6 +84,20 @@ export default function RoundScreen() {
 
   const [pageUrl, setPageUrl] = useState<string | null>(null);
 
+  // "Yes, the money left my account": the MFI checks it with the operator.
+  async function report(contributionId: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      setPayment(await reportPayment(contributionId));
+      load();
+    } catch (err) {
+      setError(errorKey(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function pay(chosen: MobileOperator) {
     setBusy(true);
     setError(null);
@@ -97,7 +114,7 @@ export default function RoundScreen() {
         void openPaymentPage(
           started.paymentUrl,
           started.id,
-          formatFcfa(round ? round.amountFcfa : 0),
+          formatFcfa(round ? round.amountFcfa + round.advanceFcfa : 0),
         );
       }
     } catch (err) {
@@ -116,10 +133,10 @@ export default function RoundScreen() {
     );
   }
 
-  // What she pays: the full contribution. The pot is a little less, as 2% of
-  // each payment goes to the group's caisse (D68).
-  const amount = formatFcfa(round.amountFcfa);
+  // What she pays: the contribution, and in round 1 her advance too (D103),
+  // which stays in the group's advances and comes back at the end.
   const canPay = round.myStatus === "UNPAID" || round.myStatus === "FAILED";
+  const amount = formatFcfa(round.amountFcfa + (canPay ? round.advanceFcfa : 0));
   const listen = `${t("money.roundTitle", { number: round.number, date: formatDay(round.dueDate) })}. ${t(
     "money.turnOf",
     {
@@ -160,6 +177,9 @@ export default function RoundScreen() {
         <Text style={styles.summaryLabel}>{canPay ? t("pay.youPay") : t("pay.contribution")}</Text>
         <Text style={styles.summaryAmount}>{amount}</Text>
         <View style={styles.facts}>
+          {canPay && round.advanceFcfa > 0 ? (
+            <Fact label={t("pay.advance")} value={formatFcfa(round.advanceFcfa)} />
+          ) : null}
           <Fact label={t("pay.forRound")} value={t("pay.roundLine", { number: round.number, date: formatDay(round.dueDate) })} />
           <Fact label={t("pay.receives")} value={`${round.beneficiaryName} · ${pot}`} />
           <Fact label={t("pay.collected")} value={t("hub.paidCount", { paid: round.paidCount, size: round.size })} />
@@ -207,7 +227,36 @@ export default function RoundScreen() {
 
       {payment?.status === "FAILED" ? <ErrorMessage messageKey="money.paymentFailed" /> : null}
 
-      {canPay && payment?.status !== "PENDING" && payment?.status !== "PAID" ? (
+      {/* A payment the operator did not confirm: did the money leave her
+          account? Yes: the MFI checks, and she must not pay twice. No: she
+          pays again below. */}
+      {round.myStatus === "FAILED" && round.myContributionId && !round.myReported && !retrying ? (
+        <View style={styles.section}>
+          <Text style={styles.question}>{t("pay.debitedQ")}</Text>
+          <View style={styles.answers}>
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={() => void report(round.myContributionId as string)}
+              style={styles.answer}
+            >
+              <Text style={styles.answerText}>{t("pay.debitedYes")}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => setRetrying(true)} style={styles.answer}>
+              <Text style={styles.answerText}>{t("pay.debitedNo")}</Text>
+            </Pressable>
+          </View>
+          <Text style={[type.small, styles.muted]}>{t("pay.debitedHint", { mfi: round.mfiName })}</Text>
+        </View>
+      ) : null}
+      {round.myStatus === "FAILED" && round.myReported ? (
+        <Text style={[type.body, styles.ink]}>{t("pay.reportedNote", { mfi: round.mfiName })}</Text>
+      ) : null}
+
+      {canPay &&
+      payment?.status !== "PENDING" &&
+      payment?.status !== "PAID" &&
+      !(round.myStatus === "FAILED" && (round.myReported || !retrying)) ? (
         <View style={styles.section}>
           <Text style={styles.label}>{t("money.chooseOperator")}</Text>
           {operators.map((o) => {
@@ -264,6 +313,19 @@ function Fact({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  question: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.ink, textAlign: "center" },
+  answers: { flexDirection: "row", gap: 10 },
+  answer: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: colors.lagoon,
+    backgroundColor: colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  answerText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.lagoon },
   indigo: { color: colors.indigo },
   ink: { color: colors.ink },
   muted: { color: colors.muted },

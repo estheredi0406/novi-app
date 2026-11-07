@@ -1,3 +1,4 @@
+import { phoneSchema } from "../lib/phone.js";
 import { Router } from "express";
 import { MemoryStore, rateLimit } from "express-rate-limit";
 import { z } from "zod";
@@ -11,7 +12,7 @@ import { logout, refreshSession } from "../services/sessionService.js";
 export const authRouter = Router();
 
 // A Togolese mobile number: +228 followed by 8 digits.
-const phone = z.string().regex(/^\+228\d{8}$/);
+const phone = phoneSchema;
 const pin = z.string().regex(/^\d{4}$/);
 
 // Each per-address limit keeps its counts in memory; tests reset them so

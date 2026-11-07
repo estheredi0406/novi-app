@@ -88,10 +88,6 @@ async function release(groupId: string, number: number) {
   return releasePayout(payout.id, null);
 }
 
-// The MFI's fund, as if other groups had already put their 2% in it.
-const seedFund = (groupId: string, amountFcfa = 20000) =>
-  prisma.ledgerEntry.create({ data: { groupId, type: "RESERVE_IN", amountFcfa, note: "test: other groups" } });
-
 // A round where everyone pays except the members listed, then due and run.
 async function roundWithout(groupId: string, members: Client[], number: number, missing: number[]) {
   for (const [i, member] of members.entries()) if (!missing.includes(i)) await pay(member, groupId, number);
@@ -128,37 +124,38 @@ describe("her next of kin", () => {
   });
 });
 
-describe("a debt to the solidarity fund", () => {
+describe("a debt to the group's advances (D104)", () => {
   it("stops her joining or creating a group until she has repaid it", async () => {
     const { groupId, members } = await activeGroup();
-    await seedFund(groupId);
-    await roundWithout(groupId, members, 1, [2]); // Koffi does not pay; the fund covers him
+    await roundWithout(groupId, members, 1, []);
+    await release(groupId, 1);
+    await roundWithout(groupId, members, 2, [2]); // Koffi does not pay; the advances cover him
 
     const koffi = members[2] as Client;
     const refused = await koffi.post("/v1/groups", { ...SMALL_GROUP, name: "Koffi's" });
     expect(refused.status).toBe(409);
     expect(refused.body.error.code).toBe("DEBT_OUTSTANDING");
 
-    await pay(koffi, groupId, 1); // he pays late: the fund is repaid
+    await pay(koffi, groupId, 2); // he pays late: the advances are repaid
     expect((await koffi.post("/v1/groups", { ...SMALL_GROUP, name: "Koffi's" })).status).toBe(201);
   });
 
   it("is taken from her own pot first, when her turn comes", async () => {
     const { groupId, members, ids } = await activeGroup();
-    await seedFund(groupId);
     const order = await turnOrder(groupId, ids);
-    const second = order[1] as number; // the member paid in round 2
-    await roundWithout(groupId, members, 1, [second]); // she misses round 1
+    const third = order[2] as number; // the member paid in round 3
+    await roundWithout(groupId, members, 1, []);
     await release(groupId, 1);
-    await roundWithout(groupId, members, 2, []);
+    await roundWithout(groupId, members, 2, [third]); // she misses round 2
     await release(groupId, 2);
+    await roundWithout(groupId, members, 3, []);
+    await release(groupId, 3);
 
-    const payout = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 2 } } });
-    expect(payout).toMatchObject({ amountFcfa: 14700 - 4900, coverRepaidFcfa: 4900, status: "PAID" });
-    const cover = await prisma.reserveCover.findFirstOrThrow({ where: { userId: ids[second] } });
+    const payout = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 3 } } });
+    expect(payout).toMatchObject({ amountFcfa: 15000 - 5000, coverRepaidFcfa: 5000, status: "PAID" });
+    const cover = await prisma.reserveCover.findFirstOrThrow({ where: { userId: ids[third] } });
     expect(cover.repaidAt).not.toBeNull();
-    // Her late payment afterwards does not repay the same cover a second time.
-    await pay(members[second] as Client, groupId, 1);
+    // Repaid once only.
     expect(await prisma.ledgerEntry.count({ where: { groupId, type: "RESERVE_REPAY" } })).toBe(1);
   });
 });
@@ -193,7 +190,6 @@ describe("when a member dies", () => {
 
   it("sends her pot to her next of kin, and nobody owes her shares", async () => {
     const { groupId, members, ids, people } = await activeGroup();
-    await seedFund(groupId, 30000);
     const order = await turnOrder(groupId, ids);
     const last = order[2] as number; // she would be paid in round 3
     await (members[last] as Client).patch("/v1/me", { nextOfKin: KIN });
@@ -206,7 +202,8 @@ describe("when a member dies", () => {
     expect(recorded.body).toMatchObject({ closed: true });
     expect(recorded.body.seats[0]).toMatchObject({ exitReason: "DEATH", exitPayoutPhone: KIN.phone });
 
-    // Rounds 2 and 3 go on without her; the fund pays her shares.
+    // Rounds 2 and 3 go on without her: the advances pay round 2, her own
+    // pot pays round 3, and her pot repays both (D104).
     await roundWithout(groupId, members, 2, [last]);
     await release(groupId, 2);
     await roundWithout(groupId, members, 3, [last]);
@@ -214,10 +211,10 @@ describe("when a member dies", () => {
 
     const covers = await prisma.reserveCover.findMany({ where: { userId: ids[last] } });
     expect(covers).toHaveLength(2);
-    expect(covers.every((c) => c.writtenOffAt !== null)).toBe(true);
+    expect(covers.every((c) => c.repaidAt !== null && c.writtenOffAt === null)).toBe(true);
     const pot = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 3 } } });
-    expect(pot).toMatchObject({ phone: KIN.phone, toNextOfKin: true, amountFcfa: 14700, coverRepaidFcfa: 0 });
-    // The group completed, and her written-off shares were not charged to the others.
+    expect(pot).toMatchObject({ phone: KIN.phone, toNextOfKin: true, amountFcfa: 5000, coverRepaidFcfa: 10000 });
+    // The group completed, and the others carried none of her shares.
     const group = await prisma.group.findUniqueOrThrow({ where: { id: groupId } });
     expect(group.state).toBe("COMPLETED");
     const returns = await prisma.reserveReturn.findMany({ where: { groupId } });
@@ -247,9 +244,8 @@ describe("when a member dies", () => {
 });
 
 describe("when a member leaves a started group", () => {
-  it("keeps what the fund pays for her as her debt", async () => {
+  it("keeps what the advances pay for her as her debt", async () => {
     const { groupId, members, ids } = await activeGroup();
-    await seedFund(groupId);
     const order = await turnOrder(groupId, ids);
     const first = order[0] as number; // paid in round 1, then leaves
     await roundWithout(groupId, members, 1, []);
@@ -263,7 +259,7 @@ describe("when a member leaves a started group", () => {
     const cover = await prisma.reserveCover.findFirstOrThrow({ where: { userId: ids[first] } });
     expect(cover.writtenOffAt).toBeNull();
     const found = await desk.get(`/v1/console/members?phone=${encodeURIComponent(PHONES[first] as string)}`);
-    expect(found.body.owedFcfa).toBe(4900);
+    expect(found.body.owedFcfa).toBe(5000);
     expect(found.body.seats[0].exitReason).toBe("LEFT");
   });
 });

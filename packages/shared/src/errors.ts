@@ -66,6 +66,15 @@ export const errors = {
   // Money in (Sprint 3)
   ROUND_NOT_OPEN: { messageKey: "money.roundNotOpen" },
   ALREADY_PAID: { messageKey: "money.alreadyPaid" },
+  // D104: "Je ne peux pas payer ce tour"
+  SKIP_NOT_THIS_ROUND: { messageKey: "skip.notThisRound" },
+  SKIP_OWN_TURN: { messageKey: "skip.ownTurn" },
+  SKIP_OWES_COVER: { messageKey: "skip.owesCover" },
+  SKIP_LIMIT: { messageKey: "skip.limit" },
+  SKIP_TWICE_IN_A_ROW: { messageKey: "skip.twiceInARow" },
+  SKIP_NO_ADVANCES: { messageKey: "skip.noAdvances" },
+  COVER_ALREADY_EXTENDED: { messageKey: "skip.alreadyExtended" },
+  TURN_ONE_NEEDS_HISTORY: { messageKey: "groups.turnOneNeedsHistory" },
   PAYMENT_IN_PROGRESS: { messageKey: "money.paymentInProgress" },
   PAYMENT_UNAVAILABLE: { messageKey: "money.paymentUnavailable" },
   WEBHOOK_INVALID: { messageKey: "errors.validationFailed" },

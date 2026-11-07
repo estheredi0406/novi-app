@@ -1,3 +1,5 @@
+import { prisma } from "../lib/db.js";
+import { phoneSchema } from "../lib/phone.js";
 import { Router } from "express";
 import { z } from "zod";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
@@ -37,7 +39,7 @@ const profileChanges = z
     nextOfKin: z
       .object({
         name: z.string().trim().min(2).max(80),
-        phone: z.string().regex(/^\+228\d{8}$/),
+        phone: phoneSchema,
         relation: z.string().trim().min(2).max(40),
       })
       .strict()
@@ -66,6 +68,25 @@ meRouter.get("/news", async (req, res) => {
 // D92: her payments and pots, line by line, for "Mon relevé".
 meRouter.get("/statement", async (_req, res) => {
   res.json(await getStatement(currentMember(res).userId));
+});
+
+// D111: on the pilot, the SMS her phone would have received (simulated ones
+// included), so testers see them without real SMS being paid for.
+meRouter.get("/sms", async (_req, res) => {
+  if (process.env.PILOT_SHOW_SMS !== "true") {
+    res.json({ enabled: false, messages: [] });
+    return;
+  }
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: currentMember(res).userId }, select: { phone: true } });
+  const rows = await prisma.smsLog.findMany({
+    where: { phone: user.phone },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+  res.json({
+    enabled: true,
+    messages: rows.map((r) => ({ id: r.id, at: r.createdAt.toISOString(), text: r.text ?? "", real: r.real })),
+  });
 });
 
 // D79: where this phone receives notifications (Expo's token), or null to

@@ -13,22 +13,24 @@ import { currentLanguage } from "../../i18n";
 import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
+import { usePhoneCountry } from "../../lib/phoneCountry";
 
 // Screen A2: her phone number. Novi sends a 6-digit code to prove she holds the SIM.
 export default function PhoneScreen() {
   const { t } = useTranslation();
   const { update } = useSignUp();
   const [digits, setDigits] = useState("");
+  const country = usePhoneCountry();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const isComplete = /^\d{8}$/.test(digits);
+  const isComplete = country.valid(digits);
 
   async function sendCode() {
     setBusy(true);
     setError(null);
     try {
-      const phone = `+228${digits}`;
+      const phone = country.full(digits);
       const challenge = await requestCode(phone, "SIGN_UP", currentLanguage());
       update({ phone, challengeId: challenge.challengeId, resendInSec: challenge.resendInSec });
       router.push("/code");
@@ -52,13 +54,14 @@ export default function PhoneScreen() {
     >
       <Field
         label={t("phone.label")}
-        prefix="+228"
+        prefix={country.prefix}
+        onPrefixPress={country.toggle}
         value={digits}
-        onChangeText={(value) => setDigits(value.replace(/\D/g, "").slice(0, 8))}
+        onChangeText={(value) => setDigits(country.clean(value))}
         keyboardType="number-pad"
         textContentType="telephoneNumber"
         autoComplete="tel"
-        maxLength={8}
+        maxLength={country.length}
         autoFocus
       />
 

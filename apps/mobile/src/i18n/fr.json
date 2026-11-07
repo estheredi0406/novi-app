@@ -307,7 +307,7 @@
     "leave": "Quitter le groupe",
     "leaveTitle": "Quitter ce groupe ?",
     "declinePrivate": "Si vous refusez, le groupe ne voit pas votre nom.",
-    "shareConsent": "Facultatif : j'accepte que {{mfi}} voie mon historique Novi pour vérifier ce groupe : toutes mes tontines Novi, mes paiements à l'heure, ce que je dois à la caisse de secours. Pas mes messages. Il ne le voit plus une fois le groupe vérifié.",
+    "shareConsent": "Facultatif : j'accepte que {{mfi}} voie mon historique Novi pour vérifier ce groupe : toutes mes tontines Novi, mes paiements à l'heure, ce que je dois aux avances du groupe. Pas mes messages. Il ne le voit plus une fois le groupe vérifié.",
     "shareConsentNeeded": "{{mfi}} vérifie chaque membre avant d'ouvrir le compte du groupe. Sans votre accord, il ne voit pas votre historique."
   },
   "money": {
@@ -347,10 +347,10 @@
       "PAYOUT": "Versement",
       "CORRECTION": "Correction",
       "RESERVE_IN": "Part pour la réserve solidaire",
-      "RESERVE_COVER": "Payé par le fonds solidaire",
-      "RESERVE_REPAY": "Remboursement au fonds solidaire",
+      "RESERVE_COVER": "Payé par les avances du groupe",
+      "RESERVE_REPAY": "Remboursement aux avances du groupe",
       "RESERVE_RETURN": "Réserve rendue en fin de cycle",
-      "RESERVE_ADVANCE": "Avance du fonds solidaire",
+      "RESERVE_ADVANCE": "Avance prise sur les avances du groupe",
       "RESERVE_ADVANCE_REPAY": "Avance remboursée sur la cagnotte"
     },
     "roundNotOpen": "Ce tour n'est pas encore ouvert. Vous pourrez le payer quand son tour viendra.",
@@ -482,7 +482,8 @@
     "mfiUnavailable": "L'IMF n'a pas pu ouvrir le compte du groupe pour le moment. Réessayez dans quelques minutes : l'ordre des tours est conservé.",
     "alreadyInvited": "Ce numéro est déjà invité dans le groupe, ou y a déjà une place.",
     "cannotRemoveOrganiser": "La place de la personne qui organise ne peut pas être retirée. Annulez plutôt le groupe.",
-    "debtOutstanding": "Le fonds solidaire a payé une part pour vous, pas encore remboursée. Payez d'abord ce tour, puis vous pourrez rejoindre un autre groupe."
+    "debtOutstanding": "Les avances du groupe ont payé une part pour vous, pas encore remboursée. Payez d'abord ce tour, puis vous pourrez rejoindre un autre groupe.",
+    "turnOneNeedsHistory": "Le tour 1 revient à une membre qui a déjà fini un cycle Novi, ou à l'organisatrice."
   },
   "nav": {
     "home": "Accueil",
@@ -502,7 +503,8 @@
     "pinGo": "Continuer",
     "agreed": "Ce que j'ai accepté",
     "notifyChat": "Notifications de la discussion",
-    "notifyMoney": "Celles de l'argent restent toujours actives."
+    "notifyMoney": "Celles de l'argent restent toujours actives.",
+    "pilotSms": "Mes SMS (pilote)"
   },
   "pilot": {
     "label": "Pilote : ce code arrive normalement par SMS"
@@ -530,15 +532,15 @@
     "receiptYes": "Oui, je l'ai reçue",
     "receiptNo": "Non, elle n'est pas arrivée",
     "disputed": "Non reçue",
-    "reserveTitle": "Caisse de secours",
-    "reserveText": "{{percent}} % de chaque paiement vont au fonds solidaire de {{mfi}}. Si une membre a un empêchement, le fonds paie sa part et la cagnotte part complète, à l'heure.",
+    "reserveTitle": "Avances du groupe",
+    "reserveText": "Au tour 1, chacune paie aussi la moitié d'une cotisation. Si une membre a un empêchement, ces avances paient sa part et la cagnotte part complète, à l'heure. Elles sont rendues à la fin du cycle.",
     "reserveGroup": "Mis par le groupe",
     "reserveFund": "Fonds de {{mfi}}",
     "reserveBack": "Ce qui reste vous est rendu en fin de cycle.",
-    "coveredTag": "Payée par la caisse",
+    "coveredTag": "Couverte par les avances",
     "coveredLate": "Payé en retard",
-    "youOweCover": "La caisse de secours a payé votre part du tour {{number}} ({{amount}}). Remboursez dès que possible.",
-    "payCover": "Rembourser maintenant",
+    "youOweCover": "À rembourser avant le {{date}} : {{amount}}",
+    "payCover": "Rembourser",
     "toKin": "À sa personne de confiance",
     "left": "A quitté le groupe",
     "roundOf": "Tour {{number}} sur {{total}}",
@@ -553,7 +555,10 @@
     "payAhead": "Payer en avance",
     "payCurrentFirst": "Payez d'abord le tour en cours",
     "organisedBy": "{{name}} organise",
-    "heldBy": "{{mfi}} garde l'argent"
+    "heldBy": "{{mfi}} garde l'argent",
+    "owes": "{{name}} doit {{amount}}",
+    "extend": "Accorder un délai",
+    "extended": "Délai accordé jusqu'au {{date}}"
   },
   "kin": {
     "title": "Personne de confiance",
@@ -695,15 +700,15 @@
     "members_other": "{{count}} membres"
   },
   "caisse": {
-    "title": "Caisse de secours",
-    "active": "Caisse de secours · active",
-    "what": "Qu'est-ce que la caisse de secours ?",
-    "body": "Si une membre ne peut pas payer à temps, la caisse paie pour elle. La cagnotte part complète, le jour prévu. Elle rembourse ensuite.",
-    "setAside": "Mis de côté",
-    "percent": "{{percent}} % de chaque cotisation",
-    "group": "Pour ce groupe",
+    "title": "Avances du groupe",
+    "active": "Avances du groupe",
+    "what": "À quoi servent les avances ?",
+    "body": "Au tour 1, chacune paie aussi une avance : la moitié d'une cotisation. Si une membre ne peut pas payer, les avances paient sa part et la cagnotte part complète. Elle rembourse ensuite. À la fin du cycle, les avances sont rendues.",
+    "setAside": "Votre avance",
+    "group": "Avances du groupe aujourd'hui",
+    "mine": "Votre part aujourd'hui",
     "end": "Fin du cycle",
-    "returned": "rendu aux membres"
+    "returned": "rendues aux membres"
   },
   "voice": {
     "micTitle": "Micro",
@@ -737,12 +742,18 @@
     "forRound": "Pour",
     "roundLine": "le tour {{number}}, avant le {{date}}",
     "receives": "Reçoit la cagnotte",
-    "collected": "Déjà payé"
+    "collected": "Déjà payé",
+    "advance": "Dont votre avance",
+    "debitedQ": "Votre argent a-t-il quitté votre compte ?",
+    "debitedYes": "Oui",
+    "debitedNo": "Non",
+    "debitedHint": "Oui : {{mfi}} vérifie, ne payez pas une deuxième fois. Non : vous pouvez payer à nouveau.",
+    "reportedNote": "Signalé. {{mfi}} vérifie ce paiement avec l'opérateur."
   },
   "help": {
     "title": "Entraide",
     "what": "Qu'est-ce que l'entraide ?",
-    "explain": "Deux façons de s'aider dans le groupe. Échanger son tour : un membre dont le tour vient plus tard peut prendre le vôtre, si elle est d'accord et que l'organisatrice confirme. Une avance de la caisse : en cas d'urgence, si vous êtes à jour et n'avez pas encore reçu votre cagnotte, le fonds solidaire peut vous avancer jusqu'à une cotisation. L'organisatrice et un membre l'acceptent, FUCEC l'envoie, et elle est reprise sur votre cagnotte, sans intérêt.",
+    "explain": "Deux façons de s'aider dans le groupe. Échanger son tour : un membre dont le tour vient plus tard peut prendre le vôtre, si elle est d'accord et que l'organisatrice confirme. Une avance : en cas d'urgence, si vous êtes à jour et n'avez pas encore reçu votre cagnotte, les avances du groupe peuvent vous prêter jusqu'à une cotisation. L'organisatrice et un membre l'acceptent, FUCEC l'envoie, et elle est reprise sur votre cagnotte, sans intérêt.",
     "swapLine": "{{a}} (tour {{x}}) et {{b}} (tour {{y}})",
     "swapAsked": "Échange de tour demandé",
     "swapAgreed": "D'accord des deux côtés, l'organisatrice confirme",
@@ -767,7 +778,7 @@
     "swapCtaSub": "Votre tour : {{round}}",
     "advanceCta": "Demander une avance",
     "advanceCtaSub": "Jusqu'à {{amount}}, reprise sur votre cagnotte",
-    "fundTooLow": "Le fonds solidaire ne peut pas faire d'avance pour le moment.",
+    "fundTooLow": "Les avances du groupe ne suffisent pas pour le moment.",
     "swapIntro": "Choisissez avec qui échanger. Elle répond, puis l'organisatrice confirme.",
     "yourTurnNow": "Votre tour aujourd'hui : {{round}}.",
     "partnerTurn": "Tour {{round}}, {{day}}",
@@ -819,7 +830,7 @@
       "cycleHave": "{{cycles}} terminée(s), {{streak}} de suite",
       "onTime": "Au moins {{min}} % des paiements à l'heure",
       "onTimeHave": "{{percent}} % ({{on}} sur {{made}})",
-      "noDebt": "Rien à rendre au fonds solidaire",
+      "noDebt": "Rien à rendre aux avances du groupe",
       "owes": "vous devez {{amount}}",
       "owesNothing": "rien à rendre",
       "wait": "Pas de refus dans les {{days}} derniers jours",
@@ -910,7 +921,7 @@
     "moreSub": "Ces actions concernent seulement ce groupe",
     "swap": "Échanger mon tour",
     "swapSub": "Avec une autre membre, l'organisatrice valide",
-    "advance": "Avance du fonds",
+    "advance": "Avance du groupe",
     "advanceSub": "Si vous ne pouvez pas payer à temps",
     "meetings": "Réunions",
     "meetingsSub": "Prévoir ou rejoindre une réunion",
@@ -969,6 +980,49 @@
     "round": "Tour {{number}}",
     "yourPot": "Tour {{number}}, votre cagnotte",
     "monthPaid": "payé {{amount}}",
-    "empty": "Aucun paiement pour l'instant."
+    "empty": "Aucun paiement pour l'instant.",
+    "allGroups": "Tous mes groupes",
+    "colDate": "Date",
+    "colDetail": "Détail",
+    "colPaid": "Payé",
+    "colReceived": "Reçu",
+    "total": "Total",
+    "contribution": "Cotisation, tour {{number}}",
+    "advance": "Avance de départ",
+    "pot": "Cagnotte, tour {{number}}",
+    "advanceBack": "Avance rendue",
+    "pending": "en attente",
+    "failed": "pas confirmé",
+    "reported": "signalé",
+    "covered": "Part couverte, tour {{number}}",
+    "repayBy": "à rembourser avant le {{date}}",
+    "repaid": "remboursée"
+  },
+  "skip": {
+    "button": "Je ne peux pas payer ce tour",
+    "title": "Votre part de {{amount}} est payée pour vous",
+    "yourAdvance": "Votre avance",
+    "groupAdvances": "Les avances du groupe",
+    "repayBy": "À rembourser avant le {{date}}",
+    "notLate": "Pas compté comme un retard si vous remboursez à temps.",
+    "left_one": "Encore 1 fois possible dans ce cycle.",
+    "left_other": "Encore {{count}} fois possibles dans ce cycle.",
+    "last": "C'est la dernière fois possible dans ce cycle.",
+    "confirm": "Confirmer",
+    "cancel": "Annuler",
+    "notThisRound": "Ce n'est possible que pour le tour en cours, avant sa date.",
+    "ownTurn": "C'est votre tour : votre part sera prise sur votre cagnotte.",
+    "owesCover": "Remboursez d'abord la part déjà payée pour vous.",
+    "limit": "Vous l'avez déjà demandé 2 fois dans ce cycle.",
+    "twiceInARow": "Pas deux tours de suite.",
+    "noAdvances": "Les avances du groupe ne suffisent pas pour ce tour.",
+    "alreadyExtended": "Un délai a déjà été accordé pour cette part."
+  },
+  "sms": {
+    "title": "Mes SMS (pilote)",
+    "hint": "Les SMS que Novi envoie à votre numéro. Dans le pilote, la plupart sont simulés : ils s'affichent ici au lieu d'arriver sur votre téléphone.",
+    "empty": "Aucun SMS pour l'instant.",
+    "real": "envoyé",
+    "simulated": "simulé"
   }
 }

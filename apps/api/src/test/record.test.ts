@@ -134,7 +134,7 @@ describe("her savings record", () => {
     const receiver = [akossiwa, abla, koffi].at(
       ["Akossiwa", "Abla", "Koffi"].indexOf(round.beneficiary.displayName),
     ) as Member;
-    expect((await receiver.get("/v1/me/record")).body).toMatchObject({ potsReceived: 1, totalReceivedFcfa: 14700 });
+    expect((await receiver.get("/v1/me/record")).body).toMatchObject({ potsReceived: 1, totalReceivedFcfa: 15000 });
   });
 
   it("contains no phone number, no NIU, and nobody else's name", async () => {

@@ -69,46 +69,113 @@ export async function listNews(userId: string, limit = 30, now = new Date()): Pr
   });
 }
 
-// Her own money, line by line: every payment she made (on time or late) and
-// every pot she received. The record (D50) gives the totals; this gives the
-// lines behind them, for her eyes only.
+// Her own money, line by line ("Mes transactions"): every payment she made
+// (on time or late, pending or not confirmed), her advance, every pot and
+// advance given back, and every share the group's advances paid for her
+// (D103, D104). The record (D50) gives the totals; this gives the lines
+// behind them, for her eyes only.
 export async function getStatement(userId: string, limit = 200): Promise<Statement> {
-  const [paid, received] = await Promise.all([
+  const group = { select: { id: true, name: true } };
+  const [contributions, received, covers, returns] = await Promise.all([
     prisma.contribution.findMany({
-      where: { userId, status: "PAID" },
-      orderBy: { paidAt: "desc" },
+      where: { userId, status: { in: ["PAID", "PENDING", "FAILED"] } },
+      orderBy: { requestedAt: "desc" },
       take: limit,
-      include: { round: { select: { number: true, dueDate: true, group: { select: { name: true } } } } },
+      include: { round: { select: { number: true, dueDate: true, group } } },
     }),
     prisma.payout.findMany({
       where: { beneficiaryId: userId, status: "PAID" },
       orderBy: { paidAt: "desc" },
       take: limit,
-      include: { round: { select: { number: true, group: { select: { name: true } } } } },
+      include: { round: { select: { number: true, group } } },
+    }),
+    prisma.reserveCover.findMany({
+      where: { userId },
+      orderBy: { coveredAt: "desc" },
+      take: limit,
+      include: { round: { select: { number: true, group } } },
+    }),
+    prisma.reserveReturn.findMany({
+      where: { userId, status: "PAID" },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      include: { group: { select: { id: true, name: true } } },
     }),
   ]);
   const day = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  // A failed attempt for a round she paid in the end is no longer news.
+  const paidRounds = new Set(contributions.filter((c) => c.status === "PAID").map((c) => c.roundId));
 
-  const lines: StatementLine[] = [
-    ...paid.map((c) => ({
-      id: c.id,
-      kind: "PAID" as const,
-      groupName: c.round.group.name,
-      round: c.round.number,
-      amountFcfa: c.amountFcfa,
-      at: (c.paidAt ?? c.requestedAt).toISOString(),
-      onTime: c.paidAt ? day(c.paidAt) <= day(c.round.dueDate) : null,
-    })),
-    ...received.map((p) => ({
+  const lines: StatementLine[] = [];
+  for (const c of contributions) {
+    const base = { groupId: c.round.group.id, groupName: c.round.group.name, round: c.round.number };
+    if (c.status === "PAID") {
+      const at = (c.paidAt ?? c.requestedAt).toISOString();
+      lines.push({
+        ...base,
+        id: c.id,
+        kind: "PAID",
+        amountFcfa: c.amountFcfa - c.advanceFcfa,
+        advanceFcfa: c.advanceFcfa,
+        at,
+        onTime: c.paidAt ? day(c.paidAt) <= day(c.round.dueDate) : null,
+      });
+      if (c.advanceFcfa > 0) {
+        lines.push({ ...base, id: `${c.id}-advance`, kind: "ADVANCE", amountFcfa: c.advanceFcfa, at, onTime: null });
+      }
+    } else if (c.status === "PENDING") {
+      lines.push({ ...base, id: c.id, kind: "PENDING", amountFcfa: c.amountFcfa, at: c.requestedAt.toISOString(), onTime: null });
+    } else if (!paidRounds.has(c.roundId)) {
+      lines.push({
+        ...base,
+        id: c.id,
+        kind: "FAILED",
+        amountFcfa: c.amountFcfa,
+        at: (c.failedAt ?? c.requestedAt).toISOString(),
+        onTime: null,
+        reported: c.reportedAt !== null,
+      });
+    }
+  }
+  for (const p of received) {
+    lines.push({
       id: p.id,
-      kind: "RECEIVED" as const,
+      kind: "RECEIVED",
+      groupId: p.round.group.id,
       groupName: p.round.group.name,
       round: p.round.number,
       amountFcfa: p.amountFcfa,
       at: (p.paidAt ?? p.updatedAt).toISOString(),
       onTime: null,
-    })),
-  ];
+    });
+  }
+  for (const cover of covers) {
+    if (cover.writtenOffAt) continue;
+    lines.push({
+      id: cover.id,
+      kind: "COVERED",
+      groupId: cover.round.group.id,
+      groupName: cover.round.group.name,
+      round: cover.round.number,
+      amountFcfa: cover.amountFcfa,
+      at: cover.coveredAt.toISOString(),
+      onTime: null,
+      dueBy: cover.dueBy?.toISOString() ?? null,
+      repaid: cover.repaidAt !== null,
+    });
+  }
+  for (const r of returns) {
+    lines.push({
+      id: r.id,
+      kind: "ADVANCE_BACK",
+      groupId: r.group.id,
+      groupName: r.group.name,
+      round: 0,
+      amountFcfa: r.amountFcfa,
+      at: (r.paidAt ?? r.createdAt).toISOString(),
+      onTime: null,
+    });
+  }
   lines.sort((a, b) => b.at.localeCompare(a.at));
   return { lines: lines.slice(0, limit) };
 }

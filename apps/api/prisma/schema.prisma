@@ -386,6 +386,7 @@ model Membership {
   // D84: she agreed, when joining, that the MFI may see her Novi record
   // (cycles finished, payments on time, caisse debt) to validate the group.
   shareConsentAt  DateTime?
+  defaultedAt     DateTime?  // D104: a second missed turn without repaying
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
@@ -452,7 +453,9 @@ model Contribution {
   id          String             @id @default(uuid())
   roundId     String
   userId      String
-  amountFcfa  Int                // the group's contribution in force when she paid (D4)
+  amountFcfa  Int                // the group's contribution in force when she paid (D4), plus her advance in round 1
+  advanceFcfa Int                @default(0) // D103: the part of round 1's payment that is her advance, not the pot
+  reportedAt  DateTime?          // she says the money left her account, though the payment is not confirmed
   operator    MobileOperator
   payerPhone  String             // her verified Novi number: Novi collects only from her own wallet
   status      ContributionStatus @default(PENDING)
@@ -669,7 +672,11 @@ model ReserveCover {
   amountFcfa Int       // her share of the pot: the contribution less the reserve's part
   coveredAt  DateTime  @default(now())
   repaidAt   DateTime?
-  writtenOffAt DateTime? // D69: she died; the fund carries her share, nobody owes it
+  writtenOffAt DateTime? // D69: she died; nobody owes her share, the group's advances carry it (D104)
+  askedAt    DateTime? // D104: she said "je ne peux pas payer ce tour" before the due date
+  dueBy      DateTime? // D104: repay before this, or it counts as a missed turn
+  extendedAt DateTime? // D104: the organiser gave her more time, once
+  missedAt   DateTime? // D104: the deadline passed unpaid
 
   round Round @relation(fields: [roundId], references: [id])
   user  User  @relation(fields: [userId], references: [id])
@@ -974,4 +981,19 @@ model LoanDocument {
 
   @@unique([loanId, key])
   @@map("loan_documents")
+}
+
+// Every SMS Novi sends (D109, D111): real ones count toward the monthly cost
+// limit (SMS_MONTHLY_LIMIT); on the pilot (PILOT_SHOW_SMS=true) the text is
+// kept too, so a tester sees in "Mes SMS" what her phone would receive.
+model SmsLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  phone     String?
+  text      String?
+  real      Boolean  @default(true) // false: simulated, nothing left the server
+
+  @@index([createdAt])
+  @@index([phone, createdAt])
+  @@map("sms_logs")
 }

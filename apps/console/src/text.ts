@@ -87,7 +87,7 @@ export const text = {
       `Au moins ${c} tontine(s) terminée(s) sur Novi, ou ${s} paiements à l'heure de suite`,
     condCycleHave: (c: number, s: number) => `${c} terminée(s), ${s} de suite`,
     condOnTime: (min: number) => `Au moins ${min} % des paiements à l'heure`,
-    condNoDebt: "Rien dû au fonds solidaire",
+    condNoDebt: "Rien dû aux avances du groupe",
     condWait: (d: number) => `Pas de refus dans les ${d} derniers jours`,
     condDays: (n: number) => `refus il y a ${n} jour(s)`,
     condNoRefusal: "aucun refus",
@@ -240,12 +240,12 @@ export const text = {
     } as Record<string, string>,
     advancesTitle: "Avances à verser",
     advancesHint:
-      "Approuvées par l'organisatrice et un membre. Envoyées depuis le fonds solidaire, reprises sur la cagnotte de la bénéficiaire.",
+      "Approuvées par l'organisatrice et un membre. Envoyées depuis les avances du groupe, reprises sur la cagnotte de la bénéficiaire.",
     advanceLine: (turn: number | null) =>
       turn ? `Bénéficiaire : tour ${turn}` : "Bénéficiaire",
     advanceSend: "Verser",
     advanceSendConfirm: (amount: string, group: string) =>
-      `Verser ${amount} depuis le fonds solidaire (${group}) ?`,
+      `Verser ${amount} depuis les avances du groupe (${group}) ?`,
     advanceSent: "Versée",
     recordTitle: "Les membres",
     recordHint:
@@ -254,7 +254,7 @@ export const text = {
       "Les historiques des membres ne sont visibles que pendant la validation du groupe.",
     colMember: "Membre",
     colRecord: "Historique Novi",
-    colCaisse: "Caisse de secours",
+    colCaisse: "Avances du groupe",
     organiserTag: "organisatrice",
     noConsent: "N'a pas accepté de partager son historique",
     verifiedOn: (d: string) => `Identité vérifiée le ${d}`,
@@ -266,10 +266,10 @@ export const text = {
     approveConfirm: (name: string) =>
       `Valider « ${name} » ? FUCEC ouvrira le compte du groupe et le premier tour sera programmé.`,
     analytics: "Analytique",
-    reserveLabel: "Réserve solidaire",
-    fundTitle: "Fonds solidaire",
+    reserveLabel: "Avances du groupe",
+    fundTitle: "Avances des groupes",
     fundHint: (owed: string) =>
-      `2 % de chaque paiement, tous groupes réunis · ${owed} avancés, à rembourser`,
+      `La moitié d'une cotisation par membre, payée au tour 1, gardée par groupe · ${owed} couverts, à rembourser`,
     byGroupTitle: "Par groupe",
     byGroupHint:
       "Totaux par groupe, jamais par membre : les noms restent privés.",
@@ -420,7 +420,7 @@ export const text = {
         "12 caractères au moins, différent du mot de passe temporaire.",
       ADMIN_ONLY: "Réservé aux administrateurs.",
       FUND_TOO_LOW:
-        "Le fonds solidaire ne peut pas verser ce montant maintenant.",
+        "Les avances du groupe ne peuvent pas verser ce montant maintenant.",
       MFI_UNAVAILABLE: "FUCEC n'a pas répondu. Réessayez.",
       default: "Une erreur s'est produite. Réessayez.",
     },
@@ -458,8 +458,8 @@ export const text = {
     closed: "Compte clôturé (succession)",
     kinTitle: "Personne de confiance",
     kinNone: "Aucune personne de confiance enregistrée.",
-    owed: "Doit au fonds solidaire",
-    owesNothing: "Ne doit rien au fonds solidaire",
+    owed: "Doit aux avances du groupe",
+    owesNothing: "Ne doit rien aux avances du groupe",
     seatsTitle: "Ses groupes",
     organiser: "Organisatrice",
     position: (n: number) => `tour n°${n}`,
@@ -472,7 +472,7 @@ export const text = {
     makeOrganiser: "Nommer organisatrice",
     changePhone: "Nouveau numéro",
     deathConfirm: (name: string, kin: string) =>
-      `Clôturer le compte de ${name} pour succession, sur présentation des justificatifs ? Ce que le fonds a avancé pour elle est effacé. Sa cagnotte et sa part de la réserve iront à ${kin}.`,
+      `Clôturer le compte de ${name} pour succession, sur présentation des justificatifs ? Sa cagnotte, moins les parts couvertes pour elle, et son avance iront à ${kin}.`,
     deathAskPhone:
       "Elle n'a pas de personne de confiance. Numéro (+228…) de l'ayant droit, d'après les documents :",
     leftConfirm: (name: string) =>
@@ -572,7 +572,7 @@ export const text = {
       `At least ${c} tontine(s) completed on Novi, or ${s} payments on time in a row`,
     condCycleHave: (c: number, s: number) => `${c} completed, ${s} in a row`,
     condOnTime: (min: number) => `At least ${min}% of payments on time`,
-    condNoDebt: "Nothing owed to the solidarity fund",
+    condNoDebt: "Nothing owed to the group's advances",
     condWait: (d: number) => `No refusal in the last ${d} days`,
     condDays: (n: number) => `refused ${n} day(s) ago`,
     condNoRefusal: "no refusal",
@@ -718,12 +718,12 @@ export const text = {
     } as Record<string, string>,
     advancesTitle: "Advances to send",
     advancesHint:
-      "Approved by the organiser and one member. Sent from the solidarity fund, taken back from the member's pot.",
+      "Approved by the organiser and one member. Sent from the group's advances, taken back from the member's pot.",
     advanceLine: (turn: number | null) =>
       turn ? `Receiver: turn ${turn}` : "Receiver",
     advanceSend: "Send",
     advanceSendConfirm: (amount: string, group: string) =>
-      `Send ${amount} from the solidarity fund (${group})?`,
+      `Send ${amount} from the group's advances (${group})?`,
     advanceSent: "Sent",
     recordTitle: "Members",
     recordHint:
@@ -732,7 +732,7 @@ export const text = {
       "Members' records are visible only while the group is being validated.",
     colMember: "Member",
     colRecord: "Novi record",
-    colCaisse: "Emergency fund",
+    colCaisse: "Group's advances",
     organiserTag: "organiser",
     noConsent: "Has not agreed to share her record",
     verifiedOn: (d: string) => `ID verified on ${d}`,
@@ -742,10 +742,10 @@ export const text = {
     owes: (amount: string) => `Owes ${amount}`,
     recordOwesNothing: "Owes nothing",
     analytics: "Analytics",
-    reserveLabel: "Solidarity reserve",
-    fundTitle: "Solidarity fund",
+    reserveLabel: "Group's advances",
+    fundTitle: "Groups' advances",
     fundHint: (owed: string) =>
-      `2% of every payment, all groups together · ${owed} advanced, to be repaid`,
+      `Half a contribution per member, paid in turn 1, kept per group · ${owed} covered, to be repaid`,
     byGroupTitle: "By group",
     byGroupHint: "Totals per group, never per member: names stay private.",
     colGroup: "Group",
@@ -894,7 +894,7 @@ export const text = {
       STAFF_EMAIL_TAKEN: "This email already has access.",
       WEAK_PASSWORD: "At least 12 characters, not the temporary password.",
       ADMIN_ONLY: "For administrators only.",
-      FUND_TOO_LOW: "The solidarity fund cannot send this amount now.",
+      FUND_TOO_LOW: "The group's advances cannot send this amount now.",
       MFI_UNAVAILABLE: "The MFI did not answer. Try again.",
       default: "Something went wrong. Try again.",
     },
@@ -932,8 +932,8 @@ export const text = {
     closed: "Account closed (estate)",
     kinTitle: "Next of kin",
     kinNone: "No next of kin recorded.",
-    owed: "Owes the solidarity fund",
-    owesNothing: "Owes the solidarity fund nothing",
+    owed: "Owes the group's advances",
+    owesNothing: "Owes the group's advances nothing",
     seatsTitle: "Her groups",
     organiser: "Organiser",
     position: (n: number) => `turn ${n}`,
@@ -946,7 +946,7 @@ export const text = {
     makeOrganiser: "Make organiser",
     changePhone: "New number",
     deathConfirm: (name: string, kin: string) =>
-      `Close ${name}'s account for her estate, on the supporting documents? What the fund paid for her is written off. Her pot and her part of the reserve go to ${kin}.`,
+      `Close ${name}'s account for her estate, on the supporting documents? Her pot, less the shares covered for her, and her advance go to ${kin}.`,
     deathAskPhone:
       "She has no trusted person. Number (+228…) of the heir, from the documents:",
     leftConfirm: (name: string) =>

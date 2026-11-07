@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
 import { callGroup } from "../../api/groups";
-import { answerReceipt, getRound } from "../../api/money";
+import { answerReceipt, extendCover, getRound } from "../../api/money";
 import { openCall } from "../../lib/openCall";
 import { daysUntil, formatFcfa, shortDay } from "../../lib/format";
 import { colors } from "../../theme/colors";
@@ -17,6 +17,7 @@ import { ErrorMessage } from "../ErrorMessage";
 import { LineIcon, type LineIconName } from "../LineIcon";
 import { WaxCard } from "../WaxCard";
 import { MemberFaces } from "./MemberFaces";
+import { SkipSheet } from "./SkipSheet";
 
 // The "Cotisation" tab (approved design F1, restyled as board E5, D92): this
 // round with every member as a face in turn order, who receives the pot,
@@ -73,8 +74,27 @@ export function CotisationTab({
     }
   }
 
-  // D68: a round the caisse paid for her, which she has not repaid yet.
-  const myCover = rounds.find((r) => r.coveredCount > 0 && r.myStatus !== "PAID" && r.myStatus !== "PENDING");
+  // D104: a round the group's advances paid for her, not repaid yet: she
+  // repays it by paying that round, before its deadline.
+  const myCover = rounds.find(
+    (r) => r.myCover && !r.myCover.repaid && r.myStatus !== "PAID" && r.myStatus !== "PENDING",
+  );
+  const [skipping, setSkipping] = useState(false);
+  const isOrganiser = group.myRole === "ORGANISER";
+  // D104: the organiser sees who owes a covered share this round and can give
+  // her more time, once.
+  const owing = isOrganiser
+    ? (detail?.payments ?? []).filter((p) => p.coveredByReserve && !p.coverRepaid && p.memberId !== memberId)
+    : [];
+  const [extended, setExtended] = useState<Record<string, string>>({});
+  async function giveTime(member: string) {
+    try {
+      const { dueBy } = await extendCover(group.id, member);
+      setExtended((e) => ({ ...e, [member]: dueBy }));
+    } catch (err) {
+      setCallError(errorKey(err));
+    }
+  }
 
   const unpaid = (r: RoundSummary) => r.myStatus === "UNPAID" || r.myStatus === "FAILED";
   // Ahead of time only after paying the round before it (the API's rule too).
@@ -105,8 +125,8 @@ export function CotisationTab({
         <WaxCard style={[styles.card, styles.soft]}>
           <Text style={styles.cardTitle}>
             {t("groupView.youOweCover", {
-              number: myCover.number,
-              amount: formatFcfa(myCover.potFcfa / group.rules.size),
+              date: myCover.myCover?.dueBy ? shortDay(myCover.myCover.dueBy, lang) : "",
+              amount: formatFcfa(myCover.amountFcfa).replace(" FCFA", " F"),
             })}
           </Text>
           <PrimaryButton label={t("groupView.payCover")} onPress={() => openRound(myCover.number)} />
@@ -185,7 +205,9 @@ export function CotisationTab({
               <CowrieMark size={30} />
               <Text style={styles.payText}>
                 {focus === current
-                  ? t("hub.pay", { amount: formatFcfa(group.rules.amountFcfa).replace(" FCFA", " F") })
+                  ? t("hub.pay", {
+                      amount: formatFcfa(group.rules.amountFcfa + focus.advanceFcfa).replace(" FCFA", " F"),
+                    })
                   : t("groupView.payAhead")}
               </Text>
             </Pressable>
@@ -198,7 +220,45 @@ export function CotisationTab({
                   : t("groupView.payCurrentFirst")}
             </Text>
           )}
+          {focus.canSkip ? (
+            <Pressable accessibilityRole="button" onPress={() => setSkipping(true)} style={styles.second}>
+              <Text style={styles.secondText}>{t("skip.button")}</Text>
+            </Pressable>
+          ) : null}
+          {owing.map((p) => (
+            <View key={p.memberId} style={styles.owingRow}>
+              <Text style={styles.owingText}>
+                {t("groupView.owes", {
+                  name: p.displayName.split(" ")[0],
+                  amount: formatFcfa(group.rules.amountFcfa).replace(" FCFA", " F"),
+                })}
+              </Text>
+              {extended[p.memberId] ? (
+                <Text style={styles.owingDone}>
+                  {t("groupView.extended", { date: shortDay(extended[p.memberId] as string, lang) })}
+                </Text>
+              ) : (
+                <Pressable accessibilityRole="button" onPress={() => void giveTime(p.memberId)}>
+                  <Text style={styles.owingLink}>{t("groupView.extend")}</Text>
+                </Pressable>
+              )}
+            </View>
+          ))}
         </WaxCard>
+      ) : null}
+
+      {focus ? (
+        <SkipSheet
+          visible={skipping}
+          group={group}
+          round={focus}
+          next={rounds.find((r) => r.number === focus.number + 1)}
+          onClose={() => setSkipping(false)}
+          onDone={() => {
+            setSkipping(false);
+            onChanged();
+          }}
+        />
       ) : null}
 
       {group.state === "ACTIVE" ? (
@@ -326,4 +386,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   secondText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.indigo },
+  owingRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
+  owingText: { flex: 1, fontFamily: fonts.body, fontSize: 15, color: colors.ink },
+  owingLink: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.lagoon },
+  owingDone: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
 });

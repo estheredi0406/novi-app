@@ -151,7 +151,8 @@ export async function getConsoleGroup(
     number: round.number,
     dueDate: isoDay(round.dueDate),
     expectedFcfa: potShare(rules.amountFcfa) * rules.size,
-    collectedFcfa: sumPaid(round),
+    // Toward this pot only: round 1's advances stay in the group's advances (D103).
+    collectedFcfa: round.contributions.reduce((total, c) => total + c.amountFcfa - c.advanceFcfa, 0),
     paymentsReceived: round.contributions.length,
     paymentsExpected: rules.size,
     receiverTurn: round.number,
@@ -283,13 +284,16 @@ export async function listAttention(mfiId: string): Promise<AttentionItem[]> {
       status: (payout.status === "PAID"
         ? "DISPUTED"
         : payout.status) as AttentionItem["status"],
-      // The pot as it will leave: each payment less the reserve's share, plus
-      // what the reserve covered (D68).
+      // The pot as it will leave: each payment less her advance (round 1,
+      // D103), plus what the advances covered for members who did not pay.
       amountFcfa:
         round.contributions.reduce(
-          (total, c) => total + potShare(c.amountFcfa),
+          (total, c) => total + potShare(c.amountFcfa - c.advanceFcfa),
           0,
-        ) + round.reserveCovers.reduce((total, c) => total + c.amountFcfa, 0),
+        ) +
+        round.reserveCovers
+          .filter((cover) => !round.contributions.some((c) => c.userId === cover.userId))
+          .reduce((total, c) => total + c.amountFcfa, 0),
       paymentsMissing: Math.max(
         0,
         expected - round.contributions.length - round.reserveCovers.length,
@@ -860,7 +864,7 @@ export async function sendAdvance(
   });
   if (!advance) throw new AppError("NOT_FOUND", 404);
   if (advance.status !== "APPROVED") throw new AppError("NOT_ALLOWED_NOW", 409);
-  if ((await fundBalance(mfiId)) < advance.amountFcfa)
+  if ((await reserveBalance(advance.groupId)) < advance.amountFcfa)
     throw new AppError("FUND_TOO_LOW", 409);
   if (!advance.group.mfiAccountRef) throw new AppError("NOT_ALLOWED_NOW", 409);
 

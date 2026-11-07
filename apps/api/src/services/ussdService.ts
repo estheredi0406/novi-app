@@ -1,3 +1,4 @@
+import { advanceOf } from "../lib/groupRules.js";
 import type { GroupSummary } from "@novi/shared";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
@@ -122,13 +123,16 @@ async function answer({ phone, text }: { phone: string; text: string }): Promise
       (g) => g.currentRound && (g.currentRound.myStatus === "UNPAID" || g.currentRound.myStatus === "FAILED"),
     );
     if (groups.length === 0) return end(t.nothingToPay);
+    // D103: round 1 also carries her advance, half a contribution.
+    const due = (g: (typeof groups)[number]) =>
+      g.amountFcfa + (g.currentRound?.number === 1 ? advanceOf(g.amountFcfa) : 0);
     const [pick, operator] = rest;
     if (pick === undefined) {
-      return con(`${t.choosePay}\n${groups.map((g, i) => `${i + 1}. ${g.name} ${fcfa(g.amountFcfa)}`).join("\n")}`);
+      return con(`${t.choosePay}\n${groups.map((g, i) => `${i + 1}. ${g.name} ${fcfa(due(g))}`).join("\n")}`);
     }
     const group = groups[Number(pick) - 1];
     if (!group?.currentRound) return end(t.invalid);
-    if (operator === undefined) return con(t.confirmPay(fcfa(group.amountFcfa), group.name, group.currentRound.number));
+    if (operator === undefined) return con(t.confirmPay(fcfa(due(group)), group.name, group.currentRound.number));
     if (operator === "0") return end(t.bye);
     if (operator !== "1" && operator !== "2") return end(t.invalid);
     try {
@@ -136,7 +140,7 @@ async function answer({ phone, text }: { phone: string; text: string }): Promise
       await prisma.auditEvent.create({
         data: { userId: user.id, type: "USSD_PAYMENT_REQUESTED", details: { groupId: group.id } },
       });
-      return end(t.paySent(fcfa(group.amountFcfa)));
+      return end(t.paySent(fcfa(due(group))));
     } catch {
       return end(t.payFailed);
     }

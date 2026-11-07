@@ -83,11 +83,11 @@ export async function buildRecord(userId: string, now = new Date()): Promise<Sav
 
   const ledger = await prisma.ledgerEntry.groupBy({
     by: ["type"],
-    where: { userId, type: { in: ["CONTRIBUTION", "PAYOUT"] } },
+    where: { userId, type: { in: ["CONTRIBUTION", "PAYOUT", "RESERVE_IN"] } },
     _sum: { amountFcfa: true },
     _count: true,
   });
-  const line = (type: "CONTRIBUTION" | "PAYOUT") => ledger.find((l) => l.type === type);
+  const line = (type: "CONTRIBUTION" | "PAYOUT" | "RESERVE_IN") => ledger.find((l) => l.type === type);
 
   const paymentsMade = groups.reduce((sum, g) => sum + g.paid, 0);
   const paidOnTime = groups.reduce((sum, g) => sum + g.onTime, 0);
@@ -121,7 +121,8 @@ export async function buildRecord(userId: string, now = new Date()): Promise<Sav
     paidOnTime,
     paidLate: paymentsMade - paidOnTime,
     missed,
-    totalSavedFcfa: line("CONTRIBUTION")?._sum.amountFcfa ?? 0,
+    // D103: her advance comes back to her at the end; it is not savings in the tontine.
+    totalSavedFcfa: (line("CONTRIBUTION")?._sum.amountFcfa ?? 0) - (line("RESERVE_IN")?._sum.amountFcfa ?? 0),
     potsReceived: line("PAYOUT")?._count ?? 0,
     totalReceivedFcfa: line("PAYOUT")?._sum.amountFcfa ?? 0,
     groups,

@@ -121,7 +121,7 @@ export function HomeView({
     today,
     ...running.map((g) =>
       owes(g) && g.currentRound
-        ? `${g.name}. ${t("hub.pay", { amount: `${g.amountFcfa} francs` })}.`
+        ? `${g.name}. ${t("hub.pay", { amount: `${g.amountFcfa + (g.currentRound?.advanceFcfa ?? 0)} francs` })}.`
         : `${g.name}. ${t("hub.paid")}.`,
     ),
     ...news.map((n) => newsTitle(t, n)),

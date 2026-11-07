@@ -1,15 +1,17 @@
+import { hasApp } from "./notifyService.js";
 import { createHash } from "node:crypto";
 import type { ContributionView, LedgerLine, MobileOperator, RoundDetail, RoundSummary } from "@novi/shared";
 import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { enforce } from "../lib/enforce.js";
 import { AppError } from "../lib/errors.js";
-import { checkAction, checkCanPay, holdsSeat, PAYMENT_WAIT_MS, potShare } from "../lib/groupRules.js";
+import { advanceOf, checkAction, checkCanPay, holdsSeat, PAYMENT_WAIT_MS, potShare } from "../lib/groupRules.js";
 import { currentRoundNumber, isoDay } from "../lib/schedule.js";
-import { receiptSms } from "../lib/smsText.js";
+import { receiptSms, failedSms } from "../lib/smsText.js";
 import { payments, sms } from "../providers/index.js";
 import { runPayouts } from "./payoutService.js";
 import { creditReserve } from "./reserveService.js";
+import { canSkip } from "./advanceService.js";
 import { postEvent } from "./chatService.js";
 import type { CollectionStatus } from "../providers/payment/PaymentProvider.js";
 
@@ -59,9 +61,10 @@ async function loadForMember(groupId: string, userId: string) {
 type Loaded = Awaited<ReturnType<typeof loadForMember>>;
 type LoadedRound = Loaded["group"]["rounds"][number];
 
-function toSummary(loaded: Loaded, round: LoadedRound, userId: string): RoundSummary {
+function toSummary(loaded: Loaded, round: LoadedRound, userId: string, canSkipNow = false): RoundSummary {
   const paid = round.contributions.filter((c) => c.status === "PAID");
   const mine = round.contributions.find((c) => c.userId === userId);
+  const cover = round.reserveCovers.find((c) => c.userId === userId);
   return {
     number: round.number,
     dueDate: isoDay(round.dueDate),
@@ -70,21 +73,34 @@ function toSummary(loaded: Loaded, round: LoadedRound, userId: string): RoundSum
     amountFcfa: loaded.rules.amountFcfa,
     paidCount: paid.length,
     size: loaded.rules.size,
-    collectedFcfa: paid.reduce((sum, c) => sum + c.amountFcfa, 0),
+    collectedFcfa: paid.reduce((sum, c) => sum + c.amountFcfa - c.advanceFcfa, 0),
     potFcfa: potShare(loaded.rules.amountFcfa) * loaded.rules.size,
     myStatus: mine?.status ?? "UNPAID",
+    myContributionId: mine?.id ?? null,
+    myReported: Boolean(mine?.reportedAt),
     payoutStatus: round.payout?.status ?? "NOT_DUE",
     paidOutAt: round.payout?.paidAt?.toISOString() ?? null,
     payoutId: round.payout?.id ?? null,
     receipt: round.payout?.receiptConfirmedAt ? "CONFIRMED" : round.payout?.receiptDisputedAt ? "DISPUTED" : null,
     coveredCount: round.reserveCovers.length,
+    advanceFcfa: round.number === 1 ? advanceOf(loaded.rules.amountFcfa) : 0,
+    myCover: cover
+      ? {
+          asked: cover.askedAt !== null,
+          dueBy: cover.dueBy?.toISOString() ?? null,
+          repaid: cover.repaidAt !== null,
+          missed: cover.missedAt !== null,
+        }
+      : null,
+    canSkip: canSkipNow,
   };
 }
 
 // The group's calendar: every round, who receives it, and how much is in.
 export async function listRounds(groupId: string, userId: string): Promise<RoundSummary[]> {
   const loaded = await loadForMember(groupId, userId);
-  return loaded.group.rounds.map((round) => toSummary(loaded, round, userId));
+  const skip = loaded.group.state === "ACTIVE" && (await canSkip(groupId, userId, loaded.current));
+  return loaded.group.rounds.map((round) => toSummary(loaded, round, userId, skip && round.number === loaded.current));
 }
 
 // One round with every member's payment. Every member sees every payment
@@ -93,6 +109,7 @@ export async function getRound(groupId: string, userId: string, number: number):
   const loaded = await loadForMember(groupId, userId);
   const round = loaded.group.rounds.find((r) => r.number === number);
   if (!round) throw new AppError("NOT_FOUND", 404);
+  const skip = loaded.group.state === "ACTIVE" && number === loaded.current && (await canSkip(groupId, userId, number));
 
   const payments = loaded.group.memberships.filter(holdsSeat).map((seat) => {
     const contribution = round.contributions.find((c) => c.userId === seat.userId);
@@ -105,7 +122,8 @@ export async function getRound(groupId: string, userId: string, number: number):
       coverRepaid: round.reserveCovers.some((c) => c.userId === seat.userId && c.repaidAt !== null),
     };
   });
-  return { ...toSummary(loaded, round, userId), payments };
+  const mfiName = (await prisma.mfi.findUnique({ where: { id: loaded.group.mfiId }, select: { name: true } }))?.name ?? "";
+  return { ...toSummary(loaded, round, userId, skip), payments, mfiName };
 }
 
 // The group's ledger, newest first. Lines are never edited (D5).
@@ -170,8 +188,12 @@ export async function payRound(
     where: { id: userId },
     select: { phone: true, displayName: true },
   });
+  // D103: round 1 also carries her advance, half a contribution, which stays
+  // in the group's advances; the pot is still the contribution times members.
+  const advanceFcfa = number === 1 ? advanceOf(rules.amountFcfa) : 0;
   const attempt = {
-    amountFcfa: rules.amountFcfa,
+    amountFcfa: rules.amountFcfa + advanceFcfa,
+    advanceFcfa,
     operator,
     payerPhone: user.phone,
     status: "PENDING" as const,
@@ -213,7 +235,7 @@ export async function payRound(
   try {
     const requested = await payments.requestCollection({
       reference: contributionId,
-      amountFcfa: rules.amountFcfa,
+      amountFcfa: attempt.amountFcfa,
       phone: user.phone,
       operator,
       description: `Novi, ${group.name}, round ${number}`,
@@ -252,10 +274,22 @@ async function settle(contributionId: string, answer: CollectionStatus): Promise
   });
 
   if (answer.status === "FAILED") {
-    await prisma.contribution.updateMany({
+    const failed = await prisma.contribution.updateMany({
       where: { id: contributionId, status: "PENDING" },
       data: { status: "FAILED", failedAt: new Date() },
     });
+    // Told once, when it turns from pending to failed: she checks her balance.
+    if (failed.count > 0) {
+      await sms.send(
+        contribution.payerPhone,
+        failedSms(contribution.user.language, {
+          amountFcfa: contribution.amountFcfa,
+          roundNumber: contribution.round.number,
+          groupName: contribution.round.group.name,
+          ref: receiptRef(contributionId),
+        }),
+      );
+    }
     return;
   }
   if (answer.status !== "PAID") return;
@@ -291,7 +325,7 @@ async function settle(contributionId: string, answer: CollectionStatus): Promise
         contributionId,
       },
     });
-    // D68: the reserve's share, and the repayment of a cover for this round.
+    // D103: her advance (round 1), and the repayment of a cover for this round.
     await creditReserve(tx, contribution, contribution.round.groupId);
     await tx.auditEvent.create({
       data: {
@@ -312,6 +346,10 @@ async function settle(contributionId: string, answer: CollectionStatus): Promise
     // D70: the group's chat shows that she paid.
     await postEvent(contribution.round.groupId, "PAID", contribution.userId, contribution.round.number);
     const group = contribution.round.group;
+    // D111: a receipt by SMS only for a member without the app (who paid by
+    // USSD); with the app, she sees it there, and her operator's own SMS
+    // already tells her the money left.
+    if (await hasApp(contribution.userId)) return;
     await sms.send(
       contribution.payerPhone,
       receiptSms(contribution.user.language, {
@@ -355,6 +393,26 @@ export async function handlePaymentWebhook(rawBody: string, signature: string | 
 
 // She taps "check my payment": Novi asks the provider directly. Covers a
 // webhook that never arrived, for example during a network cut.
+// "The money left my account": a payment the operator did not confirm, which
+// she says was debited. The provider is asked again first; if it still is not
+// paid, it is flagged for the MFI officer to check against the operator's
+// statement ("À traiter", D105). She does not pay again meanwhile.
+export async function reportDebited(contributionId: string, userId: string): Promise<ContributionView> {
+  const view = await checkContribution(contributionId, userId);
+  if (view.status === "PAID") return view;
+  if (view.status !== "FAILED" && view.status !== "PENDING") throw new AppError("NOT_FOUND", 404);
+  const reported = await prisma.contribution.updateMany({
+    where: { id: contributionId, reportedAt: null },
+    data: { reportedAt: new Date() },
+  });
+  if (reported.count > 0) {
+    await prisma.auditEvent.create({
+      data: { userId, type: "PAYMENT_REPORTED", details: { contributionId, roundNumber: view.roundNumber } },
+    });
+  }
+  return view;
+}
+
 export async function checkContribution(contributionId: string, userId: string): Promise<ContributionView> {
   const contribution = await prisma.contribution.findUnique({ where: { id: contributionId } });
   if (!contribution || contribution.userId !== userId) throw new AppError("NOT_FOUND", 404);

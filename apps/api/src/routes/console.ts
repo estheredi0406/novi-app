@@ -1,3 +1,4 @@
+import { phoneSchema } from "../lib/phone.js";
 import { Router } from "express";
 import { z } from "zod";
 import { currentStaff, requireStaff } from "../middleware/requireStaff.js";
@@ -133,7 +134,7 @@ consoleRouter.get("/activity", async (_req, res) => {
 
 // D69: protecting the group. A member found by her phone number at the
 // counter; her death or departure; a new number; a new organiser.
-const phone = z.string().regex(/^\+228\d{8}$/);
+const phone = phoneSchema;
 
 consoleRouter.get("/members", async (req, res) => {
   const staff = currentStaff(res);

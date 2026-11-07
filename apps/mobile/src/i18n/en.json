@@ -307,7 +307,7 @@
     "leave": "Leave the group",
     "leaveTitle": "Leave this group?",
     "declinePrivate": "If you say no, the group does not see your name.",
-    "shareConsent": "Optional: I agree that {{mfi}} sees my Novi record to check this group: all my Novi tontines, my payments on time, what I owe the emergency fund. Not my messages. It stops seeing it once the group is checked.",
+    "shareConsent": "Optional: I agree that {{mfi}} sees my Novi record to check this group: all my Novi tontines, my payments on time, what I owe the group's advances. Not my messages. It stops seeing it once the group is checked.",
     "shareConsentNeeded": "{{mfi}} checks each member before opening the group's account. Without your agreement, it does not see your record."
   },
   "money": {
@@ -347,10 +347,10 @@
       "PAYOUT": "Payout",
       "CORRECTION": "Correction",
       "RESERVE_IN": "Share for the solidarity reserve",
-      "RESERVE_COVER": "Paid by the solidarity fund",
-      "RESERVE_REPAY": "Repaid to the solidarity fund",
+      "RESERVE_COVER": "Paid by the group's advances",
+      "RESERVE_REPAY": "Repaid to the group's advances",
       "RESERVE_RETURN": "Reserve returned at the end of the cycle",
-      "RESERVE_ADVANCE": "Advance from the solidarity fund",
+      "RESERVE_ADVANCE": "Advance from the group's advances",
       "RESERVE_ADVANCE_REPAY": "Advance repaid from the pot"
     },
     "roundNotOpen": "This round is not open yet. You can pay it when its turn comes.",
@@ -482,7 +482,8 @@
     "mfiUnavailable": "The MFI could not open the group's account just now. Try again in a few minutes: the payout order is kept.",
     "alreadyInvited": "This number is already invited to the group, or already has a seat in it.",
     "cannotRemoveOrganiser": "The organiser's seat cannot be removed. Cancel the group instead.",
-    "debtOutstanding": "The solidarity fund paid a share for you that you have not repaid yet. Pay that round first, then you can join another group."
+    "debtOutstanding": "The group's advances paid a share for you that you have not repaid yet. Pay that round first, then you can join another group.",
+    "turnOneNeedsHistory": "Turn 1 goes to a member who has already finished a Novi cycle, or to the organiser."
   },
   "nav": {
     "home": "Home",
@@ -502,7 +503,8 @@
     "pinGo": "Continue",
     "agreed": "What I agreed to",
     "notifyChat": "Chat notifications",
-    "notifyMoney": "Money notifications always stay on."
+    "notifyMoney": "Money notifications always stay on.",
+    "pilotSms": "My SMS (pilot)"
   },
   "pilot": {
     "label": "Pilot: this code normally arrives by SMS"
@@ -530,15 +532,15 @@
     "receiptYes": "Yes, I received it",
     "receiptNo": "No, it has not arrived",
     "disputed": "Not received",
-    "reserveTitle": "Safety fund",
-    "reserveText": "{{percent}}% of each payment goes to {{mfi}}'s solidarity fund. If a member cannot pay in time, the fund pays her share and the pot leaves full, on time.",
+    "reserveTitle": "The group's advances",
+    "reserveText": "In turn 1, each member also pays half a contribution. If a member cannot pay in time, these advances pay her share and the pot leaves full, on time. They are given back at the end of the cycle.",
     "reserveGroup": "Put in by the group",
     "reserveFund": "{{mfi}}'s fund",
     "reserveBack": "What is left comes back to you at the end of the cycle.",
-    "coveredTag": "Paid by the fund",
+    "coveredTag": "Covered by the advances",
     "coveredLate": "Paid late",
-    "youOweCover": "The safety fund paid your share of round {{number}} ({{amount}}). Repay it as soon as you can.",
-    "payCover": "Repay now",
+    "youOweCover": "Repay before {{date}}: {{amount}}",
+    "payCover": "Repay",
     "toKin": "To her next of kin",
     "left": "Has left",
     "roundOf": "Round {{number}} of {{total}}",
@@ -553,7 +555,10 @@
     "payAhead": "Pay ahead",
     "payCurrentFirst": "Pay the current round first",
     "organisedBy": "{{name}} organises",
-    "heldBy": "{{mfi}} holds the money"
+    "heldBy": "{{mfi}} holds the money",
+    "owes": "{{name}} owes {{amount}}",
+    "extend": "Give more time",
+    "extended": "More time given until {{date}}"
   },
   "kin": {
     "title": "Trusted person",
@@ -695,13 +700,13 @@
     "members_other": "{{count}} members"
   },
   "caisse": {
-    "title": "Safety fund",
-    "active": "Safety fund · active",
-    "what": "What is the safety fund?",
-    "body": "If a member cannot pay on time, the fund pays for her. The pot leaves in full, on the planned day. She repays it afterwards.",
-    "setAside": "Set aside",
-    "percent": "{{percent}} % of each payment",
-    "group": "For this group",
+    "title": "The group's advances",
+    "active": "The group's advances",
+    "what": "What are the advances for?",
+    "body": "In turn 1, each member also pays an advance: half a contribution. If a member cannot pay, the advances pay her share and the pot leaves full. She repays it afterwards. At the end of the cycle, the advances are given back.",
+    "setAside": "Your advance",
+    "group": "The group's advances today",
+    "mine": "Your part today",
     "end": "End of the cycle",
     "returned": "given back to members"
   },
@@ -737,12 +742,18 @@
     "forRound": "For",
     "roundLine": "round {{number}}, by {{date}}",
     "receives": "Receives the pot",
-    "collected": "Paid so far"
+    "collected": "Paid so far",
+    "advance": "Including your advance",
+    "debitedQ": "Did the money leave your account?",
+    "debitedYes": "Yes",
+    "debitedNo": "No",
+    "debitedHint": "Yes: {{mfi}} checks, do not pay a second time. No: you can pay again.",
+    "reportedNote": "Reported. {{mfi}} is checking this payment with the operator."
   },
   "help": {
     "title": "Helping each other",
     "what": "What is this?",
-    "explain": "Two ways to help each other in the group. Swap turns: a member whose turn comes later can take yours, if she agrees and the organiser confirms. An advance from the fund: in an emergency, if you are up to date and have not received your pot yet, the solidarity fund can advance up to one contribution. The organiser and one member approve, FUCEC sends it, and it comes back out of your pot, with no interest.",
+    "explain": "Two ways to help each other in the group. Swap turns: a member whose turn comes later can take yours, if she agrees and the organiser confirms. An advance: in an emergency, if you are up to date and have not received your pot yet, the group's advances can lend you up to one contribution. The organiser and one member approve, FUCEC sends it, and it comes back out of your pot, with no interest.",
     "swapLine": "{{a}} (turn {{x}}) and {{b}} (turn {{y}})",
     "swapAsked": "Turn swap asked",
     "swapAgreed": "Both agreed, the organiser confirms",
@@ -767,7 +778,7 @@
     "swapCtaSub": "Your turn: {{round}}",
     "advanceCta": "Ask for an advance",
     "advanceCtaSub": "Up to {{amount}}, repaid from your pot",
-    "fundTooLow": "The solidarity fund cannot make an advance right now.",
+    "fundTooLow": "The group's advances are not enough right now.",
     "swapIntro": "Choose who to swap with. She answers, then the organiser confirms.",
     "yourTurnNow": "Your turn today: {{round}}.",
     "partnerTurn": "Turn {{round}}, {{day}}",
@@ -819,7 +830,7 @@
       "cycleHave": "{{cycles}} completed, {{streak}} in a row",
       "onTime": "At least {{min}}% of payments on time",
       "onTimeHave": "{{percent}}% ({{on}} of {{made}})",
-      "noDebt": "Nothing owed to the solidarity fund",
+      "noDebt": "Nothing owed to the group's advances",
       "owes": "you owe {{amount}}",
       "owesNothing": "nothing owed",
       "wait": "No refusal in the last {{days}} days",
@@ -910,7 +921,7 @@
     "moreSub": "These actions are for this group only",
     "swap": "Swap my turn",
     "swapSub": "With another member, the organiser approves",
-    "advance": "Advance from the fund",
+    "advance": "Advance from the group",
     "advanceSub": "If you cannot pay on time",
     "meetings": "Meetings",
     "meetingsSub": "Plan or join a meeting",
@@ -969,6 +980,49 @@
     "round": "Round {{number}}",
     "yourPot": "Round {{number}}, your pot",
     "monthPaid": "paid {{amount}}",
-    "empty": "No payments yet."
+    "empty": "No payments yet.",
+    "allGroups": "All my groups",
+    "colDate": "Date",
+    "colDetail": "Detail",
+    "colPaid": "Paid",
+    "colReceived": "Received",
+    "total": "Total",
+    "contribution": "Contribution, turn {{number}}",
+    "advance": "Starting advance",
+    "pot": "Pot, turn {{number}}",
+    "advanceBack": "Advance given back",
+    "pending": "pending",
+    "failed": "not confirmed",
+    "reported": "reported",
+    "covered": "Share covered, turn {{number}}",
+    "repayBy": "repay before {{date}}",
+    "repaid": "repaid"
+  },
+  "skip": {
+    "button": "I can't pay this turn",
+    "title": "Your share of {{amount}} is paid for you",
+    "yourAdvance": "Your advance",
+    "groupAdvances": "The group's advances",
+    "repayBy": "Repay before {{date}}",
+    "notLate": "Not counted as late if you repay in time.",
+    "left_one": "1 more time possible this cycle.",
+    "left_other": "{{count}} more times possible this cycle.",
+    "last": "This is the last time possible this cycle.",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "notThisRound": "Only for the current turn, before its date.",
+    "ownTurn": "It's your turn: your share is taken from your pot.",
+    "owesCover": "First repay the share already paid for you.",
+    "limit": "You already asked twice this cycle.",
+    "twiceInARow": "Not two turns in a row.",
+    "noAdvances": "The group's advances are not enough for this turn.",
+    "alreadyExtended": "More time was already given for this share."
+  },
+  "sms": {
+    "title": "My SMS (pilot)",
+    "hint": "The SMS Novi sends to your number. In the pilot most are simulated: they show here instead of reaching your phone.",
+    "empty": "No SMS yet.",
+    "real": "sent",
+    "simulated": "simulated"
   }
 }

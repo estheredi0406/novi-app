@@ -17,6 +17,7 @@ import { useSession } from "../session/SessionProvider";
 import { colors } from "../theme/colors";
 import { fonts, type } from "../theme/typography";
 import { PilotCode } from "../components/PilotCode";
+import { usePhoneCountry } from "../lib/phoneCountry";
 
 // The steps of a PIN reset (D20):
 // - phone: which number to reset
@@ -34,13 +35,14 @@ type Step =
 export default function ForgotPinScreen() {
   const { t } = useTranslation();
   const session = useSession();
-  const [digits, setDigits] = useState(session.phone?.replace("+228", "") ?? "");
+  const country = usePhoneCountry(session.phone);
+  const [digits, setDigits] = useState(session.phone?.slice(4) ?? "");
   const [step, setStep] = useState<Step>({ kind: "phone" });
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const phone = `+228${digits}`;
+  const phone = country.full(digits);
 
   // The API answers the same whether or not the number has an account, so
   // nobody can use this screen to find out who uses Novi.
@@ -196,16 +198,17 @@ export default function ForgotPinScreen() {
     >
       <Field
         label={t("phone.label")}
-        prefix="+228"
+        prefix={country.prefix}
+        onPrefixPress={country.toggle}
         value={digits}
-        onChangeText={(input) => setDigits(input.replace(/\D/g, "").slice(0, 8))}
+        onChangeText={(input) => setDigits(country.clean(input))}
         keyboardType="number-pad"
         textContentType="telephoneNumber"
         autoComplete="tel"
-        maxLength={8}
+        maxLength={country.length}
       />
       <ErrorMessage messageKey={error} />
-      <PrimaryButton label={t("forgot.send")} onPress={() => void sendCode()} disabled={!/^\d{8}$/.test(digits) || busy} />
+      <PrimaryButton label={t("forgot.send")} onPress={() => void sendCode()} disabled={!country.valid(digits) || busy} />
     </Screen>
   );
 }

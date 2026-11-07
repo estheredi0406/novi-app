@@ -1,3 +1,5 @@
+import { phoneSchema } from "../lib/phone.js";
+import { extendCover, skipRound } from "../services/advanceService.js";
 import { Router } from "express";
 import { z } from "zod";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
@@ -77,7 +79,7 @@ const newGroup = rules
   .strict();
 const groupId = z.object({ id: z.string().uuid() });
 const inviteBody = z
-  .object({ phone: z.string().regex(/^\+228\d{8}$/) })
+  .object({ phone: phoneSchema })
   .strict();
 const inviteParams = groupId.extend({ inviteId: z.string().uuid() });
 const seatParams = groupId.extend({ memberId: z.string().uuid() });
@@ -215,6 +217,19 @@ groupsRouter.post("/:id/rounds/:number/pay", async (req, res) => {
   res
     .status(202)
     .json(await payRound(id, currentMember(res).userId, number, operator));
+});
+
+// D104: "Je ne peux pas payer ce tour", before the due date. Her share is
+// covered by the group's advances; she repays it before the deadline.
+groupsRouter.post("/:id/rounds/:number/skip", async (req, res) => {
+  const { id, number } = roundParams.parse(req.params);
+  res.json(await skipRound(id, currentMember(res).userId, number));
+});
+
+// D104: the organiser gives a member more time to repay, once.
+groupsRouter.post("/:id/members/:memberId/extend", async (req, res) => {
+  const { id, memberId } = z.object({ id: z.string().uuid(), memberId: z.string().uuid() }).parse(req.params);
+  res.json(await extendCover(id, currentMember(res).userId, memberId));
 });
 
 groupsRouter.get("/:id/ledger", async (req, res) => {

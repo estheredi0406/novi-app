@@ -29,6 +29,8 @@ import {
   holdsSeat,
   type Seat,
   potShare,
+  guardTurnOne,
+  advanceOf,
   RESERVE_PERCENT,
 } from "../lib/groupRules.js";
 import { drawOrder } from "../lib/payoutOrder.js";
@@ -269,8 +271,7 @@ export async function getGroup(
   return {
     ...detail,
     reserve: {
-      percent: RESERVE_PERCENT,
-      ...(await reserveSummary(group.id, group.mfiId)),
+      ...(await reserveSummary(group.id, group.mfiId, userId, currentRules(group).amountFcfa)),
     },
   };
 }
@@ -370,6 +371,7 @@ async function currentRoundFor(
     potFcfa: potShare(rules.amountFcfa) * rules.size,
     paidCount,
     receiverName: round.beneficiary.displayName,
+    advanceFcfa: round.number === 1 ? advanceOf(rules.amountFcfa) : 0,
     // D92: one seat per round, in turn order, for the ring on home.
     paidSeats: rounds.map((r) => paidBy.has(r.beneficiaryId)),
     // Where her own pot is comes from its payout, never from the date alone:
@@ -990,8 +992,15 @@ async function fixOrder(group: LoadedGroup, userId: string) {
   const holders = seats.map((seat) => seat.userId);
   if (rules.payoutOrder === "FIXED")
     enforce(checkFixedOrder(rules.fixedOrder, holders));
-  const order =
+  const chosen =
     rules.payoutOrder === "FIXED" ? rules.fixedOrder : drawOrder(holders);
+  // D104: turn 1 goes to a member with a Novi history (a completed cycle),
+  // or else to the organiser, who vouches for the members she invited.
+  const withHistory = new Set<string>();
+  for (const id of holders) if (await hasCompletedCycle(id)) withHistory.add(id);
+  const order = guardTurnOne(chosen, withHistory, group.organiserId);
+  if (rules.payoutOrder === "FIXED" && order[0] !== chosen[0])
+    throw new AppError("TURN_ONE_NEEDS_HISTORY", 400);
 
   await prisma.$transaction(async (tx) => {
     // Only a group still PROPOSED moves on, so two taps on "Start" at the
