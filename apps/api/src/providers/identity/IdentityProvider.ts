@@ -2,9 +2,13 @@
 // as MOSIP-based services do: first match the details, then confirm a one-time
 // code sent to the phone on the identity record (D12).
 
+// D106: on a basic phone, typing a full legal name on the keypad is slow and
+// error-prone, so the USSD sign-up gives only the NIU and date of birth; the
+// register returns the name after its code is confirmed (the "e-KYC" pattern
+// of MOSIP-based registers), and she then confirms it is hers.
 export type IdentityDetails = {
   niu: string;
-  fullName: string;
+  fullName?: string; // the app's sign-up checks it; USSD leaves it out
   dateOfBirth: string; // YYYY-MM-DD
 };
 
@@ -13,7 +17,7 @@ export type StartVerificationResult =
   | { kind: "NO_MATCH" };
 
 export type ConfirmVerificationResult =
-  | { kind: "VERIFIED" }
+  | { kind: "VERIFIED"; fullName: string } // the name on the record
   | { kind: "CODE_INVALID"; attemptsLeft: number }
   | { kind: "EXPIRED" };
 

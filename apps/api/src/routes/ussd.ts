@@ -56,7 +56,7 @@ ussdRouter.post("/africastalking/:token", async (req, res) => {
     return;
   }
   try {
-    const reply = await handleUssd({ phone, text: parsed.data.text });
+    const reply = await handleUssd({ phone, text: parsed.data.text, sessionId: parsed.data.sessionId });
     res.send(`${reply.end ? "END" : "CON"} ${reply.text}`);
   } catch (err) {
     // The phone can only show text: never an error page.

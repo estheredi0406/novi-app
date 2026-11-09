@@ -1007,3 +1007,23 @@ model SmsLog {
   @@index([phone, createdAt])
   @@map("sms_logs")
 }
+
+// D106: a sign-up by USSD in progress. A basic phone cannot read an SMS while
+// a USSD session is open, so the session ends once ANID has sent its code,
+// and she dials again to type it: this row carries her place between the two
+// calls, for 15 minutes at most. Only the NIU's keyed hash is kept, never the
+// NIU itself; the legal name comes back from ANID once the code is right.
+model UssdSignup {
+  phone           String    @id
+  language        Language
+  transactionId   String
+  niuKeyedHash    String
+  idConsentAt     DateTime
+  legalName       String?   // set once ANID confirmed the code
+  verifiedAt      DateTime?
+  verifiedSession String?   // the USSD session in which the code was typed
+  expiresAt       DateTime
+  createdAt       DateTime  @default(now())
+
+  @@map("ussd_signups")
+}

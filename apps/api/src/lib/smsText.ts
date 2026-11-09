@@ -39,15 +39,34 @@ export function inviteSms(
   switch (language) {
     case "EN": {
       const every = invite.frequency === "DAILY" ? "every day but Sunday" : invite.frequency === "WEEKLY" ? "every week" : "every month";
-      return `Novi: ${invite.organiserName} invites you to join "${invite.groupName}" (${amount} FCFA ${every}). Open or install Novi to answer.`;
+      const how = ussdCode() ? `Answer in the Novi app, or dial ${ussdCode()} from any phone (menu 4).` : "Open or install Novi to answer.";
+      return `Novi: ${invite.organiserName} invites you to join "${invite.groupName}" (${amount} FCFA ${every}). ${how}`;
     }
     case "FR":
     case "EE": {
       const every = invite.frequency === "DAILY" ? "chaque jour sauf dimanche" : invite.frequency === "WEEKLY" ? "chaque semaine" : "chaque mois";
-      return `Novi : ${invite.organiserName} vous invite à rejoindre « ${invite.groupName} » (${amount} FCFA ${every}). Ouvrez ou installez Novi pour répondre.`;
+      const how = ussdCode()
+        ? `Répondez dans l'appli Novi, ou composez ${ussdCode()} depuis tout téléphone (menu 4).`
+        : "Ouvrez ou installez Novi pour répondre.";
+      return `Novi : ${invite.organiserName} vous invite à rejoindre « ${invite.groupName} » (${amount} FCFA ${every}). ${how}`;
     }
   }
 }
+
+// D106: an MFI's officer opened the record she shared with it.
+export function recordOpenedSms(language: Language, mfiName: string): string {
+  switch (language) {
+    case "EN":
+      return `Novi: ${mfiName} opened your Novi record today.`;
+    case "FR":
+    case "EE":
+      return `Novi : ${mfiName} a ouvert votre relevé Novi aujourd'hui.`;
+  }
+}
+
+// D106: the USSD code, when one is set (USSD_CODE, e.g. *384*12345#), so an
+// invitation can be answered from any phone, even without an account yet.
+const ussdCode = () => process.env.USSD_CODE?.trim() || null;
 
 // Sent once a payment is confirmed: her proof of payment, even without data.
 export function receiptSms(

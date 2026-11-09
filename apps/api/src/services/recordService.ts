@@ -11,6 +11,9 @@ import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { publicKeyPem, signRecord, verifyRecord } from "../lib/recordSigning.js";
 import { isoDay } from "../lib/schedule.js";
+import { recordOpenedSms } from "../lib/smsText.js";
+import { sms } from "../providers/index.js";
+import { hasApp, notifyMembers } from "./notifyService.js";
 
 // Her savings record, the ACEV (Sprint 6). It turns years of tontine saving,
 // which banks cannot see today, into facts a lender can rely on: how often
@@ -236,11 +239,26 @@ export async function verifyShare(
   };
   if (share.mfiId && share.mfiId !== viewer?.mfiId) return { ...base, status: "PRIVATE", record: null };
   await prisma.recordView.create({ data: { shareId, staffId: viewer?.staffId ?? null } });
+  // D106: each time an MFI's officer opens her record, she is told: by
+  // notification, or by SMS if she has no app. She sees who in menu 5.
+  if (viewer?.staffId && share.mfi) await tellRecordOpened(share.userId, share.mfi.name);
 
   if (!verifyRecord(share.payloadText, share.signature)) return { ...base, status: "TAMPERED", record: null };
   if (share.revokedAt) return { ...base, status: "REVOKED", record: null };
   if (share.expiresAt <= now) return { ...base, status: "EXPIRED", record: null };
   return { ...base, status: "VALID", record: JSON.parse(share.payloadText) as SavingsRecord };
+}
+
+async function tellRecordOpened(userId: string, mfiName: string) {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { phone: true, language: true } });
+  await notifyMembers(
+    [userId],
+    "money",
+    "/record",
+    { title: "Votre relevé a été ouvert", body: `${mfiName} a ouvert votre relevé Novi.` },
+    { title: "Your record was opened", body: `${mfiName} opened your Novi record.` },
+  ).catch(() => undefined);
+  if (!(await hasApp(userId))) await sms.send(user.phone, recordOpenedSms(user.language, mfiName));
 }
 
 // ---------- In the MFI console (D54) ----------

@@ -11,7 +11,7 @@ import type {
 // starts with 0000 so it can never be a real person's.
 type AnidRecord = { niu: string; fullName: string; dateOfBirth: string; phone: string };
 
-type PendingVerification = { code: string; expiresAt: number; attemptsLeft: number };
+type PendingVerification = { code: string; expiresAt: number; attemptsLeft: number; fullName: string };
 
 const CODE_LIFETIME_MS = 5 * 60 * 1000;
 const MAX_CODE_ATTEMPTS = 3;
@@ -145,7 +145,7 @@ export class MockAnidProvider implements IdentityProvider {
     const record = DEMO_REGISTER.find(
       (r) =>
         r.niu === details.niu.trim() &&
-        normalizeName(r.fullName) === normalizeName(details.fullName) &&
+        (details.fullName === undefined || normalizeName(r.fullName) === normalizeName(details.fullName)) &&
         r.dateOfBirth === details.dateOfBirth,
     );
     if (!record) return { kind: "NO_MATCH" };
@@ -157,6 +157,7 @@ export class MockAnidProvider implements IdentityProvider {
       code,
       expiresAt: Date.now() + CODE_LIFETIME_MS,
       attemptsLeft: MAX_CODE_ATTEMPTS,
+      fullName: record.fullName,
     });
     this.sentCodes.set(transactionId, code);
     console.log(`[mock ANID] code ${code} sent to ${record.phone}`);
@@ -181,6 +182,6 @@ export class MockAnidProvider implements IdentityProvider {
     }
 
     this.pending.delete(transactionId);
-    return { kind: "VERIFIED" };
+    return { kind: "VERIFIED", fullName: pending.fullName };
   }
 }

@@ -114,6 +114,55 @@ export async function register(input: {
   });
 }
 
+// D106: the last step of a sign-up by USSD. The operator vouches for her
+// number, ANID confirmed her identity and she confirmed her name; she then
+// chose the name her group sees and her PIN. The account has no device or
+// session: she uses Novi by dialling the code, and can log in to the app
+// later with the same number and PIN, which trusts that phone by SMS (D20).
+export async function registerByUssd(input: { phone: string; pin: string; displayName: string }): Promise<User> {
+  const pending = await prisma.ussdSignup.findUnique({ where: { phone: input.phone } });
+  if (!pending?.legalName || !pending.verifiedAt || pending.expiresAt <= new Date()) {
+    throw new AppError("ID_CODE_EXPIRED", 400);
+  }
+  if (isWeakPin(input.pin)) throw new AppError("PIN_TOO_WEAK", 400);
+  if (await prisma.user.findUnique({ where: { phone: input.phone }, select: { id: true } })) {
+    throw new AppError("PHONE_ALREADY_REGISTERED", 409);
+  }
+  if (await prisma.user.findUnique({ where: { niuKeyedHash: pending.niuKeyedHash }, select: { id: true } })) {
+    throw new AppError("NIU_ALREADY_REGISTERED", 409);
+  }
+
+  const pinHash = await hashSecret(input.pin);
+  const now = new Date();
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        phone: input.phone,
+        legalName: pending.legalName as string,
+        displayName: input.displayName,
+        area: "", // her area and market can be added later in the app or at the agency
+        language: pending.language,
+        pinHash,
+        niuKeyedHash: pending.niuKeyedHash,
+        idVerifiedAt: pending.verifiedAt as Date,
+      },
+    });
+    // The same three consents as the app; the USSD consent screen named all three.
+    await tx.consent.createMany({
+      data: [
+        { userId: user.id, type: "ID_CHECK", version: CONSENT_VERSION, acceptedAt: pending.idConsentAt },
+        { userId: user.id, type: "CREDIT_DATA_USE", version: CONSENT_VERSION, acceptedAt: pending.idConsentAt },
+        { userId: user.id, type: "TERMS", version: CONSENT_VERSION, acceptedAt: pending.idConsentAt },
+      ],
+    });
+    await tx.ussdSignup.delete({ where: { phone: input.phone } });
+    await tx.auditEvent.create({
+      data: { userId: user.id, type: "USER_REGISTERED", details: { channel: "USSD", at: now.toISOString() } },
+    });
+    return user;
+  });
+}
+
 // ---------- PIN checking and lockout ----------
 
 function lockMinutes(level: number): number {

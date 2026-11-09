@@ -3,7 +3,8 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { app } from "../app.js";
 import { prisma } from "../lib/db.js";
-import { payments } from "../providers/index.js";
+import { payments, sms } from "../providers/index.js";
+import { MockSmsProvider } from "../providers/sms/MockSmsProvider.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
 import { base32Decode, codeForStep, totpStep } from "../lib/totp.js";
 import { releasePayout, runPayouts } from "../services/payoutService.js";
@@ -284,6 +285,18 @@ describe("sharing it with one MFI by name (D54)", () => {
     expect(mine.views).toBe(2); // the facts, then the document
     const view = await prisma.recordView.findFirstOrThrow({ where: { shareId: share.id } }); // both by her officer
     expect(view.staffId).toBe(fucec.staffId);
+  });
+
+  it("tells her by SMS when an officer opens it, if she has no app (D106)", async () => {
+    const { tokens } = await signedUpMember();
+    const fucec = await officer("FUCEC", "mawuli@fucec.example");
+    const share = (await as(tokens.accessToken).post("/v1/me/record/shares", { mfiCode: "FUCEC" })).body;
+    if (!(sms instanceof MockSmsProvider)) throw new Error("Tests require the mock SMS provider.");
+    const before = sms.sent.length;
+    await fucec.client.get(`/v1/console/records/${share.id}`);
+    expect(sms.sent.slice(before)).toEqual([
+      expect.objectContaining({ to: "+22890000001", text: "Novi : FUCEC-Togo a ouvert votre relevé Novi aujourd'hui." }),
+    ]);
   });
 
   it("shows nothing to anyone else, even with the code", async () => {

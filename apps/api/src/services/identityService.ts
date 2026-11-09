@@ -109,3 +109,82 @@ export async function confirmIdentityCheck(input: { verificationToken: string; p
   });
   return { identityToken, legalName, expiresInSec: IDENTITY_TOKEN_MINUTES * 60 };
 }
+// ---------- Sign-up by USSD (D106) ----------
+
+const USSD_SIGNUP_MINUTES = 15;
+
+// The NIU as printed on the card is 4-3-4 digits (0000-000-0001). A keypad
+// has no dash, so she types the 11 digits and Novi puts the dashes back.
+export function niuFromKeypad(digits: string): string | null {
+  const d = digits.replace(/\D/g, "");
+  return d.length === 11 ? `${d.slice(0, 4)}-${d.slice(4, 7)}-${d.slice(7)}` : null;
+}
+
+// "12031984" (DDMMYYYY on the keypad) becomes "1984-03-12", or null.
+export function dateFromKeypad(digits: string): string | null {
+  if (!/^\d{8}$/.test(digits)) return null;
+  const iso = `${digits.slice(4)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`;
+  const date = new Date(`${iso}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== iso ? null : iso;
+}
+
+// Step 1 by USSD: her number is vouched for by the operator, so no SMS code
+// is needed for it; her consent was the previous screen. ANID matches the NIU
+// and date of birth and sends its code to the phone on her identity record.
+export async function startUssdIdentity(input: {
+  phone: string;
+  niu: string;
+  dateOfBirth: string;
+  language: "FR" | "EN";
+}): Promise<{ maskedPhone: string; pilotCode?: string }> {
+  const niuHash = niuKeyedHash(input.niu);
+  const failures = await recentFailures(niuHash);
+  if (failures.length >= MAX_FAILURES) throw blocked(failures);
+
+  const result = await identity.startVerification({ niu: input.niu, dateOfBirth: input.dateOfBirth });
+  if (result.kind === "NO_MATCH") return recordFailure(niuHash, input.phone, "ID_MISMATCH");
+
+  const row = {
+    language: input.language,
+    transactionId: result.transactionId,
+    niuKeyedHash: niuHash,
+    idConsentAt: new Date(),
+    legalName: null,
+    verifiedAt: null,
+    verifiedSession: null,
+    expiresAt: new Date(Date.now() + USSD_SIGNUP_MINUTES * 60_000),
+  };
+  await prisma.ussdSignup.upsert({ where: { phone: input.phone }, create: { phone: input.phone, ...row }, update: row });
+  const sentCode = identity instanceof MockAnidProvider ? identity.sentCodes.get(result.transactionId) : undefined;
+  return { maskedPhone: result.maskedPhone, ...pilotCode(sentCode) };
+}
+
+// Step 2 by USSD: the code from ANID's SMS. Returns the name on her record,
+// which she then confirms is hers.
+export async function confirmUssdIdentity(phone: string, code: string, sessionId: string): Promise<string> {
+  const row = await prisma.ussdSignup.findUnique({ where: { phone } });
+  if (!row || row.expiresAt <= new Date()) throw new AppError("ID_CODE_EXPIRED", 400);
+  const result = await identity.confirmVerification(row.transactionId, code);
+  if (result.kind === "CODE_INVALID") throw new AppError("ID_CODE_INVALID", 400);
+  if (result.kind === "EXPIRED") {
+    await prisma.ussdSignup.delete({ where: { phone } });
+    return recordFailure(row.niuKeyedHash, phone, "ID_CODE_EXPIRED");
+  }
+  await prisma.identityCheck.create({ data: { niuKeyedHash: row.niuKeyedHash, phone, matched: true } });
+  // As in the app: only now may she learn that this identity has an account.
+  if (await prisma.user.findUnique({ where: { niuKeyedHash: row.niuKeyedHash }, select: { id: true } })) {
+    await prisma.ussdSignup.delete({ where: { phone } });
+    throw new AppError("NIU_ALREADY_REGISTERED", 409);
+  }
+  const legalName = result.fullName.trim().replace(/\s+/g, " ");
+  await prisma.ussdSignup.update({
+    where: { phone },
+    data: {
+      legalName,
+      verifiedAt: new Date(),
+      verifiedSession: sessionId,
+      expiresAt: new Date(Date.now() + USSD_SIGNUP_MINUTES * 60_000),
+    },
+  });
+  return legalName;
+}
