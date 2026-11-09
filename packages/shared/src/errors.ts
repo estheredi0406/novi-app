@@ -77,6 +77,8 @@ export const errors = {
   TURN_ONE_NEEDS_HISTORY: { messageKey: "groups.turnOneNeedsHistory" },
   PAYMENT_IN_PROGRESS: { messageKey: "money.paymentInProgress" },
   PAYMENT_REPORTED: { messageKey: "money.paymentReported" }, // D105: the MFI is checking it
+  MFI_PAYMENTS_NOT_CONNECTED: { messageKey: "money.mfiNotConnected" }, // D102: the MFI has no payment account yet
+  PAYMENT_ACCOUNT_REFUSED: { messageKey: "staff.paymentAccountRefused" }, // D102: FedaPay refused the key
   PAYMENT_UNAVAILABLE: { messageKey: "money.paymentUnavailable" },
   WEBHOOK_INVALID: { messageKey: "errors.validationFailed" },
 

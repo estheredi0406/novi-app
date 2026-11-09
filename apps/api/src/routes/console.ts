@@ -1,4 +1,10 @@
 import { phoneSchema } from "../lib/phone.js";
+import {
+  connectPaymentAccount,
+  disconnectPaymentAccount,
+  paymentAccountStatus,
+  setPayoutsViaFedapay,
+} from "../services/paymentAccounts.js";
 import { Router } from "express";
 import { z } from "zod";
 import { currentStaff, requireStaff } from "../middleware/requireStaff.js";
@@ -93,6 +99,39 @@ consoleRouter.post("/reported/:contributionId", async (req, res) => {
   res
     .status(200)
     .json(await resolveReported(staff.mfiId, staff.staffId, id.parse(req.params.contributionId), arrived));
+});
+
+// D102: the MFI's own FedaPay account. Every officer sees whether it is
+// connected; only an administrator connects, disconnects or changes it.
+consoleRouter.get("/payment-account", async (_req, res) => {
+  res.status(200).json(await paymentAccountStatus(currentStaff(res).mfiId));
+});
+
+consoleRouter.put("/payment-account", async (req, res) => {
+  const staff = currentStaff(res);
+  if (staff.role !== "ADMIN") throw new AppError("ADMIN_ONLY", 403);
+  const input = z
+    .object({
+      secretKey: z.string().trim().min(10).max(200),
+      webhookSecret: z.string().trim().min(10).max(200),
+      live: z.boolean(),
+    })
+    .strict()
+    .parse(req.body);
+  res.status(200).json(await connectPaymentAccount(staff.mfiId, staff.staffId, input));
+});
+
+consoleRouter.post("/payment-account/disconnect", async (_req, res) => {
+  const staff = currentStaff(res);
+  if (staff.role !== "ADMIN") throw new AppError("ADMIN_ONLY", 403);
+  res.status(200).json(await disconnectPaymentAccount(staff.mfiId, staff.staffId));
+});
+
+consoleRouter.put("/payment-account/payouts", async (req, res) => {
+  const staff = currentStaff(res);
+  if (staff.role !== "ADMIN") throw new AppError("ADMIN_ONLY", 403);
+  const { fedapay } = z.object({ fedapay: z.boolean() }).strict().parse(req.body);
+  res.status(200).json(await setPayoutsViaFedapay(staff.mfiId, staff.staffId, fedapay));
 });
 
 // D105: the amount up to which a full pot leaves without an officer. Admin only.

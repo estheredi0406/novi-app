@@ -6,6 +6,7 @@ import { runCoverDeadlines } from "./advanceService.js";
 import { isoDay } from "../lib/schedule.js";
 import { payoutSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
+import { accountForMfi } from "./paymentAccounts.js";
 import type { PayoutAnswer } from "../providers/mfi/MfiAdapter.js";
 import { deleteGroupVoices, postEvent } from "./chatService.js";
 import { alertStaff } from "./alertService.js";
@@ -83,10 +84,12 @@ type DueRound = Prisma.RoundGetPayload<{
 async function handleRound(round: DueRound, now: Date) {
   // A transfer the MFI accepted earlier: ask how it went.
   if (round.payout?.status === "SENT" && round.payout.mfiRef) {
-    await applyAnswer(
-      round.payout.id,
-      await mfi.getPayoutStatus(round.payout.mfiRef),
-    );
+    // D102: asked of the account that sent it.
+    const sender =
+      round.payout.sentVia === "fedapay"
+        ? (await accountForMfi(round.group.mfiId)).payouts
+        : mfi;
+    await applyAnswer(round.payout.id, await sender.getPayoutStatus(round.payout.mfiRef));
     return;
   }
 
@@ -293,7 +296,18 @@ async function sendToMfi(
   let answer: PayoutAnswer;
   try {
     const { amountFcfa, phone, operator } = details;
-    answer = await mfi.sendPayout({
+    // D102: from the MFI's own FedaPay balance when it connected one and
+    // sends pots that way; otherwise through the MFI stand-in (D49).
+    const { mfiId } = await prisma.payout
+      .findUniqueOrThrow({ where: { id: payoutId }, select: { round: { select: { group: { select: { mfiId: true } } } } } })
+      .then((p) => p.round.group);
+    const account = await accountForMfi(mfiId).catch(() => null);
+    const sender = account?.sentVia === "fedapay" ? account.payouts : mfi;
+    await prisma.payout.update({
+      where: { id: payoutId },
+      data: { sentVia: account?.sentVia === "fedapay" ? "fedapay" : "mfi" },
+    });
+    answer = await sender.sendPayout({
       payoutId,
       accountRef,
       amountFcfa,

@@ -14,3 +14,11 @@ webhooksRouter.post("/payments", async (req, res) => {
   await handlePaymentWebhook(rawBody, req.header("x-fedapay-signature"));
   res.json({ received: true });
 });
+
+// D102: an MFI's own FedaPay account sends its notifications here, checked
+// with that MFI's own webhook secret.
+webhooksRouter.post("/payments/:mfiCode", async (req, res) => {
+  const rawBody = Buffer.isBuffer(req.body) ? req.body.toString("utf8") : "";
+  await handlePaymentWebhook(rawBody, req.header("x-fedapay-signature"), req.params.mfiCode);
+  res.json({ received: true });
+});

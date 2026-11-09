@@ -53,6 +53,14 @@ services:
       # invitation SMS so any phone can answer. Optional.
       - key: USSD_CODE
         sync: false
+      # D102: optional, sandbox only. Sends sandbox pots to a FedaPay test number
+      # ("mode:country:number"), as FEDAPAY_SANDBOX_PAYER does for payments.
+      - key: FEDAPAY_SANDBOX_PAYOUT
+        sync: false
+      # D102: "true" refuses payments for an MFI that has not connected its own
+      # FedaPay account (production). Off on the pilot, where Novi's demo account stands in.
+      - key: REQUIRE_MFI_PAYMENT_ACCOUNT
+        sync: false
       # Pilot mode (D61): one-time codes are shown in the app while SMS is
       # a mock. Remove this once a real SMS provider is connected.
       - key: PILOT_SHOW_CODES

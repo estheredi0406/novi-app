@@ -1,4 +1,4 @@
-import type { ConsoleOverview, StaffCredentials, StaffMember, StaffRole } from "@novi/shared";
+import type { ConsoleOverview, ConsolePaymentAccount, StaffCredentials, StaffMember, StaffRole } from "@novi/shared";
 import { type FormEvent, useState } from "react";
 import { ApiFailure, api } from "../api";
 import { fcfa } from "../format";
@@ -105,6 +105,7 @@ export function Team({ t, onExpired }: { t: Text; onExpired: () => void }) {
       </table>
       <p className="muted small">{t.teamAdminOnly}</p>
 
+      <PaymentAccount t={t} message={message} />
       <AutoRelease t={t} message={message} />
 
       {adding ? (
@@ -312,6 +313,124 @@ function AutoRelease({ t, message }: { t: Text; message: (err: unknown) => strin
         ) : null}
         {note ? <span className="muted small">{note}</span> : null}
       </form>
+    </section>
+  );
+}
+
+// D102: the MFI connects its own FedaPay account. The keys are sent once,
+// checked with FedaPay by the server, stored encrypted and never shown again.
+function PaymentAccount({ t, message }: { t: Text; message: (err: unknown) => string }) {
+  const { data, reload } = useLoad(() => api<ConsolePaymentAccount>("GET", "/v1/console/payment-account"), () => undefined);
+  const [secretKey, setSecretKey] = useState("");
+  const [webhookSecret, setWebhookSecret] = useState("");
+  const [live, setLive] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  if (!data) return null;
+
+  async function send(method: "PUT" | "POST", path: string, body?: object) {
+    setBusy(true);
+    setNote(method === "PUT" && path === "/v1/console/payment-account" ? t.payChecking : null);
+    try {
+      await api(method, path, body);
+      setSecretKey("");
+      setWebhookSecret("");
+      setNote(null);
+      reload();
+    } catch (err) {
+      setNote(message(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const day = data.connectedAt ? new Date(data.connectedAt).toLocaleDateString("fr-FR") : "";
+  const webhookUrl = `${window.location.origin}${data.webhookPath}`;
+  const row = { display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" as const, padding: "0 24px 16px" };
+  return (
+    <section className="queue" style={{ marginTop: 28 }}>
+      <div className="queue-head">
+        <h2>{t.payTitle}</h2>
+        <strong>
+          {data.connected ? t.payConnected(data.live ? t.payModeLive : t.payModeSandbox, day) : t.payNotConnected}
+        </strong>
+      </div>
+      <p className="muted" style={{ padding: "0 24px", margin: "0 0 12px" }}>
+        {t.payLede}
+      </p>
+      {!data.connected ? (
+        <p className={data.usesDemo ? "muted" : "warn"} style={{ padding: "0 24px", margin: "0 0 12px" }}>
+          {data.usesDemo ? t.payDemo : t.payBlocked}
+        </p>
+      ) : null}
+
+      {data.connected ? (
+        <>
+          <p className="muted small" style={{ padding: "0 24px", margin: "0 0 4px" }}>
+            {t.payWebhook}
+          </p>
+          <p style={{ padding: "0 24px", margin: "0 0 16px" }}>
+            <code>{webhookUrl}</code>
+          </p>
+          <div style={row}>
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={data.payoutsViaFedapay}
+                disabled={busy}
+                onChange={(e) =>
+                  void send("PUT", "/v1/console/payment-account/payouts", { fedapay: e.target.checked })
+                }
+              />
+              {t.payPayouts}
+            </label>
+            <button
+              type="button"
+              className="ghost danger"
+              disabled={busy}
+              onClick={() => {
+                if (window.confirm(t.payDisconnectConfirm)) void send("POST", "/v1/console/payment-account/disconnect");
+              }}
+            >
+              {t.payDisconnect}
+            </button>
+          </div>
+          {!data.payoutsViaFedapay ? (
+            <p className="muted small" style={{ padding: "0 24px", margin: "0 0 16px" }}>
+              {t.payPayoutsOff}
+            </p>
+          ) : null}
+        </>
+      ) : (
+        <form
+          style={{ ...row, paddingBottom: 22 }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            void send("PUT", "/v1/console/payment-account", { secretKey, webhookSecret, live });
+          }}
+        >
+          <label>
+            {t.paySecret}
+            <input type="password" autoComplete="off" value={secretKey} onChange={(e) => setSecretKey(e.target.value)} required minLength={10} />
+          </label>
+          <label>
+            {t.payWebhookSecret}
+            <input type="password" autoComplete="off" value={webhookSecret} onChange={(e) => setWebhookSecret(e.target.value)} required minLength={10} />
+          </label>
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} />
+            {t.payLive}
+          </label>
+          <button className="primary" disabled={busy}>
+            {t.payConnect}
+          </button>
+        </form>
+      )}
+      {note ? (
+        <p className="muted small" style={{ padding: "0 24px 16px", margin: 0 }}>
+          {note}
+        </p>
+      ) : null}
     </section>
   );
 }

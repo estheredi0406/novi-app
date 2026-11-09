@@ -31,6 +31,9 @@ type FedaPayTransaction = { id: number; status: string; amount: number };
 // verified number (D49).
 export type SandboxPayer = { mode: string; country: string; number: string };
 
+export const FEDAPAY_SANDBOX_API = "https://sandbox-api.fedapay.com";
+export const FEDAPAY_LIVE_API = "https://api.fedapay.com";
+
 export class FedaPayProvider implements PaymentProvider {
   readonly name = "fedapay";
 
@@ -107,6 +110,17 @@ export class FedaPayProvider implements PaymentProvider {
     const paid = status === "approved" || status === "transferred";
     const failed = status === "declined" || status === "canceled" || status === "refunded";
     return { status: paid ? "PAID" : failed ? "FAILED" : "PENDING", amountFcfa: amount };
+  }
+
+  // D102: checks a key before an MFI saves it. Listing one transaction is
+  // the lightest call FedaPay answers only for a valid key.
+  async testConnection(): Promise<void> {
+    await this.call("GET", "/transactions?per_page=1");
+  }
+
+  // D102: the API this account answers on, for its payouts.
+  get apiBase(): string {
+    return this.baseUrl;
   }
 
   verifyWebhook(rawBody: string, signatureHeader: string | undefined): { providerRef: string } {

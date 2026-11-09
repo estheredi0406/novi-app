@@ -5,7 +5,7 @@ import type { IdentityProvider } from "./identity/IdentityProvider.js";
 import { MockAnidProvider } from "./identity/MockAnidProvider.js";
 import type { MfiAdapter } from "./mfi/MfiAdapter.js";
 import { MockMfiAdapter } from "./mfi/MockMfiAdapter.js";
-import { FedaPayProvider } from "./payment/FedaPayProvider.js";
+import { FedaPayProvider, type SandboxPayer } from "./payment/FedaPayProvider.js";
 import { MockPaymentProvider } from "./payment/MockPaymentProvider.js";
 import type { PaymentProvider } from "./payment/PaymentProvider.js";
 import { DailyMeetingProvider } from "./meeting/DailyMeetingProvider.js";
@@ -68,6 +68,16 @@ export const sms: SmsProvider = chooseSms();
 export const identity: IdentityProvider = new MockAnidProvider();
 export const mfi: MfiAdapter = new MockMfiAdapter();
 
+// Optional, sandbox only: FEDAPAY_SANDBOX_PAYER="moov:bj:64000001" sends
+// every payment request to that FedaPay test number (see SandboxPayer);
+// "page:bj:66000001" (or just "page") prints FedaPay's payment page instead.
+// FEDAPAY_SANDBOX_PAYOUT does the same for pots sent by payout (D102).
+export function sandboxPayer(name: "FEDAPAY_SANDBOX_PAYER" | "FEDAPAY_SANDBOX_PAYOUT"): SandboxPayer | undefined {
+  const [mode, country, number] = (process.env[name] ?? "").split(":");
+  if (mode === "page" && !number) return { mode, country: "", number: "" };
+  return mode && country && number ? { mode, country, number } : undefined;
+}
+
 // Payments: FedaPay's sandbox when PAYMENT_PROVIDER=fedapay and its keys are
 // set in .env; otherwise the mock. Tests always use the mock.
 function choosePayments(): PaymentProvider {
@@ -84,24 +94,11 @@ function choosePayments(): PaymentProvider {
         "PAYMENT_PROVIDER=fedapay needs FEDAPAY_SECRET_KEY and FEDAPAY_WEBHOOK_SECRET in .env.",
       );
     }
-    // Optional, sandbox only: FEDAPAY_SANDBOX_PAYER="moov:bj:64000001" sends
-    // every payment request to that FedaPay test number (see SandboxPayer).
-    const [mode, country, number] = (
-      process.env.FEDAPAY_SANDBOX_PAYER ?? ""
-    ).split(":");
-    // FEDAPAY_SANDBOX_PAYER="page:bj:66000001" prints FedaPay's payment page
-    // instead, set up for that test number.
-    const sandboxPayer =
-      mode === "page" && !number
-        ? { mode, country: "", number: "" }
-        : mode && country && number
-          ? { mode, country, number }
-          : undefined;
     return new FedaPayProvider(
       FEDAPAY_SECRET_KEY,
       FEDAPAY_WEBHOOK_SECRET,
       undefined,
-      sandboxPayer,
+      sandboxPayer("FEDAPAY_SANDBOX_PAYER"),
     );
   }
   const delayMs = Number(MOCK_PAYMENTS_CONFIRM_MS);

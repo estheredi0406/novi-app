@@ -8,7 +8,8 @@ import { AppError } from "../lib/errors.js";
 import { advanceOf, checkAction, checkCanPay, holdsSeat, PAYMENT_WAIT_MS, potShare } from "../lib/groupRules.js";
 import { currentRoundNumber, isoDay } from "../lib/schedule.js";
 import { receiptSms, failedSms, notFoundSms } from "../lib/smsText.js";
-import { payments, sms } from "../providers/index.js";
+import { sms } from "../providers/index.js";
+import { accountForMfi, accountForPayment, type PaymentAccount } from "./paymentAccounts.js";
 import { runPayouts } from "./payoutService.js";
 import { creditReserve } from "./reserveService.js";
 import { canSkip } from "./advanceService.js";
@@ -186,6 +187,10 @@ export async function payRound(
     false;
   enforce(checkCanPay(number, current, existing, now, paidCurrent));
 
+  // D102: the payment goes into the account of the MFI holding this group's
+  // money; refused before anything is claimed if it has none yet.
+  const account = await accountForMfi(group.mfiId);
+
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
     select: { phone: true, displayName: true },
@@ -199,7 +204,8 @@ export async function payRound(
     operator,
     payerPhone: user.phone,
     status: "PENDING" as const,
-    provider: payments.name,
+    provider: account.payments.name,
+    paymentAccountMfiId: account.mfiId,
     providerRef: null,
     requestedAt: now,
     failedAt: null,
@@ -242,7 +248,7 @@ export async function payRound(
 
   let paymentUrl: string | null = null;
   try {
-    const requested = await payments.requestCollection({
+    const requested = await account.payments.requestCollection({
       reference: contributionId,
       amountFcfa: attempt.amountFcfa,
       phone: user.phone,
@@ -377,7 +383,22 @@ async function settle(contributionId: string, answer: CollectionStatus): Promise
 // same delivery received twice is recognised by its body and ignored. The
 // webhook's own content is not trusted for the outcome: the provider is
 // asked directly (FedaPay's own advice).
-export async function handlePaymentWebhook(rawBody: string, signature: string | undefined): Promise<void> {
+// D102: each MFI's account has its own address (/payments/<MFI code>) and
+// its own secret; the plain address is Novi's demo account.
+export async function handlePaymentWebhook(
+  rawBody: string,
+  signature: string | undefined,
+  mfiCode?: string,
+): Promise<void> {
+  let account: PaymentAccount;
+  if (mfiCode) {
+    const owner = await prisma.mfi.findUnique({ where: { code: mfiCode }, select: { id: true, fedapaySecretKey: true } });
+    if (!owner?.fedapaySecretKey) throw new AppError("WEBHOOK_INVALID", 400);
+    account = await accountForMfi(owner.id);
+  } else {
+    account = await accountForPayment(null);
+  }
+  const payments = account.payments;
   let providerRef: string;
   try {
     ({ providerRef } = payments.verifyWebhook(rawBody, signature));
@@ -396,7 +417,8 @@ export async function handlePaymentWebhook(rawBody: string, signature: string | 
   }
 
   const contribution = await prisma.contribution.findUnique({ where: { providerRef } });
-  if (!contribution) return; // not a Novi payment, or not ours: acknowledged, nothing to do
+  // Not a Novi payment, or one made through another account: acknowledged, nothing to do.
+  if (!contribution || contribution.paymentAccountMfiId !== account.mfiId) return;
   await settle(contribution.id, await payments.getStatus(providerRef));
 }
 
@@ -479,6 +501,7 @@ export async function checkContribution(contributionId: string, userId: string):
   const contribution = await prisma.contribution.findUnique({ where: { id: contributionId } });
   if (!contribution || contribution.userId !== userId) throw new AppError("NOT_FOUND", 404);
   if (contribution.status !== "PAID" && contribution.providerRef) {
+    const { payments } = await accountForPayment(contribution.paymentAccountMfiId);
     await settle(contribution.id, await payments.getStatus(contribution.providerRef));
   }
   return toView(

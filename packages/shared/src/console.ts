@@ -95,6 +95,17 @@ export type ConsoleOverview = {
   autoReleaseFcfa: number | null; // D105: pots up to this leave without an officer; null: off
 };
 
+// D102: the MFI's own FedaPay account, as the console shows it. The keys
+// themselves never leave the server once saved.
+export type ConsolePaymentAccount = {
+  connected: boolean;
+  live: boolean;
+  connectedAt: string | null;
+  payoutsViaFedapay: boolean;
+  usesDemo: boolean;
+  webhookPath: string;
+};
+
 // D105: a payment the operator did not confirm, which the member says left
 // her account. The officer checks it against the operator's statement.
 export type ConsoleReported = {
@@ -187,7 +198,10 @@ export type ConsoleActivity = {
     | "STAFF_PAYOUT_APPROVED" // D105: first of two approvals
     | "STAFF_PAYMENT_FOUND"
     | "STAFF_PAYMENT_NOT_FOUND"
-    | "STAFF_AUTO_RELEASE_SET";
+    | "STAFF_AUTO_RELEASE_SET"
+    | "STAFF_PAYMENT_ACCOUNT_CONNECTED" // D102
+    | "STAFF_PAYMENT_ACCOUNT_DISCONNECTED"
+    | "STAFF_PAYOUTS_ROUTE_SET";
   // D92: the Journal's filters.
   category: "MONEY" | "GROUPS" | "CREDIT" | "MEMBERS" | "TEAM";
   subject: string | null; // the group, the member or the officer it is about

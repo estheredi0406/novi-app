@@ -290,6 +290,14 @@ model Mfi {
   // officer; above it, two different officers approve. Set by the admin;
   // empty (null) turns it off: one officer releases every pot (D63).
   autoReleaseFcfa Int? @default(50000)
+  // D102: the MFI's own FedaPay account. Members' payments go into it and
+  // pots leave from it, so the money is the MFI's, never Novi's. Both keys
+  // are stored encrypted (D101) and never shown again once saved.
+  fedapaySecretKey     String?
+  fedapayWebhookSecret String?
+  fedapayLive          Boolean   @default(false) // false: FedaPay's sandbox
+  fedapayConnectedAt   DateTime?
+  fedapayPayouts       Boolean   @default(true) // false: pots go through the MFI stand-in (D49), e.g. if the sandbox refuses payouts
   createdAt DateTime @default(now())
 
   groups        Group[]
@@ -460,6 +468,7 @@ model Contribution {
   amountFcfa  Int                // the group's contribution in force when she paid (D4), plus her advance in round 1
   advanceFcfa Int                @default(0) // D103: the part of round 1's payment that is her advance, not the pot
   reportedAt  DateTime?          // she says the money left her account, though the payment is not confirmed
+  paymentAccountMfiId String? // D102: the MFI whose FedaPay account took this payment; empty: Novi's demo account
   // D105: the officer's answer after checking the operator's statement.
   reportCheckedById String?
   reportRejectedAt  DateTime? // not found: she pays again
@@ -520,6 +529,7 @@ model Payout {
   phone         String       // her verified Novi number: the pot goes only to her own wallet
   operator      MobileOperator
   mfiRef        String?      // the MFI's reference for the transfer
+  sentVia       String?      // D102: "fedapay" from the MFI's own account, or "mfi" through the MFI stand-in
   heldSince     DateTime?
   requestedAt   DateTime?
   paidAt        DateTime?
