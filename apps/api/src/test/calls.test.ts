@@ -43,6 +43,11 @@ function phone(base: string, token: string) {
   return { ws, inbox, next, closed };
 }
 
+// Waits up to 2 s for a condition the server reaches on its own.
+async function until(done: () => boolean) {
+  for (let i = 0; i < 100 && !done(); i += 1) await new Promise((r) => setTimeout(r, 20));
+}
+
 describe("call pass", () => {
   it("reads back what it signed", () => {
     const p = pass();
@@ -133,6 +138,8 @@ describe("call signalling", () => {
     expect(await ama.next("left")).toEqual({ type: "left", id: welcomeE.you });
     ama.ws.close();
     await ama.closed;
+    // The server notices the closed line a moment later on a slow machine.
+    await until(() => roomSize("r1") === 0);
     expect(roomSize("r1")).toBe(0);
   });
 

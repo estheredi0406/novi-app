@@ -24,3 +24,6 @@ apps/mobile/assets/voice/ee/machine/
 
 # Firebase service account keys (push notifications, D79): secret, uploaded to EAS, never committed
 *firebase-adminsdk*.json
+
+# Test reports written on request (vitest --outputFile)
+test-results.json

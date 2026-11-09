@@ -179,6 +179,8 @@ describe("SMS only when needed (D111)", () => {
   });
 
   it("accepts Rwandan numbers only on the pilot server, and says so to the app", async () => {
+    // Off, whatever the local .env.test says.
+    vi.stubEnv("PILOT_RWANDA", "false");
     const refused = await request(app).post("/v1/auth/otp").send({ phone: "+250781234567", purpose: "SIGN_UP", language: "FR" });
     expect(refused.status).toBe(400);
     expect((await request(app).get("/v1/config")).body).toMatchObject({ pilotRwanda: false });
@@ -191,6 +193,7 @@ describe("SMS only when needed (D111)", () => {
 
   it("shows a tester the SMS her phone would have received, only on the pilot", async () => {
     const g = await startedGroup();
+    vi.stubEnv("PILOT_SHOW_SMS", "false"); // off, whatever the local .env.test says
     expect((await g.abla.get("/v1/me/sms")).body).toEqual({ enabled: false, messages: [] });
     vi.stubEnv("PILOT_SHOW_SMS", "true");
     await prisma.smsLog.create({ data: { phone: "+22890000002", text: "Novi : paiement recu.", real: false } });
