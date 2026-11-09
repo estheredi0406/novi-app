@@ -4,6 +4,7 @@ import type {
   ConsoleGroup,
   ConsoleLoan,
   ConsoleOverview,
+  ConsoleReported,
 } from "@novi/shared";
 import { useState } from "react";
 import { api } from "../api";
@@ -18,6 +19,7 @@ type Data = {
   groups: ConsoleGroup[];
   advances: ConsoleAdvance[];
   loans: ConsoleLoan[];
+  reported: ConsoleReported[];
 };
 
 // What the officer sees first (board K1, D92): three numbers, then one list
@@ -32,6 +34,7 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
       groups: await api<ConsoleGroup[]>("GET", "/v1/console/groups"),
       advances: await api<ConsoleAdvance[]>("GET", "/v1/console/advances"),
       loans: await api<ConsoleLoan[]>("GET", "/v1/console/loans"),
+      reported: await api<ConsoleReported[]>("GET", "/v1/console/reported"),
     }),
     onExpired,
   );
@@ -66,10 +69,30 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
     }
   }
 
-  // D63: the officer confirms before a pot leaves the MFI.
+  // D63: the officer confirms before a pot leaves the MFI. D105: above the
+  // MFI's limit, this first click is only the first of two approvals.
   function release(item: AttentionItem) {
-    if (window.confirm(t.releaseConfirm(fcfa(item.amountFcfa))))
-      void act(item.payoutId, "release");
+    const first = item.needsTwo && !item.firstApprovedBy;
+    const question = first ? t.approveConfirm2(fcfa(item.amountFcfa)) : t.releaseConfirm(fcfa(item.amountFcfa));
+    if (window.confirm(question)) void act(item.payoutId, "release");
+  }
+
+  // D105: a payment the member says left her account, checked by the officer
+  // on the operator's statement.
+  async function answer(item: ConsoleReported, arrived: boolean) {
+    const question = arrived
+      ? t.foundConfirm(fcfa(item.amountFcfa), item.memberName)
+      : t.notFoundConfirm(item.memberName);
+    if (!window.confirm(question)) return;
+    setRetrying(item.contributionId);
+    try {
+      await api("POST", `/v1/console/reported/${item.contributionId}`, { arrived });
+    } catch {
+      window.alert(t.errors.default);
+    } finally {
+      setRetrying(null);
+      reload();
+    }
   }
 
   // D66: a group members have started waits for the officer before its account opens.
@@ -97,7 +120,9 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
 
   const meta = (item: AttentionItem) =>
     item.status === "READY"
-      ? t.readyHint(item.receiverTurn)
+      ? item.firstApprovedBy
+        ? `${t.firstBy(item.firstApprovedBy)} · ${t.needsSecond}`
+        : t.readyHint(item.receiverTurn)
       : item.status === "DISPUTED"
         ? t.disputedHint
         : item.status === "HELD"
@@ -114,7 +139,7 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
 
   if (failed) return <p className="error">{t.errors.default}</p>;
   if (!data) return null;
-  const { overview, attention, groups, advances, loans } = data;
+  const { overview, attention, groups, advances, loans, reported } = data;
   const toSend = advances.filter((a) => a.status === "APPROVED");
   const toValidate = groups.filter((g) => g.state === "STARTING");
   const openLoans = loans.filter(
@@ -124,7 +149,7 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
   const byUrgency = [...attention].sort((a, b) => rank[a.status] - rank[b.status]);
   const now = byUrgency.filter((i) => i.status !== "HELD");
   const held = byUrgency.filter((i) => i.status === "HELD");
-  const total = attention.length + toSend.length + toValidate.length + openLoans.length;
+  const total = attention.length + toSend.length + toValidate.length + openLoans.length + reported.length;
 
   const payoutRow = (item: AttentionItem) => {
     const kind =
@@ -149,8 +174,10 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
         <div className="q-actions">
           {item.canRelease ? (
             <button className="primary small" disabled={retrying === item.payoutId} onClick={() => release(item)}>
-              {t.release}
+              {!item.needsTwo ? t.release : item.firstApprovedBy ? t.releaseSecond : t.approveFirst}
             </button>
+          ) : item.status === "READY" && item.firstApprovedBy ? (
+            <span className="muted small">{t.waitSecond}</span>
           ) : item.canRetry ? (
             <button
               className="primary small"
@@ -198,6 +225,7 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
             {overview.ready} {t.ready.toLowerCase()} · {overview.held} {t.held.toLowerCase()} · {overview.failed}{" "}
             {t.failed.toLowerCase()}
             {overview.disputed > 0 ? ` · ${overview.disputed} ${t.disputed.toLowerCase()}` : ""}
+            {overview.reported > 0 ? ` · ${overview.reported} ${t.tagReported.toLowerCase()}` : ""}
           </span>
         </div>
       </section>
@@ -214,6 +242,37 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
         ) : (
           <ol>
             {now.map(payoutRow)}
+            {reported.map((item) => (
+              <li key={item.contributionId} className="q">
+                <span className="q-icon q-problem">
+                  <Icon name="alert" size={22} />
+                </span>
+                <div>
+                  <a href={`#/groups/${item.groupId}`} className="q-title">
+                    {item.memberName} · {item.groupName} · {t.round} {item.roundNumber}
+                  </a>
+                  <span className="q-meta">{t.reportedLine(item.operator, item.phone, day(item.reportedAt))}</span>
+                </div>
+                <span className="tag tag-red">{t.tagReported}</span>
+                <span className="q-amount">{fcfa(item.amountFcfa)}</span>
+                <div className="q-actions">
+                  <button
+                    className="primary small"
+                    disabled={retrying === item.contributionId}
+                    onClick={() => void answer(item, true)}
+                  >
+                    {t.paymentFound}
+                  </button>
+                  <button
+                    className="link"
+                    disabled={retrying === item.contributionId}
+                    onClick={() => void answer(item, false)}
+                  >
+                    {t.paymentNotFound}
+                  </button>
+                </div>
+              </li>
+            ))}
             {toSend.map((advance) => (
               <li key={advance.id} className="q">
                 <span className="q-icon q-advance">

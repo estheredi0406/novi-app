@@ -286,6 +286,10 @@ model Mfi {
   id        String   @id @default(uuid())
   code      String   @unique // short name used in code and logs, e.g. FUCEC
   name      String   // shown to members on every money screen
+  // D105: a full pot up to this amount leaves on its due date without an
+  // officer; above it, two different officers approve. Set by the admin;
+  // empty (null) turns it off: one officer releases every pot (D63).
+  autoReleaseFcfa Int? @default(50000)
   createdAt DateTime @default(now())
 
   groups        Group[]
@@ -456,6 +460,9 @@ model Contribution {
   amountFcfa  Int                // the group's contribution in force when she paid (D4), plus her advance in round 1
   advanceFcfa Int                @default(0) // D103: the part of round 1's payment that is her advance, not the pot
   reportedAt  DateTime?          // she says the money left her account, though the payment is not confirmed
+  // D105: the officer's answer after checking the operator's statement.
+  reportCheckedById String?
+  reportRejectedAt  DateTime? // not found: she pays again
   operator    MobileOperator
   payerPhone  String             // her verified Novi number: Novi collects only from her own wallet
   status      ContributionStatus @default(PENDING)
@@ -519,6 +526,9 @@ model Payout {
   // D63: the officer who released the pot, and her answer once it arrived.
   releasedById       String?
   releasedAt         DateTime?
+  // D105: a pot above the MFI's limit needs two officers; the first one here.
+  firstApprovedById  String?
+  firstApprovedAt    DateTime?
   receiptConfirmedAt DateTime? // "I received it"
   receiptDisputedAt  DateTime? // "I did not receive it": shown to the officer
   toNextOfKin        Boolean   @default(false) // D69: sent to her next of kin after her death
@@ -923,7 +933,7 @@ model LoanRequest {
 model StaffAlert {
   id          String    @id @default(uuid())
   mfiId       String
-  kind        String    // GROUP_TO_VALIDATE, POT_READY, POT_DISPUTED, LOAN_REQUEST, ADVANCE_TO_SEND
+  kind        String    // GROUP_TO_VALIDATE, POT_READY, POT_DISPUTED, LOAN_REQUEST, ADVANCE_TO_SEND, PAYMENT_REPORTED
   refId       String    // the group, payout, loan request or advance
   createdAt   DateTime  @default(now())
   escalatedAt DateTime?

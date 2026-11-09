@@ -13,6 +13,9 @@ import {
   getAnalytics,
   listActivity,
   releaseRoundPayout,
+  listReported,
+  resolveReported,
+  setAutoRelease,
   retryPayout,
   listAdvances,
   sendAdvance,
@@ -74,7 +77,34 @@ consoleRouter.get("/groups/:groupId", async (req, res) => {
 });
 
 consoleRouter.get("/attention", async (_req, res) => {
-  res.status(200).json(await listAttention(currentStaff(res).mfiId));
+  const staff = currentStaff(res);
+  res.status(200).json(await listAttention(staff.mfiId, staff.staffId));
+});
+
+// D105: payments a member says left her account, for the officer to check
+// against the operator's statement; and his answer.
+consoleRouter.get("/reported", async (_req, res) => {
+  res.status(200).json(await listReported(currentStaff(res).mfiId));
+});
+
+consoleRouter.post("/reported/:contributionId", async (req, res) => {
+  const staff = currentStaff(res);
+  const { arrived } = z.object({ arrived: z.boolean() }).strict().parse(req.body);
+  res
+    .status(200)
+    .json(await resolveReported(staff.mfiId, staff.staffId, id.parse(req.params.contributionId), arrived));
+});
+
+// D105: the amount up to which a full pot leaves without an officer. Admin only.
+consoleRouter.put("/auto-release", async (req, res) => {
+  const staff = currentStaff(res);
+  if (staff.role !== "ADMIN") throw new AppError("ADMIN_ONLY", 403);
+  // null turns automatic release off: an officer releases every pot (D63).
+  const { amountFcfa } = z
+    .object({ amountFcfa: z.number().int().min(0).max(10_000_000).nullable() })
+    .strict()
+    .parse(req.body);
+  res.status(200).json({ autoReleaseFcfa: await setAutoRelease(staff.mfiId, staff.staffId, amountFcfa) });
 });
 
 // D66: a started group waits for the officer's approval before its account opens.

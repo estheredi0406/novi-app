@@ -230,7 +230,11 @@ export default function RoundScreen() {
       {/* A payment the operator did not confirm: did the money leave her
           account? Yes: the MFI checks, and she must not pay twice. No: she
           pays again below. */}
-      {round.myStatus === "FAILED" && round.myContributionId && !round.myReported && !retrying ? (
+      {round.myStatus === "FAILED" &&
+      round.myContributionId &&
+      !round.myReported &&
+      !round.myReportRejected &&
+      !retrying ? (
         <View style={styles.section}>
           <Text style={styles.question}>{t("pay.debitedQ")}</Text>
           <View style={styles.answers}>
@@ -252,11 +256,15 @@ export default function RoundScreen() {
       {round.myStatus === "FAILED" && round.myReported ? (
         <Text style={[type.body, styles.ink]}>{t("pay.reportedNote", { mfi: round.mfiName })}</Text>
       ) : null}
+      {/* D105: the MFI did not find it with the operator: she pays again below. */}
+      {round.myStatus === "FAILED" && round.myReportRejected ? (
+        <Text style={[type.body, styles.ink]}>{t("pay.reportRejected", { mfi: round.mfiName })}</Text>
+      ) : null}
 
       {canPay &&
       payment?.status !== "PENDING" &&
       payment?.status !== "PAID" &&
-      !(round.myStatus === "FAILED" && (round.myReported || !retrying)) ? (
+      !(round.myStatus === "FAILED" && (round.myReported || (!retrying && !round.myReportRejected))) ? (
         <View style={styles.section}>
           <Text style={styles.label}>{t("money.chooseOperator")}</Text>
           {operators.map((o) => {

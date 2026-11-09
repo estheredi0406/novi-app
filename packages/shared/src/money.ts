@@ -41,6 +41,8 @@ export type RoundSummary = {
   // as "the money left my account" (myReported), for the MFI to check.
   myContributionId: string | null;
   myReported: boolean;
+  // D105: the MFI did not find that payment on the operator's statement; she pays again.
+  myReportRejected: boolean;
   payoutStatus: PayoutStatus;
   paidOutAt: string | null; // when the pot reached the member whose turn it is
   payoutId: string | null;

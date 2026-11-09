@@ -119,6 +119,21 @@ export function failedSms(
   }
 }
 
+// D105: the MFI checked the operator's statement and did not find her payment.
+export function notFoundSms(
+  language: Language,
+  found: { amountFcfa: number; roundNumber: number; groupName: string; mfiName: string },
+): string {
+  const amount = formatFcfa(found.amountFcfa);
+  switch (language) {
+    case "EN":
+      return `Novi: ${found.mfiName} did not find your payment of ${amount} FCFA for round ${found.roundNumber} of "${found.groupName}". Please pay again in Novi.`;
+    case "FR":
+    case "EE":
+      return `Novi : ${found.mfiName} n'a pas trouvé votre paiement de ${amount} FCFA pour le tour ${found.roundNumber} de « ${found.groupName} ». Payez à nouveau dans Novi.`;
+  }
+}
+
 // D104: her share was covered by the group's advances; what she repays, by when.
 export function coverSms(
   language: Language,

@@ -53,6 +53,9 @@ async function activeGroup() {
   ];
   const [organiser, abla, koffi] = people.map((p) => as(p.tokens.accessToken)) as [Client, Client, Client];
   const groupId = (await organiser.post("/v1/groups", SMALL_GROUP)).body.id as string;
+  // The officer releases each pot here (D63), so a debt is still owed when
+  // these tests look; automatic release (D105) is tested in release.test.ts.
+  await prisma.mfi.updateMany({ data: { autoReleaseFcfa: null } });
   await organiser.post(`/v1/groups/${groupId}/invites`, { phone: PHONES[1] });
   await organiser.post(`/v1/groups/${groupId}/invites`, { phone: PHONES[2] });
   await organiser.post(`/v1/groups/${groupId}/propose`);

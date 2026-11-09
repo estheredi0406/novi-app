@@ -1,4 +1,4 @@
-import { hasApp } from "./notifyService.js";
+import { hasApp, notifyMembers } from "./notifyService.js";
 import { createHash } from "node:crypto";
 import type { ContributionView, LedgerLine, MobileOperator, RoundDetail, RoundSummary } from "@novi/shared";
 import { Prisma } from "../generated/prisma/client.js";
@@ -7,12 +7,13 @@ import { enforce } from "../lib/enforce.js";
 import { AppError } from "../lib/errors.js";
 import { advanceOf, checkAction, checkCanPay, holdsSeat, PAYMENT_WAIT_MS, potShare } from "../lib/groupRules.js";
 import { currentRoundNumber, isoDay } from "../lib/schedule.js";
-import { receiptSms, failedSms } from "../lib/smsText.js";
+import { receiptSms, failedSms, notFoundSms } from "../lib/smsText.js";
 import { payments, sms } from "../providers/index.js";
 import { runPayouts } from "./payoutService.js";
 import { creditReserve } from "./reserveService.js";
 import { canSkip } from "./advanceService.js";
 import { postEvent } from "./chatService.js";
+import { alertStaff } from "./alertService.js";
 import type { CollectionStatus } from "../providers/payment/PaymentProvider.js";
 
 // Money in (Sprint 3). A payment goes through three stages:
@@ -78,6 +79,7 @@ function toSummary(loaded: Loaded, round: LoadedRound, userId: string, canSkipNo
     myStatus: mine?.status ?? "UNPAID",
     myContributionId: mine?.id ?? null,
     myReported: Boolean(mine?.reportedAt),
+    myReportRejected: Boolean(mine?.reportRejectedAt) && mine?.status !== "PAID",
     payoutStatus: round.payout?.status ?? "NOT_DUE",
     paidOutAt: round.payout?.paidAt?.toISOString() ?? null,
     payoutId: round.payout?.id ?? null,
@@ -201,11 +203,18 @@ export async function payRound(
     providerRef: null,
     requestedAt: now,
     failedAt: null,
+    // A new attempt closes any earlier report about this round (D105).
+    reportedAt: null,
+    reportRejectedAt: null,
   };
 
   // Claims the payment slot for this round. Two taps at the same moment
   // cannot both send a request: the unique (round, member) row, or the
   // condition on the update, lets only one through.
+  // D105: while the MFI checks a payment she says left her account, she
+  // must not pay a second time.
+  if (existing?.reportedAt && existing.status !== "PAID") throw new AppError("PAYMENT_REPORTED", 409);
+
   let contributionId: string;
   try {
     if (existing) {
@@ -401,6 +410,9 @@ export async function reportDebited(contributionId: string, userId: string): Pro
   const view = await checkContribution(contributionId, userId);
   if (view.status === "PAID") return view;
   if (view.status !== "FAILED" && view.status !== "PENDING") throw new AppError("NOT_FOUND", 404);
+  // Once the MFI has said it did not find this attempt, only a new payment helps.
+  const current = await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } });
+  if (current.reportRejectedAt) throw new AppError("NOT_ALLOWED_NOW", 409);
   const reported = await prisma.contribution.updateMany({
     where: { id: contributionId, reportedAt: null },
     data: { reportedAt: new Date() },
@@ -409,8 +421,58 @@ export async function reportDebited(contributionId: string, userId: string): Pro
     await prisma.auditEvent.create({
       data: { userId, type: "PAYMENT_REPORTED", details: { contributionId, roundNumber: view.roundNumber } },
     });
+    // D90, D105: the officers are told by email.
+    const round = await prisma.round.findUniqueOrThrow({
+      where: { id: current.roundId },
+      include: { group: true },
+    });
+    await alertStaff({
+      mfiId: round.group.mfiId,
+      kind: "PAYMENT_REPORTED",
+      refId: contributionId, // the link opens the console's list, where it waits
+      subject: `Paiement signalé : ${round.group.name}, tour ${round.number}`,
+      lines: [
+        `Une membre de « ${round.group.name} » dit que ${current.amountFcfa} FCFA ont quitté son compte pour le tour ${round.number}, sans confirmation de l'opérateur.`,
+        "Vérifiez-le sur le relevé de l'opérateur, puis répondez dans la console.",
+      ],
+    });
   }
   return view;
+}
+
+// D105: the officer found her payment on the operator's statement: it is
+// credited exactly as if the operator had confirmed it (ledger, pot, chat).
+export async function creditFoundPayment(contributionId: string, staffId: string): Promise<void> {
+  const contribution = await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } });
+  await prisma.contribution.update({ where: { id: contributionId }, data: { reportCheckedById: staffId } });
+  await settle(contributionId, { status: "PAID", amountFcfa: contribution.amountFcfa });
+}
+
+// D105: not found on the statement. Her report is closed and she is told to
+// pay again: by notification, and by SMS if she has no app (D111).
+export async function rejectReport(contributionId: string, staffId: string): Promise<void> {
+  const contribution = await prisma.contribution.update({
+    where: { id: contributionId },
+    data: { reportedAt: null, reportRejectedAt: new Date(), reportCheckedById: staffId },
+    include: { round: { include: { group: { include: { mfi: true } } } }, user: { select: { language: true } } },
+  });
+  const { group } = contribution.round;
+  const facts = {
+    amountFcfa: contribution.amountFcfa,
+    roundNumber: contribution.round.number,
+    groupName: group.name,
+    mfiName: group.mfi.name,
+  };
+  await notifyMembers(
+    [contribution.userId],
+    "money",
+    `/groups/${group.id}/rounds/${contribution.round.number}`,
+    { title: group.name, body: `${group.mfi.name} n'a pas trouvé votre paiement du tour ${facts.roundNumber}. Payez à nouveau.` },
+    { title: group.name, body: `${group.mfi.name} did not find your payment for round ${facts.roundNumber}. Please pay again.` },
+  ).catch(() => undefined);
+  if (!(await hasApp(contribution.userId))) {
+    await sms.send(contribution.payerPhone, notFoundSms(contribution.user.language, facts));
+  }
 }
 
 export async function checkContribution(contributionId: string, userId: string): Promise<ContributionView> {

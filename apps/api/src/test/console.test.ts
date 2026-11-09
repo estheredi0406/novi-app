@@ -52,6 +52,9 @@ async function activeGroup() {
   const organiser = as(akossiwa.tokens.accessToken);
   const groupId = (await organiser.post("/v1/groups", SMALL_GROUP)).body
     .id as string;
+  // These tests check the officer's release (D63): an MFI that turned
+  // automatic release off, so one officer releases every pot (D105).
+  await prisma.mfi.updateMany({ data: { autoReleaseFcfa: null } });
   await organiser.post(`/v1/groups/${groupId}/invites`, {
     phone: "+22890000002",
   });
@@ -325,6 +328,8 @@ describe("payouts that need a look (D53)", () => {
       failed: 0,
       ready: 0,
       disputed: 0,
+      reported: 0,
+      autoReleaseFcfa: null,
     });
     // D92: a held pot has not left, so the ring shows no pot paid out yet,
     // and the group is flagged for a look.

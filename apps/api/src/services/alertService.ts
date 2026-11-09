@@ -19,7 +19,8 @@ export type AlertKind =
   | "POT_READY"
   | "POT_DISPUTED"
   | "LOAN_REQUEST"
-  | "ADVANCE_TO_SEND";
+  | "ADVANCE_TO_SEND"
+  | "PAYMENT_REPORTED"; // D105: a payment she says left her account
 
 const WORK_START_H = 8;
 const WORK_END_H = 17;
@@ -131,6 +132,12 @@ async function stillWaiting(kind: string, refId: string): Promise<boolean> {
           where: { id: refId, status: "PENDING" },
         })) > 0
       );
+    case "PAYMENT_REPORTED":
+      return (
+        (await prisma.contribution.count({
+          where: { id: refId, reportedAt: { not: null }, status: { not: "PAID" } },
+        })) > 0
+      );
     case "ADVANCE_TO_SEND":
       return (
         (await prisma.advance.count({
@@ -169,6 +176,7 @@ const LABEL: Record<string, string> = {
   POT_DISPUTED: "une cagnotte « non reçue » à vérifier",
   LOAN_REQUEST: "une demande de crédit",
   ADVANCE_TO_SEND: "une avance à verser",
+  PAYMENT_REPORTED: "un paiement signalé à vérifier",
 };
 
 // The escalation and the morning summary. Runs every 15 minutes.

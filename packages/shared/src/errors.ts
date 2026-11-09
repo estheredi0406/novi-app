@@ -76,6 +76,7 @@ export const errors = {
   COVER_ALREADY_EXTENDED: { messageKey: "skip.alreadyExtended" },
   TURN_ONE_NEEDS_HISTORY: { messageKey: "groups.turnOneNeedsHistory" },
   PAYMENT_IN_PROGRESS: { messageKey: "money.paymentInProgress" },
+  PAYMENT_REPORTED: { messageKey: "money.paymentReported" }, // D105: the MFI is checking it
   PAYMENT_UNAVAILABLE: { messageKey: "money.paymentUnavailable" },
   WEBHOOK_INVALID: { messageKey: "errors.validationFailed" },
 
@@ -90,6 +91,7 @@ export const errors = {
   STAFF_ONLY: { messageKey: "staff.staffOnly" },
   PASSWORD_CHANGE_REQUIRED: { messageKey: "staff.passwordChangeRequired" }, // D81: first login, temporary password
   ADMIN_ONLY: { messageKey: "staff.adminOnly" }, // D81: managing the team
+  SECOND_OFFICER_NEEDED: { messageKey: "staff.secondOfficer" }, // D105: two officers for a large pot
   STAFF_EMAIL_TAKEN: { messageKey: "staff.emailTaken" }, // D81
   WEAK_PASSWORD: { messageKey: "staff.weakPassword" }, // D81: at least 12 characters, not the temporary one
 } as const;

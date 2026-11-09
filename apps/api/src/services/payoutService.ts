@@ -170,33 +170,63 @@ async function handleRound(round: DueRound, now: Date) {
     return;
   }
 
-  // Full and due: the pot waits for the officer's release (D63). A held pot
-  // that has just filled up becomes ready the same way.
+  // Full and due: the pot becomes ready (D63). A held pot that has just
+  // filled up becomes ready the same way. D105: up to the MFI's limit it then
+  // leaves at once, with no officer; above it, the officers are told, and two
+  // of them approve it in the console.
+  const limit = await autoReleaseLimit(round.group.mfiId);
+  let readyId: string | null = null;
   if (!round.payout) {
-    const created = await createPayoutOnce({
+    readyId = await createPayoutOnce({
       roundId: round.id,
       beneficiaryId: round.beneficiaryId,
       status: "READY",
       ...details,
     });
-    if (created) await alertPotReady(round, created, details.amountFcfa);
-    return;
-  }
-  if (round.payout.status === "HELD") {
+  } else if (round.payout.status === "HELD") {
     const moved = await prisma.payout.updateMany({
       where: { id: round.payout.id, status: "HELD" },
       data: { status: "READY", ...details },
     });
-    if (moved.count === 1)
-      await alertPotReady(round, round.payout.id, details.amountFcfa);
+    if (moved.count === 1) readyId = round.payout.id;
+  } else if (round.payout.status === "READY") {
+    // Already waiting for the officers: it leaves by itself only if the
+    // admin has since raised the limit above it, and nobody approved it yet.
+    if (leavesAlone(details.amountFcfa, limit) && !round.payout.firstApprovedById)
+      await autoRelease(round.payout.id, limit);
     return;
   }
-  if (round.payout.status === "READY") return;
+  if (readyId) {
+    if (leavesAlone(details.amountFcfa, limit)) await autoRelease(readyId, limit);
+    else await alertPotReady(round, readyId, details.amountFcfa);
+  }
+  if (!round.payout || round.payout.status === "HELD") return;
 
   // Released earlier but refused, or stuck without an answer: try again.
   // Claimed first, so two runs at the same moment cannot both instruct the MFI.
   const payoutId = await claimForSending(round, now, details);
   if (payoutId) await sendToMfi(payoutId, round.group.mfiAccountRef, details);
+}
+
+// D105: the amount up to which a full pot leaves without an officer; null
+// when the MFI turned this off and an officer releases every pot (D63).
+export async function autoReleaseLimit(mfiId: string): Promise<number | null> {
+  const found = await prisma.mfi.findUnique({ where: { id: mfiId }, select: { autoReleaseFcfa: true } });
+  return found?.autoReleaseFcfa ?? null;
+}
+
+// D105: does this pot leave by itself, or does it need two officers?
+export const leavesAlone = (amountFcfa: number, limit: number | null) => limit !== null && amountFcfa <= limit;
+export const needsTwoOfficers = (amountFcfa: number, limit: number | null) => limit !== null && amountFcfa > limit;
+
+// D105: released by Novi under the MFI's own limit, logged as such; no
+// officer's name, because none was needed.
+async function autoRelease(payoutId: string, limit: number | null) {
+  if (await releasePayout(payoutId, null)) {
+    await prisma.auditEvent.create({
+      data: { type: "PAYOUT_AUTO_RELEASED", details: { payoutId, limitFcfa: limit } },
+    });
+  }
 }
 
 // The officer's release (D63): claims a READY pot, records who released it,

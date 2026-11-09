@@ -76,7 +76,9 @@ export type AttentionItem = {
   paymentsMissing: number; // how many, never who (D53)
   since: string; // when it was held, or when the transfer was asked
   canRetry: boolean; // only a failed transfer can be retried by the officer
-  canRelease: boolean; // only a full, due pot can be released (D63)
+  canRelease: boolean; // only a full, due pot can be released (D63), not twice by the same officer (D105)
+  needsTwo: boolean; // D105: above the MFI's limit, two officers approve
+  firstApprovedBy: string | null; // D105: the officer who gave the first approval
   receiverTurn: number; // whose turn: her place in the order, never her name (D33)
 };
 
@@ -89,6 +91,24 @@ export type ConsoleOverview = {
   failed: number;
   ready: number; // pots waiting for the officer's release (D63)
   disputed: number; // members who said the money did not arrive (D63)
+  reported: number; // D105: payments a member says left her account, to check
+  autoReleaseFcfa: number | null; // D105: pots up to this leave without an officer; null: off
+};
+
+// D105: a payment the operator did not confirm, which the member says left
+// her account. The officer checks it against the operator's statement.
+export type ConsoleReported = {
+  contributionId: string;
+  groupId: string;
+  groupName: string;
+  roundNumber: number;
+  memberName: string;
+  phone: string; // the number that paid, to find on the statement
+  operator: string;
+  amountFcfa: number;
+  providerRef: string | null;
+  requestedAt: string | null;
+  reportedAt: string;
 };
 
 // A savings record a member shared with this MFI by name (D54).
@@ -163,7 +183,11 @@ export type ConsoleActivity = {
     | "STAFF_LOAN_GRANT"
     | "STAFF_LOAN_NOTGRANTED"
     | "STAFF_LOAN_DOCUMENT_VIEWED"
-    | "STAFF_LOAN_DOCUMENT_REVIEWED";
+    | "STAFF_LOAN_DOCUMENT_REVIEWED"
+    | "STAFF_PAYOUT_APPROVED" // D105: first of two approvals
+    | "STAFF_PAYMENT_FOUND"
+    | "STAFF_PAYMENT_NOT_FOUND"
+    | "STAFF_AUTO_RELEASE_SET";
   // D92: the Journal's filters.
   category: "MONEY" | "GROUPS" | "CREDIT" | "MEMBERS" | "TEAM";
   subject: string | null; // the group, the member or the officer it is about

@@ -7,6 +7,7 @@ import type {
   ConsoleGroupDetail,
   ConsoleMemberCard,
   ConsoleOverview,
+  ConsoleReported,
   ConsoleRound,
 } from "@novi/shared";
 import type { Prisma } from "../generated/prisma/client.js";
@@ -18,7 +19,8 @@ import { openApprovedGroup } from "./groupService.js";
 import { pilotMode } from "../lib/pilot.js";
 import { owedCovers } from "./memberService.js";
 import { notifyMembers } from "./notifyService.js";
-import { releasePayout, runPayouts } from "./payoutService.js";
+import { creditFoundPayment, rejectReport } from "./moneyService.js";
+import { autoReleaseLimit, needsTwoOfficers, releasePayout, runPayouts } from "./payoutService.js";
 import { fundBalance, reserveBalance } from "./reserveService.js";
 import { mfi } from "../providers/index.js";
 
@@ -248,7 +250,8 @@ async function memberCards(groupId: string): Promise<ConsoleMemberCard[]> {
 }
 
 // Held and failed payouts at this MFI, oldest first: what needs a look.
-export async function listAttention(mfiId: string): Promise<AttentionItem[]> {
+export async function listAttention(mfiId: string, staffId?: string): Promise<AttentionItem[]> {
+  const limit = await autoReleaseLimit(mfiId);
   const payouts = await prisma.payout.findMany({
     where: {
       round: { group: { mfiId } },
@@ -268,6 +271,13 @@ export async function listAttention(mfiId: string): Promise<AttentionItem[]> {
     },
     orderBy: { createdAt: "asc" },
   });
+  // D105: the officer who gave the first approval of a large pot, by name.
+  const firstIds = [...new Set(payouts.map((p) => p.firstApprovedById).filter((x): x is string => Boolean(x)))];
+  const firstNames = new Map(
+    (await prisma.staffUser.findMany({ where: { id: { in: firstIds } }, select: { id: true, name: true } })).map(
+      (u) => [u.id, u.name],
+    ),
+  );
 
   return payouts.map((payout) => {
     const { round } = payout;
@@ -306,17 +316,22 @@ export async function listAttention(mfiId: string): Promise<AttentionItem[]> {
         payout.createdAt
       ).toISOString(),
       canRetry: payout.status === "FAILED",
-      canRelease: payout.status === "READY",
+      // D105: a ready pot above the limit needs two different officers; the
+      // one who gave the first approval cannot give the second.
+      canRelease: payout.status === "READY" && !(staffId && payout.firstApprovedById === staffId),
+      needsTwo: payout.status === "READY" && needsTwoOfficers(payout.amountFcfa, limit),
+      firstApprovedBy: payout.firstApprovedById ? (firstNames.get(payout.firstApprovedById) ?? null) : null,
       receiverTurn: round.number,
     };
   });
 }
 
 export async function getOverview(mfiId: string): Promise<ConsoleOverview> {
-  const [mfi, groups, attention] = await Promise.all([
+  const [mfi, groups, attention, reported] = await Promise.all([
     prisma.mfi.findUniqueOrThrow({ where: { id: mfiId } }),
     myGroups(mfiId),
     listAttention(mfiId),
+    listReported(mfiId),
   ]);
   const summaries = groups.map(toConsoleGroup);
   return {
@@ -328,6 +343,8 @@ export async function getOverview(mfiId: string): Promise<ConsoleOverview> {
     failed: attention.filter((a) => a.status === "FAILED").length,
     ready: attention.filter((a) => a.status === "READY").length,
     disputed: attention.filter((a) => a.status === "DISPUTED").length,
+    reported: reported.length,
+    autoReleaseFcfa: mfi.autoReleaseFcfa,
   };
 }
 
@@ -345,6 +362,23 @@ export async function releaseRoundPayout(
   if (!payout) throw new AppError("NOT_FOUND", 404);
   if (payout.status !== "READY") throw new AppError("NOT_ALLOWED_NOW", 409);
 
+  // D105: above the MFI's limit, a first officer approves and a second,
+  // different one releases. Each step is logged with the officer's name.
+  if (needsTwoOfficers(payout.amountFcfa, await autoReleaseLimit(mfiId))) {
+    if (payout.firstApprovedById === staffId) throw new AppError("SECOND_OFFICER_NEEDED", 409);
+    if (!payout.firstApprovedById) {
+      const first = await prisma.payout.updateMany({
+        where: { id: payoutId, status: "READY", firstApprovedById: null },
+        data: { firstApprovedById: staffId, firstApprovedAt: new Date() },
+      });
+      if (first.count === 0) throw new AppError("NOT_ALLOWED_NOW", 409);
+      await prisma.auditEvent.create({
+        data: { type: "STAFF_PAYOUT_APPROVED", details: { staffId, payoutId, round: payout.round.number } },
+      });
+      return listAttention(mfiId, staffId);
+    }
+  }
+
   await prisma.auditEvent.create({
     data: {
       type: "STAFF_PAYOUT_RELEASED",
@@ -352,7 +386,66 @@ export async function releaseRoundPayout(
     },
   });
   await releasePayout(payoutId, staffId);
-  return listAttention(mfiId);
+  return listAttention(mfiId, staffId);
+}
+
+// ---------- Payments a member says left her account (D105, D110) ----------
+
+// Payments the operator did not confirm, which the member says were debited:
+// the officer checks them against the operator's statement. Oldest first.
+// The member is named here: the officer must find her payment.
+export async function listReported(mfiId: string): Promise<ConsoleReported[]> {
+  const rows = await prisma.contribution.findMany({
+    where: { reportedAt: { not: null }, status: { not: "PAID" }, round: { group: { mfiId } } },
+    include: { round: { include: { group: true } }, user: { select: { displayName: true } } },
+    orderBy: { reportedAt: "asc" },
+  });
+  return rows.map((c) => ({
+    contributionId: c.id,
+    groupId: c.round.groupId,
+    groupName: c.round.group.name,
+    roundNumber: c.round.number,
+    memberName: c.user.displayName,
+    phone: c.payerPhone,
+    operator: c.operator,
+    amountFcfa: c.amountFcfa,
+    providerRef: c.providerRef,
+    requestedAt: c.requestedAt?.toISOString() ?? null,
+    reportedAt: (c.reportedAt as Date).toISOString(),
+  }));
+}
+
+// The officer's answer. Found on the operator's statement: the payment is
+// credited as if the operator had confirmed it. Not found: she is told to
+// pay again, and her report is closed.
+export async function resolveReported(
+  mfiId: string,
+  staffId: string,
+  contributionId: string,
+  arrived: boolean,
+): Promise<ConsoleReported[]> {
+  const row = await prisma.contribution.findFirst({
+    where: { id: contributionId, round: { group: { mfiId } } },
+  });
+  if (!row) throw new AppError("NOT_FOUND", 404);
+  if (!row.reportedAt || row.status === "PAID") throw new AppError("NOT_ALLOWED_NOW", 409);
+  await prisma.auditEvent.create({
+    data: {
+      type: arrived ? "STAFF_PAYMENT_FOUND" : "STAFF_PAYMENT_NOT_FOUND",
+      details: { staffId, contributionId },
+    },
+  });
+  if (arrived) await creditFoundPayment(contributionId, staffId);
+  else await rejectReport(contributionId, staffId);
+  return listReported(mfiId);
+}
+
+// D105: the admin sets the amount up to which pots leave without an officer.
+export async function setAutoRelease(mfiId: string, staffId: string, amountFcfa: number | null): Promise<number | null> {
+  await prisma.mfi.update({ where: { id: mfiId }, data: { autoReleaseFcfa: amountFcfa } });
+  await prisma.auditEvent.create({ data: { type: "STAFF_AUTO_RELEASE_SET", details: { staffId, amountFcfa } } });
+  // Pots already waiting under the new limit leave on the job's next run.
+  return amountFcfa;
 }
 
 // The officer asks for a failed transfer to be tried again now, instead of
@@ -618,6 +711,10 @@ const ACTIVITY: Record<ConsoleActivity["action"], ConsoleActivity["category"]> =
   STAFF_PAYOUT_RELEASED: "MONEY",
   STAFF_PAYOUT_RETRY: "MONEY",
   STAFF_ADVANCE_SENT: "MONEY",
+  STAFF_PAYOUT_APPROVED: "MONEY",
+  STAFF_PAYMENT_FOUND: "MONEY",
+  STAFF_PAYMENT_NOT_FOUND: "MONEY",
+  STAFF_AUTO_RELEASE_SET: "MONEY",
   STAFF_RECORD_OPENED: "CREDIT",
   STAFF_CREDIT_POLICY_CHANGED: "CREDIT",
   STAFF_LOAN_PRESELECT: "CREDIT",

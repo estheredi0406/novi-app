@@ -1,6 +1,7 @@
-import type { StaffCredentials, StaffMember, StaffRole } from "@novi/shared";
+import type { ConsoleOverview, StaffCredentials, StaffMember, StaffRole } from "@novi/shared";
 import { type FormEvent, useState } from "react";
 import { ApiFailure, api } from "../api";
+import { fcfa } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
@@ -103,6 +104,8 @@ export function Team({ t, onExpired }: { t: Text; onExpired: () => void }) {
         </tbody>
       </table>
       <p className="muted small">{t.teamAdminOnly}</p>
+
+      <AutoRelease t={t} message={message} />
 
       {adding ? (
         <AddOfficer
@@ -254,5 +257,61 @@ function Credentials({ t, credentials, onClose }: { t: Text; credentials: StaffC
         </div>
       </div>
     </div>
+  );
+}
+
+// D105: the amount up to which a full pot leaves on its day without an
+// officer; above it, two officers. Administrators only, like the team.
+function AutoRelease({ t, message }: { t: Text; message: (err: unknown) => string }) {
+  const { data, reload } = useLoad(() => api<ConsoleOverview>("GET", "/v1/console/overview"), () => undefined);
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState<string | null>(null);
+  if (!data) return null;
+
+  async function save(value: number | null) {
+    setNote(null);
+    try {
+      await api("PUT", "/v1/console/auto-release", { amountFcfa: value });
+      setAmount("");
+      setNote(t.autoSaved);
+      reload();
+    } catch (err) {
+      setNote(message(err));
+    }
+  }
+
+  const typed = Number(amount.replace(/\s/g, ""));
+  return (
+    <section className="queue" style={{ marginTop: 28 }}>
+      <div className="queue-head">
+        <h2>{t.autoTitle}</h2>
+        <strong>{data.autoReleaseFcfa === null ? t.autoOff : t.autoUpTo(fcfa(data.autoReleaseFcfa))}</strong>
+      </div>
+      <p className="muted" style={{ padding: "0 24px", margin: 0 }}>
+        {t.autoLede}
+      </p>
+      <form
+        className="auto-release"
+        style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap", padding: "16px 24px 22px" }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (Number.isInteger(typed) && typed >= 0) void save(typed);
+        }}
+      >
+        <label>
+          {t.autoAmount}
+          <input inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="50 000" />
+        </label>
+        <button className="primary" disabled={amount.trim() === ""}>
+          {t.autoSave}
+        </button>
+        {data.autoReleaseFcfa !== null ? (
+          <button type="button" className="ghost" onClick={() => void save(null)}>
+            {t.autoTurnOff}
+          </button>
+        ) : null}
+        {note ? <span className="muted small">{note}</span> : null}
+      </form>
+    </section>
   );
 }

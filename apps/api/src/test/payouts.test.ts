@@ -55,6 +55,9 @@ async function activeGroup() {
   const organiser = as(akossiwa.tokens.accessToken);
 
   const groupId = (await organiser.post("/v1/groups", SMALL_GROUP)).body.id as string;
+  // These tests check the officer's release (D63): an MFI that turned
+  // automatic release off, so one officer releases every pot (D105).
+  await prisma.mfi.updateMany({ data: { autoReleaseFcfa: null } });
   await organiser.post(`/v1/groups/${groupId}/invites`, { phone: "+22890000002" });
   await organiser.post(`/v1/groups/${groupId}/invites`, { phone: "+22890000003" });
   await organiser.post(`/v1/groups/${groupId}/propose`);
