@@ -101,7 +101,7 @@ describe("connecting the MFI's own FedaPay account (D102)", () => {
     expect(JSON.stringify(res.body)).not.toContain(SECRET);
     // The check went to the sandbox, with this key.
     expect(calls[0]).toMatchObject({ method: "GET", auth: `Bearer ${SECRET}` });
-    expect(calls[0]?.url).toContain("https://sandbox-api.fedapay.com/v1/transactions");
+    expect(calls[0]?.url).toBe("https://sandbox-api.fedapay.com/v1/transactions/search");
 
     const row = await prisma.mfi.findUniqueOrThrow({ where: { code: "FUCEC" } });
     expect(row.fedapaySecretKey).not.toContain(SECRET);

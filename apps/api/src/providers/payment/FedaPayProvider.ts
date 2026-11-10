@@ -112,10 +112,11 @@ export class FedaPayProvider implements PaymentProvider {
     return { status: paid ? "PAID" : failed ? "FAILED" : "PENDING", amountFcfa: amount };
   }
 
-  // D102: checks a key before an MFI saves it. Listing one transaction is
-  // the lightest call FedaPay answers only for a valid key.
+  // D102: checks a key before an MFI saves it, with the lightest call
+  // FedaPay answers only for a valid key: listing transactions, which its API
+  // reference documents as GET /v1/transactions/search.
   async testConnection(): Promise<void> {
-    await this.call("GET", "/transactions?per_page=1");
+    await this.call("GET", "/transactions/search");
   }
 
   // D102: the API this account answers on, for its payouts.
