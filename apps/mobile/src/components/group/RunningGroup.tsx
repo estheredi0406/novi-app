@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   busy: { opacity: 0.5 },
-  back: { fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.white },
+  back: { textAlign: "center", fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.white },
   name: { fontFamily: fonts.bodyBold, fontSize: 24, lineHeight: 30, color: colors.white, marginTop: 8 },
   sub: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.onDark, opacity: 0.88 },
   segmentWrap: { paddingHorizontal: 20, paddingTop: 16, gap: 6 },
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
   },
-  tabText: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.muted },
+  tabText: { textAlign: "center", fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.muted },
   tabTextOn: { fontFamily: fonts.bodyBold, color: colors.indigo },
   badge: {
     minWidth: 20,
@@ -227,6 +227,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  badgeText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.white },
+  badgeText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 12, color: colors.white },
   content: { paddingHorizontal: 20, paddingVertical: 20, gap: 24, flexGrow: 1 },
 });

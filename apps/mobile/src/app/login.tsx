@@ -312,5 +312,5 @@ const styles = StyleSheet.create({
   linkButton: { minHeight: 44, alignItems: "center", justifyContent: "center" },
   link: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.action },
   // Saffron is kept for "your turn" only, so this link is underlined instead.
-  darkLink: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.onDark, textDecorationLine: "underline" },
+  darkLink: { textAlign: "center", fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.onDark, textDecorationLine: "underline" },
 });

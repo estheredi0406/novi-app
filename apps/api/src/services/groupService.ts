@@ -57,7 +57,7 @@ async function refuseIfOwing(userId: string): Promise<void> {
 // never choose an MFI that has nobody to validate it.
 export const PILOT_MFIS = [
   { code: "MAWULI", name: "Caisse Mawuli" },
-  { code: "KARA", name: "Caisse Kara" },
+  { code: "DZIDZO", name: "Caisse Dzidzo" },
 ] as const;
 const PARTNER_MFI = PILOT_MFIS[0];
 

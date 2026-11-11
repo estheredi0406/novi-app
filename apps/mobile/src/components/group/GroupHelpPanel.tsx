@@ -239,13 +239,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   btnYes: { backgroundColor: colors.action },
-  btnYesText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.white },
+  btnYesText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 15, color: colors.white },
   btnNo: {
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.card,
   },
-  btnNoText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.indigo },
+  btnNoText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 15, color: colors.indigo },
   link: {
     fontFamily: fonts.bodyBold,
     fontSize: 14,

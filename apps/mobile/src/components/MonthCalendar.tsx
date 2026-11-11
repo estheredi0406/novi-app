@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  arrowText: { fontSize: 22, color: colors.indigo, marginTop: -2 },
+  arrowText: { textAlign: "center", fontSize: 22, color: colors.indigo, marginTop: -2 },
   title: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.indigo },
   grid: { flexDirection: "row", flexWrap: "wrap" },
   dayHead: { width: "14.2857%", textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 12, color: colors.muted, paddingBottom: 4 },

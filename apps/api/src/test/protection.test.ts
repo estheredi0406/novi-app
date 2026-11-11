@@ -177,7 +177,7 @@ describe("the officer at the counter (D69)", () => {
 
   it("does not find members of another MFI's groups", async () => {
     await activeGroup();
-    const other = await officer("KARA", "ama@kara.example");
+    const other = await officer("DZIDZO", "ama@dzidzo.example");
     expect((await other.get(`/v1/console/members?phone=${encodeURIComponent(PHONES[1] as string)}`)).status).toBe(404);
   });
 });

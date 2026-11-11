@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   pressed: { backgroundColor: colors.indigo },
-  primaryText: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.white },
+  primaryText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 17, color: colors.white },
   secondary: {
     minHeight: 56,
     borderRadius: 16,
@@ -132,5 +132,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   secondaryPressed: { backgroundColor: colors.mist },
-  secondaryText: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.indigo },
+  secondaryText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 17, color: colors.indigo },
 });

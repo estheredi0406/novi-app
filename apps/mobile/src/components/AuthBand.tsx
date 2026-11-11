@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
   back: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: colors.mist },
   spacer: { width: 44, height: 44 },
-  backText: { fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.lagoon },
+  backText: { textAlign: "center", fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.lagoon },
   progress: { gap: 10 },
   eyebrow: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.lagoon },
   track: { height: 6, borderRadius: 3, backgroundColor: colors.line, overflow: "hidden" },

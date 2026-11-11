@@ -34,5 +34,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  backText: { fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.lagoon },
+  backText: { textAlign: "center", fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.lagoon },
 });

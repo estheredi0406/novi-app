@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  createText: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
+  createText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
   section: { gap: 14 },
   hRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
   h: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.indigo },

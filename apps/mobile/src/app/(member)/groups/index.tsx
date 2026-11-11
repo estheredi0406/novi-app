@@ -6,7 +6,6 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../../api/client";
 import { listMyGroups } from "../../../api/groups";
 import { getStatement } from "../../../api/news";
-import { SeatRing } from "../../../components/art/SeatRing";
 import { BottomBar } from "../../../components/BottomBar";
 import { ErrorMessage } from "../../../components/ErrorMessage";
 import { LineIcon } from "../../../components/LineIcon";
@@ -17,7 +16,7 @@ import { colors } from "../../../theme/colors";
 import { fonts } from "../../../theme/typography";
 
 // Mes groupes (D92, board E4): each tontine shown like an account in a bank
-// app, with its ring, its rules and where it stands for her. On top, what she
+// app, with its rules and where it stands for her (no ring, D121). On top, what she
 // paid this month (from her statement) and her next pot.
 const MAX_GROUPS = 3; // D26
 
@@ -126,16 +125,6 @@ function GroupRow({ group }: { group: GroupSummary }) {
       onPress={() => router.push({ pathname: "/groups/[id]", params: { id: group.id } })}
       style={styles.row}
     >
-      <SeatRing
-        paid={round ? round.paidSeats : Array.from({ length: group.size }, () => false)}
-        mine={round?.myTurn ? round.myTurn.number - 1 : null}
-        receiver={round ? round.number - 1 : null}
-        size={74}
-      >
-        <Text style={styles.ringText}>
-          {round ? round.paidCount : 0}/{group.size}
-        </Text>
-      </SeatRing>
       <View style={styles.rowText}>
         <Text style={styles.rowName} numberOfLines={2}>
           {group.name}
@@ -182,7 +171,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
-  ringText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.ink },
   rowText: { flex: 1, minWidth: 0, gap: 4 },
   rowName: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.ink },
   rowSub: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted },

@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  callText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.indigo },
+  callText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 15, color: colors.indigo },
   list: { paddingHorizontal: 16, paddingVertical: 12, gap: 10, flexGrow: 1 },
   headerGap: { gap: 10, marginBottom: 4 },
   safety: {
@@ -730,6 +730,7 @@ const styles = StyleSheet.create({
     maxWidth: "94%",
   },
   eventText: {
+    textAlign: "center",
     fontFamily: fonts.bodySemiBold,
     fontSize: 14,
     color: colors.indigo,

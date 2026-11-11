@@ -179,7 +179,7 @@ describe("the console's view of groups", () => {
 
   it("hides another MFI's groups, as if they did not exist", async () => {
     const { groupId } = await activeGroup();
-    const other = await officer("KARA", "officer@kara.example");
+    const other = await officer("DZIDZO", "officer@dzidzo.example");
 
     expect((await other.get("/v1/console/groups")).body).toEqual([]);
     expect((await other.get(`/v1/console/groups/${groupId}`)).status).toBe(404);
@@ -589,7 +589,7 @@ describe("the group accounts at the MFI (D113)", () => {
   it("never shows another MFI's group account", async () => {
     const { groupId, members } = await activeGroup();
     await pay(members[0] as Client, groupId, 1);
-    const other = await officer("KARA", "officer@kara.example");
+    const other = await officer("DZIDZO", "officer@dzidzo.example");
     expect((await other.get(`/v1/console/groups/${groupId}/account`)).status).toBe(404);
     expect((await other.get("/v1/console/accounts")).body).toMatchObject({ bankFcfa: 0, bankAccounts: 0 });
   });

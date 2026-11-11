@@ -302,13 +302,13 @@ describe("sharing it with one MFI by name (D54)", () => {
   it("shows nothing to anyone else, even with the code", async () => {
     const { tokens } = await signedUpMember();
     await officer("MAWULI", "mawuli@mawuli.example");
-    const kara = await officer("KARA", "officer@kara.example");
+    const dzidzo = await officer("DZIDZO", "officer@dzidzo.example");
     const share = (await as(tokens.accessToken).post("/v1/me/record/shares", { mfiCode: "MAWULI" })).body;
 
     const publicCheck = (await request(app).get(`/v1/verify/${share.id}`)).body;
     expect(publicCheck).toMatchObject({ status: "PRIVATE", sharedWith: "Caisse Mawuli", record: null });
-    expect((await kara.client.get(`/v1/console/records/${share.id}`)).status).toBe(404);
-    expect((await kara.client.get("/v1/console/records")).body).toEqual([]);
+    expect((await dzidzo.client.get(`/v1/console/records/${share.id}`)).status).toBe(404);
+    expect((await dzidzo.client.get("/v1/console/records")).body).toEqual([]);
     expect(await prisma.recordView.count()).toBe(0);
   });
 

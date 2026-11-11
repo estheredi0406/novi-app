@@ -118,7 +118,7 @@ The API and the console are one Docker image (`Dockerfile`) deployed on Render w
 
 The app is published with EAS: `eas build --platform android --profile preview` for an installable APK, `eas update --channel preview` for JavaScript-only updates (run from `apps/mobile`).
 
-Partner MFIs (D95): `npm run mfi:create -- DEMO "MFI de démonstration"` adds an MFI that groups can choose; then `npm run staff:create -- DEMO admin@example.org "Full Name" ADMIN` opens its first console account.
+Partner MFIs (D95): `npm run mfi:create -- DZIDZO "Caisse Dzidzo"` adds an MFI that groups can choose; then `npm run staff:create -- DZIDZO admin@example.org "Full Name" ADMIN` opens its first console account.
 
 Pilot-only commands, run from Render's shell: `npm run demo:payout -- "Group"` (treat the next round as due today), `npm run demo:reset` (start again from zero groups, keeping the accounts).
 

@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   tab: { flex: 1, alignItems: "center", gap: 3, minHeight: 52, justifyContent: "flex-start" },
-  label: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.muted },
+  label: { textAlign: "center", fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.muted },
   on: { fontFamily: fonts.bodyBold, color: colors.lagoon },
   payDisc: {
     width: 60,

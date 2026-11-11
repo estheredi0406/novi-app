@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  answerText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.lagoon },
+  answerText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 16, color: colors.lagoon },
   indigo: { color: colors.indigo },
   ink: { color: colors.ink },
   muted: { color: colors.muted },
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  back: { fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.white },
+  back: { textAlign: "center", fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.white },
   bandTitle: { fontFamily: fonts.bodyBold, fontSize: 24, lineHeight: 30, color: colors.white, marginTop: 8 },
   lift: { marginTop: -(56 + 20) },
   summary: {
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   payOff: { opacity: 0.45 },
-  payText: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
+  payText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
   note: { gap: 8, padding: 16, borderRadius: 16, backgroundColor: colors.mist },
   receipt: {
     gap: 6,

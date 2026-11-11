@@ -174,5 +174,5 @@ const styles = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   footer: { marginTop: "auto", gap: 12 },
   secondary: { minHeight: 44, alignItems: "center", justifyContent: "center" },
-  link: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.action },
+  link: { textAlign: "center", fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.action },
 });

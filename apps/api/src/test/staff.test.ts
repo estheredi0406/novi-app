@@ -217,8 +217,8 @@ describe("the team (D81)", () => {
 
   it("never reaches another MFI's officers", async () => {
     const { call } = await adjo();
-    await prisma.mfi.create({ data: { code: "KARA", name: "Caisse Kara" } });
-    const other = await createStaff({ mfiCode: "KARA", email: "ama@kara.example", name: "Ama" });
+    await prisma.mfi.create({ data: { code: "DZIDZO", name: "Caisse Dzidzo" } });
+    const other = await createStaff({ mfiCode: "DZIDZO", email: "ama@dzidzo.example", name: "Ama" });
     expect((await call("post", `/v1/console/team/${other.staffId}/deactivate`)).status).toBe(404);
   });
 });

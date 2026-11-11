@@ -85,5 +85,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.card,
   },
-  dotText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.indigo },
+  dotText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 14, color: colors.indigo },
 });

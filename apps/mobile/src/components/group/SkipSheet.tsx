@@ -138,5 +138,5 @@ const styles = StyleSheet.create({
   busy: { opacity: 0.5 },
   confirmText: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.white },
   cancel: { minHeight: 44, alignItems: "center", justifyContent: "center" },
-  cancelText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.lagoon },
+  cancelText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 16, color: colors.lagoon },
 });

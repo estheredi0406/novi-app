@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
   },
-  payText: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
+  payText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
   actions: {
     flexDirection: "row",
     marginHorizontal: -24,

@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
   },
-  payText: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
+  payText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
   second: {
     minHeight: 48,
     borderRadius: 16,
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  secondText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.indigo },
+  secondText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 15, color: colors.indigo },
   owingRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
   owingText: { flex: 1, fontFamily: fonts.body, fontSize: 15, color: colors.ink },
   owingLink: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.lagoon },

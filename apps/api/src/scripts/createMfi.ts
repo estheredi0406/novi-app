@@ -2,7 +2,7 @@ import { prisma } from "../lib/db.js";
 
 // Adds a partner MFI that groups can choose to keep their money (D95):
 //
-//   npm run mfi:create -w @novi/api -- DEMO "MFI de démonstration"
+//   npm run mfi:create -w @novi/api -- DZIDZO "Caisse Dzidzo"
 //
 // The code is short and stays fixed (it appears in logs and in
 // staff:create); the name is what members and officers see. Running it again
@@ -13,7 +13,7 @@ import { prisma } from "../lib/db.js";
 async function main() {
   const [code, name] = process.argv.slice(2);
   if (!code || !name || !/^[A-Z][A-Z0-9_]{1,19}$/.test(code)) {
-    throw new Error('Usage: npm run mfi:create -w @novi/api -- DEMO "MFI de démonstration" (code: capitals, 2 to 20)');
+    throw new Error('Usage: npm run mfi:create -w @novi/api -- DZIDZO "Caisse Dzidzo" (code: capitals, 2 to 20)');
   }
   const mfi = await prisma.mfi.upsert({ where: { code }, create: { code, name }, update: { name } });
   await prisma.auditEvent.create({ data: { type: "MFI_ADDED", details: { mfiId: mfi.id, code, name } } });

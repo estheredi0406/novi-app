@@ -27,7 +27,7 @@ function as(accessToken: string) {
 }
 
 const demoMfi = () =>
-  prisma.mfi.create({ data: { code: "DEMO", name: "MFI de démonstration" } });
+  prisma.mfi.create({ data: { code: "DZIDZO", name: "Caisse Dzidzo" } });
 
 async function officer(mfiCode: string, email: string) {
   const { password, totpSecret } = await createStaff({ mfiCode, email, name: "Mawuli Adzo" });
@@ -61,15 +61,15 @@ describe("choosing where the group's money is kept (D95)", () => {
     const akossiwa = await signedUpMember();
     const res = await as(akossiwa.tokens.accessToken).get("/v1/mfis");
     expect(res.status).toBe(200);
-    expect(res.body.map((m: { code: string }) => m.code)).toEqual(["MAWULI", "DEMO"]);
+    expect(res.body.map((m: { code: string }) => m.code)).toEqual(["MAWULI", "DZIDZO"]);
   });
 
   it("keeps the money at the MFI the group chose, and every member sees it in the rules", async () => {
     const demo = await demoMfi();
     const { groupId, created, abla } = await proposedGroup({ ...RULES, mfiId: demo.id });
-    expect(created.body).toMatchObject({ mfiName: "MFI de démonstration", rules: { mfiId: demo.id } });
+    expect(created.body).toMatchObject({ mfiName: "Caisse Dzidzo", rules: { mfiId: demo.id } });
     const invitations = await abla.get("/v1/invitations");
-    expect(invitations.body[0]).toMatchObject({ groupId, mfiName: "MFI de démonstration" });
+    expect(invitations.body[0]).toMatchObject({ groupId, mfiName: "Caisse Dzidzo" });
   });
 
   it("uses the default partner when an older app sends no MFI", async () => {
@@ -97,7 +97,7 @@ describe("choosing where the group's money is kept (D95)", () => {
     const { name: _name, ...rules } = RULES;
     const changed = await organiser.post(`/v1/groups/${groupId}/rules`, { ...rules, mfiId: demo.id });
     expect(changed.status).toBe(200);
-    expect(changed.body).toMatchObject({ mfiName: "MFI de démonstration", rules: { version: 2, mfiId: demo.id } });
+    expect(changed.body).toMatchObject({ mfiName: "Caisse Dzidzo", rules: { version: 2, mfiId: demo.id } });
     const ablaSeat = changed.body.seats.find((s: { displayName: string }) => s.displayName === "Abla");
     expect(ablaSeat.acceptedCurrentRules).toBe(false);
     const consents = await prisma.membership.count({ where: { groupId, shareConsentAt: { not: null } } });
@@ -112,7 +112,7 @@ describe("choosing where the group's money is kept (D95)", () => {
     await koffi.post(`/v1/groups/${groupId}/accept`, { version: 1 });
     await organiser.post(`/v1/groups/${groupId}/start`);
 
-    const demoDesk = await officer("DEMO", "afi@demo.example");
+    const demoDesk = await officer("DZIDZO", "afi@dzidzo.example");
     await prisma.mfi.upsert({ where: { code: "MAWULI" }, create: { code: "MAWULI", name: "Caisse Mawuli" }, update: {} });
     const mawuliDesk = await officer("MAWULI", "mawuli@mawuli.example");
     expect((await demoDesk.get(`/v1/console/groups/${groupId}`)).status).toBe(200);

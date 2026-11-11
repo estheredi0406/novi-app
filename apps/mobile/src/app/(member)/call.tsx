@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  leaveText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.indigo },
+  leaveText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 15, color: colors.indigo },
   room: { flex: 1 },
   web: { flex: 1, backgroundColor: colors.indigo },
   spinner: { position: "absolute", top: "45%", alignSelf: "center" },

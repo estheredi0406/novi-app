@@ -29,5 +29,5 @@ export function TextButton({
 const styles = StyleSheet.create({
   button: { minHeight: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
   disabled: { opacity: 0.45 },
-  label: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.action },
+  label: { textAlign: "center", fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.action },
 });

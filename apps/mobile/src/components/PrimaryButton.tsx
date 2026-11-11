@@ -42,5 +42,5 @@ const styles = StyleSheet.create({
   pay: { backgroundColor: colors.accent },
   payPressed: { backgroundColor: "#D24A10" },
   disabled: { opacity: 0.45 },
-  label: { color: colors.white, fontFamily: fonts.bodyBold, fontSize: 17 },
+  label: { textAlign: "center", color: colors.white, fontFamily: fonts.bodyBold, fontSize: 17 },
 });
