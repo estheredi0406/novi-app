@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
 import {
+  bringOnPaper,
   consentToDocuments,
   getLoans,
   requestLoan,
@@ -77,7 +78,7 @@ export default function LoanScreen() {
   const [page, setPage] = useState<LoanPage | null>(null);
   const [amount, setAmount] = useState("");
   const [purpose, setPurpose] = useState<LoanPurpose>("STOCK");
-  const [months, setMonths] = useState<number | null>(null);
+  const [showChecks, setShowChecks] = useState(false);
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -111,8 +112,7 @@ export default function LoanScreen() {
 
   const mfi = page.mfiName ?? "FUCEC";
   const latest = page.requests.find((r) => r.status !== "WITHDRAWN");
-  const chosenMonths =
-    months ?? page.months[Math.min(1, page.months.length - 1)] ?? 6;
+  const latestOpen = latest?.status === "PENDING" || latest?.status === "PRESELECTED";
   const value = Number(amount.replace(/\D/g, ""));
   const valid = value >= 5000 && value <= page.ceilingFcfa;
 
@@ -125,7 +125,7 @@ export default function LoanScreen() {
         {
           text: t("loan.send"),
           onPress: () =>
-            void run("send", () => requestLoan(value, purpose, chosenMonths)),
+            void run("send", () => requestLoan(value, purpose)),
         },
       ],
     );
@@ -203,6 +203,13 @@ export default function LoanScreen() {
                       {d.note ? ` : « ${d.note} »` : ""}
                     </Text>
                   </View>
+                  {d.status === "MISSING" || d.status === "REDO" ? (
+                    <TextButton
+                      label={t("loan.onPaper")}
+                      disabled={busy !== null}
+                      onPress={() => void run(d.key, () => bringOnPaper(latest.id, d.key))}
+                    />
+                  ) : null}
                   {d.status !== "ACCEPTED" && canPickPhotos() ? (
                     <Pressable
                       accessibilityRole="button"
@@ -244,7 +251,18 @@ export default function LoanScreen() {
         </Text>
       ) : null}
 
-      {page.enabled ? (
+      {/* D118: when she can ask, say it in one line; the conditions fold away. */}
+      {page.enabled && page.eligible && !latestOpen ? (
+        <View style={styles.eligible}>
+          <Text style={styles.eligibleOk}>{t("loan.allMet")}</Text>
+          <Text style={styles.eligibleTitle}>{t("loan.canAsk", { amount: formatFcfa(page.ceilingFcfa), mfi })}</Text>
+          <Pressable accessibilityRole="button" onPress={() => setShowChecks(!showChecks)} style={styles.eligibleLink}>
+            <Text style={styles.eligibleLinkText}>{showChecks ? t("loan.hideConditions") : t("loan.seeConditions")}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {page.enabled && (!page.eligible || latestOpen || showChecks) ? (
         <View style={styles.checks}>
           <Text style={styles.boxTitle}>{t("loan.conditions", { mfi })}</Text>
           {page.checks.map((c) => {
@@ -306,19 +324,17 @@ export default function LoanScreen() {
               />
             ))}
           </View>
-          <Text style={styles.label}>{t("loan.monthsLabel")}</Text>
-          <View style={styles.chips}>
-            {page.months.map((m) => (
-              <Chip
-                key={m}
-                label={t("loan.months", { count: m })}
-                selected={chosenMonths === m}
-                onPress={() => setMonths(m)}
-              />
+          {/* D118: what she will need, before she asks. */}
+          <View style={styles.box}>
+            <Text style={styles.boxTitle}>{t("loan.docsToPrepare", { count: page.documents.length })}</Text>
+            {page.documents.map((d) => (
+              <Text key={d.key} style={[type.small, styles.ink]}>
+                • {d.label}
+              </Text>
             ))}
           </View>
           <Text style={[type.small, styles.muted]}>
-            {t("loan.shareNote", { mfi })}
+            {t("loan.atAgency", { mfi })} {t("loan.shareNote", { mfi })}
           </Text>
           <PrimaryButton
             label={t("loan.send")}
@@ -371,7 +387,6 @@ function RequestStatus({ loan, mfi }: { loan: LoanRequestView; mfi: string }) {
         {t("loan.requestLine", {
           amount: formatFcfa(loan.amountFcfa),
           purpose: t(`loan.purpose.${loan.purpose}`),
-          months: loan.months,
           day: formatDay(loan.createdAt.slice(0, 10)),
         })}
       </Text>
@@ -433,6 +448,11 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   docStatus: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
+  eligible: { backgroundColor: colors.indigo, borderRadius: 20, padding: 18, gap: 6 },
+  eligibleOk: { fontFamily: fonts.bodyBold, fontSize: 14, color: "#8FD3AE" },
+  eligibleTitle: { fontFamily: fonts.display, fontSize: 22, lineHeight: 28, color: colors.white },
+  eligibleLink: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
+  eligibleLinkText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.white, textDecorationLine: "underline" },
   docButton: {
     minHeight: 40,
     paddingHorizontal: 12,

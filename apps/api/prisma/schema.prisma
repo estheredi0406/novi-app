@@ -886,7 +886,7 @@ model LoanRequest {
   mfiId         String
   amountFcfa    Int
   purpose       LoanPurpose
-  months        Int
+  months        Int? // D118: no longer asked; agreed with the officer at the agency
   status        LoanStatus  @default(PENDING)
   grantedFcfa   Int?
   decisionNote  String?     // the reason for a refusal, or the officer's note
@@ -950,6 +950,7 @@ enum DocumentStatus {
   SENT     // the officer has not looked yet
   ACCEPTED
   REDO     // the officer asks for a new photo, with a note
+  PAPER    // D118: she brings it on paper to the agency, no photo
 }
 
 // D91: a photo of one document for a preselected loan request. Seen only by

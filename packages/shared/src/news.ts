@@ -31,7 +31,7 @@ export type StatementLine = {
   amountFcfa: number;
   at: string; // ISO: when the money moved (or was asked, or covered)
   onTime: boolean | null; // PAID only: on or before the round's due date
-  advanceFcfa?: number; // PAID only: her advance paid with it (round 1, D103), not in amountFcfa
+  advanceFcfa?: number; // PAID only: her advance paid with it (round 1, D103), included in amountFcfa (D118)
   dueBy?: string | null; // COVERED: repay before this
   repaid?: boolean; // COVERED: already repaid
   reported?: boolean; // FAILED: she said the money left her account

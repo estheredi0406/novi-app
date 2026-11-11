@@ -364,7 +364,8 @@
     "payoutHeld_other": "Pot held: waiting for {{count}} payments",
     "payoutSending": "Pot on its way through the MFI",
     "confirmOnPageHint": "Approve {{amount}} on the payment page, then come back to Novi.",
-    "openPage": "Open the payment page again"
+    "openPage": "Open the payment page again",
+    "nextCheck": "Novi checks again with the operator at {{time}}."
   },
   "idScan": {
     "title": "ID card barcode test (development)",
@@ -783,7 +784,7 @@
     "menu": "FUCEC credit",
     "menuSub": "Your Novi record opens a request",
     "title": "{{mfi}} credit",
-    "intro": "{{mfi}} reviews your request and decides. Novi does not lend money: the loan is paid and repaid at the branch.",
+    "intro": "{{mfi}} lends and decides. Novi shows your track record.",
     "conditions": "{{mfi}}'s conditions",
     "amountLabel": "Amount (up to {{max}})",
     "purposeLabel": "What for?",
@@ -792,7 +793,6 @@
       "EQUIPMENT": "Equipment",
       "OTHER": "Other"
     },
-    "monthsLabel": "Repay over",
     "months_other": "{{count}} months",
     "shareNote": "By sending, you agree that {{mfi}} sees your Novi record for this request.",
     "send": "Send to FUCEC",
@@ -801,7 +801,7 @@
     "pending": "Request with {{mfi}}",
     "approved": "Loan granted: {{amount}}",
     "declined": "Request declined",
-    "requestLine": "{{amount}}, {{purpose}}, {{months}} months, on {{day}}",
+    "requestLine": "{{amount}}, {{purpose}}, on {{day}}",
     "goToAgency": "Come to your {{mfi}} branch with your ID card.",
     "withdraw": "Withdraw my request",
     "notEligible": "The conditions are not met yet.",
@@ -839,7 +839,8 @@
       "MISSING": "To send",
       "SENT": "Sent, {{mfi}} is checking",
       "ACCEPTED": "Accepted ✓",
-      "REDO": "To redo"
+      "REDO": "To redo",
+      "PAPER": "On paper, at the branch"
     },
     "photoSend": "Photo",
     "photoRedo": "Redo",
@@ -857,7 +858,14 @@
     "cardConditions": "See the conditions to ask for a loan",
     "grantedSub": "Good trading!",
     "cardDocsToSend_one": "{{count}} document to send. Tap to photograph it.",
-    "cardDocsToSend_other": "{{count}} documents to send. Tap to photograph them."
+    "cardDocsToSend_other": "{{count}} documents to send. Tap to photograph them.",
+    "allMet": "✓ All conditions are met",
+    "canAsk": "You can ask {{mfi}} for up to {{amount}}",
+    "seeConditions": "See the conditions",
+    "hideConditions": "Hide the conditions",
+    "docsToPrepare": "{{count}} documents to prepare",
+    "atAgency": "Length, rate and instalments: with {{mfi}}, at the branch.",
+    "onPaper": "I will bring it to the branch"
   },
   "hub": {
     "hello": "Hello {{name}}",
@@ -976,7 +984,8 @@
     "reported": "reported",
     "covered": "Share covered, turn {{number}}",
     "repayBy": "repay before {{date}}",
-    "repaid": "repaid"
+    "repaid": "repaid",
+    "withAdvance": "incl. {{amount}} advance"
   },
   "skip": {
     "button": "I can't pay this turn",

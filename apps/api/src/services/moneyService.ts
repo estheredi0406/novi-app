@@ -5,6 +5,7 @@ import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { enforce } from "../lib/enforce.js";
 import { AppError } from "../lib/errors.js";
+import { nextCheckAt } from "../lib/autoChecks.js";
 import { advanceOf, checkAction, checkCanPay, holdsSeat, PAYMENT_WAIT_MS, potShare } from "../lib/groupRules.js";
 import { currentRoundNumber, isoDay } from "../lib/schedule.js";
 import { receiptSms, failedSms, notFoundSms } from "../lib/smsText.js";
@@ -82,6 +83,11 @@ function toSummary(loaded: Loaded, round: LoadedRound, userId: string, canSkipNo
     myContributionId: mine?.id ?? null,
     myReported: Boolean(mine?.reportedAt),
     myReportRejected: Boolean(mine?.reportRejectedAt) && mine?.status !== "PAID",
+    // D118: when Novi will ask the operator again, so the wait has an end.
+    myNextCheckAt:
+      mine && mine.status !== "PAID" && (mine.status === "PENDING" || mine.reportedAt)
+        ? (nextCheckAt(mine)?.toISOString() ?? null)
+        : null,
     payoutStatus: round.payout?.status ?? "NOT_DUE",
     paidOutAt: round.payout?.paidAt?.toISOString() ?? null,
     payoutId: round.payout?.id ?? null,

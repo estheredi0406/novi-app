@@ -74,14 +74,13 @@ async function pay(member: Client, groupId: string, round: number, outcome: "PAI
 }
 
 describe("Mes transactions", () => {
-  it("shows her contribution and her advance as two lines, with the group to open", async () => {
+  it("shows what she paid as one line, her advance inside it, with the group to open (D118)", async () => {
     const g = await startedGroup();
     await pay(g.abla, g.groupId, 1);
     const lines = (await g.abla.get("/v1/me/statement")).body.lines;
     expect(lines).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ kind: "PAID", amountFcfa: 1000, round: 1, groupId: g.groupId, groupName: "Marché de Bè" }),
-        expect.objectContaining({ kind: "ADVANCE", amountFcfa: 500, round: 1 }),
+        expect.objectContaining({ kind: "PAID", amountFcfa: 1500, advanceFcfa: 500, round: 1, groupId: g.groupId, groupName: "Marché de Bè" }),
       ]),
     );
   });
@@ -136,7 +135,7 @@ describe("Mes transactions", () => {
 
 describe("SMS cost", () => {
   it("writes French with GSM characters only, so one SMS holds 160 characters", () => {
-    expect(toGsm("« Pagnes » : 5 000 FCFA, à payer. Fenêtre, leçon")).toBe('" Pagnes " : 5 000 FCFA, à payer. Fenetre, lecon');
+    expect(toGsm("« Pagnes » : 5 000 FCFA, à payer. Fenêtre, leçon")).toBe('"Pagnes" : 5 000 FCFA, à payer. Fenetre, lecon');
   });
 
   it("sends Rwandan numbers to their own provider, stops real SMS for the month at the limit, and keeps pilot texts", async () => {
@@ -154,11 +153,11 @@ describe("SMS cost", () => {
     delivered.push(await desk.send("+22890000002", "Novi : paiement reçu « Pagnes »"));
     expect(delivered).toEqual([true, true, false, false]);
     expect(rwanda.sent).toHaveLength(2); // the third is over the limit
-    expect(togo.sent).toEqual([expect.objectContaining({ text: 'Novi : paiement recu " Pagnes "' })]);
+    expect(togo.sent).toEqual([expect.objectContaining({ text: 'Novi : paiement recu "Pagnes"' })]);
     expect(await prisma.smsLog.count({ where: { real: true } })).toBe(2);
     expect(await prisma.smsLog.findFirst({ where: { real: false } })).toMatchObject({
       phone: "+22890000002",
-      text: 'Novi : paiement recu " Pagnes "',
+      text: 'Novi : paiement recu "Pagnes"',
     });
   });
 });

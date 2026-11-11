@@ -1,6 +1,6 @@
 import type { NewsItem, Statement, StatementLine } from "@novi/shared";
 import { prisma } from "../lib/db.js";
-import { potShare } from "../lib/groupRules.js";
+import { advanceOf, potShare } from "../lib/groupRules.js";
 
 // D92: home's "Dernières nouvelles" and the bell gather the money and meeting
 // lines of all her groups' chats, so she sees what moved without opening each
@@ -50,7 +50,8 @@ export async function listNews(userId: string, limit = 30, now = new Date()): Pr
     const event = m.event as NewsEvent;
     const amountFcfa =
       rules && event === "PAID"
-        ? rules.amountFcfa
+        ? // D118: round 1 includes her advance, so the news shows what she paid.
+          rules.amountFcfa + (m.round === 1 ? advanceOf(rules.amountFcfa) : 0)
         : rules && event === "POT_PAID"
           ? potShare(rules.amountFcfa) * rules.size
           : null;
@@ -115,14 +116,12 @@ export async function getStatement(userId: string, limit = 200): Promise<Stateme
         ...base,
         id: c.id,
         kind: "PAID",
-        amountFcfa: c.amountFcfa - c.advanceFcfa,
+        // D118: one line, the amount she paid; her advance is shown inside it.
+        amountFcfa: c.amountFcfa,
         advanceFcfa: c.advanceFcfa,
         at,
         onTime: c.paidAt ? day(c.paidAt) <= day(c.round.dueDate) : null,
       });
-      if (c.advanceFcfa > 0) {
-        lines.push({ ...base, id: `${c.id}-advance`, kind: "ADVANCE", amountFcfa: c.advanceFcfa, at, onTime: null });
-      }
     } else if (c.status === "PENDING") {
       lines.push({ ...base, id: c.id, kind: "PENDING", amountFcfa: c.amountFcfa, at: c.requestedAt.toISOString(), onTime: null });
     } else if (!paidRounds.has(c.roundId)) {

@@ -62,5 +62,8 @@ const REPLACE: Record<string, string> = {
 };
 
 export function toGsm(text: string): string {
-  return [...text].map((c) => REPLACE[c] ?? c).join("");
+  // D118: French guillemets keep a space inside (« Pagnes »); straight
+  // quotes do not, or the SMS reads " Pagnes ".
+  const tight = text.replace(/«[\s\u00a0\u202f]+/g, "«").replace(/[\s\u00a0\u202f]+»/g, "»");
+  return [...tight].map((c) => REPLACE[c] ?? c).join("");
 }

@@ -1,4 +1,5 @@
 import { prisma } from "../lib/db.js";
+import { CHECK_AFTER_MS, nextCheckAt } from "../lib/autoChecks.js";
 import { escalateReport, recheckPayment } from "./moneyService.js";
 
 // D114: exceptions handled before anyone looks. A payment the operator has
@@ -8,20 +9,11 @@ import { escalateReport, recheckPayment } from "./moneyService.js";
 // (Transfers refused are retried by the payout job itself: payoutService.)
 
 const MIN = 60_000;
-// After the payment was asked (or, once she reported it, after her report).
-export const CHECK_AFTER_MS = [15 * MIN, 60 * MIN, 6 * 60 * MIN, 24 * 60 * MIN];
+export { CHECK_AFTER_MS, nextCheckAt };
 // A reported payment reaches the officers once this many checks found
 // nothing: the 1 h check. The later checks still run, and clear it by
 // themselves if the operator confirms it after all.
 export const ESCALATE_AFTER_CHECKS = 2;
-
-type Checked = { autoChecks: number; requestedAt: Date; reportedAt: Date | null };
-
-export function nextCheckAt(c: Checked): Date | null {
-  const wait = CHECK_AFTER_MS[c.autoChecks];
-  if (wait === undefined) return null;
-  return new Date((c.reportedAt ?? c.requestedAt).getTime() + wait);
-}
 
 export async function runPaymentChecks(now = new Date()): Promise<{ checked: number; found: number; escalated: number }> {
   const rows = await prisma.contribution.findMany({

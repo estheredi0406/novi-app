@@ -59,7 +59,9 @@ export async function buildRecord(userId: string, now = new Date()): Promise<Sav
     for (const round of group.rounds) {
       const payment = round.contributions.at(0);
       const due = startOfDay(round.dueDate);
-      if (due < today) roundsDue += 1;
+      // D118: a round counts once it is due, or once she has paid it early;
+      // otherwise an early payment read "1 sur 0 payés".
+      if (due < today || payment?.paidAt) roundsDue += 1;
       if (payment?.paidAt) {
         paid += 1;
         if (startOfDay(payment.paidAt) <= due) onTime += 1;

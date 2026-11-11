@@ -57,8 +57,10 @@ export function StatementView({ record }: { record: SavingsRecord }) {
     <View style={styles.wrap}>
       <View style={styles.summary}>
         {recent.length > 0 ? (
-          <SeatRing paid={recent.map((l) => l.onTime === true)} size={96}>
-            <Text style={styles.rate}>{rate === null ? "…" : `${rate} %`}</Text>
+          <SeatRing paid={recent.map((l) => l.onTime === true)} size={112}>
+            <Text style={[styles.rate, rate !== null && rate >= 100 && styles.rateWide]} numberOfLines={1} adjustsFontSizeToFit>
+              {rate === null ? "…" : `${rate} %`}
+            </Text>
           </SeatRing>
         ) : null}
         <View style={styles.summaryText}>
@@ -187,6 +189,11 @@ function Row({ line, locale }: { line: StatementLine; locale: string }) {
         <Text style={styles.sub} numberOfLines={1}>
           {line.groupName}
         </Text>
+        {line.kind === "PAID" && (line.advanceFcfa ?? 0) > 0 ? (
+          <Text style={styles.sub} numberOfLines={1}>
+            {t("statement.withAdvance", { amount: short(line.advanceFcfa ?? 0) })}
+          </Text>
+        ) : null}
         {tag ? <Text style={[styles.tag, tag.style]}>{tag.text}</Text> : null}
       </View>
       <Text style={[styles.colNum, styles.cell, struck && styles.struck]}>
@@ -217,7 +224,9 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: colors.indigo,
   },
-  rate: { fontFamily: fonts.display, fontSize: 20, color: colors.white },
+  // D118: "100 %" fits inside the ring (it spilled over its left side).
+  rate: { fontFamily: fonts.display, fontSize: 20, color: colors.white, textAlign: "center" },
+  rateWide: { fontSize: 17 },
   summaryText: { flex: 1, gap: 2 },
   big: { fontFamily: fonts.display, fontSize: 22, lineHeight: 28, color: colors.white },
   light: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.onDark, opacity: 0.85 },

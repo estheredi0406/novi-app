@@ -8,6 +8,7 @@ import {
   consentToDocuments,
   getLoanPage,
   requestLoan,
+  bringOnPaper,
   sendDocument,
   withdrawLoan,
 } from "../services/loanService.js";
@@ -165,7 +166,7 @@ meRouter.post("/loans", async (req, res) => {
     .object({
       amountFcfa: z.number().int().min(5000).max(5_000_000),
       purpose: z.enum(["STOCK", "EQUIPMENT", "OTHER"]),
-      months: z.number().int().min(1).max(36), // one of the MFI's lengths (D91)
+      months: z.number().int().min(1).max(36).optional(), // D118: no longer asked by the app
     })
     .strict()
     .parse(req.body);
@@ -181,6 +182,16 @@ meRouter.post("/loans/:loanId/withdraw", async (req, res) => {
 meRouter.post("/loans/:loanId/documents-consent", async (req, res) => {
   const loanId = z.string().uuid().parse(req.params.loanId);
   res.json(await consentToDocuments(currentMember(res).userId, loanId));
+});
+
+// D118: a document not ready as a photo: she brings it to the agency.
+meRouter.post("/loans/:loanId/documents/:key/paper", async (req, res) => {
+  const loanId = z.string().uuid().parse(req.params.loanId);
+  const key = z
+    .string()
+    .regex(/^[A-Z0-9_]{2,30}$/)
+    .parse(req.params.key);
+  res.json(await bringOnPaper(currentMember(res).userId, loanId, key));
 });
 
 meRouter.put("/loans/:loanId/documents/:key", async (req, res) => {

@@ -364,7 +364,8 @@
     "payoutHeld_other": "Cagnotte retenue : il manque {{count}} paiements",
     "payoutSending": "Cagnotte en cours d'envoi par l'IMF",
     "confirmOnPageHint": "Validez {{amount}} sur la page de paiement, puis revenez sur Novi.",
-    "openPage": "Rouvrir la page de paiement"
+    "openPage": "Rouvrir la page de paiement",
+    "nextCheck": "Novi revérifie avec l'opérateur à {{time}}."
   },
   "idScan": {
     "title": "Test du code de la carte d'identité (développement)",
@@ -783,7 +784,7 @@
     "menu": "Crédit FUCEC",
     "menuSub": "Votre historique Novi vous ouvre une demande",
     "title": "Crédit {{mfi}}",
-    "intro": "{{mfi}} étudie votre demande et décide. Novi ne prête pas d'argent : le crédit se remet et se rembourse à l'agence.",
+    "intro": "{{mfi}} prête et décide. Novi montre votre sérieux.",
     "conditions": "Les conditions de {{mfi}}",
     "amountLabel": "Montant (jusqu'à {{max}})",
     "purposeLabel": "Pour quoi ?",
@@ -792,7 +793,6 @@
       "EQUIPMENT": "Du matériel",
       "OTHER": "Autre"
     },
-    "monthsLabel": "Rembourser en",
     "months_other": "{{count}} mois",
     "shareNote": "En envoyant, vous acceptez que {{mfi}} voie votre historique Novi pour cette demande.",
     "send": "Envoyer à FUCEC",
@@ -801,7 +801,7 @@
     "pending": "Demande chez {{mfi}}",
     "approved": "Crédit accordé : {{amount}}",
     "declined": "Demande refusée",
-    "requestLine": "{{amount}}, {{purpose}}, {{months}} mois, le {{day}}",
+    "requestLine": "{{amount}}, {{purpose}}, le {{day}}",
     "goToAgency": "Venez à votre agence {{mfi}} avec votre carte d'identité.",
     "withdraw": "Retirer ma demande",
     "notEligible": "Les conditions ne sont pas encore remplies.",
@@ -839,7 +839,8 @@
       "MISSING": "À envoyer",
       "SENT": "Envoyée, {{mfi}} vérifie",
       "ACCEPTED": "Acceptée ✓",
-      "REDO": "À refaire"
+      "REDO": "À refaire",
+      "PAPER": "Sur papier, à l'agence"
     },
     "photoSend": "Photo",
     "photoRedo": "Refaire",
@@ -857,7 +858,14 @@
     "cardConditions": "Voir les conditions pour demander un crédit",
     "grantedSub": "Bon commerce !",
     "cardDocsToSend_one": "{{count}} pièce à envoyer. Touchez pour la prendre en photo.",
-    "cardDocsToSend_other": "{{count}} pièces à envoyer. Touchez pour les prendre en photo."
+    "cardDocsToSend_other": "{{count}} pièces à envoyer. Touchez pour les prendre en photo.",
+    "allMet": "✓ Toutes les conditions sont remplies",
+    "canAsk": "Vous pouvez demander jusqu'à {{amount}} à {{mfi}}",
+    "seeConditions": "Voir les conditions",
+    "hideConditions": "Masquer les conditions",
+    "docsToPrepare": "{{count}} pièces à préparer",
+    "atAgency": "Durée, taux et mensualités : avec {{mfi}}, à l'agence.",
+    "onPaper": "Je l'apporterai à l'agence"
   },
   "hub": {
     "hello": "Bonjour {{name}}",
@@ -976,7 +984,8 @@
     "reported": "signalé",
     "covered": "Part couverte, tour {{number}}",
     "repayBy": "à rembourser avant le {{date}}",
-    "repaid": "remboursée"
+    "repaid": "remboursée",
+    "withAdvance": "dont {{amount}} d'avance"
   },
   "skip": {
     "button": "Je ne peux pas payer ce tour",

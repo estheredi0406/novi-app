@@ -82,7 +82,10 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
         <SeatRing paid={round.paidSeats} mine={mySeat} receiver={receiverSeat} size={142}>
           {owes ? (
             <>
-              <Text style={styles.amount}>{String(group.amountFcfa).replace(/\B(?=(\d{3})+(?!\d))/g, " ")}</Text>
+              {/* One amount everywhere: on round 1 it includes her advance (D103). */}
+              <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
+                {String(group.amountFcfa + (group.currentRound?.advanceFcfa ?? 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+              </Text>
               <Text style={styles.amountUnit}>{t("hub.toPay")}</Text>
             </>
           ) : pending ? (

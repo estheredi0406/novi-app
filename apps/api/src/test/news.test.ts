@@ -94,7 +94,8 @@ describe("home news and statement (D92)", () => {
       ["PAID", "Akossiwa", true],
       ["PAID", "Abla", false],
     ]);
-    expect(news[0]?.amountFcfa).toBe(5000);
+    // Round 1: what she paid, her advance included (D118).
+    expect(news[0]?.amountFcfa).toBe(7500);
     const after = (await akossiwa.get("/v1/groups")).body as { currentRound: { paidSeats: boolean[]; paidCount: number } }[];
     expect(after[0]?.currentRound.paidSeats).toHaveLength(3);
     expect(after[0]?.currentRound.paidSeats.filter(Boolean)).toHaveLength(2);
@@ -103,10 +104,9 @@ describe("home news and statement (D92)", () => {
     const statement = (await akossiwa.get("/v1/me/statement")).body as {
       lines: { kind: string; amountFcfa: number; onTime: boolean; round: number }[];
     };
-    // Her contribution, and her advance on its own line (D103, D110).
+    // One line for what she paid, her advance inside it (D103, D118).
     expect(statement.lines).toEqual([
-      expect.objectContaining({ kind: "PAID", amountFcfa: 5000, onTime: true, round: 1 }),
-      expect.objectContaining({ kind: "ADVANCE", amountFcfa: 2500, round: 1 }),
+      expect.objectContaining({ kind: "PAID", amountFcfa: 7500, advanceFcfa: 2500, onTime: true, round: 1 }),
     ]);
   });
 

@@ -32,6 +32,8 @@ import { fonts, type } from "../../../../../theme/typography";
 // How often the app asks whether her payment went through while she confirms
 // it on her phone, and for how long before it tells her to check later.
 const POLL_MS = 3000;
+// D118: the time of Novi's next check, in Lomé's time (GMT).
+const clock = (iso: string) => iso.slice(11, 16);
 const POLL_FOR_MS = 2 * 60 * 1000;
 
 // One round (restyled D92, like the confirmation screens of Flooz and Mixx by
@@ -200,7 +202,11 @@ export default function RoundScreen() {
           ) : null}
           {waitedTooLong ? (
             <>
-              <Text style={[type.small, styles.muted]}>{t("money.stillWaiting")}</Text>
+              <Text style={[type.small, styles.muted]}>
+                {round.myNextCheckAt
+                  ? t("money.nextCheck", { time: clock(round.myNextCheckAt) })
+                  : t("money.stillWaiting")}
+              </Text>
               <TextButton
                 label={t("money.checkAgain")}
                 onPress={() => {
@@ -254,7 +260,10 @@ export default function RoundScreen() {
         </View>
       ) : null}
       {round.myStatus === "FAILED" && round.myReported ? (
-        <Text style={[type.body, styles.ink]}>{t("pay.reportedNote", { mfi: round.mfiName })}</Text>
+        <Text style={[type.body, styles.ink]}>
+          {t("pay.reportedNote", { mfi: round.mfiName })}
+          {round.myNextCheckAt ? ` ${t("money.nextCheck", { time: clock(round.myNextCheckAt) })}` : ""}
+        </Text>
       ) : null}
       {/* D105: the MFI did not find it with the operator: she pays again below. */}
       {round.myStatus === "FAILED" && round.myReportRejected ? (

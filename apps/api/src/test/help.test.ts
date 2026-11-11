@@ -478,4 +478,31 @@ describe("microloan requests (D89, D91)", () => {
       figures: { days: 0, wait: 30 },
     });
   });
+
+  it("asks no length, lists the documents first, and lets a document come on paper (D118)", async () => {
+    const { abla, ablaToken } = await qualified();
+    const page = (await abla.get("/v1/me/loans")).body;
+    expect(page.eligible).toBe(true);
+    expect(page.documents.length).toBeGreaterThan(0);
+
+    expect((await ask(abla, { amountFcfa: 30000, purpose: "STOCK" })).status).toBe(201);
+    const desk = await officer();
+    const [loan] = (await desk.get("/v1/console/loans")).body;
+    expect(loan.months).toBeNull();
+    await desk.post(`/v1/console/loans/${loan.id}/decide`, { action: "preselect" });
+    await abla.post(`/v1/me/loans/${loan.id}/documents-consent`);
+
+    // Every document but one by photo, the last one on paper.
+    const keys = (await abla.get("/v1/me/loans")).body.requests[0].documents.map((d: { key: string }) => d.key);
+    for (const key of keys.slice(0, -1)) await put(ablaToken, `/v1/me/loans/${loan.id}/documents/${key}`, photo);
+    const paper = await abla.post(`/v1/me/loans/${loan.id}/documents/${keys.at(-1)}/paper`);
+    expect(paper.status).toBe(200);
+    const detail = (await desk.get(`/v1/console/loans/${loan.id}`)).body;
+    expect(detail.documents.at(-1)).toMatchObject({ status: "PAPER", id: null });
+
+    // Once the photos are accepted, the file is complete: she goes to the agency.
+    for (const d of detail.documents.filter((x: { status: string }) => x.status === "SENT"))
+      await desk.post(`/v1/console/loans/${loan.id}/documents/${d.id}/review`, { accepted: true });
+    expect((await abla.get("/v1/me/loans")).body.requests[0].documentsComplete).toBe(true);
+  });
 });

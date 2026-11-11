@@ -234,7 +234,11 @@ describe("payments checked again by Novi itself (D114)", () => {
   }
 
   it("credits a payment whose confirmation was lost, at the 15 min check, with no one involved", async () => {
-    const { contributionId, providerRef } = await lostWebhook();
+    const { contributionId, providerRef, abla, groupId } = await lostWebhook();
+    // D118: she sees when Novi will ask again.
+    const round = (await abla.get(`/v1/groups/${groupId}/rounds/1`)).body;
+    const asked = (await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } })).requestedAt;
+    expect(new Date(round.myNextCheckAt).getTime()).toBe(asked.getTime() + 15 * 60_000);
     mockPayments.settle(providerRef, "PAID"); // the webhook never arrives
     await runPaymentChecks(later(5));
     expect((await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } })).status).toBe("PENDING");

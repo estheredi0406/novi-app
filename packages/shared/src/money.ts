@@ -41,6 +41,7 @@ export type RoundSummary = {
   // as "the money left my account" (myReported), for the MFI to check.
   myContributionId: string | null;
   myReported: boolean;
+  myNextCheckAt: string | null; // D118: when Novi asks the operator again (D114); null when it will not
   // D105: the MFI did not find that payment on the operator's statement; she pays again.
   myReportRejected: boolean;
   payoutStatus: PayoutStatus;

@@ -297,7 +297,7 @@ function documentsView(
       label: spec.label,
       status: doc ? doc.status : "MISSING",
       note: doc?.note ?? null,
-      id: doc && !doc.deletedAt ? doc.id : null,
+      id: doc && !doc.deletedAt && doc.status !== "PAPER" ? doc.id : null,
       sentAt: doc?.createdAt.toISOString() ?? null,
       deleted: Boolean(doc?.deletedAt),
     };
@@ -358,6 +358,7 @@ export async function getLoanPage(
     checks,
     ceilingFcfa: policy.ceilingTimesPot * stats.largestPotFcfa,
     months: policy.months,
+    documents: policy.documents,
     mfiName: stats.mfi?.name ?? null,
     onTimePercent: rate === null ? null : Math.round(rate * 100),
     onTimeNeeded: onTimeNeeded(stats, policy.minOnTimePct),
@@ -367,14 +368,14 @@ export async function getLoanPage(
 
 export async function requestLoan(
   userId: string,
-  input: { amountFcfa: number; purpose: LoanPurpose; months: number },
+  input: { amountFcfa: number; purpose: LoanPurpose; months?: number },
   now = new Date(),
 ): Promise<LoanPage> {
   const page = await getLoanPage(userId, now);
   if (!page.eligible) throw new AppError("LOAN_NOT_ELIGIBLE", 409);
   if (input.amountFcfa > page.ceilingFcfa)
     throw new AppError("LOAN_TOO_LARGE", 400);
-  if (!page.months.includes(input.months))
+  if (input.months !== undefined && !page.months.includes(input.months))
     throw new AppError("VALIDATION_FAILED", 400);
   const { mfi } = await memberStats(userId);
   if (!mfi) throw new AppError("LOAN_NOT_ELIGIBLE", 409);
@@ -399,7 +400,9 @@ export async function requestLoan(
     refId: created.id,
     subject: `Demande de crédit : ${fcfa(input.amountFcfa)}`,
     lines: [
-      `Une membre demande ${fcfa(input.amountFcfa)} sur ${input.months} mois.`,
+      input.months
+        ? `Une membre demande ${fcfa(input.amountFcfa)} sur ${input.months} mois.`
+        : `Une membre demande ${fcfa(input.amountFcfa)}. La durée se décide avec elle à l'agence.`,
       "Son historique Novi et vos conditions, vérifiées une à une, sont dans la console.",
     ],
   });
@@ -489,7 +492,7 @@ export async function sendDocument(
   });
   const required = asDocuments(loan.requiredDocs).length;
   const sent = await prisma.loanDocument.count({
-    where: { loanId, status: { in: ["SENT", "ACCEPTED"] } },
+    where: { loanId, status: { in: ["SENT", "ACCEPTED", "PAPER"] } },
   });
   if (sent === required) {
     await alertStaff({
@@ -823,29 +826,7 @@ export async function reviewDocument(
       },
     );
   } else {
-    const required = asDocuments(doc.loan.requiredDocs).length;
-    const accepted = await prisma.loanDocument.count({
-      where: { loanId, status: "ACCEPTED" },
-    });
-    if (accepted === required && !doc.loan.documentsCheckedAt) {
-      await prisma.loanRequest.update({
-        where: { id: loanId },
-        data: { documentsCheckedAt: now },
-      });
-      await notifyMembers(
-        [doc.loan.userId],
-        "money",
-        "/loan",
-        {
-          title: "Dossier complet",
-          body: `Venez à votre agence ${mfiName} avec les originaux : ${mfiName} décide sur place.`,
-        },
-        {
-          title: "Your file is complete",
-          body: `Come to your ${mfiName} branch with the originals: ${mfiName} decides there.`,
-        },
-      );
-    }
+    await completeIfReady(loanId, now);
   }
   await prisma.auditEvent.create({
     data: {
@@ -854,6 +835,50 @@ export async function reviewDocument(
     },
   });
   return getLoan(mfiId, loanId);
+}
+
+// D91, D118: every document accepted, or coming on paper: she goes to the
+// agency with the originals, where the MFI decides.
+async function completeIfReady(loanId: string, now: Date) {
+  const loan = await prisma.loanRequest.findUnique({ where: { id: loanId }, include: { mfi: true } });
+  if (!loan || loan.documentsCheckedAt) return;
+  const required = asDocuments(loan.requiredDocs).length;
+  const ready = await prisma.loanDocument.count({
+    where: { loanId, status: { in: ["ACCEPTED", "PAPER"] } },
+  });
+  if (ready !== required) return;
+  await prisma.loanRequest.update({ where: { id: loanId }, data: { documentsCheckedAt: now } });
+  const mfiName = loan.mfi.name;
+  await notifyMembers(
+    [loan.userId],
+    "money",
+    "/loan",
+    {
+      title: "Dossier complet",
+      body: `Venez à votre agence ${mfiName} avec les originaux : ${mfiName} décide sur place.`,
+    },
+    {
+      title: "Your file is complete",
+      body: `Come to your ${mfiName} branch with the originals: ${mfiName} decides there.`,
+    },
+  );
+}
+
+// D118: a document she cannot photograph now (the CEET bill is at her
+// landlord's): she brings it on paper to the agency, and the file goes on.
+export async function bringOnPaper(userId: string, loanId: string, key: string, now = new Date()): Promise<LoanPage> {
+  const loan = await myPreselected(userId, loanId);
+  if (!asDocuments(loan.requiredDocs).some((d) => d.key === key)) throw new AppError("NOT_FOUND", 404);
+  const existing = await prisma.loanDocument.findUnique({ where: { loanId_key: { loanId, key } }, select: { status: true } });
+  if (existing?.status === "ACCEPTED") throw new AppError("NOT_ALLOWED_NOW", 409);
+  await prisma.loanDocument.upsert({
+    where: { loanId_key: { loanId, key } },
+    create: { loanId, key, mime: "", data: null, status: "PAPER" },
+    update: { mime: "", data: null, status: "PAPER", note: null, reviewedAt: null, reviewedById: null },
+  });
+  await prisma.auditEvent.create({ data: { userId, type: "LOAN_DOCUMENT_ON_PAPER", details: { loanId, key } } });
+  await completeIfReady(loanId, now);
+  return getLoanPage(userId, now);
 }
 
 // D91: how many of the MFI's members would qualify with these conditions,

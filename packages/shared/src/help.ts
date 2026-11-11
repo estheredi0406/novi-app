@@ -77,7 +77,7 @@ export type CreditPolicyPreview = { eligible: number; members: number };
 export type LoanDocumentView = {
   key: string;
   label: string;
-  status: "MISSING" | "SENT" | "ACCEPTED" | "REDO";
+  status: "MISSING" | "SENT" | "ACCEPTED" | "REDO" | "PAPER"; // PAPER: she brings it to the agency (D118)
   note: string | null;
   id: string | null; // the photo, for the officer to open
   sentAt: string | null;
@@ -88,7 +88,7 @@ export type LoanRequestView = {
   id: string;
   amountFcfa: number;
   purpose: LoanPurpose;
-  months: number;
+  months: number | null; // D118: null, the length is agreed at the agency
   status: LoanStatus;
   grantedFcfa: number | null;
   decisionNote: string | null;
@@ -107,6 +107,7 @@ export type LoanPage = {
   checks: LoanCheck[];
   ceilingFcfa: number;
   months: number[];
+  documents: LoanDocumentSpec[]; // D118: what she will need, shown before she asks
   mfiName: string | null;
   onTimePercent: number | null;
   onTimeNeeded: number | null; // payments on time still needed to reach the MFI's minimum
@@ -120,7 +121,7 @@ export type ConsoleLoan = {
   groupNames: string[];
   amountFcfa: number;
   purpose: LoanPurpose;
-  months: number;
+  months: number | null; // D118: null, the length is agreed at the agency
   status: LoanStatus;
   grantedFcfa: number | null;
   createdAt: string;

@@ -28,16 +28,9 @@ export const cancelSwap = (groupId: string, swapId: string) =>
   );
 // D89: microloan requests to the MFI.
 export const getLoans = () => memberRequest<LoanPage>("GET", "/v1/me/loans");
-export const requestLoan = (
-  amountFcfa: number,
-  purpose: LoanPurpose,
-  months: number,
-) =>
-  memberRequest<LoanPage>("POST", "/v1/me/loans", {
-    amountFcfa,
-    purpose,
-    months,
-  });
+// D118: no length any more: it is agreed with the officer at the agency.
+export const requestLoan = (amountFcfa: number, purpose: LoanPurpose) =>
+  memberRequest<LoanPage>("POST", "/v1/me/loans", { amountFcfa, purpose });
 export const withdrawLoan = (loanId: string) =>
   memberRequest<LoanPage>("POST", `/v1/me/loans/${loanId}/withdraw`, {});
 
@@ -48,6 +41,9 @@ export const consentToDocuments = (loanId: string) =>
     `/v1/me/loans/${loanId}/documents-consent`,
     {},
   );
+// D118: a document she will bring on paper to the agency.
+export const bringOnPaper = (loanId: string, key: string) =>
+  memberRequest<LoanPage>("POST", `/v1/me/loans/${loanId}/documents/${key}/paper`, {});
 export const sendDocument = (
   loanId: string,
   key: string,
