@@ -129,7 +129,7 @@ export function CotisationTab({
               amount: formatFcfa(myCover.amountFcfa).replace(" FCFA", " F"),
             })}
           </Text>
-          <PrimaryButton label={t("groupView.payCover")} onPress={() => openRound(myCover.number)} />
+          <PrimaryButton pay label={t("groupView.payCover")} onPress={() => openRound(myCover.number)} />
         </WaxCard>
       ) : null}
 
@@ -303,14 +303,14 @@ function Tile({
 const styles = StyleSheet.create({
   wrap: { gap: 24 },
   card: { padding: 20, gap: 16 },
-  done: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14, backgroundColor: "#E3F1E9" },
+  done: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14, backgroundColor: colors.paidSoft },
   doneText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.paid },
   soft: { backgroundColor: colors.mist },
   cardTitle: { fontFamily: fonts.bodyBold, fontSize: 16, lineHeight: 22, color: colors.indigo },
   kicker: {
     fontFamily: fonts.bodyBold,
     fontSize: 13,
-    color: colors.accent,
+    color: colors.lagoon,
   },
   amount: { fontFamily: fonts.display, fontSize: 32, lineHeight: 40, color: colors.indigo },
   status: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.muted },
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   name: { flex: 1, fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.ink },
   tag: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.muted },
   paid: { color: colors.paid },
-  covered: { color: colors.teal },
+  covered: { color: colors.turnText },
   tiles: { flexDirection: "row", gap: 12 },
   tile: {
     flex: 1,
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: "hidden",
   },
-  pillTurn: { backgroundColor: "#FDF1DC", color: "#8A5A00" },
+  pillTurn: { backgroundColor: colors.turnSoft, color: colors.turnText },
   pillMine: { backgroundColor: colors.mist, color: colors.lagoon },
   pay: {
     minHeight: 56,

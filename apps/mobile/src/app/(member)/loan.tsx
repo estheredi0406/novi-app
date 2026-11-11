@@ -25,6 +25,7 @@ import { CheckRow } from "../../components/CheckRow";
 import { Chip } from "../../components/Chip";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { Field } from "../../components/Field";
+import { RecordShare } from "../../components/RecordShare";
 import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
 import { TextButton } from "../../components/TextButton";
@@ -345,6 +346,9 @@ export default function LoanScreen() {
         </View>
       ) : null}
       <ErrorMessage messageKey={error} />
+
+      {/* D121: sharing her record sits here, with the lender's conditions. */}
+      <RecordShare />
     </Screen>
   );
 }
@@ -411,7 +415,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.card,
   },
-  statusOk: { borderColor: colors.paid, backgroundColor: "#E3F1E9" },
+  statusOk: { borderColor: colors.paid, backgroundColor: colors.paidSoft },
   statusTitle: {
     fontFamily: fonts.bodyBold,
     fontSize: 18,
@@ -458,7 +462,7 @@ const styles = StyleSheet.create({
     minHeight: 40,
     paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.action,
     justifyContent: "center",
   },
   docButtonText: {

@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   num: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
   numText: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.ink },
   outside: { color: colors.crackle },
-  today: { borderWidth: 1.5, borderColor: colors.accent },
+  today: { borderWidth: 1.5, borderColor: colors.indigo },
   meeting: { backgroundColor: colors.indigo },
   meetingText: { fontFamily: fonts.bodyBold, color: colors.white },
   dot: { width: 6, height: 6, borderRadius: 3 },

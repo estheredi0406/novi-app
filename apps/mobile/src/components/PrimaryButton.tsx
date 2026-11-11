@@ -2,16 +2,19 @@ import { Pressable, StyleSheet, Text } from "react-native";
 import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
 
-// The main action on a screen. At least 56 points tall, well above the
+// The main action on a screen, in action blue like every button (D121); the
+// pay buttons keep their own orange. At least 56 points tall, well above the
 // 44-point minimum for touch targets, for use with one hand or a thumb.
 export function PrimaryButton({
   label,
   onPress,
   disabled = false,
+  pay = false,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  pay?: boolean; // money leaves her account: orange, like Payer (D121)
 }) {
   return (
     <Pressable
@@ -19,7 +22,7 @@ export function PrimaryButton({
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed, disabled && styles.disabled]}
+      style={({ pressed }) => [styles.button, pay && styles.pay, pressed && (pay ? styles.payPressed : styles.pressed), disabled && styles.disabled]}
     >
       <Text style={styles.label}>{label}</Text>
     </Pressable>
@@ -30,12 +33,14 @@ const styles = StyleSheet.create({
   button: {
     minHeight: 56,
     borderRadius: 16,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.action,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
   },
-  pressed: { backgroundColor: "#D24A10" },
+  pressed: { backgroundColor: colors.actionPressed },
+  pay: { backgroundColor: colors.accent },
+  payPressed: { backgroundColor: "#D24A10" },
   disabled: { opacity: 0.45 },
   label: { color: colors.white, fontFamily: fonts.bodyBold, fontSize: 17 },
 });

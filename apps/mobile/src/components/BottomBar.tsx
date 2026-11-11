@@ -121,7 +121,7 @@ export function BottomBar({ active }: { active: Tab | null }) {
                       })}
                     </Text>
                   </View>
-                  <LineIcon name="chevron" color={colors.accent} />
+                  <LineIcon name="chevron" color={colors.action} />
                 </Pressable>
               ))}
             </>

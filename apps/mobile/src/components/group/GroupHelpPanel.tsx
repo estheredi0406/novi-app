@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: colors.accent,
-    backgroundColor: "#FFF4EC",
+    backgroundColor: colors.accentSoft,
   },
   cardTitle: {
     fontFamily: fonts.bodyBold,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  btnYes: { backgroundColor: colors.accent },
+  btnYes: { backgroundColor: colors.action },
   btnYesText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.white },
   btnNo: {
     borderWidth: 1,

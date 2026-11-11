@@ -295,10 +295,10 @@ const styles = StyleSheet.create({
   },
   rowLast: { borderBottomWidth: 0, justifyContent: "space-between" },
   rowSoft: { backgroundColor: colors.shell },
-  rowNow: { backgroundColor: "#FFF4EC" },
+  rowNow: { backgroundColor: colors.turnSoft },
   rowMine: { backgroundColor: colors.indigo },
   day: { width: 92, fontFamily: fonts.body, fontSize: 14, color: colors.muted },
-  dayNow: { fontFamily: fonts.bodyBold, color: colors.accent },
+  dayNow: { fontFamily: fonts.bodyBold, color: colors.turnText },
   dayMine: { fontFamily: fonts.bodyBold, color: colors.mist },
   receivedCount: { fontFamily: fonts.bodyBold, color: colors.paid },
   names: { flex: 1, fontFamily: fonts.body, fontSize: 14, color: colors.muted },
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   nowTag: {
     fontFamily: fonts.bodyBold,
     fontSize: 12,
-    color: colors.accent,
+    color: colors.turnText,
   },
   more: { flex: 1, fontFamily: fonts.body, fontSize: 14, color: colors.muted },
   link: {

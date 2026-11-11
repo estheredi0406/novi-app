@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.body, fontSize: 16, color: colors.ink },
   value: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.ink },
   owe: {
-    backgroundColor: "#FDF1DC",
+    backgroundColor: colors.turnSoft,
     borderRadius: 16,
     padding: 14,
     flexDirection: "row",
@@ -125,8 +125,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  oweText: { flex: 1, fontFamily: fonts.bodySemiBold, fontSize: 15, color: "#8A5A00" },
-  oweAmount: { fontFamily: fonts.display, fontSize: 24, color: "#8A5A00" },
+  oweText: { flex: 1, fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.turnText },
+  oweAmount: { fontFamily: fonts.display, fontSize: 24, color: colors.turnText },
   note: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.ink },
   confirm: {
     minHeight: 54,

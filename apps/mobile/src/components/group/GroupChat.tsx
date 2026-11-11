@@ -254,7 +254,7 @@ export function GroupChat({
               item.event === "POT_PAID"
                 ? colors.gold
                 : item.meeting
-                  ? colors.accent
+                  ? colors.lagoon
                   : colors.teal
             }
           />
@@ -604,7 +604,7 @@ const styles = StyleSheet.create({
   calTop: {
     alignSelf: "stretch",
     textAlign: "center",
-    backgroundColor: colors.accent,
+    backgroundColor: colors.indigo,
     color: colors.white,
     fontFamily: fonts.bodyBold,
     fontSize: 11,
@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 10,
     borderLeftWidth: 6,
-    borderLeftColor: colors.accent,
+    borderLeftColor: colors.problem,
   },
   safetyText: {
     fontFamily: fonts.bodySemiBold,
@@ -689,7 +689,7 @@ const styles = StyleSheet.create({
   },
   bubbleMine: { backgroundColor: colors.lagoon, borderBottomRightRadius: 4 },
   bubbleHidden: { backgroundColor: colors.line, borderColor: colors.line },
-  author: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.accent },
+  author: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.lagoon },
   body: {
     fontFamily: fonts.body,
     fontSize: 17,
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.action,
     borderWidth: 1,
     borderColor: colors.line,
     alignItems: "center",
@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.action,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,

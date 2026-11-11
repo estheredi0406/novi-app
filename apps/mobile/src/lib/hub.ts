@@ -9,10 +9,13 @@ export function owes(group: GroupSummary): boolean {
   return status === "UNPAID" || status === "FAILED";
 }
 
-// Home's cards: running groups only, the ones where she owes first, in the
-// order they came otherwise (the sort is stable).
+// Home's cards: running groups only, the ones where she owes first, then the
+// soonest due date first (D121).
 export function cardsInOrder(groups: readonly GroupSummary[]): GroupSummary[] {
-  return groups.filter((g) => g.currentRound).sort((a, b) => Number(owes(b)) - Number(owes(a)));
+  const due = (g: GroupSummary) => g.currentRound?.dueDate ?? "9999";
+  return groups
+    .filter((g) => g.currentRound)
+    .sort((a, b) => Number(owes(b)) - Number(owes(a)) || due(a).localeCompare(due(b)));
 }
 
 // What the Payer button does: open the one round she owes, ask which group

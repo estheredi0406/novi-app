@@ -36,7 +36,7 @@ export function SeatRing({
     const p0 = at(a0, r);
     const p1 = at(a1, r);
     const large = a1 - a0 > 180 ? 1 : 0;
-    const color = isPaid ? colors.paid : i === mine ? colors.accent : colors.seatEmpty;
+    const color = isPaid ? colors.paid : i === mine ? colors.indigo : colors.seatEmpty;
     const mid = at((a0 + a1) / 2, r + 11);
     return { d: `M${p0.x} ${p0.y} A${r} ${r} 0 ${large} 1 ${p1.x} ${p1.y}`, color, mid, i };
   });
@@ -56,8 +56,8 @@ export function SeatRing({
               cx={s.mid.x}
               cy={s.mid.y}
               r={5.5}
-              fill={paid[s.i] ? colors.white : colors.accent}
-              stroke={paid[s.i] ? colors.accent : colors.white}
+              fill={paid[s.i] ? colors.white : colors.indigo}
+              stroke={paid[s.i] ? colors.indigo : colors.white}
               strokeWidth={2.5}
             />
           ) : null,

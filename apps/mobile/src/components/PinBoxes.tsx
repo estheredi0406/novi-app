@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  boxActive: { borderWidth: 2.5, borderColor: colors.accent },
+  boxActive: { borderWidth: 2.5, borderColor: colors.action },
   dot: { fontFamily: fonts.bodyBold, fontSize: 30, color: colors.ink },
   hidden: { position: "absolute", width: 1, height: 1, opacity: 0 },
 });

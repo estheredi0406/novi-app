@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.card,
   },
-  rowTicked: { borderColor: colors.accent, borderWidth: 2.5, backgroundColor: colors.mist },
+  rowTicked: { borderColor: colors.action, borderWidth: 2.5, backgroundColor: colors.mist },
   box: {
     width: 28,
     height: 28,
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  boxTicked: { borderColor: colors.indigo, backgroundColor: colors.accent },
+  boxTicked: { borderColor: colors.action, backgroundColor: colors.action },
   tick: { color: colors.white, fontFamily: fonts.bodyBold, fontSize: 18, lineHeight: 22 },
   rowText: { flex: 1 },
   footer: { marginTop: "auto", gap: 12 },

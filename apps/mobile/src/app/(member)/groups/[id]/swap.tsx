@@ -61,7 +61,10 @@ export default function SwapScreen() {
           {help?.myRound ? t("help.yourTurnNow", { round: help.myRound }) : ""}
         </Text>
       </View>
-      <View style={styles.list}>
+      {help && help.swapPartners.length === 0 ? (
+        <Text style={[type.body, styles.muted]}>{t("help.swapNone")}</Text>
+      ) : null}
+      <View style={[styles.list, help?.swapPartners.length === 0 && styles.hidden]}>
         {help?.swapPartners.map((p, i) => (
           <Pressable
             key={p.memberId}
@@ -95,6 +98,7 @@ const styles = StyleSheet.create({
   intro: { gap: 8 },
   indigo: { color: colors.indigo },
   muted: { color: colors.muted },
+  hidden: { display: "none" },
   list: {
     borderRadius: 18,
     borderWidth: 1,

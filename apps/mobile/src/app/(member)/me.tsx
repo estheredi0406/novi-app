@@ -190,7 +190,7 @@ export default function MeScreen() {
               value={member.notifyChat}
               disabled={saving}
               onValueChange={(on) => void toggleChat(on)}
-              trackColor={{ true: colors.accent, false: colors.line }}
+              trackColor={{ true: colors.action, false: colors.line }}
               thumbColor={colors.white}
               accessibilityLabel={t("me.notifyChat")}
             />
@@ -205,7 +205,7 @@ export default function MeScreen() {
                   fill={colors.shell}
                   strokeLinejoin="round"
                 />
-                <Circle cx={10} cy={14} r={1.6} fill={colors.accent} />
+                <Circle cx={10} cy={14} r={1.6} fill={colors.action} />
               </>
             }
             label={t("me.agreed")}
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.indigo,
     borderWidth: 1,
     borderColor: colors.line,
     alignItems: "center",
@@ -353,9 +353,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.action,
     justifyContent: "center",
   },
-  // Orange like the other main buttons: red stays for money problems only.
+  // Blue like every button (D121): red stays for money problems only.
   logoutText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.white },
 });

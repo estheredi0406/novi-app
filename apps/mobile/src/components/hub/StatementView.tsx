@@ -283,8 +283,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginTop: 2,
   },
-  tagOk: { backgroundColor: "#E3F3EA", color: colors.paid },
-  tagLate: { backgroundColor: "#FDE8E6", color: colors.problem },
+  tagOk: { backgroundColor: colors.paidSoft, color: colors.paid },
+  tagLate: { backgroundColor: colors.problemSoft, color: colors.problem },
   tagWait: { backgroundColor: colors.mist, color: colors.lagoon },
-  tagTurn: { backgroundColor: "#FDF1DC", color: "#8A5A00" },
+  tagTurn: { backgroundColor: colors.turnSoft, color: colors.turnText },
 });

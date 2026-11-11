@@ -26,7 +26,7 @@ export default function WelcomeScreen() {
       <StatusBar style="light" />
       <SafeAreaView edges={["top"]} style={styles.top}>
         <Svg style={StyleSheet.absoluteFill} viewBox="0 0 390 520" preserveAspectRatio="xMidYMid slice">
-          <G stroke="#F47B45" strokeWidth={1.6} fill="none">
+          <G stroke="#0E5A9C" strokeWidth={1.6} fill="none">
             <Path d="M0 90 C60 70 110 120 170 90 S270 60 330 98 S380 110 400 90" />
             <Path d="M0 430 C50 410 110 460 170 430 S260 390 320 432 S380 450 400 430" />
             <Path d="M80 0 C95 120 60 260 90 400 S110 480 80 520" />
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.shell },
   top: {
     flex: 1,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.indigo,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     paddingHorizontal: 24,
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   primary: {
     minHeight: 56,
     borderRadius: 16,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.action,
     borderWidth: 1,
     borderColor: colors.line,
     alignItems: "center",

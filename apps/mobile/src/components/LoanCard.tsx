@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   offer: { backgroundColor: colors.indigo },
-  ok: { borderColor: colors.paid, backgroundColor: "#E3F1E9" },
+  ok: { borderColor: colors.paid, backgroundColor: colors.paidSoft },
   text: { flex: 1, gap: 4 },
   title: {
     fontFamily: fonts.bodyBold,

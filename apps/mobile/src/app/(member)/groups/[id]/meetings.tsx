@@ -170,6 +170,8 @@ export default function MeetingsScreen() {
           label={`+ ${t("meetings.schedule")}`}
           onPress={() => router.push(`/groups/${id}/meeting-new` as Href)}
         />
+      ) : page ? (
+        <Text style={styles.empty}>{t("meetings.onlyOrganiser")}</Text>
       ) : null}
 
       {page && page.past.length > 0 ? (

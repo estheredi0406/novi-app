@@ -29,8 +29,7 @@ import { useAppWidth } from "../../components/WebFrame";
 // on it, then "Pour vous" (things about her, never about one group), then the
 // latest news from all her groups. Invitations and groups still being set up
 // sit under the cards. A new member sees how a tontine works and one button.
-const OVERLAP = 60;
-const GAP = 12;
+const OVERLAP = 0;
 
 export default function HomeScreen() {
   const { member } = useSession();
@@ -113,7 +112,7 @@ export function HomeView({
   const running = cardsInOrder(groups);
   const preparing = groups.filter((g) => !g.currentRound && g.state !== "COMPLETED" && g.state !== "CANCELLED");
   const isNew = loaded && groups.length === 0;
-  const cardWidth = width - 48;
+  const cardWidth = width;
   const newsToday = news.some((n) => !n.mine && Date.now() - Date.parse(n.createdAt) < 86_400_000);
 
   // What "Écouter" reads: her name, then this week in each group.
@@ -131,7 +130,7 @@ export function HomeView({
   const tiles: { icon: LineIconName; label: string; onPress: () => void }[] = [
     { icon: "bank", label: t("hub.tileLoan"), onPress: () => router.push("/loan" as never) },
     { icon: "plus", label: t("hub.tileNew"), onPress: () => router.push("/groups/new") },
-    ...(isNew ? [] : [{ icon: "qr" as const, label: t("hub.tileShare"), onPress: () => router.replace("/record" as never) }]),
+    ...(isNew ? [] : [{ icon: "qr" as const, label: t("hub.tileShare"), onPress: () => router.push("/loan" as never) }]),
   ];
 
   return (
@@ -168,10 +167,10 @@ export function HomeView({
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              snapToInterval={cardWidth + GAP}
+              snapToInterval={cardWidth}
               decelerationRate="fast"
               contentContainerStyle={styles.cards}
-              onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / (cardWidth + GAP)))}
+              onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / cardWidth))}
               style={styles.cardsScroll}
             >
               {running.map((g) => (
@@ -179,13 +178,13 @@ export function HomeView({
               ))}
             </ScrollView>
             {running.length > 1 ? (
-              <View style={styles.pager} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <View style={[styles.pager, styles.pagerPad]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                 {running.map((g, i) => (
                   <CowrieMark
                     key={g.id}
                     size={16}
                     rotate={90}
-                    fill={i === page ? colors.accent : colors.white}
+                    fill={i === page ? colors.indigo : colors.seatEmpty}
                   />
                 ))}
               </View>
@@ -227,8 +226,8 @@ export function HomeView({
               onPress={() => router.push({ pathname: "/invitations/[id]", params: { id: invitation.id } })}
               style={[styles.box, styles.invite]}
             >
-              <View style={[styles.avatar, { backgroundColor: "#7A4FB5" }]}>
-                <Text style={styles.avatarText}>{invitation.organiserName.slice(0, 1).toUpperCase()}</Text>
+              <View style={[styles.avatar, { backgroundColor: colors.mist }]}>
+                <Text style={[styles.avatarText, { color: colors.lagoon }]}>{invitation.organiserName.slice(0, 1).toUpperCase()}</Text>
               </View>
               <View style={styles.boxText}>
                 <Text style={styles.boxTitle}>{t("hub.invites", { name: invitation.organiserName })}</Text>
@@ -236,7 +235,7 @@ export function HomeView({
                   {invitation.groupName} · {rulesSummary(t, invitation.rules)}
                 </Text>
               </View>
-              <LineIcon name="chevron" color={colors.accent} />
+              <LineIcon name="chevron" color={colors.action} />
             </Pressable>
           ))}
         </View>
@@ -326,11 +325,15 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: colors.accent,
   },
-  lift: { marginTop: -(OVERLAP + 20) },
-  cardsScroll: { marginHorizontal: -24, overflow: "visible" },
-  cards: { paddingHorizontal: 24, paddingBottom: 6, gap: GAP },
+  // The group panel sits square under the band, edge to edge (D121).
+  lift: { marginTop: -20, marginHorizontal: -24 },
+  cardsScroll: { overflow: "visible" },
+  cards: { gap: 0 },
   pager: { flexDirection: "row", justifyContent: "center", gap: 4, marginTop: 14 },
+  pagerPad: { paddingBottom: 4 },
   first: {
+    marginHorizontal: 24,
+    marginTop: 20,
     backgroundColor: colors.card,
     borderRadius: 22,
     padding: 22,
@@ -350,7 +353,7 @@ const styles = StyleSheet.create({
   create: {
     minHeight: 56,
     borderRadius: 16,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.action,
     alignItems: "center",
     justifyContent: "center",
   },

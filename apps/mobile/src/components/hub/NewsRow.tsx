@@ -12,13 +12,6 @@ import { fonts } from "../../theme/typography";
 // own payments are in night blue with a minus; others' money is muted, since
 // it is not her money moving. Opens the group's discussion, where the same
 // line sits among the messages.
-const AVATAR = ["#7A4FB5", "#0E7C86", "#B5532E", "#2E6DB4", "#8A5A00", "#5B7A1E"];
-
-function avatarColor(name: string): string {
-  let sum = 0;
-  for (const ch of name) sum += ch.charCodeAt(0);
-  return AVATAR[sum % AVATAR.length] ?? AVATAR[0] ?? colors.lagoon;
-}
 
 export function newsTitle(t: TFunction, item: NewsItem): string {
   const who = item.who ?? t("news.someone");
@@ -58,8 +51,8 @@ export function NewsRow({ item, first }: { item: NewsItem; first?: boolean }) {
       onPress={() => router.push({ pathname: "/groups/[id]", params: { id: item.groupId, tab: "discussion" } })}
       style={[styles.row, !first && styles.divider]}
     >
-      <View style={[styles.avatar, { backgroundColor: item.mine ? colors.paid : avatarColor(item.who ?? "") }]}>
-        <Text style={styles.avatarText}>{initial}</Text>
+      <View style={[styles.avatar, { backgroundColor: item.mine ? colors.paid : colors.mist }]}>
+        <Text style={[styles.avatarText, !item.mine && styles.avatarTextPerson]}>{initial}</Text>
       </View>
       <View style={styles.text}>
         <Text style={styles.title} numberOfLines={2}>
@@ -79,6 +72,8 @@ const styles = StyleSheet.create({
   divider: { borderTopWidth: 1, borderTopColor: colors.line },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   avatarText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.white },
+  // People are one neutral colour (D121): colour is kept for meaning.
+  avatarTextPerson: { color: colors.lagoon },
   text: { flex: 1, minWidth: 0, gap: 1 },
   title: { fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 20, color: colors.ink },
   sub: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },

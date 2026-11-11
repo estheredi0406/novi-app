@@ -115,7 +115,7 @@ function GroupRow({ group }: { group: GroupSummary }) {
 
   let status: { text: string; color: string };
   if (!round) status = { text: stateLabel(t, group.state), color: colors.lagoon };
-  else if (round.isMyTurn) status = { text: t("myGroups.yourTurn"), color: "#8A5A00" };
+  else if (round.isMyTurn) status = { text: t("myGroups.yourTurn"), color: colors.turnText };
   else if (owes) status = { text: t("myGroups.toPayBefore", { date: shortDay(round.dueDate, i18n.language) }), color: colors.accent };
   else if (round.myStatus === "PENDING") status = { text: t("myGroups.paying"), color: colors.lagoon };
   else status = { text: t("myGroups.paidRound"), color: colors.paid };

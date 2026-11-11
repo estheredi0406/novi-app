@@ -6,21 +6,21 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { errorKey } from "../../api/client";
 import { callGroup } from "../../api/groups";
-import { daysUntil, formatFcfa, shortDay } from "../../lib/format";
+import { formatFcfa, shortDay } from "../../lib/format";
 import { openCall } from "../../lib/openCall";
-import { scheduleText } from "../../lib/rulesText";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
-import { SeatRing } from "../art/SeatRing";
 import { CowrieMark, openRound } from "../BottomBar";
 import { ErrorMessage } from "../ErrorMessage";
 import { LineIcon, type LineIconName } from "../LineIcon";
 import { sheetColumn } from "../WebFrame";
 
-// One running group on home (D92, boards E1, E2 and E7): this round as a ring
-// of members, what she owes and by when, who receives, the Payer button, and
-// the group's own actions on the card itself (Appeler, Discussion, Plus), so
-// it is never in doubt which group they act on.
+// One running group on home (D92, redrawn in D121 from canvas boards 30 to
+// 32): a square white panel under the pagne band that speaks only of her. One
+// figure in large type: what she must pay (with the orange Payer button and,
+// below, when her pot comes), else her pot to come, else the pot she received
+// in green. Who receives this round is on the group page, not here. The
+// group's actions (Appeler, Discussion, Plus) are plain blue links.
 export function GroupCard({ group, width }: { group: GroupSummary; width: number }) {
   const { t, i18n } = useTranslation();
   const [more, setMore] = useState(false);
@@ -31,14 +31,12 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
 
   const owes = round.myStatus === "UNPAID" || round.myStatus === "FAILED";
   const pending = round.myStatus === "PENDING";
-  const mySeat = round.myTurn ? round.myTurn.number - 1 : null;
-  const receiverSeat = round.number - 1;
-  const allPaid = round.paidCount >= group.size;
-  const days = daysUntil(round.dueDate);
   const pot = formatFcfa(round.potFcfa).replace(" FCFA", " F");
   const day = (iso: string) => shortDay(iso, i18n.language);
-  const myTurnAhead =
-    round.myTurn && round.myTurn.number > round.number && round.myTurn.payoutStatus !== "PAID" ? round.myTurn : null;
+  const amountDue = formatFcfa(group.amountFcfa + (round.advanceFcfa ?? 0)).replace(" FCFA", " F");
+  // Her own pot: still to come, or already received (D121: home speaks of her).
+  const myPot = round.myTurn;
+  const potReceived = myPot?.payoutStatus === "PAID";
 
   const open = (tab?: string) =>
     router.push({ pathname: "/groups/[id]", params: tab ? { id: group.id, tab } : { id: group.id } });
@@ -64,101 +62,65 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
   return (
     <View style={[styles.card, { width }]}>
       <Pressable accessibilityRole="button" onPress={() => open()} style={styles.head}>
-        <View style={styles.headText}>
-          <Text style={styles.name} numberOfLines={1}>
-            {group.name}
-          </Text>
-          <Text style={styles.sub}>
-            {t("hub.roundOf", {
-              number: round.number,
-              size: group.size,
-              schedule: scheduleText(t, group.frequency, group.dueDay),
-            })}
-          </Text>
-        </View>
-        <LineIcon name="chevron" color={colors.muted} />
+        <Text style={styles.name} numberOfLines={1}>
+          {group.name}
+        </Text>
+        <LineIcon name="chevron" color={colors.action} />
       </Pressable>
 
-      <View style={styles.middle}>
-        <SeatRing paid={round.paidSeats} mine={mySeat} receiver={receiverSeat} size={142}>
-          {owes ? (
-            <>
-              {/* One amount everywhere: on round 1 it includes her advance (D103). */}
-              <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
-                {String(group.amountFcfa + (group.currentRound?.advanceFcfa ?? 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
-              </Text>
-              <Text style={styles.amountUnit}>{t("hub.toPay")}</Text>
-            </>
-          ) : pending ? (
-            <Text style={styles.pendingMark}>{t("hub.paying")}</Text>
-          ) : (
-            <>
-              <Text style={styles.tick}>✓</Text>
-              <Text style={styles.paidMark}>{t("hub.paid")}</Text>
-            </>
-          )}
-        </SeatRing>
-
-        <View style={styles.facts}>
-          {owes ? (
-            <Text style={styles.fact}>
-              <Text style={styles.bold}>{t("hub.before", { date: day(round.dueDate) })}</Text>
-              {"\n"}
-              <Text style={styles.muted}>{whenWords(t, days)}</Text>
-            </Text>
-          ) : pending ? (
-            <Text style={styles.fact}>{t("hub.payingText")}</Text>
-          ) : allPaid ? (
-            <Text style={styles.fact}>
-              <Text style={styles.bold}>{t("hub.allPaid")}</Text>
-              {"\n"}
-              <Text style={styles.muted}>
-                {round.isMyTurn
-                  ? t("hub.youReceive", { pot })
-                  : t("hub.potLeaves", { name: round.receiverName, mfi: group.mfiName })}
-              </Text>
-            </Text>
-          ) : null}
-          {!allPaid || owes ? (
-            <Legend color={colors.paid} text={t("hub.paidCount", { paid: round.paidCount, size: group.size })} />
-          ) : null}
-          {!round.isMyTurn && !(allPaid && !owes) ? (
-            <Legend color={colors.yourTurn} text={t("hub.receives", { name: round.receiverName, pot })} />
-          ) : null}
-          {mySeat !== null && !round.isMyTurn ? (
-            <Legend color={colors.accent} text={t("hub.yourSeat", { number: mySeat + 1 })} />
-          ) : null}
-          {!owes && round.onTimeStreak > 1 ? (
-            <Text style={styles.fact}>{t("hub.streak", { count: round.onTimeStreak })}</Text>
-          ) : null}
-        </View>
-      </View>
-
-      {round.isMyTurn ? (
-        <TurnBox title={t("hub.yourTurnToday")} text={t("hub.youReceive", { pot })} />
-      ) : !owes && myTurnAhead ? (
-        <TurnBox title={t("hub.yourTurn", { date: day(myTurnAhead.dueDate) })} text={t("hub.youReceive", { pot })} />
-      ) : null}
-
       {owes ? (
-        <Pressable accessibilityRole="button" onPress={() => openRound(group)} style={styles.pay}>
-          <CowrieMark size={30} />
-          <Text style={styles.payText}>{t("hub.pay", {
-              amount: formatFcfa(group.amountFcfa + (group.currentRound?.advanceFcfa ?? 0)).replace(" FCFA", " F"),
-            })}</Text>
-        </Pressable>
-      ) : null}
+        <>
+          <Big small={t("hub.toPayBefore", { date: day(round.dueDate) })} amount={amountDue} />
+          <Pressable accessibilityRole="button" onPress={() => openRound(group)} style={styles.pay}>
+            <CowrieMark size={30} />
+            <Text style={styles.payText}>{t("hub.pay", { amount: amountDue })}</Text>
+          </Pressable>
+          {myPot && !potReceived ? (
+            <View style={styles.potRow}>
+              <View style={styles.potIcon}>
+                <CowrieMark size={22} fill={colors.yourTurn} />
+              </View>
+              <View>
+                <Text style={styles.small}>{t("hub.yourPot")}</Text>
+                <Text style={styles.potLine}>{t("hub.potLine", { pot, date: day(myPot.dueDate) })}</Text>
+              </View>
+            </View>
+          ) : null}
+        </>
+      ) : (
+        <>
+          {pending ? (
+            <Text style={[styles.status, styles.statusPending]}>{t("hub.payingText")}</Text>
+          ) : (
+            <View style={styles.okRow}>
+              <LineIcon name="check" color={colors.paid} size={18} />
+              <Text style={[styles.status, styles.statusPaid]}>
+                {potReceived ? t("hub.gotPot") : t("hub.paidThisRound")}
+              </Text>
+            </View>
+          )}
+          {myPot && potReceived ? (
+            <>
+              <Big small={t("hub.gotPotOn", { date: day(myPot.dueDate) })} amount={pot} green />
+              <Text style={styles.small}>{t("hub.keepPaying")}</Text>
+            </>
+          ) : myPot ? (
+            <Big small={t("hub.yourPotOn", { date: day(myPot.dueDate) })} amount={pot} />
+          ) : null}
+        </>
+      )}
 
       <View style={styles.actions}>
         <Action icon="phone" label={t("hub.call")} onPress={() => void call()} busy={calling} />
         <Action
+          divider
           icon="chat"
           label={t("hub.chat")}
           onPress={() => open("discussion")}
           badge={group.unreadMessages}
           badgeLabel={t("hub.unread", { count: group.unreadMessages })}
         />
-        <Action icon="more" label={t("hub.more")} onPress={() => setMore(true)} />
+        <Action divider icon="more" label={t("hub.more")} onPress={() => setMore(true)} />
       </View>
       <ErrorMessage messageKey={error} />
 
@@ -199,32 +161,13 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
   );
 }
 
-function whenWords(t: ReturnType<typeof useTranslation>["t"], days: number): string {
-  if (days <= 0) return t("home.today");
-  if (days === 1) return t("home.tomorrow");
-  if (days < 14) return t("home.inDays", { count: days });
-  return t("home.inWeeks", { count: Math.round(days / 7) });
-}
-
-function Legend({ color, text }: { color: string; text: string }) {
+// One figure in large type, always hers: what she owes, her pot, or the pot
+// she received (green).
+function Big({ small, amount, green = false }: { small: string; amount: string; green?: boolean }) {
   return (
-    <View style={styles.legend}>
-      <View style={[styles.legendDot, { backgroundColor: color }]} />
-      <Text style={styles.legendText}>{text}</Text>
-    </View>
-  );
-}
-
-function TurnBox({ title, text }: { title: string; text: string }) {
-  return (
-    <View style={styles.turn}>
-      <View style={styles.turnIcon}>
-        <LineIcon name="calendar" color={colors.indigo} size={22} />
-      </View>
-      <View style={styles.headText}>
-        <Text style={styles.turnTitle}>{title}</Text>
-        <Text style={styles.turnText}>{text}</Text>
-      </View>
+    <View style={styles.big}>
+      <Text style={styles.small}>{small}</Text>
+      <Text style={[styles.amount, green && styles.amountGreen]}>{amount}</Text>
     </View>
   );
 }
@@ -236,6 +179,7 @@ function Action({
   busy,
   badge = 0,
   badgeLabel,
+  divider = false,
 }: {
   icon: LineIconName;
   label: string;
@@ -243,6 +187,7 @@ function Action({
   busy?: boolean;
   badge?: number;
   badgeLabel?: string;
+  divider?: boolean;
 }) {
   return (
     <Pressable
@@ -250,9 +195,9 @@ function Action({
       accessibilityLabel={badge > 0 && badgeLabel ? `${label}, ${badgeLabel}` : label}
       onPress={onPress}
       disabled={busy}
-      style={[styles.action, busy && styles.busy]}
+      style={[styles.action, divider && styles.actionDivider, busy && styles.busy]}
     >
-      <LineIcon name={icon} size={18} />
+      <LineIcon name={icon} size={18} color={colors.action} />
       <Text style={styles.actionText}>{label}</Text>
       {badge > 0 ? (
         <View style={styles.badge}>
@@ -281,50 +226,39 @@ function MoreRow({ icon, title, sub, onPress }: { icon: LineIconName; title: str
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
-    borderRadius: 22,
-    padding: 20,
-    gap: 16,
-    elevation: 4,
-    shadowColor: colors.indigo,
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
+    paddingHorizontal: 24,
+    paddingTop: 18,
+    gap: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
   },
   head: { flexDirection: "row", alignItems: "center", gap: 8 },
-  headText: { flex: 1, minWidth: 0, gap: 1 },
-  name: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.ink },
-  sub: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
-  middle: { flexDirection: "row", alignItems: "center", gap: 16 },
-  amount: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: colors.indigo },
-  amountUnit: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
-  tick: { fontFamily: fonts.bodyBold, fontSize: 30, lineHeight: 34, color: colors.paid },
-  paidMark: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.paid },
-  pendingMark: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.lagoon },
-  facts: { flex: 1, gap: 10 },
-  fact: { fontFamily: fonts.body, fontSize: 14, lineHeight: 19, color: colors.ink },
-  bold: { fontFamily: fonts.bodyBold },
-  muted: { color: colors.muted },
-  legend: { flexDirection: "row", alignItems: "center", gap: 6 },
-  legendDot: { width: 10, height: 10, borderRadius: 5 },
-  legendText: { flex: 1, fontFamily: fonts.body, fontSize: 14, lineHeight: 19, color: colors.ink },
-  turn: {
+  name: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 17, color: colors.indigo },
+  big: { gap: 2 },
+  small: { fontFamily: fonts.body, fontSize: 14, lineHeight: 19, color: colors.muted },
+  amount: { fontFamily: fonts.display, fontSize: 34, lineHeight: 42, color: colors.indigo },
+  amountGreen: { color: colors.paid },
+  okRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  status: { fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 21 },
+  statusPaid: { color: colors.paid },
+  statusPending: { color: colors.action },
+  potRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: "#FDF1DC",
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingTop: 14,
   },
-  turnIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.yourTurn,
+  potIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.turnSoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  turnTitle: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.ink },
-  turnText: { fontFamily: fonts.body, fontSize: 14, color: colors.ink },
+  potLine: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.indigo },
   pay: {
     minHeight: 56,
     borderRadius: 16,
@@ -335,34 +269,35 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   payText: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
-  actions: { flexDirection: "row", gap: 10 },
+  actions: {
+    flexDirection: "row",
+    marginHorizontal: -24,
+    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
   action: {
     flex: 1,
-    minHeight: 48,
-    borderRadius: 14,
-    backgroundColor: colors.mist,
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
   },
+  actionDivider: { borderLeftWidth: 1, borderLeftColor: colors.line },
   busy: { opacity: 0.5 },
-  actionText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.lagoon },
+  actionText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.action },
   badge: {
-    position: "absolute",
-    top: -6,
-    right: -4,
     minWidth: 20,
     height: 20,
     borderRadius: 10,
     paddingHorizontal: 4,
     backgroundColor: colors.accent,
-    borderWidth: 2,
-    borderColor: colors.white,
     alignItems: "center",
     justifyContent: "center",
   },
-  badgeText: { fontFamily: fonts.bodyBold, fontSize: 10, color: colors.white },
+  badgeText: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.white },
+  headText: { flex: 1, minWidth: 0, gap: 1 },
   backdrop: { flex: 1, backgroundColor: "rgba(6,41,74,0.5)" },
   sheet: {
     backgroundColor: colors.white,
