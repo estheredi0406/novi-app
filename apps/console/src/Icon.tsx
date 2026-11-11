@@ -15,6 +15,8 @@ const PATHS = {
   check: "M5 12.5l4.5 4.5L19 7",
   search: "M11 4.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13M16 16l4.5 4.5",
   chevron: "M9 5l7 7-7 7",
+  // D116: Réglages, a slider panel.
+  sliders: "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M16 4v4M10 10v4M18 16v4",
 } as const;
 
 export type IconName = keyof typeof PATHS;

@@ -22,6 +22,44 @@ export type ConsoleGroup = {
   balanceFcfa: number; // what the account should hold: collected minus paid out
   needsAttention: number; // pots held, failed, ready to release or disputed in this group
   reserveFcfa: number; // D68: the solidarity reserve inside that balance
+  // D116: how the group is doing, for the officer's lists.
+  health: "RED" | "AMBER" | "GREEN" | null; // null: not running (to validate, or completed)
+  watch: GroupWatch | null; // the main reason for the colour, if not green
+  onTimePct: number | null; // payments made by the end of their due day, in rounds already due
+  nextPotDate: string | null; // the next pot still to leave
+};
+
+// D116: why a group is not green, most serious first. Each comes with the
+// number involved and, when there is one, a date.
+export type GroupWatch = {
+  reason:
+    | "DEFAULT" // a member missed two repayment deadlines (D104)
+    | "TRANSFER_FAILED" // a pot refused after its automatic tries (D114)
+    | "DISPUTED" // a member says her pot did not arrive
+    | "REPORTED" // a payment still unexplained after the automatic checks (D114)
+    | "HELD" // a pot due but not full (D48)
+    | "RETRYING" // a refused pot Novi will try again by itself (D114)
+    | "COVERED"; // shares the group's advances paid, still to repay (D104)
+  count: number;
+  date: string | null; // COVERED: the earliest repayment deadline
+};
+
+// D116: the "Aujourd'hui" page's figures, for today (GMT, Lomé's time).
+export type ConsoleToday = {
+  receivedFcfa: number;
+  payments: number;
+  potsSent: number;
+  potsSentFcfa: number;
+  potsHeld: number;
+  savingsFcfa: number; // what every group's account should hold
+  advancesFcfa: number; // of which the members' advances (D103)
+  // What Novi settled by itself today (D105, D114).
+  auto: {
+    lateConfirmed: number; // payments credited by an automatic check
+    reportsCleared: number; // of which payments a member had reported
+    potsAutoReleased: number; // pots under the MFI's limit, sent with no officer
+    transfersRetried: number; // pots that went through on a later try
+  };
 };
 
 export type ConsoleRound = {

@@ -54,7 +54,7 @@ export function GroupPage({
   return (
     <>
       <div className="group-band">
-        <a href="#/" className="link back">
+        <a href="#/groups" className="link back">
           ← {t.back}
         </a>
         <h1>{data.name}</h1>

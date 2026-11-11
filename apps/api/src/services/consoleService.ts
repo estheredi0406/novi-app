@@ -10,6 +10,8 @@ import type {
   ConsoleOverview,
   ConsoleReported,
   ConsoleRound,
+  ConsoleToday,
+  GroupWatch,
 } from "@novi/shared";
 import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
@@ -117,7 +119,89 @@ function toConsoleGroup(group: LoadedGroup): ConsoleGroup {
     balanceFcfa: collectedFcfa - paidOutFcfa - returnedFcfa,
     reserveFcfa: 0, // filled in by withReserve (D68)
     needsAttention,
+    // D116: filled in by withHealth.
+    health: null,
+    watch: null,
+    onTimePct: onTimePct(group, rules.size),
+    nextPotDate: isoDayOrNull(group.rounds.find((r) => r.payout?.status !== "PAID")?.dueDate),
   };
+}
+
+const isoDayOrNull = (d: Date | undefined) => (d ? isoDay(d) : null);
+
+// D116: payments made by the end of their due day (Lomé is on GMT), out of
+// all those expected in rounds already due. Null before the first due date.
+function onTimePct(group: LoadedGroup, size: number): number | null {
+  const today = isoDay(new Date());
+  const due = group.rounds.filter((r) => isoDay(r.dueDate) < today);
+  if (due.length === 0 || size === 0) return null;
+  const onTime = due.reduce(
+    (n, r) => n + r.contributions.filter((c) => c.paidAt && isoDay(c.paidAt) <= isoDay(r.dueDate)).length,
+    0,
+  );
+  return Math.round((100 * onTime) / (due.length * size));
+}
+
+// D116: the group's colour and its main reason, from what is open in it now.
+// Red: something only a person can settle, or a member in default. Amber:
+// something Novi or the member is settling, to keep an eye on. Green: nothing.
+async function withHealth(mfiId: string, groups: ConsoleGroup[]): Promise<ConsoleGroup[]> {
+  const ids = groups.filter((g) => g.state === "ACTIVE").map((g) => g.id);
+  if (ids.length === 0) return groups;
+  const [covers, payouts, reported] = await Promise.all([
+    prisma.reserveCover.findMany({
+      where: { writtenOffAt: null, round: { groupId: { in: ids } } },
+      select: { userId: true, repaidAt: true, missedAt: true, dueBy: true, round: { select: { groupId: true } } },
+    }),
+    prisma.payout.findMany({
+      where: {
+        round: { groupId: { in: ids } },
+        OR: [{ status: { in: ["HELD", "FAILED"] } }, { status: "PAID", receiptDisputedAt: { not: null } }],
+      },
+      select: { status: true, attempts: true, failedAt: true, round: { select: { groupId: true } } },
+    }),
+    prisma.contribution.groupBy({
+      by: ["roundId"],
+      where: { reportedAt: { not: null }, escalatedAt: { not: null }, status: { not: "PAID" }, round: { groupId: { in: ids } } },
+      _count: true,
+    }),
+  ]);
+  const reportedRounds = reported.length
+    ? await prisma.round.findMany({ where: { id: { in: reported.map((r) => r.roundId) } }, select: { id: true, groupId: true } })
+    : [];
+  const reportedIn = (groupId: string) =>
+    reported
+      .filter((r) => reportedRounds.find((x) => x.id === r.roundId)?.groupId === groupId)
+      .reduce((n, r) => n + r._count, 0);
+
+  return groups.map((g) => {
+    if (g.state !== "ACTIVE") return g;
+    const mine = covers.filter((c) => c.round.groupId === g.id);
+    const missedBy = new Map<string, number>();
+    for (const c of mine) if (c.missedAt) missedBy.set(c.userId, (missedBy.get(c.userId) ?? 0) + 1);
+    const defaulted = [...missedBy.values()].filter((n) => n >= 2).length;
+    const open = mine.filter((c) => !c.repaidAt);
+    const firstDue = open
+      .map((c) => c.dueBy)
+      .filter((d): d is Date => d !== null)
+      .sort((a, b) => a.getTime() - b.getTime())[0];
+    const pots = payouts.filter((p) => p.round.groupId === g.id);
+    const failed = pots.filter((p) => p.status === "FAILED");
+    const retrying = failed.filter((p) => nextRetryAt(p) !== null).length;
+    const candidates: [GroupWatch["reason"], number, string | null][] = [
+      ["DEFAULT", defaulted, null],
+      ["TRANSFER_FAILED", failed.length - retrying, null],
+      ["DISPUTED", pots.filter((p) => p.status === "PAID").length, null],
+      ["REPORTED", reportedIn(g.id), null],
+      ["HELD", pots.filter((p) => p.status === "HELD").length, null],
+      ["RETRYING", retrying, null],
+      ["COVERED", open.length, firstDue ? isoDay(firstDue) : null],
+    ];
+    const found = candidates.find(([, n]) => n > 0);
+    const watch: GroupWatch | null = found ? { reason: found[0], count: found[1], date: found[2] } : null;
+    const red: GroupWatch["reason"][] = ["DEFAULT", "TRANSFER_FAILED", "DISPUTED", "REPORTED"];
+    return { ...g, watch, health: !watch ? "GREEN" : red.includes(watch.reason) ? "RED" : "AMBER" };
+  });
 }
 
 function myGroups(mfiId: string) {
@@ -136,9 +220,46 @@ async function withReserve(group: ConsoleGroup): Promise<ConsoleGroup> {
 export async function listConsoleGroups(
   mfiId: string,
 ): Promise<ConsoleGroup[]> {
-  return Promise.all(
-    (await myGroups(mfiId)).map(toConsoleGroup).map(withReserve),
-  );
+  return withHealth(mfiId, await Promise.all((await myGroups(mfiId)).map(toConsoleGroup).map(withReserve)));
+}
+
+// D116: today's figures for "Aujourd'hui", and what Novi settled by itself.
+export async function getToday(mfiId: string, now = new Date()): Promise<ConsoleToday> {
+  const start = new Date(`${isoDay(now)}T00:00:00Z`);
+  const inMfi = { round: { group: { mfiId } } };
+  const [paid, sent, held, groups, late, alone, retried] = await Promise.all([
+    prisma.contribution.aggregate({
+      where: { ...inMfi, status: "PAID", paidAt: { gte: start } },
+      _sum: { amountFcfa: true },
+      _count: true,
+    }),
+    prisma.payout.aggregate({ where: { ...inMfi, status: "PAID", paidAt: { gte: start } }, _sum: { amountFcfa: true }, _count: true }),
+    prisma.payout.count({ where: { ...inMfi, status: "HELD" } }),
+    listConsoleGroups(mfiId),
+    // Credited by an automatic check: paid after Novi asked again (D114).
+    prisma.contribution.findMany({
+      where: { ...inMfi, status: "PAID", paidAt: { gte: start }, lastCheckedAt: { not: null } },
+      select: { paidAt: true, lastCheckedAt: true, reportedAt: true, reportCheckedById: true },
+    }),
+    prisma.payout.count({ where: { ...inMfi, releasedAt: { gte: start }, releasedById: null } }),
+    prisma.payout.count({ where: { ...inMfi, status: "PAID", paidAt: { gte: start }, attempts: { gt: 1 } } }),
+  ]);
+  const byCheck = late.filter((c) => c.paidAt && c.lastCheckedAt && c.paidAt >= c.lastCheckedAt && !c.reportCheckedById);
+  return {
+    receivedFcfa: paid._sum.amountFcfa ?? 0,
+    payments: paid._count,
+    potsSent: sent._count,
+    potsSentFcfa: sent._sum.amountFcfa ?? 0,
+    potsHeld: held,
+    savingsFcfa: groups.reduce((n, g) => n + g.balanceFcfa, 0),
+    advancesFcfa: groups.reduce((n, g) => n + g.reserveFcfa, 0),
+    auto: {
+      lateConfirmed: byCheck.length,
+      reportsCleared: byCheck.filter((c) => c.reportedAt).length,
+      potsAutoReleased: alone,
+      transfersRetried: retried,
+    },
+  };
 }
 
 export async function getConsoleGroup(
@@ -169,8 +290,9 @@ export async function getConsoleGroup(
       mfiRef: round.payout.mfiRef,
     },
   }));
+  const [withState] = await withHealth(mfiId, [await withReserve(toConsoleGroup(group))]);
   return {
-    ...(await withReserve(toConsoleGroup(group))),
+    ...(withState as ConsoleGroup),
     roundList,
     // D98: members' records help the officer decide; once the group is
     // validated or declined, they are no longer shown.

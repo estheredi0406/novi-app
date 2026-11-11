@@ -2,6 +2,8 @@ import type { StaffLoginResponse, StaffProfile } from "@novi/shared";
 import { useEffect, useState } from "react";
 import { api, session } from "./api";
 import { GroupPage } from "./pages/GroupPage";
+import { Groups } from "./pages/Groups";
+import { Settings } from "./pages/Settings";
 import { Login } from "./pages/Login";
 import { Overview } from "./pages/Overview";
 import { RecordPage, Records } from "./pages/Records";
@@ -16,8 +18,9 @@ import { Icon, type IconName } from "./Icon";
 import { useCounts } from "./useCounts";
 
 // The console's pages, read from the address bar after "#", so the browser's
-// back button works without a routing library: #/, #/groups/<id>,
-// #/records, #/records/<id>, #/members.
+// back button works without a routing library: #/, #/groups, #/groups/<id>,
+// #/loans, #/members, #/records, #/analytics, #/settings (D116: six items in
+// the menu; the log, the team and the shared records sit under them).
 function useRoute(): string[] {
   const read = () =>
     window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
@@ -128,6 +131,10 @@ export function App() {
         onExpired={expired}
         pilot={staff.pilot}
       />
+    ) : section === "groups" ? (
+      <Groups t={t} onExpired={expired} />
+    ) : section === "settings" ? (
+      <Settings t={t} onExpired={expired} isAdmin={staff.role === "ADMIN"} />
     ) : section === "loans" && id ? (
       <LoanPage key={id} t={t} loanId={id} onExpired={expired} />
     ) : section === "loans" ? (
@@ -168,13 +175,12 @@ export function App() {
           </span>
         </a>
         <nav>
-          {link("#/", !section || section === "groups", "home", t.overview, counts.toDo)}
-          {link("#/analytics", section === "analytics", "chart", t.analytics)}
+          {link("#/", !section, "home", t.overview, counts.toDo)}
+          {link("#/groups", section === "groups", "groups", t.groupsNav)}
           {link("#/loans", section === "loans" || section === "loan-policy", "bank", t.loansNav, counts.loans)}
-          {link("#/records", section === "records", "doc", t.records)}
-          {link("#/members", section === "members", "user", t.membersNav)}
-          {link("#/activity", section === "activity", "list", t.activity)}
-          {staff.role === "ADMIN" ? link("#/team", section === "team", "team", t.team) : null}
+          {link("#/members", section === "members" || section === "records", "user", t.membersNav)}
+          {link("#/analytics", section === "analytics", "chart", t.analytics)}
+          {link("#/settings", section === "settings" || section === "team" || section === "activity", "sliders", t.settings)}
         </nav>
         <div className="who">
           <strong>{staff.name}</strong>

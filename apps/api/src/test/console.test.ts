@@ -589,3 +589,62 @@ describe("the group accounts at the MFI (D113)", () => {
     expect((await other.get("/v1/console/accounts")).body).toMatchObject({ bankFcfa: 0, bankAccounts: 0 });
   });
 });
+
+// D116: the group's colour and today's figures, for "Aujourd'hui" and "Groupes".
+describe("how each group is doing, and today (D116)", () => {
+  it("shows a running group with nothing open as green, with its next pot and on-time rate", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    const [g] = (await (await officer()).get("/v1/console/groups")).body;
+    expect(g).toMatchObject({ id: groupId, health: "GREEN", watch: null });
+    expect(g.nextPotDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("turns amber while a due pot is held, not full", async () => {
+    const { groupId, members } = await activeGroup();
+    await pay(members[0] as Client, groupId, 1);
+    await makeDue(groupId, 1);
+    await runPayouts();
+    const [g] = (await (await officer()).get("/v1/console/groups")).body;
+    expect(g).toMatchObject({ health: "AMBER", watch: { reason: "HELD", count: 1 } });
+    // Round 1 was due and only one of three paid it, on time or not.
+    expect(g.onTimePct).toBeLessThanOrEqual(34);
+  });
+
+  it("turns red when a pot is refused after its automatic tries, and amber while Novi still retries", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    await makeDue(groupId, 1);
+    await runPayouts();
+    const desk = await officer();
+    const [ready] = (await desk.get("/v1/console/attention")).body;
+    mockMfi.nextPayout = "FAILED";
+    await desk.post(`/v1/console/payouts/${ready.payoutId}/release`);
+    expect((await desk.get("/v1/console/groups")).body[0]).toMatchObject({ health: "AMBER", watch: { reason: "RETRYING" } });
+
+    await prisma.payout.update({ where: { id: ready.payoutId }, data: { attempts: 4 } });
+    expect((await desk.get("/v1/console/groups")).body[0]).toMatchObject({
+      health: "RED",
+      watch: { reason: "TRANSFER_FAILED", count: 1 },
+    });
+  });
+
+  it("counts today's money in and out, and what left on its own", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    await prisma.mfi.updateMany({ data: { autoReleaseFcfa: 50000 } });
+    await makeDue(groupId, 1);
+    await runPayouts();
+    const today = (await (await officer()).get("/v1/console/today")).body;
+    expect(today).toMatchObject({
+      receivedFcfa: 22500,
+      payments: 3,
+      potsSent: 1,
+      potsSentFcfa: 15000,
+      potsHeld: 0,
+      savingsFcfa: 7500,
+      advancesFcfa: 7500,
+      auto: { potsAutoReleased: 1, lateConfirmed: 0 },
+    });
+  });
+});

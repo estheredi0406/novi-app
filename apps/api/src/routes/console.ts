@@ -20,6 +20,7 @@ import {
   listActivity,
   releaseRoundPayout,
   getAccounts,
+  getToday,
   getGroupAccount,
   listReported,
   resolveReported,
@@ -83,6 +84,11 @@ consoleRouter.get("/groups/:groupId", async (req, res) => {
 });
 
 // D113: Novi's ledger, the MFI's books and the FedaPay balance, side by side.
+// D116: today's figures for "Aujourd'hui".
+consoleRouter.get("/today", async (_req, res) => {
+  res.status(200).json(await getToday(currentStaff(res).mfiId));
+});
+
 consoleRouter.get("/accounts", async (_req, res) => {
   res.status(200).json(await getAccounts(currentStaff(res).mfiId));
 });
