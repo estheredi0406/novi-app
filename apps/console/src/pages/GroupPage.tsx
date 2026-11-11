@@ -1,5 +1,6 @@
 import type { ConsoleGroupDetail } from "@novi/shared";
 import { useState } from "react";
+import { GroupStatement } from "../Accounts";
 import { ApiFailure, api } from "../api";
 import { day, fcfa } from "../format";
 import { Ring } from "../Icon";
@@ -148,6 +149,8 @@ export function GroupPage({
           ) : null}
         </div>
       </div>
+
+      <GroupStatement t={t} groupId={groupId} onExpired={onExpired} />
 
       <h2>{t.recordTitle}</h2>
       {/* D98: records are shown only while the officer decides. */}

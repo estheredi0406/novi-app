@@ -1037,3 +1037,39 @@ model UssdSignup {
 
   @@map("ussd_signups")
 }
+
+// D113: a simulation of the MFI's own banking system, so the pilot can show
+// what the MFI would book: one account per group, a balance, and a
+// statement line for every movement of real money (a payment credited, a pot
+// paid out, an advance returned). It stands where a real connection to the
+// MFI's core banking would (MfiAdapter); Novi's ledger stays the reference.
+model BankAccount {
+  id          String   @id @default(uuid())
+  mfiId       String
+  groupId     String   @unique
+  ref         String   @unique // the group account's number at the MFI
+  balanceFcfa Int      @default(0)
+  openedAt    DateTime @default(now())
+
+  entries BankEntry[]
+
+  @@index([mfiId])
+  @@map("bank_accounts")
+}
+
+model BankEntry {
+  id               String   @id @default(uuid())
+  accountId        String
+  amountFcfa       Int // + credited, - debited
+  balanceAfterFcfa Int
+  label            String
+  source           String // CONTRIBUTION, PAYOUT, ADVANCE_RETURN
+  sourceId         String
+  bookedAt         DateTime @default(now())
+
+  account BankAccount @relation(fields: [accountId], references: [id])
+
+  @@unique([source, sourceId])
+  @@index([accountId, bookedAt])
+  @@map("bank_entries")
+}

@@ -19,7 +19,7 @@ export class MockMfiAdapter implements MfiAdapter {
     const existing = this.accounts.get(request.groupId);
     if (existing) return { accountRef: existing.accountRef };
 
-    const accountRef = `MOCK-${randomUUID().slice(0, 8).toUpperCase()}`;
+    const accountRef = `GRP-${randomUUID().slice(0, 8).toUpperCase()}`;
     this.accounts.set(request.groupId, { accountRef, request });
     console.log(`[mock MFI] opened ${accountRef} for group ${request.groupId}`);
     return { accountRef };

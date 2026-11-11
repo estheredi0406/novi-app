@@ -7,6 +7,7 @@ import { isoDay } from "../lib/schedule.js";
 import { payoutSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import { accountForMfi } from "./paymentAccounts.js";
+import { syncCoreBanking } from "./coreBanking.js";
 import type { PayoutAnswer } from "../providers/mfi/MfiAdapter.js";
 import { deleteGroupVoices, postEvent } from "./chatService.js";
 import { alertStaff } from "./alertService.js";
@@ -58,6 +59,8 @@ export async function runPayouts(
       );
     }
   }
+  // D113: the MFI's books follow every pot paid and every advance returned.
+  await syncCoreBanking().catch((err) => console.error("Core banking booking failed:", err));
 }
 
 // Each member's contribution under the group's current rules.

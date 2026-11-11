@@ -119,6 +119,18 @@ export class FedaPayProvider implements PaymentProvider {
     await this.call("GET", "/transactions/search");
   }
 
+  // D113: what the account holds now, summed over its balances (one per
+  // mode). FedaPay's API reference gives GET /v1/balances as a plain list of
+  // { id, amount, mode, ... }; its PHP library reads a "balances" wrapper, so
+  // both are accepted, and the "v1/balances" wrapper its other lists use.
+  async getBalance(): Promise<number> {
+    const body = await this.call<unknown>("GET", "/balances");
+    type Row = { amount: number };
+    const wrapped = (body ?? {}) as { balances?: Row[]; "v1/balances"?: Row[] };
+    const list = Array.isArray(body) ? (body as Row[]) : (wrapped.balances ?? wrapped["v1/balances"] ?? []);
+    return list.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+  }
+
   // D102: the API this account answers on, for its payouts.
   get apiBase(): string {
     return this.baseUrl;

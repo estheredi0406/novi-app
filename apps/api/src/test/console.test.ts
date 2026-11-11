@@ -543,3 +543,49 @@ describe("bringing a due date forward, in the pilot only (D82)", () => {
     vi.unstubAllEnvs();
   });
 });
+
+// D113: the MFI's banking system, simulated: one account per group, booked
+// from the same events as Novi's ledger, shown beside it in the console.
+describe("the group accounts at the MFI (D113)", () => {
+  it("credits each payment and debits each pot, with a running balance", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    await makeDue(groupId, 1);
+    await runPayouts();
+    const ready = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 1 } } });
+    await releasePayout(ready.id, null);
+
+    const statement = (await (await officer()).get(`/v1/console/groups/${groupId}/account`)).body;
+    expect(statement.ref).toMatch(/^GRP-/);
+    expect(statement.balanceFcfa).toBe(7500); // 3 x 7 500 in, the 15 000 pot out
+    const lines = [...statement.entries].reverse(); // oldest first
+    expect(lines.map((e: { amountFcfa: number }) => e.amountFcfa)).toEqual([7500, 7500, 7500, -15000]);
+    expect(lines.map((e: { balanceAfterFcfa: number }) => e.balanceAfterFcfa)).toEqual([7500, 15000, 22500, 7500]);
+    expect(lines[0].label).toContain("Cotisation tour 1 · Mixx by Yas · dont avance 2 500 F");
+    expect(lines[3].label).toContain("Cagnotte tour 1");
+  });
+
+  it("books each movement once, however often it syncs", async () => {
+    const { groupId, members } = await activeGroup();
+    await pay(members[0] as Client, groupId, 1);
+    const { syncCoreBanking } = await import("../services/coreBanking.js");
+    await Promise.all([syncCoreBanking(), syncCoreBanking(), syncCoreBanking()]);
+    expect(await prisma.bankEntry.count()).toBe(1);
+    expect((await prisma.bankAccount.findFirstOrThrow()).balanceFcfa).toBe(7500);
+  });
+
+  it("shows Novi's figure and the MFI's side by side, and they agree", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    const accounts = (await (await officer()).get("/v1/console/accounts")).body;
+    expect(accounts).toMatchObject({ noviFcfa: 22500, bankFcfa: 22500, bankAccounts: 1, inTransitFcfa: 0 });
+  });
+
+  it("never shows another MFI's group account", async () => {
+    const { groupId, members } = await activeGroup();
+    await pay(members[0] as Client, groupId, 1);
+    const other = await officer("WAGES", "officer@wages.example");
+    expect((await other.get(`/v1/console/groups/${groupId}/account`)).status).toBe(404);
+    expect((await other.get("/v1/console/accounts")).body).toMatchObject({ bankFcfa: 0, bankAccounts: 0 });
+  });
+});

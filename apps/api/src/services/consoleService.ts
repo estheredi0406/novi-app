@@ -6,6 +6,8 @@ import type {
   ConsoleGroup,
   ConsoleGroupDetail,
   ConsoleMemberCard,
+  ConsoleAccounts,
+  ConsoleGroupAccount,
   ConsoleOverview,
   ConsoleReported,
   ConsoleRound,
@@ -19,6 +21,8 @@ import { openApprovedGroup } from "./groupService.js";
 import { pilotMode } from "../lib/pilot.js";
 import { owedCovers } from "./memberService.js";
 import { notifyMembers } from "./notifyService.js";
+import { groupAccount, mfiBankTotal, syncCoreBanking } from "./coreBanking.js";
+import { accountBalance } from "./paymentAccounts.js";
 import { creditFoundPayment, rejectReport } from "./moneyService.js";
 import { autoReleaseLimit, needsTwoOfficers, releasePayout, runPayouts } from "./payoutService.js";
 import { fundBalance, reserveBalance } from "./reserveService.js";
@@ -1034,4 +1038,37 @@ export async function sendAdvance(
     },
   );
   return listAdvances(mfiId);
+}
+
+// ---------- D113: the three views of the money, side by side ----------
+
+// Novi's ledger (what each group should hold), the MFI's books (simulated
+// core banking) and the real FedaPay balance. They differ only for a reason:
+// a pot sent but not yet confirmed, FedaPay's fees, or money that is not
+// Novi's in the same FedaPay account.
+export async function getAccounts(mfiId: string): Promise<ConsoleAccounts> {
+  await syncCoreBanking(mfiId);
+  const [overview, bank, fedapay, inTransit] = await Promise.all([
+    getOverview(mfiId),
+    mfiBankTotal(mfiId),
+    accountBalance(mfiId),
+    prisma.payout.aggregate({
+      where: { status: { in: ["SENDING", "SENT"] }, round: { group: { mfiId } } },
+      _sum: { amountFcfa: true },
+    }),
+  ]);
+  return {
+    noviFcfa: overview.balanceFcfa,
+    bankFcfa: bank.totalFcfa,
+    bankAccounts: bank.accounts,
+    fedapay,
+    inTransitFcfa: inTransit._sum.amountFcfa ?? 0,
+  };
+}
+
+export async function getGroupAccount(mfiId: string, groupId: string): Promise<ConsoleGroupAccount | null> {
+  const group = await prisma.group.findFirst({ where: { id: groupId, mfiId }, select: { id: true } });
+  if (!group) throw new AppError("NOT_FOUND", 404);
+  await syncCoreBanking(mfiId);
+  return groupAccount(groupId);
 }

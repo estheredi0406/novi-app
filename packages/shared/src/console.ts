@@ -236,3 +236,19 @@ export type ConsoleMember = {
   owedFcfa: number; // covers the fund paid for her, not repaid nor written off
   seats: ConsoleMemberSeat[];
 };
+
+// D113: the money seen three ways, for the MFI. Novi's ledger, the MFI's own
+// books (simulated core banking in the pilot), and the real FedaPay balance.
+export type ConsoleAccounts = {
+  noviFcfa: number; // what the groups should hold, by Novi's ledger
+  bankFcfa: number; // what the MFI's books hold for them
+  bankAccounts: number;
+  fedapay: { source: "mfi" | "demo"; amountFcfa: number | null; checkedAt: string | null } | null;
+  inTransitFcfa: number; // pots sent, not yet confirmed
+};
+
+export type ConsoleGroupAccount = {
+  ref: string;
+  balanceFcfa: number;
+  entries: { bookedAt: string; label: string; amountFcfa: number; balanceAfterFcfa: number }[];
+};

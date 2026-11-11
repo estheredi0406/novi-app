@@ -19,6 +19,8 @@ import {
   getAnalytics,
   listActivity,
   releaseRoundPayout,
+  getAccounts,
+  getGroupAccount,
   listReported,
   resolveReported,
   setAutoRelease,
@@ -80,6 +82,15 @@ consoleRouter.get("/groups/:groupId", async (req, res) => {
         id.parse(req.params.groupId),
       ),
     );
+});
+
+// D113: Novi's ledger, the MFI's books and the FedaPay balance, side by side.
+consoleRouter.get("/accounts", async (_req, res) => {
+  res.status(200).json(await getAccounts(currentStaff(res).mfiId));
+});
+
+consoleRouter.get("/groups/:groupId/account", async (req, res) => {
+  res.status(200).json(await getGroupAccount(currentStaff(res).mfiId, id.parse(req.params.groupId)));
 });
 
 consoleRouter.get("/attention", async (_req, res) => {

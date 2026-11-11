@@ -9,7 +9,8 @@ import { advanceOf, checkAction, checkCanPay, holdsSeat, PAYMENT_WAIT_MS, potSha
 import { currentRoundNumber, isoDay } from "../lib/schedule.js";
 import { receiptSms, failedSms, notFoundSms } from "../lib/smsText.js";
 import { sms } from "../providers/index.js";
-import { accountForMfi, accountForPayment, type PaymentAccount } from "./paymentAccounts.js";
+import { accountForMfi, accountForPayment, forgetBalance, type PaymentAccount } from "./paymentAccounts.js";
+import { syncCoreBanking } from "./coreBanking.js";
 import { runPayouts } from "./payoutService.js";
 import { creditReserve } from "./reserveService.js";
 import { canSkip } from "./advanceService.js";
@@ -420,6 +421,9 @@ export async function handlePaymentWebhook(
   // Not a Novi payment, or one made through another account: acknowledged, nothing to do.
   if (!contribution || contribution.paymentAccountMfiId !== account.mfiId) return;
   await settle(contribution.id, await payments.getStatus(providerRef));
+  // D113: the dashboard shows the new balance and the booking at once.
+  forgetBalance(account.mfiId);
+  await syncCoreBanking().catch(() => undefined);
 }
 
 // She taps "check my payment": Novi asks the provider directly. Covers a
@@ -503,6 +507,9 @@ export async function checkContribution(contributionId: string, userId: string):
   if (contribution.status !== "PAID" && contribution.providerRef) {
     const { payments } = await accountForPayment(contribution.paymentAccountMfiId);
     await settle(contribution.id, await payments.getStatus(contribution.providerRef));
+    // D113: the dashboard shows the new balance and the booking at once.
+    forgetBalance(contribution.paymentAccountMfiId);
+    await syncCoreBanking().catch(() => undefined);
   }
   return toView(
     await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId }, include: { round: true } }),

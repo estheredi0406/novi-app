@@ -225,3 +225,26 @@ describe("pots out of the MFI's account (D102)", () => {
     expect(payout).toMatchObject({ status: "PAID", sentVia: "mfi" });
   });
 });
+
+describe("the real balance of the MFI's account (D113)", () => {
+  it("reads the balance from FedaPay with the MFI's own key, and shows it in the console", async () => {
+    const admin = await staff("adjo@fucec.example", "ADMIN");
+    await connect(admin);
+    fedapay = ({ url }) =>
+      url.endsWith("/v1/balances")
+        ? { json: [{ id: 1, amount: 40000, mode: "mtn_tg" }, { id: 2, amount: 2500, mode: "moov_tg" }] }
+        : { json: {} };
+    const accounts = (await admin.get("/v1/console/accounts")).body;
+    expect(accounts.fedapay).toMatchObject({ source: "mfi", amountFcfa: 42500 });
+    const read = calls.find((c) => c.url.endsWith("/v1/balances"));
+    expect(read?.auth).toBe(`Bearer ${SECRET}`);
+  });
+
+  it("shows no figure, not a wrong one, when FedaPay does not answer", async () => {
+    const admin = await staff("adjo@fucec.example", "ADMIN");
+    await connect(admin);
+    fedapay = ({ url }) => (url.endsWith("/v1/balances") ? { status: 500, json: {} } : { json: {} });
+    const accounts = (await admin.get("/v1/console/accounts")).body;
+    expect(accounts.fedapay).toMatchObject({ source: "mfi", amountFcfa: null });
+  });
+});

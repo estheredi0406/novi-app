@@ -81,6 +81,45 @@ export async function accountForPayment(paymentAccountMfiId: string | null): Pro
   return paymentAccountMfiId ? accountForMfi(paymentAccountMfiId) : DEMO;
 }
 
+// ---------- D113: the balance the account really holds ----------
+
+const balances = new Map<string, { amountFcfa: number; checkedAt: Date }>();
+const BALANCE_TTL_MS = 20_000;
+
+export type AccountBalance = {
+  source: "mfi" | "demo";
+  amountFcfa: number | null; // null: FedaPay did not answer
+  checkedAt: string | null;
+};
+
+// The FedaPay balance of this MFI's account (or of Novi's demo account on the
+// pilot), read from FedaPay, kept 20 seconds, and read again as soon as a
+// payment notification arrives. Null when there is no FedaPay account at all.
+export async function accountBalance(mfiId: string): Promise<AccountBalance | null> {
+  const account = await accountForMfi(mfiId).catch(() => null);
+  if (!account || !(account.payments instanceof FedaPayProvider)) return null;
+  const key = account.mfiId ?? "demo";
+  const source = account.mfiId ? "mfi" : "demo";
+  const cached = balances.get(key);
+  if (cached && Date.now() - cached.checkedAt.getTime() < BALANCE_TTL_MS) {
+    return { source, amountFcfa: cached.amountFcfa, checkedAt: cached.checkedAt.toISOString() };
+  }
+  try {
+    const amountFcfa = await account.payments.getBalance();
+    const checkedAt = new Date();
+    balances.set(key, { amountFcfa, checkedAt });
+    return { source, amountFcfa, checkedAt: checkedAt.toISOString() };
+  } catch (err) {
+    console.warn("FedaPay balance not read:", err instanceof Error ? err.message.slice(0, 200) : err);
+    return { source, amountFcfa: null, checkedAt: null };
+  }
+}
+
+// Money moved: the next look reads FedaPay again.
+export function forgetBalance(mfiId: string | null) {
+  balances.delete(mfiId ?? "demo");
+}
+
 // ---------- In the console (administrators only) ----------
 
 export type PaymentAccountStatus = {
@@ -163,4 +202,5 @@ export async function setPayoutsViaFedapay(mfiId: string, staffId: string, on: b
 // For tests: forget built accounts.
 export function forgetPaymentAccounts() {
   cache.clear();
+  balances.clear();
 }

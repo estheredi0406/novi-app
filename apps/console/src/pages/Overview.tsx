@@ -7,6 +7,7 @@ import type {
   ConsoleReported,
 } from "@novi/shared";
 import { useState } from "react";
+import { MoneyViews } from "../Accounts";
 import { api } from "../api";
 import { day, fcfa } from "../format";
 import { Icon, Ring } from "../Icon";
@@ -229,6 +230,8 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
           </span>
         </div>
       </section>
+
+      <MoneyViews t={t} onExpired={onExpired} />
 
       <section className="queue" aria-labelledby="queue-title">
         <div className="queue-head">

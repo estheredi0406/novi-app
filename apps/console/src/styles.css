@@ -1832,3 +1832,22 @@ tr.clickable:hover td {
     grid-template-columns: 1fr;
   }
 }
+
+/* D113: the money three ways, inside the Overview's card. */
+.kpis.money {
+  box-shadow: none;
+  border-radius: 0;
+}
+.money-gap {
+  padding: 0 24px 16px;
+  margin: 0;
+}
+@media (max-width: 720px) {
+  .kpis.money {
+    grid-template-columns: 1fr;
+  }
+  .kpis.money > div + div {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}

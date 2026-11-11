@@ -2,6 +2,7 @@ import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { advanceOf, repayDeadline, SKIPS_PER_CYCLE } from "../lib/groupRules.js";
 import { mfi, sms } from "../providers/index.js";
+import { accountForMfi } from "./paymentAccounts.js";
 import { coverSms } from "../lib/smsText.js";
 
 // The group's advances (D103, D104), which replaced the 2% solidarity reserve
@@ -328,7 +329,10 @@ export async function returnReserve(groupId: string): Promise<void> {
       return row;
     });
     try {
-      const answer = await mfi.sendPayout({
+      // D102: from the MFI's own FedaPay balance, like the pots.
+      const account = await accountForMfi(group.mfiId).catch(() => null);
+      const sender = account?.sentVia === "fedapay" ? account.payouts : mfi;
+      const answer = await sender.sendPayout({
         payoutId: created.id,
         accountRef: group.mfiAccountRef,
         amountFcfa: part.amount,
