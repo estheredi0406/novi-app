@@ -2,18 +2,8 @@ import type { ChatMessage, GroupMeetingView } from "@novi/shared";
 import { type Href, router, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert } from "../../lib/alert";
 import Svg, { Path, Rect } from "react-native-svg";
 import { errorKey } from "../../api/client";
 import { openCall } from "../../lib/openCall";

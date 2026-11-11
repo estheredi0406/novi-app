@@ -1,7 +1,8 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { Alert } from "../../lib/alert";
 import { updateProfile } from "../../api/auth";
 import { errorKey } from "../../api/client";
 import { BackHeader } from "../../components/BackHeader";

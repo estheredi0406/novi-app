@@ -69,5 +69,15 @@ app.use("/call", callPageRouter);
 const consoleDist = fileURLToPath(new URL("../../console/dist", import.meta.url));
 if (existsSync(consoleDist)) app.use("/console", express.static(consoleDist));
 
+// D119: the member app's web version (apps/mobile/dist), for members without
+// an Android phone (an iPhone, a laptop). Same address as the API, so no
+// cross-origin settings either. Every other path under /app is one of the
+// app's own screens: the browser gets the app, which opens that screen.
+const appDist = fileURLToPath(new URL("../../mobile/dist", import.meta.url));
+if (existsSync(appDist)) {
+  app.use("/app", express.static(appDist));
+  app.get("/app/{*screen}", (_req, res) => res.sendFile(`${appDist}/index.html`));
+}
+
 // Must come last: turns every error into the standard error response.
 app.use(errorHandler);

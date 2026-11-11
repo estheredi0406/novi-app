@@ -1,7 +1,8 @@
 import type { Lender, RecordShareView, SavingsRecord } from "@novi/shared";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { Alert } from "../../lib/alert";
 import { errorKey } from "../../api/client";
 import { getRecord, listLenders, listShares, revokeShare, shareRecord, verifyUrl } from "../../api/record";
 import { Badge } from "../../components/art/Badge";

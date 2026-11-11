@@ -15,6 +15,7 @@ import { SeatRing } from "../art/SeatRing";
 import { CowrieMark, openRound } from "../BottomBar";
 import { ErrorMessage } from "../ErrorMessage";
 import { LineIcon, type LineIconName } from "../LineIcon";
+import { sheetColumn } from "../WebFrame";
 
 // One running group on home (D92, boards E1, E2 and E7): this round as a ring
 // of members, what she owes and by when, who receives, the Payer button, and
@@ -163,7 +164,7 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
 
       <Modal visible={more} transparent animationType="slide" onRequestClose={() => setMore(false)}>
         <Pressable style={styles.backdrop} onPress={() => setMore(false)} accessibilityLabel={t("hub.close")} />
-        <SafeAreaView edges={["bottom"]} style={styles.sheet}>
+        <SafeAreaView edges={["bottom"]} style={[styles.sheet, sheetColumn]}>
           <View style={styles.handle} />
           <Text style={styles.sheetTitle}>{group.name}</Text>
           <Text style={styles.sheetSub}>{t("hub.moreSub")}</Text>

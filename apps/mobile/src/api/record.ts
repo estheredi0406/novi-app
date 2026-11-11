@@ -1,5 +1,6 @@
 import type { Lender, RecordShareView, SavingsRecord } from "@novi/shared";
 import { memberRequest } from "./client";
+import { API_URL } from "../lib/apiUrl";
 
 // Her savings record, the ACEV (Sprint 6), typed with the shapes from @novi/shared.
 
@@ -15,4 +16,4 @@ export const revokeShare = (shareId: string) =>
 
 // The page a loan officer opens by scanning the QR code: served by the API,
 // so it works on any phone without installing Novi.
-export const verifyUrl = (shareId: string) => `${process.env.EXPO_PUBLIC_API_URL ?? ""}/verify/${shareId}`;
+export const verifyUrl = (shareId: string) => `${API_URL}/verify/${shareId}`;

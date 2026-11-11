@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
-import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Svg, { Circle, G, Path } from "react-native-svg";
 import { colors } from "../theme/colors";
 import { Cowrie } from "./art/Cowrie";
+import { useAppWidth } from "./WebFrame";
 
 // Home's wax-print band: lavender crackle, cowrie shells (West Africa's old
 // money, Novi's motif for savings) and navy seed dots, ending in a soft wave.
 export function HomeBand({ children }: { children: ReactNode }) {
   // The wave is drawn at the screen width so it reaches both edges.
-  const { width } = useWindowDimensions();
+  const { width } = useAppWidth();
   return (
     <View style={styles.band}>
       <Svg style={StyleSheet.absoluteFill} viewBox="0 0 390 330" preserveAspectRatio="xMidYMax slice">

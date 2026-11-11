@@ -1,12 +1,12 @@
-import { useWindowDimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { colors } from "../../theme/colors";
 import { Cowrie } from "./Cowrie";
+import { useAppWidth } from "../WebFrame";
 
 // A string of cowries, as they were threaded to count and carry money:
 // orange, ivory and teal shells on a navy thread. Decoration only.
 export function CowrieString({ margin = 24 }: { margin?: number }) {
-  const { width: screen } = useWindowDimensions();
+  const { width: screen } = useAppWidth();
   const width = screen - margin * 2;
   const count = Math.max(3, Math.floor(width / 30));
   const step = width / count;

@@ -10,7 +10,8 @@ import {
 import { File } from "expo-file-system";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, PanResponder, StyleSheet, Text, View } from "react-native";
+import { PanResponder, StyleSheet, Text, View } from "react-native";
+import { Alert } from "../../lib/alert";
 import Svg, { Path, Rect } from "react-native-svg";
 import { formatSeconds } from "../../lib/format";
 import { colors } from "../../theme/colors";

@@ -9,6 +9,7 @@ import { formatFcfa, shortDay } from "../../lib/format";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 import { ErrorMessage } from "../ErrorMessage";
+import { sheetColumn } from "../WebFrame";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -57,7 +58,7 @@ export function SkipSheet({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={t("skip.cancel")} />
-      <SafeAreaView edges={["bottom"]} style={styles.sheet}>
+      <SafeAreaView edges={["bottom"]} style={[styles.sheet, sheetColumn]}>
         <View style={styles.handle} />
         <Text style={styles.kicker}>
           {group.name} · {t("groupView.roundOf", { number: round.number, total: group.rules.size })}

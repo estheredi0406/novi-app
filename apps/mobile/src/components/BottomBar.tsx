@@ -12,6 +12,7 @@ import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
 import { Cowrie } from "./art/Cowrie";
 import { LineIcon, type LineIconName } from "./LineIcon";
+import { sheetColumn } from "./WebFrame";
 
 // The bar at the bottom of every main screen (D92), as in the bank and mobile
 // money apps people already use: four places and, raised in the middle, an
@@ -96,7 +97,7 @@ export function BottomBar({ active }: { active: Tab | null }) {
 
       <Modal visible={picking} transparent animationType="slide" onRequestClose={() => setPicking(false)}>
         <Pressable style={styles.backdrop} onPress={() => setPicking(false)} accessibilityLabel={t("hub.close")} />
-        <SafeAreaView edges={["bottom"]} style={styles.sheet}>
+        <SafeAreaView edges={["bottom"]} style={[styles.sheet, sheetColumn]}>
           <View style={styles.handle} />
           {owing.length > 0 ? (
             <>

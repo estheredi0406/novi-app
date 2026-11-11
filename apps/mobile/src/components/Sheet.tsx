@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
 import { ListenButton } from "./ListenButton";
+import { sheetColumn } from "./WebFrame";
 
 // A sheet that rises from the bottom: where an explanation lives, so the
 // screens themselves show only amounts, dates, names and buttons. "?" opens
@@ -26,7 +27,7 @@ export function Sheet({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={t("common.close")} />
-      <SafeAreaView edges={["bottom"]} style={styles.sheet}>
+      <SafeAreaView edges={["bottom"]} style={[styles.sheet, sheetColumn]}>
         <View style={styles.handle} />
         <View style={styles.head}>
           <Text style={styles.title}>{title}</Text>

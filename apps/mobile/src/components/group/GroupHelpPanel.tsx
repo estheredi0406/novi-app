@@ -2,7 +2,8 @@ import type { GroupHelp, TurnSwapView } from "@novi/shared";
 import { type Href, router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert } from "../../lib/alert";
 import { errorKey } from "../../api/client";
 import {
   answerSwap,

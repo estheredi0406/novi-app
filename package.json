@@ -15,7 +15,8 @@
     "dev:mobile": "npm run build:shared && npm run start --workspace @novi/mobile",
     "dev:console": "npm run build:shared && npm run dev --workspace @novi/console",
     "typecheck": "npm run build:shared && npm run typecheck --workspaces --if-present",
-    "build:server": "npm run build -w @novi/shared && npm run build -w @novi/console && npm run build:prod -w @novi/api"
+    "build:server": "npm run build -w @novi/shared && npm run build -w @novi/console && npm run build:prod -w @novi/api",
+    "build:web": "cd apps/mobile && npx expo export --platform web --output-dir dist"
   },
   "dependencies": {
     "@expo-google-fonts/noto-sans": "^0.4.2",

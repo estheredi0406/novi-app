@@ -138,7 +138,8 @@ export default function RoundScreen() {
   // What she pays: the contribution, and in round 1 her advance too (D103),
   // which stays in the group's advances and comes back at the end.
   const canPay = round.myStatus === "UNPAID" || round.myStatus === "FAILED";
-  const amount = formatFcfa(round.amountFcfa + (canPay ? round.advanceFcfa : 0));
+  // D118: one amount everywhere, before and after paying: round 1 includes her advance.
+  const amount = formatFcfa(round.amountFcfa + round.advanceFcfa);
   const listen = `${t("money.roundTitle", { number: round.number, date: formatDay(round.dueDate) })}. ${t(
     "money.turnOf",
     {
@@ -179,7 +180,7 @@ export default function RoundScreen() {
         <Text style={styles.summaryLabel}>{canPay ? t("pay.youPay") : t("pay.contribution")}</Text>
         <Text style={styles.summaryAmount}>{amount}</Text>
         <View style={styles.facts}>
-          {canPay && round.advanceFcfa > 0 ? (
+          {round.advanceFcfa > 0 ? (
             <Fact label={t("pay.advance")} value={formatFcfa(round.advanceFcfa)} />
           ) : null}
           <Fact label={t("pay.forRound")} value={t("pay.roundLine", { number: round.number, date: formatDay(round.dueDate) })} />

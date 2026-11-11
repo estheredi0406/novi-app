@@ -9,7 +9,8 @@ import { useFocusEffect } from "expo-router";
 import type { TFunction } from "i18next";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert } from "../../lib/alert";
 import { errorKey } from "../../api/client";
 import {
   bringOnPaper,

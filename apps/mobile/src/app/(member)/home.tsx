@@ -2,7 +2,7 @@ import type { GroupSummary, Invitation, NewsItem } from "@novi/shared";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
 import { listMyGroups, listMyInvitations } from "../../api/groups";
 import { listNews } from "../../api/news";
@@ -21,6 +21,7 @@ import { rulesSummary, stateLabel } from "../../lib/rulesText";
 import { useSession } from "../../session/SessionProvider";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
+import { useAppWidth } from "../../components/WebFrame";
 
 // Home, direction "Lagune" (D92, boards E1 to E3 and E7), built like the bank
 // and mobile money apps traders already use: a blue band with her name, one
@@ -99,7 +100,7 @@ export function HomeView({
   error: string | null;
 }) {
   const { t, i18n } = useTranslation();
-  const { width } = useWindowDimensions();
+  const { width } = useAppWidth();
   const [page, setPage] = useState(0);
 
   // Ewe screens still show French texts until a native speaker reviews them,

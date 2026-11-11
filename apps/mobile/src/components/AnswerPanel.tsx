@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { Alert } from "../lib/alert";
 import { ApiError, errorKey } from "../api/client";
 import { acceptRules, counterRules, declineGroup } from "../api/groups";
 import { colors } from "../theme/colors";

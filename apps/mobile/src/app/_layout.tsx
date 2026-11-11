@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
 import { AppState } from "react-native";
 import { SplashIntro } from "../components/SplashIntro";
+import { WebFrame } from "../components/WebFrame";
 import { stopSpeaking } from "../lib/speak";
 import { SessionProvider, useSession } from "../session/SessionProvider";
 import { colors } from "../theme/colors";
@@ -90,9 +91,11 @@ export default function RootLayout() {
   return (
     <SessionProvider>
       <StatusBar style={introDone ? "dark" : "light"} />
-      <AppStack />
+      <WebFrame>
+        <AppStack />
+        {introDone ? null : <SplashIntro onDone={endIntro} />}
+      </WebFrame>
       <SpeechGuard />
-      {introDone ? null : <SplashIntro onDone={endIntro} />}
     </SessionProvider>
   );
 }

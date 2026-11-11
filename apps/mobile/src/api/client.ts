@@ -2,7 +2,7 @@ import type { ApiError as ApiErrorBody, AuthTokens } from "@novi/shared";
 import { pilotCodeStore } from "../lib/pilotCode";
 import { clearTokens, getTokens, saveTokens } from "../lib/storage";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import { API_URL } from "../lib/apiUrl";
 // Long enough for a slow mobile connection, short enough not to leave her waiting.
 const TIMEOUT_MS = 15_000;
 
