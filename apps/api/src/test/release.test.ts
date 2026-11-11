@@ -30,7 +30,7 @@ function as(token: string) {
 }
 type Client = ReturnType<typeof as>;
 
-// Akossiwa's started group of three at FUCEC-Togo: a pot of 15 000 F.
+// Akossiwa's started group of three at Caisse Mawuli: a pot of 15 000 F.
 async function activeGroup() {
   const akossiwa = await signedUpMember();
   const abla = await signedUpMember("+22890000002", undefined, ABLA, "Abla");
@@ -66,8 +66,8 @@ const makeDue = (groupId: string, number: number) =>
   prisma.round.update({ where: { groupId_number: { groupId, number } }, data: { dueDate: PAST } });
 
 async function officer(email: string, name: string, role: "OFFICER" | "ADMIN" = "OFFICER") {
-  await prisma.mfi.upsert({ where: { code: "FUCEC" }, create: { code: "FUCEC", name: "FUCEC-Togo" }, update: {} });
-  const { password, totpSecret } = await createStaff({ mfiCode: "FUCEC", email, name, role });
+  await prisma.mfi.upsert({ where: { code: "MAWULI" }, create: { code: "MAWULI", name: "Caisse Mawuli" }, update: {} });
+  const { password, totpSecret } = await createStaff({ mfiCode: "MAWULI", email, name, role });
   await prisma.staffUser.update({ where: { email }, data: { mustChangePassword: false } });
   const code = codeForStep(base32Decode(totpSecret), totpStep(Date.now()));
   const login = await request(app).post("/v1/staff/login").send({ email, password, code });
@@ -113,8 +113,8 @@ describe("large pots need two officers (D105)", () => {
     await runPayouts();
     expect((await payoutOf(groupId)).status).toBe("READY");
 
-    const mawuli = await officer("mawuli@fucec.example", "Mawuli Adzo");
-    const adjo = await officer("adjo@fucec.example", "Adjo Kpodar");
+    const mawuli = await officer("mawuli@mawuli.example", "Mawuli Adzo");
+    const adjo = await officer("adjo@mawuli.example", "Adjo Kpodar");
     const [item] = (await mawuli.get("/v1/console/attention")).body;
     expect(item).toMatchObject({ status: "READY", needsTwo: true, canRelease: true, firstApprovedBy: null });
 
@@ -143,7 +143,7 @@ describe("large pots need two officers (D105)", () => {
     for (const member of members) await pay(member, groupId, 1);
     await makeDue(groupId, 1);
     await runPayouts();
-    const admin = await officer("adjo@fucec.example", "Adjo Kpodar", "ADMIN");
+    const admin = await officer("adjo@mawuli.example", "Adjo Kpodar", "ADMIN");
     const set = await admin.put("/v1/console/auto-release", { amountFcfa: 20000 });
     expect(set.body).toEqual({ autoReleaseFcfa: 20000 });
     await runPayouts();
@@ -152,9 +152,9 @@ describe("large pots need two officers (D105)", () => {
 
   it("lets only an administrator change the limit, or turn it off", async () => {
     await activeGroup();
-    const mawuli = await officer("mawuli@fucec.example", "Mawuli Adzo");
+    const mawuli = await officer("mawuli@mawuli.example", "Mawuli Adzo");
     expect((await mawuli.put("/v1/console/auto-release", { amountFcfa: 1_000_000 })).body.error.code).toBe("ADMIN_ONLY");
-    const admin = await officer("adjo@fucec.example", "Adjo Kpodar", "ADMIN");
+    const admin = await officer("adjo@mawuli.example", "Adjo Kpodar", "ADMIN");
     expect((await admin.put("/v1/console/auto-release", { amountFcfa: null })).body).toEqual({ autoReleaseFcfa: null });
     expect((await admin.get("/v1/console/overview")).body.autoReleaseFcfa).toBeNull();
   });
@@ -175,7 +175,7 @@ describe("payments a member says left her account (D105, D110)", () => {
 
   it("lists it for the officer, with what he needs to find it on the statement", async () => {
     const { groupId, contributionId } = await reported();
-    const mawuli = await officer("mawuli@fucec.example", "Mawuli Adzo");
+    const mawuli = await officer("mawuli@mawuli.example", "Mawuli Adzo");
     expect((await mawuli.get("/v1/console/reported")).body).toEqual([
       expect.objectContaining({
         contributionId,
@@ -199,7 +199,7 @@ describe("payments a member says left her account (D105, D110)", () => {
 
   it("credits it when the officer finds it on the operator's statement", async () => {
     const { contributionId } = await reported();
-    const mawuli = await officer("mawuli@fucec.example", "Mawuli Adzo");
+    const mawuli = await officer("mawuli@mawuli.example", "Mawuli Adzo");
     const res = await mawuli.post(`/v1/console/reported/${contributionId}`, { arrived: true });
     expect(res.body).toEqual([]);
     const row = await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } });
@@ -210,7 +210,7 @@ describe("payments a member says left her account (D105, D110)", () => {
 
   it("tells her to pay again when it is not found, and lets her", async () => {
     const { abla, groupId, contributionId } = await reported();
-    const mawuli = await officer("mawuli@fucec.example", "Mawuli Adzo");
+    const mawuli = await officer("mawuli@mawuli.example", "Mawuli Adzo");
     await mawuli.post(`/v1/console/reported/${contributionId}`, { arrived: false });
 
     const round = (await abla.get(`/v1/groups/${groupId}/rounds/1`)).body;
@@ -252,7 +252,7 @@ describe("payments checked again by Novi itself (D114)", () => {
     const { abla, groupId } = await activeGroup().then((g) => ({ ...g, abla: g.members[1] as Client }));
     const contributionId = await pay(abla, groupId, 1, "FAILED");
     await abla.post(`/v1/contributions/${contributionId}/report`);
-    const mawuli = await officer("mawuli@fucec.example", "Mawuli Adzo");
+    const mawuli = await officer("mawuli@mawuli.example", "Mawuli Adzo");
 
     await runPaymentChecks(later(16));
     expect((await mawuli.get("/v1/console/reported")).body).toEqual([]);
@@ -272,7 +272,7 @@ describe("payments checked again by Novi itself (D114)", () => {
     await abla.post(`/v1/contributions/${contributionId}/report`);
     await runPaymentChecks(later(16));
     await runPaymentChecks(later(61));
-    const mawuli = await officer("mawuli@fucec.example", "Mawuli Adzo");
+    const mawuli = await officer("mawuli@mawuli.example", "Mawuli Adzo");
     expect((await mawuli.get("/v1/console/reported")).body).toHaveLength(1);
 
     mockPayments.settle(providerRef, "PAID"); // the operator, late

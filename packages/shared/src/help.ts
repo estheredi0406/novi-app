@@ -100,7 +100,7 @@ export type LoanRequestView = {
   documentsComplete: boolean; // every document accepted: she goes to the agency
 };
 
-// D89, D91: what the app shows on "Crédit FUCEC".
+// D89, D91: what the app shows on "Crédit".
 export type LoanPage = {
   enabled: boolean; // the MFI receives requests
   eligible: boolean;

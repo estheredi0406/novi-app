@@ -176,7 +176,7 @@ describe("her invitations", () => {
         groupId,
         groupName: "Pagnes Assigamé",
         organiserName: "Akossiwa",
-        mfiName: "FUCEC-Togo",
+        mfiName: "Caisse Mawuli",
         seatsHeld: 1,
         rules: expect.objectContaining({ amountFcfa: 5000, size: 3 }),
       }),

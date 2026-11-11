@@ -78,7 +78,7 @@ services:
         sync: false
       - key: SMS_MONTHLY_LIMIT
         value: "200"
-      # D66: FUCEC's officer validates each group in the console before its
+      # D66: the MFI's officer validates each group in the console before its
       # account opens.
       - key: MFI_GROUP_APPROVAL
         value: "true"

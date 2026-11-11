@@ -263,12 +263,12 @@ describe("menu 4, what waits for her answer (D106)", () => {
 describe("menu 5, her data (D106)", () => {
   it("shows her names, shares her record with an MFI, and lists who opened it", async () => {
     await signedUpMember("+22890000002", undefined, ABLA, "Abla");
-    await prisma.mfi.upsert({ where: { code: "FUCEC" }, create: { code: "FUCEC", name: "FUCEC-Togo" }, update: {} });
+    await prisma.mfi.upsert({ where: { code: "MAWULI" }, create: { code: "MAWULI", name: "Caisse Mawuli" }, update: {} });
     const data = await dial("+22890000002", "4829*5");
     expect(data.text).toContain("Nom vu par le groupe : Abla");
-    expect((await dial("+22890000002", "4829*5*1")).text).toContain("1. FUCEC-Togo");
+    expect((await dial("+22890000002", "4829*5*1")).text).toContain("1. Caisse Mawuli");
     const shared = await dial("+22890000002", "4829*5*1*1");
-    expect(shared.text).toMatch(/^END Relevé partagé avec FUCEC-Togo jusqu'au/);
+    expect(shared.text).toMatch(/^END Relevé partagé avec Caisse Mawuli jusqu'au/);
     expect((await dial("+22890000002", "4829*5*2")).text).toBe("END Personne n'a encore ouvert votre relevé.");
   });
 });

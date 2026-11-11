@@ -10,7 +10,7 @@ import { fonts } from "../../theme/typography";
 import { SeatRing } from "../art/SeatRing";
 
 // Her transactions on "Mon relevé" (D92, board E6), as a table: her on-time
-// share on a ring at the top (the same facts FUCEC sees if she shares her
+// share on a ring at the top (the same facts the MFI sees if she shares her
 // record), then every franc she paid or received, month by month, with the
 // group and the turn. Her advance has its own line (D103); a share the
 // advances covered shows with its deadline (D104); a payment pending or not

@@ -7,7 +7,7 @@ import { countPilotData, resetPilotData } from "../services/pilotReset.js";
 //   npm run demo:reset -- --yes   erases it
 //
 // Run it from the server's shell (Render › novi-api › Shell). Members keep
-// their accounts and PINs, officers keep their logins, FUCEC keeps its credit
+// their accounts and PINs, officers keep their logins, the MFI keeps its credit
 // conditions. Everything else (groups, payments, pots, chats, advances, loan
 // requests, shared records, the Journal) is gone for good.
 

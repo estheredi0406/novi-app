@@ -256,7 +256,7 @@ export const text = {
     owes: (amount: string) => `Doit ${amount}`,
     recordOwesNothing: "Ne doit rien",
     approveConfirm: (name: string) =>
-      `Valider « ${name} » ? FUCEC ouvrira le compte du groupe et le premier tour sera programmé.`,
+      `Valider « ${name} » ? L'IMF ouvrira le compte du groupe et le premier tour sera programmé.`,
     analytics: "Analytique",
     reserveLabel: "Avances du groupe",
     fundTitle: "Avances des groupes",
@@ -594,7 +594,7 @@ export const text = {
     },
     autoChecked: (n: number) => `${n} vérifications automatiques sans confirmation`,
     releaseConfirm: (amount: string) =>
-      `Libérer ${amount} ? FUCEC enverra la cagnotte au numéro vérifié de la bénéficiaire.`,
+      `Libérer ${amount} ? L'IMF enverra la cagnotte au numéro vérifié de la bénéficiaire.`,
     round: "Tour",
     of: "sur",
     collected: "Collecté",
@@ -631,7 +631,7 @@ export const text = {
       PAYMENT_ACCOUNT_REFUSED: "FedaPay a refusé ces clés. Vérifiez la clé secrète, le secret du webhook et le mode (test ou réel).",
       FUND_TOO_LOW:
         "Les avances du groupe ne peuvent pas verser ce montant maintenant.",
-      MFI_UNAVAILABLE: "FUCEC n'a pas répondu. Réessayez.",
+      MFI_UNAVAILABLE: "L'IMF n'a pas répondu. Réessayez.",
       default: "Une erreur s'est produite. Réessayez.",
     },
     status: {

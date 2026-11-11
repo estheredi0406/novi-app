@@ -61,7 +61,7 @@ describe("choosing where the group's money is kept (D95)", () => {
     const akossiwa = await signedUpMember();
     const res = await as(akossiwa.tokens.accessToken).get("/v1/mfis");
     expect(res.status).toBe(200);
-    expect(res.body.map((m: { code: string }) => m.code)).toEqual(["FUCEC", "DEMO"]);
+    expect(res.body.map((m: { code: string }) => m.code)).toEqual(["MAWULI", "DEMO"]);
   });
 
   it("keeps the money at the MFI the group chose, and every member sees it in the rules", async () => {
@@ -76,7 +76,7 @@ describe("choosing where the group's money is kept (D95)", () => {
     const akossiwa = await signedUpMember();
     const res = await as(akossiwa.tokens.accessToken).post("/v1/groups", RULES);
     expect(res.status).toBe(201);
-    expect(res.body.mfiName).toBe("FUCEC-Togo");
+    expect(res.body.mfiName).toBe("Caisse Mawuli");
   });
 
   it("refuses an MFI that is not a partner", async () => {
@@ -113,10 +113,10 @@ describe("choosing where the group's money is kept (D95)", () => {
     await organiser.post(`/v1/groups/${groupId}/start`);
 
     const demoDesk = await officer("DEMO", "afi@demo.example");
-    await prisma.mfi.upsert({ where: { code: "FUCEC" }, create: { code: "FUCEC", name: "FUCEC-Togo" }, update: {} });
-    const fucecDesk = await officer("FUCEC", "mawuli@fucec.example");
+    await prisma.mfi.upsert({ where: { code: "MAWULI" }, create: { code: "MAWULI", name: "Caisse Mawuli" }, update: {} });
+    const mawuliDesk = await officer("MAWULI", "mawuli@mawuli.example");
     expect((await demoDesk.get(`/v1/console/groups/${groupId}`)).status).toBe(200);
-    expect((await fucecDesk.get(`/v1/console/groups/${groupId}`)).status).toBe(404);
+    expect((await mawuliDesk.get(`/v1/console/groups/${groupId}`)).status).toBe(404);
   });
 });
 
@@ -134,7 +134,7 @@ describe("members' records only while the officer validates (D98)", () => {
     await koffi.post(`/v1/groups/${groupId}/accept`, { version: 1 });
     await organiser.post(`/v1/groups/${groupId}/start`);
 
-    const desk = await officer("FUCEC", "mawuli@fucec.example");
+    const desk = await officer("MAWULI", "mawuli@mawuli.example");
     const during = (await desk.get(`/v1/console/groups/${groupId}`)).body;
     expect(during.state).toBe("STARTING");
     expect(during.members.filter((m: { consent: boolean }) => m.consent)).toHaveLength(2);

@@ -1,10 +1,11 @@
 import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
+import { PILOT_MFIS } from "../services/groupService.js";
 import { createStaff } from "../services/staffService.js";
 
 // Opens a console account for an MFI officer (Sprint 5, D52):
 //
-//   npm run staff:create -w @novi/api -- FUCEC mawuli@fucec.example "Mawuli Adzo"
+//   npm run staff:create -w @novi/api -- MAWULI mawuli@mawuli.example "Mawuli Adzo"
 //
 // It prints a one-time password and the authenticator secret. The officer
 // adds the secret to an authenticator app (Google or Microsoft Authenticator:
@@ -15,11 +16,12 @@ import { createStaff } from "../services/staffService.js";
 async function main() {
   const [mfiCode, email, name, role] = process.argv.slice(2);
   if (!mfiCode || !email || !name) {
-    throw new Error('Usage: npm run staff:create -w @novi/api -- FUCEC officer@example.org "Full Name" [ADMIN]');
+    throw new Error('Usage: npm run staff:create -w @novi/api -- MAWULI officer@example.org "Full Name" [ADMIN]');
   }
-  // The partner MFI exists once a first group is created; make sure it does.
-  if (mfiCode === "FUCEC") {
-    await prisma.mfi.upsert({ where: { code: "FUCEC" }, create: { code: "FUCEC", name: "FUCEC-Togo" }, update: {} });
+  // A pilot partner (D120) is created with its first officer if it does not exist yet.
+  const pilot = PILOT_MFIS.find((m) => m.code === mfiCode);
+  if (pilot) {
+    await prisma.mfi.upsert({ where: { code: pilot.code }, create: { ...pilot }, update: {} });
   }
   const created = await createStaff({ mfiCode, email, name, role: role === "ADMIN" ? "ADMIN" : "OFFICER" });
 

@@ -781,7 +781,8 @@
     "swapNotPossible": "This swap is no longer possible: one of the turns is already paid or due today, or a request is already open."
   },
   "loan": {
-    "menu": "FUCEC credit",
+    "menu": "Credit",
+    "yourMfi": "your MFI",
     "menuSub": "Your Novi record opens a request",
     "title": "{{mfi}} credit",
     "intro": "{{mfi}} lends and decides. Novi shows your track record.",
@@ -795,7 +796,7 @@
     },
     "months_other": "{{count}} months",
     "shareNote": "By sending, you agree that {{mfi}} sees your Novi record for this request.",
-    "send": "Send to FUCEC",
+    "send": "Send the request",
     "confirmTitle": "Send the request?",
     "confirm": "{{amount}} asked from {{mfi}}.",
     "pending": "Request with {{mfi}}",
@@ -893,7 +894,7 @@
     "chat": "Chat",
     "more": "More",
     "forYou": "For you",
-    "tileLoan": "FUCEC credit",
+    "tileLoan": "Credit",
     "tileNew": "New group",
     "tileShare": "Share my record",
     "latest": "Latest news",

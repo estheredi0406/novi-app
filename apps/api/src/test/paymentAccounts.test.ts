@@ -15,8 +15,8 @@ import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
 // here by a fake fetch, so the tests check exactly what Novi asks, and with
 // which MFI's key.
 
-const SECRET = "sk_sandbox_fucec_0123456789";
-const WEBHOOK = "wh_sandbox_fucec_0123456789";
+const SECRET = "sk_sandbox_mawuli_0123456789";
+const WEBHOOK = "wh_sandbox_mawuli_0123456789";
 const GROUP = { name: "Pagnes Assigamé", amountFcfa: 5000, frequency: "WEEKLY", dueDay: 5, size: 3, payoutOrder: "DRAWN" };
 
 type Call = { method: string; url: string; auth: string | null; body: unknown };
@@ -56,8 +56,8 @@ function as(token: string) {
 type Client = ReturnType<typeof as>;
 
 async function staff(email: string, role: "OFFICER" | "ADMIN") {
-  await prisma.mfi.upsert({ where: { code: "FUCEC" }, create: { code: "FUCEC", name: "FUCEC-Togo" }, update: {} });
-  const { password, totpSecret } = await createStaff({ mfiCode: "FUCEC", email, name: "Adjo Kpodar", role });
+  await prisma.mfi.upsert({ where: { code: "MAWULI" }, create: { code: "MAWULI", name: "Caisse Mawuli" }, update: {} });
+  const { password, totpSecret } = await createStaff({ mfiCode: "MAWULI", email, name: "Adjo Kpodar", role });
   await prisma.staffUser.update({ where: { email }, data: { mustChangePassword: false } });
   const code = codeForStep(base32Decode(totpSecret), totpStep(Date.now()));
   return as((await request(app).post("/v1/staff/login").send({ email, password, code })).body.accessToken);
@@ -94,30 +94,30 @@ function fedapayCollects(status: "pending" | "approved") {
 
 describe("connecting the MFI's own FedaPay account (D102)", () => {
   it("checks the keys with FedaPay, stores them encrypted, and never shows them again", async () => {
-    const admin = await staff("adjo@fucec.example", "ADMIN");
+    const admin = await staff("adjo@mawuli.example", "ADMIN");
     const res = await connect(admin);
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ connected: true, live: false, payoutsViaFedapay: true, webhookPath: "/v1/webhooks/payments/FUCEC" });
+    expect(res.body).toMatchObject({ connected: true, live: false, payoutsViaFedapay: true, webhookPath: "/v1/webhooks/payments/MAWULI" });
     expect(JSON.stringify(res.body)).not.toContain(SECRET);
     // The check went to the sandbox, with this key.
     expect(calls[0]).toMatchObject({ method: "GET", auth: `Bearer ${SECRET}` });
     expect(calls[0]?.url).toBe("https://sandbox-api.fedapay.com/v1/transactions/search");
 
-    const row = await prisma.mfi.findUniqueOrThrow({ where: { code: "FUCEC" } });
+    const row = await prisma.mfi.findUniqueOrThrow({ where: { code: "MAWULI" } });
     expect(row.fedapaySecretKey).not.toContain(SECRET);
     expect(open(row.fedapaySecretKey as string)).toBe(SECRET);
   });
 
   it("refuses keys FedaPay does not accept, and saves nothing", async () => {
-    const admin = await staff("adjo@fucec.example", "ADMIN");
+    const admin = await staff("adjo@mawuli.example", "ADMIN");
     fedapay = () => ({ status: 401, json: { message: "Unauthenticated" } });
     const res = await connect(admin);
     expect(res.body.error.code).toBe("PAYMENT_ACCOUNT_REFUSED");
-    expect((await prisma.mfi.findUniqueOrThrow({ where: { code: "FUCEC" } })).fedapaySecretKey).toBeNull();
+    expect((await prisma.mfi.findUniqueOrThrow({ where: { code: "MAWULI" } })).fedapaySecretKey).toBeNull();
   });
 
   it("lets only an administrator connect it; officers see whether it is connected", async () => {
-    const officer = await staff("mawuli@fucec.example", "OFFICER");
+    const officer = await staff("mawuli@mawuli.example", "OFFICER");
     expect((await connect(officer)).body.error.code).toBe("ADMIN_ONLY");
     expect((await officer.get("/v1/console/payment-account")).body).toMatchObject({ connected: false, usesDemo: true });
   });
@@ -126,7 +126,7 @@ describe("connecting the MFI's own FedaPay account (D102)", () => {
 describe("payments into the MFI's account (D102)", () => {
   it("sends her payment to her group's MFI's account, with its key, and credits it on that MFI's webhook", async () => {
     const { groupId, members } = await activeGroup();
-    await connect(await staff("adjo@fucec.example", "ADMIN"));
+    await connect(await staff("adjo@mawuli.example", "ADMIN"));
     fedapayCollects("approved");
     calls = [];
 
@@ -134,18 +134,18 @@ describe("payments into the MFI's account (D102)", () => {
     expect(asked.status).toBe(202);
     expect(calls.every((c) => c.auth === `Bearer ${SECRET}`)).toBe(true);
     expect(calls[0]?.body).toMatchObject({ amount: 7500, currency: { iso: "XOF" } });
-    const mfi = await prisma.mfi.findUniqueOrThrow({ where: { code: "FUCEC" } });
+    const mfi = await prisma.mfi.findUniqueOrThrow({ where: { code: "MAWULI" } });
     const row = await prisma.contribution.findUniqueOrThrow({ where: { id: asked.body.id } });
     expect(row).toMatchObject({ provider: "fedapay", paymentAccountMfiId: mfi.id, status: "PENDING" });
 
     // A notification signed with another secret, or sent to Novi's demo address, changes nothing.
     const body = JSON.stringify({ name: "transaction.approved", entity: { id: Number(row.providerRef) } });
-    await request(app).post("/v1/webhooks/payments/FUCEC").set("X-FEDAPAY-SIGNATURE", sign(body, "wrong-secret")).type("json").send(body);
+    await request(app).post("/v1/webhooks/payments/MAWULI").set("X-FEDAPAY-SIGNATURE", sign(body, "wrong-secret")).type("json").send(body);
     expect((await prisma.contribution.findUniqueOrThrow({ where: { id: row.id } })).status).toBe("PENDING");
 
-    // FUCEC's own signed notification: Novi asks FUCEC's account, and credits it.
+    // MAWULI's own signed notification: Novi asks MAWULI's account, and credits it.
     const ok = await request(app)
-      .post("/v1/webhooks/payments/FUCEC")
+      .post("/v1/webhooks/payments/MAWULI")
       .set("X-FEDAPAY-SIGNATURE", sign(body, WEBHOOK))
       .type("json")
       .send(body);
@@ -190,7 +190,7 @@ describe("pots out of the MFI's account (D102)", () => {
 
   it("sends the pot by FedaPay payout from the MFI's balance, then follows it until sent", async () => {
     const { groupId } = await fullDuePot();
-    await connect(await staff("adjo@fucec.example", "ADMIN"));
+    await connect(await staff("adjo@mawuli.example", "ADMIN"));
     let state = "started";
     fedapay = ({ method, url }) => {
       if (method === "POST" && url.endsWith("/v1/payouts")) return { json: { "v1/payout": { id: 77, status: "pending" } } };
@@ -215,7 +215,7 @@ describe("pots out of the MFI's account (D102)", () => {
 
   it("sends pots through the MFI stand-in when the administrator turns FedaPay payouts off", async () => {
     const { groupId } = await fullDuePot();
-    const admin = await staff("adjo@fucec.example", "ADMIN");
+    const admin = await staff("adjo@mawuli.example", "ADMIN");
     await connect(admin);
     expect((await admin.put("/v1/console/payment-account/payouts", { fedapay: false })).body.payoutsViaFedapay).toBe(false);
     calls = [];
@@ -228,7 +228,7 @@ describe("pots out of the MFI's account (D102)", () => {
 
 describe("the real balance of the MFI's account (D113)", () => {
   it("reads the balance from FedaPay with the MFI's own key, and shows it in the console", async () => {
-    const admin = await staff("adjo@fucec.example", "ADMIN");
+    const admin = await staff("adjo@mawuli.example", "ADMIN");
     await connect(admin);
     fedapay = ({ url }) =>
       url.endsWith("/v1/balances")
@@ -241,7 +241,7 @@ describe("the real balance of the MFI's account (D113)", () => {
   });
 
   it("shows no figure, not a wrong one, when FedaPay does not answer", async () => {
-    const admin = await staff("adjo@fucec.example", "ADMIN");
+    const admin = await staff("adjo@mawuli.example", "ADMIN");
     await connect(admin);
     fedapay = ({ url }) => (url.endsWith("/v1/balances") ? { status: 500, json: {} } : { json: {} });
     const accounts = (await admin.get("/v1/console/accounts")).body;

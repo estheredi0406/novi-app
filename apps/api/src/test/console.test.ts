@@ -44,7 +44,7 @@ function as(accessToken: string) {
 }
 type Client = ReturnType<typeof as>;
 
-// Akossiwa's started group of three, held at FUCEC-Togo.
+// Akossiwa's started group of three, held at Caisse Mawuli.
 async function activeGroup() {
   const akossiwa = await signedUpMember();
   const abla = await signedUpMember("+22890000002", undefined, ABLA, "Abla");
@@ -105,8 +105,8 @@ const makeDue = (groupId: string, number: number) =>
 
 // A logged-in officer of the given MFI.
 async function officer(
-  mfiCode = "FUCEC",
-  email = "mawuli@fucec.example",
+  mfiCode = "MAWULI",
+  email = "mawuli@mawuli.example",
   role: "OFFICER" | "ADMIN" | "COMPLIANCE" = "OFFICER",
 ) {
   await prisma.mfi.upsert({
@@ -179,7 +179,7 @@ describe("the console's view of groups", () => {
 
   it("hides another MFI's groups, as if they did not exist", async () => {
     const { groupId } = await activeGroup();
-    const other = await officer("WAGES", "officer@wages.example");
+    const other = await officer("KARA", "officer@kara.example");
 
     expect((await other.get("/v1/console/groups")).body).toEqual([]);
     expect((await other.get(`/v1/console/groups/${groupId}`)).status).toBe(404);
@@ -325,7 +325,7 @@ describe("payouts that need a look (D53)", () => {
     const desk = await officer();
     const overview = (await desk.get("/v1/console/overview")).body;
     expect(overview).toEqual({
-      mfiName: "FUCEC-Togo",
+      mfiName: "Caisse Mawuli",
       activeGroups: 1,
       completedGroups: 0,
       balanceFcfa: 7500, // one payment of 5 000 and its 2 500 advance
@@ -589,7 +589,7 @@ describe("the group accounts at the MFI (D113)", () => {
   it("never shows another MFI's group account", async () => {
     const { groupId, members } = await activeGroup();
     await pay(members[0] as Client, groupId, 1);
-    const other = await officer("WAGES", "officer@wages.example");
+    const other = await officer("KARA", "officer@kara.example");
     expect((await other.get(`/v1/console/groups/${groupId}/account`)).status).toBe(404);
     expect((await other.get("/v1/console/accounts")).body).toMatchObject({ bankFcfa: 0, bankAccounts: 0 });
   });
@@ -674,7 +674,7 @@ describe("the group page and the compliance view (D117)", () => {
   it("opens the compliance view to an administrator with a reason, logs it, and shows the legal names", async () => {
     const { groupId, members } = await activeGroup();
     await pay(members[1] as Client, groupId, 1);
-    const admin = await officer("FUCEC", "adjo@fucec.example", "ADMIN");
+    const admin = await officer("MAWULI", "adjo@mawuli.example", "ADMIN");
     expect((await admin.post(`/v1/console/groups/${groupId}/compliance`, {})).status).toBe(400);
     const res = await admin.post(`/v1/console/groups/${groupId}/compliance`, { reason: "Contrôle LBC/FT" });
     expect(res.status).toBe(200);
@@ -696,7 +696,7 @@ describe("the group page and the compliance view (D117)", () => {
     for (const member of members) await pay(member, groupId, 1);
     await makeDue(groupId, 1);
     await runPayouts();
-    const essi = await officer("FUCEC", "essi@fucec.example", "COMPLIANCE");
+    const essi = await officer("MAWULI", "essi@mawuli.example", "COMPLIANCE");
     const [ready] = (await essi.get("/v1/console/attention")).body;
     const res = await essi.post(`/v1/console/payouts/${ready.payoutId}/release`);
     expect(res.status).toBe(403);

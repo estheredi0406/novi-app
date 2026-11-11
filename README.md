@@ -1,6 +1,6 @@
 # Novi
 
-Novi is a digital tontine for women informal traders in Lomé, Togo. A group of traders saves together on a fixed rhythm (for example 5 000 FCFA every Friday, or 1 000 FCFA every market day), and at each round one member receives the whole pot. **Novi never holds the money**: each group's savings sit in an account at a licensed microfinance institution (FUCEC-Togo in the pilot). Novi applies the group's rules, shows every member the same record, and instructs the institution when a pot is due. Each member's payment history becomes a signed record that a lender can trust, and the path to a microloan.
+Novi is a digital tontine for women informal traders in Lomé, Togo. A group of traders saves together on a fixed rhythm (for example 5 000 FCFA every Friday, or 1 000 FCFA every market day), and at each round one member receives the whole pot. **Novi never holds the money**: each group's savings sit in an account at a licensed microfinance institution (Caisse Mawuli in the pilot). Novi applies the group's rules, shows every member the same record, and instructs the institution when a pot is due. Each member's payment history becomes a signed record that a lender can trust, and the path to a microloan.
 
 > Mission: increase access to safe savings and formal credit for women informal traders in Lomé, Togo, by building a digital tontine that keeps their group savings with a licensed microfinance institution and turns their payment history into a record lenders can trust.
 
@@ -96,7 +96,7 @@ npm install
    Scan the QR code with Expo Go (iPhone) or install the Android build (`eas build --platform android --profile preview`). In-app calls, in-app payment and document photos need the installed build.
 7. **First MFI administrator** (once):
    ```bash
-   cd apps/api && npm run staff:create -- FUCEC admin@example.org "Full Name" ADMIN
+   cd apps/api && npm run staff:create -- MAWULI admin@example.org "Full Name" ADMIN
    ```
 
 Test identities for the mock ID check are listed in `docs/test-identities.md`.

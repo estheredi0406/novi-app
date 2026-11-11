@@ -47,8 +47,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Novi utilise vos photos pour envoyer vos pièces à FUCEC, seulement quand vous le choisissez.",
-          "cameraPermission": "Novi utilise l'appareil photo pour photographier vos pièces pour FUCEC."
+          "photosPermission": "Novi utilise vos photos pour envoyer vos pièces à votre IMF, seulement quand vous le choisissez.",
+          "cameraPermission": "Novi utilise l'appareil photo pour photographier vos pièces pour votre IMF."
         }
       ],
       [

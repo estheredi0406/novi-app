@@ -10,7 +10,7 @@ import { fonts } from "../theme/typography";
 import { Glyph } from "./art/Glyph";
 
 // D89: where she meets the loan request. On home it appears only when it
-// matters: her record now opens a request, or FUCEC has answered or is
+// matters: her record now opens a request, or the MFI has answered or is
 // studying hers. On her record ("always"), it is always there, since her
 // record is what opens the door: the button when she qualifies, otherwise
 // a link to the conditions.
@@ -32,7 +32,7 @@ export function LoanCard({ always = false }: { always?: boolean }) {
   );
 
   if (!page) return null;
-  const mfi = page.mfiName ?? "FUCEC";
+  const mfi = page.mfiName ?? t("loan.yourMfi");
   const latest = page.requests[0];
   const recentDays = latest
     ? (Date.now() - new Date(latest.decidedAt ?? latest.createdAt).getTime()) /

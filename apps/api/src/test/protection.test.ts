@@ -44,7 +44,7 @@ function as(accessToken: string) {
 }
 type Client = ReturnType<typeof as>;
 
-// Akossiwa's started group of three, held at FUCEC-Togo.
+// Akossiwa's started group of three, held at Caisse Mawuli.
 async function activeGroup() {
   const people = [
     await signedUpMember(),
@@ -98,7 +98,7 @@ async function roundWithout(groupId: string, members: Client[], number: number, 
   await runPayouts();
 }
 
-async function officer(mfiCode = "FUCEC", email = "mawuli@fucec.example") {
+async function officer(mfiCode = "MAWULI", email = "mawuli@mawuli.example") {
   await prisma.mfi.upsert({ where: { code: mfiCode }, create: { code: mfiCode, name: `${mfiCode} test` }, update: {} });
   const { password, totpSecret } = await createStaff({ mfiCode, email, name: "Mawuli Adzo" });
   // Past his first login: his own password is set (D81).
@@ -177,7 +177,7 @@ describe("the officer at the counter (D69)", () => {
 
   it("does not find members of another MFI's groups", async () => {
     await activeGroup();
-    const other = await officer("COOPEC", "ama@coopec.example");
+    const other = await officer("KARA", "ama@kara.example");
     expect((await other.get(`/v1/console/members?phone=${encodeURIComponent(PHONES[1] as string)}`)).status).toBe(404);
   });
 });

@@ -224,7 +224,7 @@ type StaffViewer = { staffId: string; mfiId: string };
 // A lender opens a shared record. Every opening is logged, so she can see it
 // was looked at (D37). The facts are shown only while the share is valid and
 // its signature still matches. A record shared with one MFI shows nothing to
-// anyone else, not even with its code: only "shared with FUCEC-Togo" (D54).
+// anyone else, not even with its code: only "shared with Caisse Mawuli" (D54).
 export async function verifyShare(
   shareId: string,
   now = new Date(),

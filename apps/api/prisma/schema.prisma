@@ -282,7 +282,7 @@ model AuditEvent {
 // account it opens; Novi never holds money (D2).
 model Mfi {
   id        String   @id @default(uuid())
-  code      String   @unique // short name used in code and logs, e.g. FUCEC
+  code      String   @unique // short name used in code and logs, e.g. MAWULI
   name      String   // shown to members on every money screen
   // D105: a full pot up to this amount leaves on its due date without an
   // officer; above it, two different officers approve. Set by the admin;

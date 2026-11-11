@@ -8,8 +8,8 @@ import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
 
-// The demo's partner MFI. Comes from the group's MFI once groups exist (Sprint 2).
-const MFI_NAME = "FUCEC-Togo";
+// The pilot's default partner MFI, a fictional name (D120): no group exists yet at sign-up.
+const MFI_NAME = "Caisse Mawuli";
 
 // Screen A11: identity could not be confirmed. No account was created; she is
 // sent to her MFI, which can check her card in person (D12).

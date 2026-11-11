@@ -146,7 +146,7 @@ describe("paying a contribution", () => {
     expect(receipt?.to).toBe("+22890000002");
     expect(receipt?.text).toContain("7 500 FCFA");
     expect(receipt?.text).toContain("tour 1");
-    expect(receipt?.text).toContain("FUCEC-Togo");
+    expect(receipt?.text).toContain("Caisse Mawuli");
   });
 
   it("credits a payment once, however many times the webhook arrives or she checks (D45)", async () => {

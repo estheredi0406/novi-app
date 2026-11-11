@@ -32,18 +32,18 @@ const as = (token: string) => ({
 
 async function staff() {
   await prisma.mfi.upsert({
-    where: { code: "FUCEC" },
-    create: { code: "FUCEC", name: "FUCEC-Togo" },
+    where: { code: "MAWULI" },
+    create: { code: "MAWULI", name: "Caisse Mawuli" },
     update: {},
   });
   await createStaff({
-    mfiCode: "FUCEC",
-    email: "agent@fucec.example",
+    mfiCode: "MAWULI",
+    email: "agent@mawuli.example",
     name: "Mawuli Adzo",
   });
   await createStaff({
-    mfiCode: "FUCEC",
-    email: "admin@fucec.example",
+    mfiCode: "MAWULI",
+    email: "admin@mawuli.example",
     name: "Kafui Amegah",
     role: "ADMIN",
   });
@@ -118,8 +118,8 @@ describe("staff alerts (D90)", () => {
     const groupId = await groupToValidate();
     expect(sent).toHaveLength(1);
     expect(sent[0]?.to.map((t) => t.email).sort()).toEqual([
-      "admin@fucec.example",
-      "agent@fucec.example",
+      "admin@mawuli.example",
+      "agent@mawuli.example",
     ]);
     expect(sent[0]?.subject).toContain("Pagnes Assigamé");
     expect(sent[0]?.html).toContain(`#/groups/${groupId}`);
@@ -140,7 +140,7 @@ describe("staff alerts (D90)", () => {
     await runAlerts(new Date("2026-11-09T13:00:00Z")); // 4.5 working hours
     expect(escalations()).toHaveLength(1);
     expect(escalations()[0]?.to.map((t) => t.email)).toEqual([
-      "admin@fucec.example",
+      "admin@mawuli.example",
     ]);
 
     await runAlerts(new Date("2026-11-09T15:00:00Z"));

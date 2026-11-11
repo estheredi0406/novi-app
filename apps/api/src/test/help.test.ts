@@ -44,7 +44,7 @@ function as(accessToken: string) {
 }
 type Client = ReturnType<typeof as>;
 
-// Akossiwa (organiser), Abla and Koffi, in a started group at FUCEC-Togo.
+// Akossiwa (organiser), Abla and Koffi, in a started group at Caisse Mawuli.
 async function activeGroup() {
   const people = [
     await signedUpMember(),
@@ -111,9 +111,9 @@ async function pay(member: Client, groupId: string, round: number) {
 
 async function officer(role: "OFFICER" | "ADMIN" = "OFFICER") {
   const email =
-    role === "ADMIN" ? "kafui@fucec.example" : "mawuli@fucec.example";
+    role === "ADMIN" ? "kafui@mawuli.example" : "mawuli@mawuli.example";
   const { password, totpSecret } = await createStaff({
-    mfiCode: "FUCEC",
+    mfiCode: "MAWULI",
     email,
     name: "Mawuli Adzo",
     role,

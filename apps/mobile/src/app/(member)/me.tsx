@@ -18,7 +18,7 @@ import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
 // Me, as on the approved "Me: wax" board: who she is, her language, the
-// things she may change, and logging out. The FUCEC agency map row waits for
+// things she may change, and logging out. The agency map row waits for
 // the map itself (no link that leads nowhere).
 export default function MeScreen() {
   const { pilotSmsInbox } = useServerConfig();

@@ -106,7 +106,7 @@ describe("her savings record", () => {
       totalSavedFcfa: 5000,
     });
     expect(record.groups).toEqual([
-      expect.objectContaining({ name: "Pagnes Assigamé", mfiName: "FUCEC-Togo", amountFcfa: 5000, paid: 1, onTime: 1 }),
+      expect.objectContaining({ name: "Pagnes Assigamé", mfiName: "Caisse Mawuli", amountFcfa: 5000, paid: 1, onTime: 1 }),
     ]);
   });
 
@@ -247,7 +247,7 @@ describe("sharing it with a lender (D50)", () => {
 
 // A logged-in officer of the given MFI, for records shared by name.
 async function officer(mfiCode: string, email: string) {
-  await prisma.mfi.upsert({ where: { code: mfiCode }, create: { code: mfiCode, name: `${mfiCode}-Togo` }, update: {} });
+  await prisma.mfi.upsert({ where: { code: mfiCode }, create: { code: mfiCode, name: mfiCode === "MAWULI" ? "Caisse Mawuli" : `Caisse ${mfiCode}` }, update: {} });
   const { password, totpSecret } = await createStaff({ mfiCode, email, name: "Mawuli Adzo" });
   // Past his first login: his own password is set (D81).
   await prisma.staffUser.update({ where: { email }, data: { mustChangePassword: false } });
@@ -259,68 +259,68 @@ async function officer(mfiCode: string, email: string) {
 describe("sharing it with one MFI by name (D54)", () => {
   it("lists the MFIs she can choose", async () => {
     const { tokens } = await signedUpMember();
-    await prisma.mfi.create({ data: { code: "FUCEC", name: "FUCEC-Togo" } });
+    await prisma.mfi.create({ data: { code: "MAWULI", name: "Caisse Mawuli" } });
     const lenders = (await as(tokens.accessToken).get("/v1/me/record/lenders")).body;
-    expect(lenders).toEqual([{ code: "FUCEC", name: "FUCEC-Togo" }]);
+    expect(lenders).toEqual([{ code: "MAWULI", name: "Caisse Mawuli" }]);
   });
 
   it("lets that MFI's officer open it in the console, and her see it was opened", async () => {
     const { tokens } = await signedUpMember();
     const akossiwa = as(tokens.accessToken);
-    const fucec = await officer("FUCEC", "mawuli@fucec.example");
-    const share = (await akossiwa.post("/v1/me/record/shares", { mfiCode: "FUCEC" })).body;
-    expect(share.sharedWith).toEqual({ code: "FUCEC", name: "FUCEC-Togo" });
+    const mawuli = await officer("MAWULI", "mawuli@mawuli.example");
+    const share = (await akossiwa.post("/v1/me/record/shares", { mfiCode: "MAWULI" })).body;
+    expect(share.sharedWith).toEqual({ code: "MAWULI", name: "Caisse Mawuli" });
 
-    const listed = (await fucec.client.get("/v1/console/records")).body;
+    const listed = (await mawuli.client.get("/v1/console/records")).body;
     expect(listed).toEqual([
       expect.objectContaining({ shareId: share.id, legalName: "Akossiwa Afi Mensah", views: 0 }),
     ]);
-    const opened = (await fucec.client.get(`/v1/console/records/${share.id}`)).body;
+    const opened = (await mawuli.client.get(`/v1/console/records/${share.id}`)).body;
     expect(opened).toMatchObject({ status: "VALID", record: { legalName: "Akossiwa Afi Mensah" } });
-    const document = await fucec.client.get(`/v1/console/records/${share.id}/document`);
+    const document = await mawuli.client.get(`/v1/console/records/${share.id}/document`);
     expect(document.headers["content-type"]).toContain("text/html");
     expect(document.text).toContain("Akossiwa Afi Mensah");
 
     const [mine] = (await akossiwa.get("/v1/me/record/shares")).body;
     expect(mine.views).toBe(2); // the facts, then the document
     const view = await prisma.recordView.findFirstOrThrow({ where: { shareId: share.id } }); // both by her officer
-    expect(view.staffId).toBe(fucec.staffId);
+    expect(view.staffId).toBe(mawuli.staffId);
   });
 
   it("tells her by SMS when an officer opens it, if she has no app (D106)", async () => {
     const { tokens } = await signedUpMember();
-    const fucec = await officer("FUCEC", "mawuli@fucec.example");
-    const share = (await as(tokens.accessToken).post("/v1/me/record/shares", { mfiCode: "FUCEC" })).body;
+    const mawuli = await officer("MAWULI", "mawuli@mawuli.example");
+    const share = (await as(tokens.accessToken).post("/v1/me/record/shares", { mfiCode: "MAWULI" })).body;
     if (!(sms instanceof MockSmsProvider)) throw new Error("Tests require the mock SMS provider.");
     const before = sms.sent.length;
-    await fucec.client.get(`/v1/console/records/${share.id}`);
+    await mawuli.client.get(`/v1/console/records/${share.id}`);
     expect(sms.sent.slice(before)).toEqual([
-      expect.objectContaining({ to: "+22890000001", text: "Novi : FUCEC-Togo a ouvert votre relevé Novi aujourd'hui." }),
+      expect.objectContaining({ to: "+22890000001", text: "Novi : Caisse Mawuli a ouvert votre relevé Novi aujourd'hui." }),
     ]);
   });
 
   it("shows nothing to anyone else, even with the code", async () => {
     const { tokens } = await signedUpMember();
-    await officer("FUCEC", "mawuli@fucec.example");
-    const wages = await officer("WAGES", "officer@wages.example");
-    const share = (await as(tokens.accessToken).post("/v1/me/record/shares", { mfiCode: "FUCEC" })).body;
+    await officer("MAWULI", "mawuli@mawuli.example");
+    const kara = await officer("KARA", "officer@kara.example");
+    const share = (await as(tokens.accessToken).post("/v1/me/record/shares", { mfiCode: "MAWULI" })).body;
 
     const publicCheck = (await request(app).get(`/v1/verify/${share.id}`)).body;
-    expect(publicCheck).toMatchObject({ status: "PRIVATE", sharedWith: "FUCEC-Togo", record: null });
-    expect((await wages.client.get(`/v1/console/records/${share.id}`)).status).toBe(404);
-    expect((await wages.client.get("/v1/console/records")).body).toEqual([]);
+    expect(publicCheck).toMatchObject({ status: "PRIVATE", sharedWith: "Caisse Mawuli", record: null });
+    expect((await kara.client.get(`/v1/console/records/${share.id}`)).status).toBe(404);
+    expect((await kara.client.get("/v1/console/records")).body).toEqual([]);
     expect(await prisma.recordView.count()).toBe(0);
   });
 
   it("disappears from the console once she withdraws it", async () => {
     const { tokens } = await signedUpMember();
     const akossiwa = as(tokens.accessToken);
-    const fucec = await officer("FUCEC", "mawuli@fucec.example");
-    const share = (await akossiwa.post("/v1/me/record/shares", { mfiCode: "FUCEC" })).body;
+    const mawuli = await officer("MAWULI", "mawuli@mawuli.example");
+    const share = (await akossiwa.post("/v1/me/record/shares", { mfiCode: "MAWULI" })).body;
     await akossiwa.post(`/v1/me/record/shares/${share.id}/revoke`);
 
-    expect((await fucec.client.get("/v1/console/records")).body).toEqual([]);
-    expect((await fucec.client.get(`/v1/console/records/${share.id}`)).body).toMatchObject({
+    expect((await mawuli.client.get("/v1/console/records")).body).toEqual([]);
+    expect((await mawuli.client.get(`/v1/console/records/${share.id}`)).body).toMatchObject({
       status: "REVOKED",
       record: null,
     });

@@ -44,7 +44,7 @@ describe("creating a group", () => {
     expect(res.body).toMatchObject({
       name: "Pagnes Assigamé",
       state: "DRAFT",
-      mfiName: "FUCEC-Togo",
+      mfiName: "Caisse Mawuli",
       myRole: "ORGANISER",
       rules: { version: 1, amountFcfa: 5000, frequency: "WEEKLY", dueDay: 5, size: 10, payoutOrder: "DRAWN" },
     });

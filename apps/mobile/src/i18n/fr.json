@@ -781,7 +781,8 @@
     "swapNotPossible": "Cet échange n'est plus possible : un des tours est déjà payé ou tombe aujourd'hui, ou une demande est déjà en cours."
   },
   "loan": {
-    "menu": "Crédit FUCEC",
+    "menu": "Crédit",
+    "yourMfi": "votre IMF",
     "menuSub": "Votre historique Novi vous ouvre une demande",
     "title": "Crédit {{mfi}}",
     "intro": "{{mfi}} prête et décide. Novi montre votre sérieux.",
@@ -795,7 +796,7 @@
     },
     "months_other": "{{count}} mois",
     "shareNote": "En envoyant, vous acceptez que {{mfi}} voie votre historique Novi pour cette demande.",
-    "send": "Envoyer à FUCEC",
+    "send": "Envoyer la demande",
     "confirmTitle": "Envoyer la demande ?",
     "confirm": "{{amount}} demandés à {{mfi}}.",
     "pending": "Demande chez {{mfi}}",
@@ -893,7 +894,7 @@
     "chat": "Discussion",
     "more": "Plus",
     "forYou": "Pour vous",
-    "tileLoan": "Crédit FUCEC",
+    "tileLoan": "Crédit",
     "tileNew": "Nouveau groupe",
     "tileShare": "Partager mon relevé",
     "latest": "Dernières nouvelles",

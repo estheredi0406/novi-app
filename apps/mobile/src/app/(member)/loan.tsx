@@ -70,7 +70,7 @@ function checkText(t: TFunction, c: LoanCheck): [string, string] {
   }
 }
 
-// D89, D91: "Crédit FUCEC". The MFI's conditions with her figures; when they
+// D89, D91: "Crédit". The MFI's conditions with her figures; when they
 // are met, the request. Then, once preselected, her documents: she agrees,
 // photographs each one, and sees the officer's answer. When all are accepted
 // she goes to the agency with the originals; the MFI decides there.
@@ -105,13 +105,13 @@ export default function LoanScreen() {
   if (!page) {
     return (
       <Screen>
-        <BackHeader listenText={t("loan.title", { mfi: "FUCEC" })} />
+        <BackHeader listenText={t("loan.menu")} />
         <ErrorMessage messageKey={error} />
       </Screen>
     );
   }
 
-  const mfi = page.mfiName ?? "FUCEC";
+  const mfi = page.mfiName ?? t("loan.yourMfi");
   const latest = page.requests.find((r) => r.status !== "WITHDRAWN");
   const latestOpen = latest?.status === "PENDING" || latest?.status === "PRESELECTED";
   const value = Number(amount.replace(/\D/g, ""));

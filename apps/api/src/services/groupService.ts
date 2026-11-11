@@ -50,9 +50,16 @@ async function refuseIfOwing(userId: string): Promise<void> {
     throw new AppError("DEBT_OUTSTANDING", 409);
 }
 
-// The demo works with one partner MFI (brief, section 3). It is created the
-// first time a group needs it; with several MFIs, the organiser will choose.
-const PARTNER_MFI = { code: "FUCEC", name: "FUCEC-Togo" };
+// The pilot's partner MFIs have fictional names (D120): Novi has no agreement
+// with any real institution, so it must not show one as its partner. The
+// default partner is created the first time a group needs it; the second one
+// is created with its first officer (scripts/createStaff.ts), so a group can
+// never choose an MFI that has nobody to validate it.
+export const PILOT_MFIS = [
+  { code: "MAWULI", name: "Caisse Mawuli" },
+  { code: "KARA", name: "Caisse Kara" },
+] as const;
+const PARTNER_MFI = PILOT_MFIS[0];
 
 export type RulesInput = {
   amountFcfa: number;
