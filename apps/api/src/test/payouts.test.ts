@@ -31,6 +31,8 @@ const SMALL_GROUP = {
   payoutOrder: "DRAWN",
 };
 const PAST = new Date("2026-01-02T00:00:00Z");
+// D114: so many minutes from now, for the waits between automatic retries.
+const later = (minutes: number) => new Date(Date.now() + minutes * 60_000);
 
 function as(accessToken: string) {
   const auth = (req: request.Test) => req.set("Authorization", `Bearer ${accessToken}`);
@@ -213,7 +215,7 @@ describe("when the MFI is slow or refuses", () => {
     expect((await roundOne(groupId)).payout?.status).toBe("PAID");
   });
 
-  it("tries a refused transfer again on the next run", async () => {
+  it("tries a refused transfer again by itself after 5 minutes (D114)", async () => {
     const { groupId, members } = await activeGroup();
     for (const member of members) await pay(member, groupId, 1);
     await makeDue(groupId, 1);
@@ -222,9 +224,33 @@ describe("when the MFI is slow or refuses", () => {
     await release(groupId);
     expect((await roundOne(groupId)).payout?.status).toBe("FAILED");
 
-    await runPayouts();
-    expect((await roundOne(groupId)).payout?.status).toBe("PAID");
+    // Not every minute: the next run, a minute later, leaves it alone.
+    await runPayouts(later(1));
+    expect((await roundOne(groupId)).payout).toMatchObject({ status: "FAILED", attempts: 1 });
+
+    await runPayouts(later(6));
+    expect((await roundOne(groupId)).payout).toMatchObject({ status: "PAID", attempts: 2 });
     expect(await prisma.ledgerEntry.count({ where: { groupId, type: "PAYOUT" } })).toBe(1);
+  });
+
+  it("stops after three automatic retries, and tells the officers once (D114)", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    await makeDue(groupId, 1);
+    await runPayouts();
+    mockMfi.nextPayout = "FAILED";
+    await release(groupId);
+    for (const minutes of [6, 31, 121]) {
+      mockMfi.nextPayout = "FAILED";
+      await runPayouts(later(minutes));
+    }
+    expect((await roundOne(groupId)).payout).toMatchObject({ status: "FAILED", attempts: 4 });
+
+    // A day later, still nothing sent by itself: an officer decides now.
+    await runPayouts(later(24 * 60));
+    expect((await roundOne(groupId)).payout).toMatchObject({ status: "FAILED", attempts: 4 });
+    const payoutId = (await roundOne(groupId)).payout?.id as string;
+    expect(await prisma.staffAlert.count({ where: { kind: "TRANSFER_FAILED", refId: payoutId } })).toBe(1);
   });
 });
 
@@ -268,6 +294,15 @@ describe("her answer once the pot arrives (D63)", () => {
     expect((await receiver.post(`/v1/me/payouts/${payoutId}/receipt`, { received: false })).status).toBe(409);
     const seen = (await receiver.get(`/v1/groups/${groupId}/rounds`)).body;
     expect(seen[0]).toMatchObject({ payoutId, receipt: "CONFIRMED" });
+  });
+
+  it("asks the sender again on a \"not received\", for the officer to start from (D114)", async () => {
+    const { round, receiver } = await paidOut();
+    const payoutId = round.payout?.id as string;
+    expect((await receiver.post(`/v1/me/payouts/${payoutId}/receipt`, { received: false })).status).toBe(204);
+    const payout = await prisma.payout.findUniqueOrThrow({ where: { id: payoutId } });
+    expect(payout).toMatchObject({ receiptCheck: "PAID", status: "PAID" });
+    expect(payout.receiptCheckedAt).not.toBeNull();
   });
 
   it("lets nobody else answer for her", async () => {

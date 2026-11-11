@@ -753,7 +753,7 @@
     "debitedNo": "No",
     "debitedHint": "Yes: {{mfi}} checks, do not pay a second time. No: you can pay again.",
     "reportRejected": "{{mfi}} did not find this payment with the operator. Please pay again.",
-    "reportedNote": "Reported. {{mfi}} is checking this payment with the operator."
+    "reportedNote": "Reported. Novi is checking again with the operator. If it is not confirmed within 1 hour, {{mfi}} checks its statement."
   },
   "help": {
     "title": "Helping each other",

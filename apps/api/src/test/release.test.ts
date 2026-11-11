@@ -5,6 +5,7 @@ import { prisma } from "../lib/db.js";
 import { base32Decode, codeForStep, totpStep } from "../lib/totp.js";
 import { payments } from "../providers/index.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
+import { runPaymentChecks } from "../services/exceptionService.js";
 import { runPayouts } from "../services/payoutService.js";
 import { createStaff } from "../services/staffService.js";
 import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
@@ -57,6 +58,9 @@ async function pay(member: Client, groupId: string, round: number, outcome: "PAI
     .send(delivery.body);
   return contribution.id;
 }
+
+// D114: so many minutes from now, for the automatic checks.
+const later = (minutes: number) => new Date(Date.now() + minutes * 60_000);
 
 const makeDue = (groupId: string, number: number) =>
   prisma.round.update({ where: { groupId_number: { groupId, number } }, data: { dueDate: PAST } });
@@ -157,11 +161,15 @@ describe("large pots need two officers (D105)", () => {
 });
 
 describe("payments a member says left her account (D105, D110)", () => {
+  // Reported, and still not confirmed by the 15 min and 1 h checks (D114):
+  // it is now the officer's.
   async function reported() {
     const g = await activeGroup();
     const abla = g.members[1] as Client;
     const contributionId = await pay(abla, g.groupId, 1, "FAILED");
     expect((await abla.post(`/v1/contributions/${contributionId}/report`)).status).toBe(200);
+    await runPaymentChecks(later(16));
+    await runPaymentChecks(later(61));
     return { ...g, abla, contributionId };
   }
 
@@ -212,5 +220,66 @@ describe("payments a member says left her account (D105, D110)", () => {
     await pay(abla, groupId, 1);
     const after = (await abla.get(`/v1/groups/${groupId}/rounds/1`)).body;
     expect(after).toMatchObject({ myStatus: "PAID", myReportRejected: false });
+  });
+});
+
+describe("payments checked again by Novi itself (D114)", () => {
+  // She paid; the operator confirmed it, but the webhook was lost.
+  async function lostWebhook() {
+    const g = await activeGroup();
+    const abla = g.members[1] as Client;
+    const asked = await abla.post(`/v1/groups/${g.groupId}/rounds/1/pay`, { operator: "TOGOCEL" });
+    const row = await prisma.contribution.findUniqueOrThrow({ where: { id: asked.body.id } });
+    return { ...g, abla, contributionId: row.id, providerRef: row.providerRef as string };
+  }
+
+  it("credits a payment whose confirmation was lost, at the 15 min check, with no one involved", async () => {
+    const { contributionId, providerRef } = await lostWebhook();
+    mockPayments.settle(providerRef, "PAID"); // the webhook never arrives
+    await runPaymentChecks(later(5));
+    expect((await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } })).status).toBe("PENDING");
+
+    expect(await runPaymentChecks(later(16))).toMatchObject({ checked: 1, found: 1 });
+    expect((await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } })).status).toBe("PAID");
+    expect(await prisma.ledgerEntry.count({ where: { contributionId } })).toBe(1);
+  });
+
+  it("shows a reported payment to the officers only after the 1 h check, and emails them then", async () => {
+    const { abla, groupId } = await activeGroup().then((g) => ({ ...g, abla: g.members[1] as Client }));
+    const contributionId = await pay(abla, groupId, 1, "FAILED");
+    await abla.post(`/v1/contributions/${contributionId}/report`);
+    const mawuli = await officer("mawuli@fucec.example", "Mawuli Adzo");
+
+    await runPaymentChecks(later(16));
+    expect((await mawuli.get("/v1/console/reported")).body).toEqual([]);
+    expect(await prisma.staffAlert.count({ where: { kind: "PAYMENT_REPORTED", refId: contributionId } })).toBe(0);
+    // She still cannot pay twice while Novi checks.
+    expect((await abla.post(`/v1/groups/${groupId}/rounds/1/pay`, { operator: "TOGOCEL" })).status).toBe(409);
+
+    await runPaymentChecks(later(61));
+    expect((await mawuli.get("/v1/console/reported")).body).toEqual([
+      expect.objectContaining({ contributionId, autoChecks: 2 }),
+    ]);
+    expect(await prisma.staffAlert.count({ where: { kind: "PAYMENT_REPORTED", refId: contributionId } })).toBe(1);
+  });
+
+  it("clears a reported payment by itself if the operator confirms it later", async () => {
+    const { contributionId, providerRef, abla } = await lostWebhook();
+    await abla.post(`/v1/contributions/${contributionId}/report`);
+    await runPaymentChecks(later(16));
+    await runPaymentChecks(later(61));
+    const mawuli = await officer("mawuli@fucec.example", "Mawuli Adzo");
+    expect((await mawuli.get("/v1/console/reported")).body).toHaveLength(1);
+
+    mockPayments.settle(providerRef, "PAID"); // the operator, late
+    await runPaymentChecks(later(6 * 60 + 1));
+    expect((await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } })).status).toBe("PAID");
+    expect((await mawuli.get("/v1/console/reported")).body).toEqual([]);
+  });
+
+  it("asks four times at most, then leaves it", async () => {
+    const { contributionId } = await lostWebhook();
+    for (const minutes of [16, 61, 6 * 60 + 1, 24 * 60 + 1, 48 * 60]) await runPaymentChecks(later(minutes));
+    expect((await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } })).autoChecks).toBe(4);
   });
 });

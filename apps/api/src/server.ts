@@ -1,6 +1,7 @@
 import { app } from "./app.js";
 import { attachCallSignal } from "./services/callSignal.js";
 import { startAlertJob } from "./services/alertService.js";
+import { startPaymentCheckJob } from "./services/exceptionService.js";
 import { startPayoutJob } from "./services/payoutService.js";
 import { startReminderJob } from "./services/reminderService.js";
 
@@ -21,3 +22,5 @@ startPayoutJob();
 startReminderJob();
 // D90: escalates what waits too long, and sends the 08:00 summary to staff.
 startAlertJob();
+// D114: asks the operator again about payments it has not confirmed.
+startPaymentCheckJob();

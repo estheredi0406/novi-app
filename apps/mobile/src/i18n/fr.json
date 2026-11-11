@@ -753,7 +753,7 @@
     "debitedNo": "Non",
     "debitedHint": "Oui : {{mfi}} vérifie, ne payez pas une deuxième fois. Non : vous pouvez payer à nouveau.",
     "reportRejected": "{{mfi}} n'a pas trouvé ce paiement chez l'opérateur. Payez à nouveau.",
-    "reportedNote": "Signalé. {{mfi}} vérifie ce paiement avec l'opérateur."
+    "reportedNote": "Signalé. Novi revérifie avec l'opérateur. Sans confirmation d'ici 1 h, {{mfi}} vérifie son relevé."
   },
   "help": {
     "title": "Entraide",

@@ -472,6 +472,11 @@ model Contribution {
   // D105: the officer's answer after checking the operator's statement.
   reportCheckedById String?
   reportRejectedAt  DateTime? // not found: she pays again
+  // D114: Novi asks the operator again by itself (15 min, 1 h, 6 h, 24 h);
+  // a reported payment reaches the officers only once the 1 h check failed.
+  autoChecks    Int       @default(0)
+  lastCheckedAt DateTime?
+  escalatedAt   DateTime?
   operator    MobileOperator
   payerPhone  String             // her verified Novi number: Novi collects only from her own wallet
   status      ContributionStatus @default(PENDING)
@@ -543,6 +548,13 @@ model Payout {
   receiptDisputedAt  DateTime? // "I did not receive it": shown to the officer
   toNextOfKin        Boolean   @default(false) // D69: sent to her next of kin after her death
   coverRepaidFcfa    Int       @default(0) // D69: her own unpaid covers, repaid from her pot first
+  // D114: a refused transfer is tried again by itself (after 5 min, 30 min,
+  // 2 h); after that, an officer looks at it.
+  attempts           Int       @default(0)
+  failedAt           DateTime?
+  // D114: "not received": what the sender said when Novi asked it again.
+  receiptCheck       String?   // PAID, SENT, FAILED, or UNKNOWN when it did not answer
+  receiptCheckedAt   DateTime?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
@@ -943,7 +955,7 @@ model LoanRequest {
 model StaffAlert {
   id          String    @id @default(uuid())
   mfiId       String
-  kind        String    // GROUP_TO_VALIDATE, POT_READY, POT_DISPUTED, LOAN_REQUEST, ADVANCE_TO_SEND, PAYMENT_REPORTED
+  kind        String    // GROUP_TO_VALIDATE, POT_READY, POT_DISPUTED, LOAN_REQUEST, ADVANCE_TO_SEND, PAYMENT_REPORTED, TRANSFER_FAILED
   refId       String    // the group, payout, loan request or advance
   createdAt   DateTime  @default(now())
   escalatedAt DateTime?

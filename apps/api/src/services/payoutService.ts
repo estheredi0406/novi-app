@@ -27,6 +27,21 @@ import { coverMissing, repayFromPot, returnReserve } from "./reserveService.js";
 // the same payoutId as the same transfer, so asking again never sends twice.
 const STUCK_AFTER_MS = 10 * 60 * 1000;
 
+// D114: a transfer the sender refused is tried again by itself, three times,
+// spaced out (a wallet briefly unavailable, an operator outage); after that,
+// it waits for an officer, who is told: the number or the wallet is probably
+// what needs fixing, and trying every minute would not help.
+export const RETRY_AFTER_MS = [5 * 60_000, 30 * 60_000, 2 * 3_600_000];
+export const MAX_ATTEMPTS = 1 + RETRY_AFTER_MS.length;
+
+// When a refused transfer will next be tried by itself; null once the
+// automatic tries are used up.
+export function nextRetryAt(payout: { status: string; attempts: number; failedAt: Date | null }): Date | null {
+  if (payout.status !== "FAILED" || payout.attempts >= MAX_ATTEMPTS) return null;
+  const wait = RETRY_AFTER_MS[Math.max(0, payout.attempts - 1)] ?? 0;
+  return new Date((payout.failedAt ?? new Date(0)).getTime() + wait);
+}
+
 export async function runPayouts(
   now = new Date(),
   groupId?: string,
@@ -250,6 +265,7 @@ export async function releasePayout(
         requestedAt: now,
         releasedAt: now,
         releasedById: staffId,
+        attempts: { increment: 1 }, // D114: the first try
       },
     });
     if (moved.count === 0) return false;
@@ -321,11 +337,33 @@ async function sendToMfi(
     console.error(`MFI did not accept payout ${payoutId}:`, err);
     await prisma.payout.update({
       where: { id: payoutId },
-      data: { status: "FAILED" },
+      data: { status: "FAILED", failedAt: new Date() },
     });
+    await alertIfLastTry(payoutId);
     return;
   }
   await applyAnswer(payoutId, answer);
+}
+
+// D114: what the sender says now about a transfer it reported as paid.
+// Recorded on the payout for the console; never changes the ledger by
+// itself: the member said the money did not arrive, so an officer decides.
+async function recheckTransfer(
+  payout: { id: string; mfiRef: string | null; sentVia: string | null },
+  mfiId: string,
+  now: Date,
+): Promise<string> {
+  let check = "UNKNOWN";
+  if (payout.mfiRef) {
+    try {
+      const sender = payout.sentVia === "fedapay" ? (await accountForMfi(mfiId)).payouts : mfi;
+      check = (await sender.getPayoutStatus(payout.mfiRef)).status;
+    } catch (err) {
+      console.warn(`Transfer ${payout.id} not checked again:`, err instanceof Error ? err.message.slice(0, 200) : err);
+    }
+  }
+  await prisma.payout.update({ where: { id: payout.id }, data: { receiptCheck: check, receiptCheckedAt: now } });
+  return check;
 }
 
 // Her answer once the pot has arrived (D63): received, or not. Only the
@@ -364,6 +402,15 @@ export async function answerReceipt(
       where: { id: payout.roundId },
       include: { group: true },
     });
+    // D114: before an officer looks, Novi asks the sender again what became
+    // of the transfer, so the officer starts from its answer.
+    const check = round ? await recheckTransfer(payout, round.group.mfiId, now) : "UNKNOWN";
+    const said: Record<string, string> = {
+      PAID: `${payout.sentVia === "fedapay" ? "FedaPay" : "L'IMF"} confirme l'envoi au ${payout.phone}${payout.mfiRef ? ` (réf. ${payout.mfiRef.replace(/^fedapay:/, "")})` : ""}.`,
+      SENT: "Le virement est encore en cours chez l'opérateur.",
+      FAILED: "Le virement apparaît maintenant comme refusé.",
+      UNKNOWN: "Novi n'a pas pu obtenir de réponse sur ce virement.",
+    };
     if (round) {
       await alertStaff({
         mfiId: round.group.mfiId,
@@ -373,6 +420,7 @@ export async function answerReceipt(
         subject: `Cagnotte non reçue : ${round.group.name}, tour ${round.number}`,
         lines: [
           `La bénéficiaire du tour ${round.number} de « ${round.group.name} » dit ne pas avoir reçu sa cagnotte.`,
+          said[check] ?? "",
           "Vérifiez ce transfert dans votre système.",
         ],
       });
@@ -412,28 +460,61 @@ async function claimForSending(
   details: PayoutDetails,
 ): Promise<string | null> {
   const sending = { status: "SENDING" as const, requestedAt: now, ...details };
-  if (!round.payout) return null;
+  const payout = round.payout;
+  if (!payout) return null;
+  // D114: refused earlier: tried again only when its wait is over, and only
+  // MAX_ATTEMPTS times in all. Each try is counted.
+  if (payout.status === "FAILED") {
+    const at = nextRetryAt(payout);
+    if (!at || at > now) return null;
+    const claimed = await prisma.payout.updateMany({
+      where: { id: payout.id, status: "FAILED", attempts: payout.attempts },
+      data: { ...sending, attempts: { increment: 1 } },
+    });
+    return claimed.count === 1 ? payout.id : null;
+  }
+  // Asked, but no answer came back: asked again (the same transfer, D49).
   const claimed = await prisma.payout.updateMany({
     where: {
-      id: round.payout.id,
-      OR: [
-        { status: "FAILED" },
-        {
-          status: "SENDING",
-          requestedAt: { lt: new Date(now.getTime() - STUCK_AFTER_MS) },
-        },
-      ],
+      id: payout.id,
+      status: "SENDING",
+      requestedAt: { lt: new Date(now.getTime() - STUCK_AFTER_MS) },
     },
     data: sending,
   });
-  return claimed.count === 1 ? round.payout.id : null;
+  return claimed.count === 1 ? payout.id : null;
 }
 
 async function applyAnswer(payoutId: string, answer: PayoutAnswer) {
   if (answer.status === "PAID") return settlePayout(payoutId, answer.mfiRef);
-  await prisma.payout.updateMany({
+  const moved = await prisma.payout.updateMany({
     where: { id: payoutId, status: { not: "PAID" } },
-    data: { status: answer.status, mfiRef: answer.mfiRef },
+    data: {
+      status: answer.status,
+      mfiRef: answer.mfiRef,
+      ...(answer.status === "FAILED" ? { failedAt: new Date() } : {}),
+    },
+  });
+  if (moved.count > 0 && answer.status === "FAILED") await alertIfLastTry(payoutId);
+}
+
+// D114: the automatic tries are used up: the officers are told once.
+async function alertIfLastTry(payoutId: string) {
+  const payout = await prisma.payout.findUnique({
+    where: { id: payoutId },
+    include: { round: { include: { group: true } } },
+  });
+  if (!payout || payout.status !== "FAILED" || payout.attempts < MAX_ATTEMPTS) return;
+  await alertStaff({
+    mfiId: payout.round.group.mfiId,
+    kind: "TRANSFER_FAILED",
+    refId: payoutId,
+    groupId: payout.round.groupId,
+    subject: `Virement refusé : ${payout.round.group.name}, tour ${payout.round.number}`,
+    lines: [
+      `La cagnotte du tour ${payout.round.number} de « ${payout.round.group.name} » (${payout.amountFcfa} FCFA) a été refusée ${payout.attempts} fois.`,
+      "Vérifiez le numéro et le compte mobile money de la bénéficiaire, puis relancez le virement dans la console.",
+    ],
   });
 }
 

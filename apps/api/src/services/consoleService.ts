@@ -24,7 +24,7 @@ import { notifyMembers } from "./notifyService.js";
 import { groupAccount, mfiBankTotal, syncCoreBanking } from "./coreBanking.js";
 import { accountBalance } from "./paymentAccounts.js";
 import { creditFoundPayment, rejectReport } from "./moneyService.js";
-import { autoReleaseLimit, needsTwoOfficers, releasePayout, runPayouts } from "./payoutService.js";
+import { MAX_ATTEMPTS, autoReleaseLimit, needsTwoOfficers, nextRetryAt, releasePayout, runPayouts } from "./payoutService.js";
 import { fundBalance, reserveBalance } from "./reserveService.js";
 import { mfi } from "../providers/index.js";
 
@@ -320,6 +320,14 @@ export async function listAttention(mfiId: string, staffId?: string): Promise<At
         payout.createdAt
       ).toISOString(),
       canRetry: payout.status === "FAILED",
+      // D114: tries so far, and when Novi tries again by itself (null: it
+      // will not; the officer decides).
+      attempts: payout.attempts,
+      nextRetryAt: nextRetryAt(payout)?.toISOString() ?? null,
+      // D114: on a "not received", what the sender said when asked again.
+      receiptCheck: (payout.receiptCheck as AttentionItem["receiptCheck"]) ?? null,
+      sentTo: payout.status === "PAID" ? payout.phone : null,
+      transferRef: payout.mfiRef ? payout.mfiRef.replace(/^fedapay:/, "") : null,
       // D105: a ready pot above the limit needs two different officers; the
       // one who gave the first approval cannot give the second.
       canRelease: payout.status === "READY" && !(staffId && payout.firstApprovedById === staffId),
@@ -400,7 +408,8 @@ export async function releaseRoundPayout(
 // The member is named here: the officer must find her payment.
 export async function listReported(mfiId: string): Promise<ConsoleReported[]> {
   const rows = await prisma.contribution.findMany({
-    where: { reportedAt: { not: null }, status: { not: "PAID" }, round: { group: { mfiId } } },
+    // D114: only once the automatic checks found nothing.
+    where: { reportedAt: { not: null }, escalatedAt: { not: null }, status: { not: "PAID" }, round: { group: { mfiId } } },
     include: { round: { include: { group: true } }, user: { select: { displayName: true } } },
     orderBy: { reportedAt: "asc" },
   });
@@ -416,6 +425,7 @@ export async function listReported(mfiId: string): Promise<ConsoleReported[]> {
     providerRef: c.providerRef,
     requestedAt: c.requestedAt?.toISOString() ?? null,
     reportedAt: (c.reportedAt as Date).toISOString(),
+    autoChecks: c.autoChecks,
   }));
 }
 
@@ -432,7 +442,7 @@ export async function resolveReported(
     where: { id: contributionId, round: { group: { mfiId } } },
   });
   if (!row) throw new AppError("NOT_FOUND", 404);
-  if (!row.reportedAt || row.status === "PAID") throw new AppError("NOT_ALLOWED_NOW", 409);
+  if (!row.reportedAt || !row.escalatedAt || row.status === "PAID") throw new AppError("NOT_ALLOWED_NOW", 409);
   await prisma.auditEvent.create({
     data: {
       type: arrived ? "STAFF_PAYMENT_FOUND" : "STAFF_PAYMENT_NOT_FOUND",
@@ -472,6 +482,12 @@ export async function retryPayout(
       type: "STAFF_PAYOUT_RETRY",
       details: { staffId, payoutId, round: payout.round.number },
     },
+  });
+  // D114: the officer's retry is one more try, now, even after the
+  // automatic ones are used up.
+  await prisma.payout.update({
+    where: { id: payoutId },
+    data: { failedAt: new Date(0), attempts: Math.min(payout.attempts, MAX_ATTEMPTS - 1) },
   });
   await runPayouts(new Date(), payout.round.groupId);
   return listAttention(mfiId);

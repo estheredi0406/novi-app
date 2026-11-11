@@ -213,6 +213,10 @@ export async function payRound(
     // A new attempt closes any earlier report about this round (D105).
     reportedAt: null,
     reportRejectedAt: null,
+    // D114: and starts its own automatic checks.
+    autoChecks: 0,
+    lastCheckedAt: null,
+    escalatedAt: null,
   };
 
   // Claims the payment slot for this round. Two taps at the same moment
@@ -429,9 +433,11 @@ export async function handlePaymentWebhook(
 // She taps "check my payment": Novi asks the provider directly. Covers a
 // webhook that never arrived, for example during a network cut.
 // "The money left my account": a payment the operator did not confirm, which
-// she says was debited. The provider is asked again first; if it still is not
-// paid, it is flagged for the MFI officer to check against the operator's
-// statement ("À traiter", D105). She does not pay again meanwhile.
+// she says was debited. The provider is asked again first. D114: if it still
+// is not paid, Novi keeps asking by itself (15 min, 1 h, 6 h, 24 h after her
+// report); only if the 1 h check still finds nothing does it reach the MFI
+// officer, to check against the operator's statement ("À traiter", D105).
+// She does not pay again meanwhile.
 export async function reportDebited(contributionId: string, userId: string): Promise<ContributionView> {
   const view = await checkContribution(contributionId, userId);
   if (view.status === "PAID") return view;
@@ -441,29 +447,68 @@ export async function reportDebited(contributionId: string, userId: string): Pro
   if (current.reportRejectedAt) throw new AppError("NOT_ALLOWED_NOW", 409);
   const reported = await prisma.contribution.updateMany({
     where: { id: contributionId, reportedAt: null },
-    data: { reportedAt: new Date() },
+    data: { reportedAt: new Date(), autoChecks: 0, escalatedAt: null },
   });
   if (reported.count > 0) {
     await prisma.auditEvent.create({
       data: { userId, type: "PAYMENT_REPORTED", details: { contributionId, roundNumber: view.roundNumber } },
     });
-    // D90, D105: the officers are told by email.
-    const round = await prisma.round.findUniqueOrThrow({
-      where: { id: current.roundId },
-      include: { group: true },
-    });
-    await alertStaff({
-      mfiId: round.group.mfiId,
-      kind: "PAYMENT_REPORTED",
-      refId: contributionId, // the link opens the console's list, where it waits
-      subject: `Paiement signalé : ${round.group.name}, tour ${round.number}`,
-      lines: [
-        `Une membre de « ${round.group.name} » dit que ${current.amountFcfa} FCFA ont quitté son compte pour le tour ${round.number}, sans confirmation de l'opérateur.`,
-        "Vérifiez-le sur le relevé de l'opérateur, puis répondez dans la console.",
-      ],
-    });
   }
   return view;
+}
+
+// D114: Novi asks the provider again about a payment not confirmed (the job
+// of automatic checks). True when this check found it paid.
+export async function recheckPayment(contributionId: string): Promise<boolean> {
+  const contribution = await prisma.contribution.findUnique({ where: { id: contributionId } });
+  if (!contribution || contribution.status === "PAID" || !contribution.providerRef) return false;
+  const { payments } = await accountForPayment(contribution.paymentAccountMfiId);
+  await settle(contribution.id, await payments.getStatus(contribution.providerRef));
+  const after = await prisma.contribution.findUniqueOrThrow({
+    where: { id: contributionId },
+    include: { round: { include: { group: { include: { mfi: true } } } } },
+  });
+  if (after.status !== "PAID") return false;
+  forgetBalance(contribution.paymentAccountMfiId);
+  await syncCoreBanking().catch(() => undefined);
+  // She had said the money left: she is told it is now confirmed.
+  if (contribution.reportedAt) {
+    const { group } = after.round;
+    await notifyMembers(
+      [after.userId],
+      "money",
+      `/groups/${group.id}/rounds/${after.round.number}`,
+      { title: group.name, body: `Votre paiement du tour ${after.round.number} est confirmé par l'opérateur.` },
+      { title: group.name, body: `Your payment for round ${after.round.number} is now confirmed by the operator.` },
+    ).catch(() => undefined);
+  }
+  return true;
+}
+
+// D114: the automatic checks did not find it: the officers check it against
+// the operator's statement, and are told by email (D90).
+export async function escalateReport(contributionId: string): Promise<boolean> {
+  const moved = await prisma.contribution.updateMany({
+    where: { id: contributionId, reportedAt: { not: null }, escalatedAt: null, status: { not: "PAID" } },
+    data: { escalatedAt: new Date() },
+  });
+  if (moved.count === 0) return false;
+  const current = await prisma.contribution.findUniqueOrThrow({
+    where: { id: contributionId },
+    include: { round: { include: { group: true } } },
+  });
+  const { round } = current;
+  await alertStaff({
+    mfiId: round.group.mfiId,
+    kind: "PAYMENT_REPORTED",
+    refId: contributionId, // the link opens the console's list, where it waits
+    subject: `Paiement signalé : ${round.group.name}, tour ${round.number}`,
+    lines: [
+      `Une membre de « ${round.group.name} » dit que ${current.amountFcfa} FCFA ont quitté son compte pour le tour ${round.number}. L'opérateur ne l'a toujours pas confirmé après ${current.autoChecks} vérifications automatiques.`,
+      "Vérifiez-le sur le relevé de l'opérateur, puis répondez dans la console.",
+    ],
+  });
+  return true;
 }
 
 // D105: the officer found her payment on the operator's statement: it is
@@ -479,7 +524,7 @@ export async function creditFoundPayment(contributionId: string, staffId: string
 export async function rejectReport(contributionId: string, staffId: string): Promise<void> {
   const contribution = await prisma.contribution.update({
     where: { id: contributionId },
-    data: { reportedAt: null, reportRejectedAt: new Date(), reportCheckedById: staffId },
+    data: { reportedAt: null, escalatedAt: null, reportRejectedAt: new Date(), reportCheckedById: staffId },
     include: { round: { include: { group: { include: { mfi: true } } } }, user: { select: { language: true } } },
   });
   const { group } = contribution.round;

@@ -454,6 +454,16 @@ export const text = {
     readyHint: (n: number) => `pleine · reçoit : le membre n°${n} de l'ordre`,
     disputed: "Non reçue",
     disputedHint: "la membre dit ne pas avoir reçu l'argent",
+    // D114: what Novi already did by itself.
+    retryAt: (time: string, n: number, of: number) => `nouvel essai automatique à ${time} (essai ${n} sur ${of})`,
+    retriesUsed: (n: number) => `refusé ${n} fois · vérifiez le numéro de la bénéficiaire`,
+    receiptCheck: {
+      PAID: (phone: string, ref: string) => `l'envoi est confirmé au ${phone}${ref ? ` · réf. ${ref}` : ""}`,
+      SENT: () => "le virement est encore en cours",
+      FAILED: () => "le virement apparaît maintenant refusé",
+      UNKNOWN: () => "pas de réponse sur ce virement",
+    },
+    autoChecked: (n: number) => `${n} vérifications automatiques sans confirmation`,
     releaseConfirm: (amount: string) =>
       `Libérer ${amount} ? FUCEC enverra la cagnotte au numéro vérifié de la bénéficiaire.`,
     round: "Tour",
@@ -996,6 +1006,15 @@ export const text = {
     readyHint: (n: number) => `full · receives: member no. ${n} in the order`,
     disputed: "Not received",
     disputedHint: "the member says the money did not arrive",
+    retryAt: (time: string, n: number, of: number) => `automatic retry at ${time} (try ${n} of ${of})`,
+    retriesUsed: (n: number) => `refused ${n} times · check the receiver's number`,
+    receiptCheck: {
+      PAID: (phone: string, ref: string) => `sending confirmed to ${phone}${ref ? ` · ref. ${ref}` : ""}`,
+      SENT: () => "the transfer is still in progress",
+      FAILED: () => "the transfer now shows as refused",
+      UNKNOWN: () => "no answer about this transfer",
+    },
+    autoChecked: (n: number) => `${n} automatic checks, not confirmed`,
     releaseConfirm: (amount: string) =>
       `Release ${amount}? The MFI will send the pot to the receiver's verified number.`,
     round: "Round",

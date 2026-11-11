@@ -125,10 +125,14 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
         ? `${t.firstBy(item.firstApprovedBy)} · ${t.needsSecond}`
         : t.readyHint(item.receiverTurn)
       : item.status === "DISPUTED"
-        ? t.disputedHint
+        ? item.receiptCheck
+          ? `${t.disputedHint} · ${t.receiptCheck[item.receiptCheck](item.sentTo ?? "", item.transferRef ?? "")}`
+          : t.disputedHint
         : item.status === "HELD"
           ? t.missing(item.paymentsMissing)
-          : t.failed;
+          : item.nextRetryAt
+            ? t.retryAt(item.nextRetryAt.slice(11, 16), item.attempts + 1, 4)
+            : t.retriesUsed(item.attempts);
   const label = (item: AttentionItem) =>
     item.status === "READY"
       ? t.ready
@@ -148,8 +152,11 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
   );
   const rank = { READY: 0, DISPUTED: 1, FAILED: 2, HELD: 5 } as const;
   const byUrgency = [...attention].sort((a, b) => rank[a.status] - rank[b.status]);
-  const now = byUrgency.filter((i) => i.status !== "HELD");
-  const held = byUrgency.filter((i) => i.status === "HELD");
+  // D114: a refused transfer Novi will try again by itself is only watched;
+  // it needs the officer once its automatic tries are used up.
+  const watched = (i: AttentionItem) => i.status === "HELD" || (i.status === "FAILED" && i.nextRetryAt !== null);
+  const now = byUrgency.filter((i) => !watched(i));
+  const held = byUrgency.filter(watched);
   const total = attention.length + toSend.length + toValidate.length + openLoans.length + reported.length;
 
   const payoutRow = (item: AttentionItem) => {
@@ -254,7 +261,9 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
                   <a href={`#/groups/${item.groupId}`} className="q-title">
                     {item.memberName} · {item.groupName} · {t.round} {item.roundNumber}
                   </a>
-                  <span className="q-meta">{t.reportedLine(item.operator, item.phone, day(item.reportedAt))}</span>
+                  <span className="q-meta">
+                    {t.reportedLine(item.operator, item.phone, day(item.reportedAt))} · {t.autoChecked(item.autoChecks)}
+                  </span>
                 </div>
                 <span className="tag tag-red">{t.tagReported}</span>
                 <span className="q-amount">{fcfa(item.amountFcfa)}</span>
