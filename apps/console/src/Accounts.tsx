@@ -55,11 +55,13 @@ export function GroupStatement({ t, groupId, onExpired }: { t: Text; groupId: st
   );
   if (!data) return null;
   return (
-    <>
-      <h2>{t.statementTitle(data.ref)}</h2>
-      <p className="muted small">{t.statementBalance(fcfa(data.balanceFcfa))}</p>
-      <div className="table-card">
-        <table className="statement">
+    <section className="queue">
+      <div className="queue-head">
+        <h2>{t.statementTitle(data.ref)}</h2>
+        <span className="muted small">{t.statementBalance(fcfa(data.balanceFcfa))}</span>
+      </div>
+      <div>
+        <table className="members groups-table statement">
           <thead>
             <tr>
               <th>{t.colDate}</th>
@@ -85,6 +87,6 @@ export function GroupStatement({ t, groupId, onExpired }: { t: Text; groupId: st
           </tbody>
         </table>
       </div>
-    </>
+    </section>
   );
 }

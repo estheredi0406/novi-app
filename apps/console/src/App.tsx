@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api, session } from "./api";
 import { GroupPage } from "./pages/GroupPage";
 import { Groups } from "./pages/Groups";
+import { Compliance } from "./pages/Compliance";
 import { Settings } from "./pages/Settings";
 import { Login } from "./pages/Login";
 import { Overview } from "./pages/Overview";
@@ -123,13 +124,16 @@ export function App() {
 
   const [section, id] = route;
   const page =
-    section === "groups" && id ? (
+    section === "groups" && id && route[2] === "compliance" ? (
+      <Compliance key={id} t={t} groupId={id} staffName={staff.name} />
+    ) : section === "groups" && id ? (
       <GroupPage
         key={id}
         t={t}
         groupId={id}
         onExpired={expired}
         pilot={staff.pilot}
+        role={staff.role}
       />
     ) : section === "groups" ? (
       <Groups t={t} onExpired={expired} />

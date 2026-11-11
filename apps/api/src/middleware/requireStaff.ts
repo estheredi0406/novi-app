@@ -6,7 +6,7 @@ import { type StaffClaims, verifyStaffToken } from "../lib/tokens.js";
 // The console's version of requireAuth: the request must carry a staff token
 // (never a member's) whose session is still open (D52). Routes after it read
 // the staff member and their MFI from res.locals.staff.
-export type StaffContext = StaffClaims & { mfiId: string; role: "OFFICER" | "ADMIN" };
+export type StaffContext = StaffClaims & { mfiId: string; role: "OFFICER" | "ADMIN" | "COMPLIANCE" };
 
 declare global {
   namespace Express {

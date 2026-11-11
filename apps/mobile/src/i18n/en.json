@@ -436,7 +436,9 @@
     "secondOfficer": "A second officer must approve this pot.",
     "adminOnly": "For the MFI's administrators only.",
     "emailTaken": "This email already has access.",
-    "weakPassword": "At least 12 characters, not the temporary password."
+    "weakPassword": "At least 12 characters, not the temporary password.",
+    "complianceOnly": "For the MFI's administrators and compliance only.",
+    "readOnlyRole": "The Compliance role only reads."
   },
   "errors": {
     "validationFailed": "Something is missing or not in the right form. Please check and try again.",

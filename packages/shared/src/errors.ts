@@ -90,6 +90,8 @@ export const errors = {
   STAFF_ONLY: { messageKey: "staff.staffOnly" },
   PASSWORD_CHANGE_REQUIRED: { messageKey: "staff.passwordChangeRequired" }, // D81: first login, temporary password
   ADMIN_ONLY: { messageKey: "staff.adminOnly" }, // D81: managing the team
+  COMPLIANCE_ONLY: { messageKey: "staff.complianceOnly" }, // D117: the compliance view is for administrators and compliance officers
+  READ_ONLY_ROLE: { messageKey: "staff.readOnlyRole" }, // D117: a compliance officer moves no money and decides nothing
   SECOND_OFFICER_NEEDED: { messageKey: "staff.secondOfficer" }, // D105: two officers for a large pot
   STAFF_EMAIL_TAKEN: { messageKey: "staff.emailTaken" }, // D81
   WEAK_PASSWORD: { messageKey: "staff.weakPassword" }, // D81: at least 12 characters, not the temporary one

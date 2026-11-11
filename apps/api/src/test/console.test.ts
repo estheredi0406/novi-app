@@ -104,7 +104,11 @@ const makeDue = (groupId: string, number: number) =>
   });
 
 // A logged-in officer of the given MFI.
-async function officer(mfiCode = "FUCEC", email = "mawuli@fucec.example") {
+async function officer(
+  mfiCode = "FUCEC",
+  email = "mawuli@fucec.example",
+  role: "OFFICER" | "ADMIN" | "COMPLIANCE" = "OFFICER",
+) {
   await prisma.mfi.upsert({
     where: { code: mfiCode },
     create: { code: mfiCode, name: `${mfiCode} test` },
@@ -114,6 +118,7 @@ async function officer(mfiCode = "FUCEC", email = "mawuli@fucec.example") {
     mfiCode,
     email,
     name: "Mawuli Adzo",
+    role,
   });
   // Past his first login: his own password is set (D81).
   await prisma.staffUser.update({
@@ -646,5 +651,56 @@ describe("how each group is doing, and today (D116)", () => {
       advancesFcfa: 7500,
       auto: { potsAutoReleased: 1, lateConfirmed: 0 },
     });
+  });
+});
+
+// D117: the group page by turn, and the compliance view by name.
+describe("the group page and the compliance view (D117)", () => {
+  it("shows each seat by its turn, never by name, and this round's payments with their references", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    const page = (await (await officer()).get(`/v1/console/groups/${groupId}`)).body;
+    expect(page.seats.map((s: { turn: number }) => s.turn)).toEqual([1, 2, 3]);
+    expect(page.seats[0]).toMatchObject({ advanceFcfa: 2500, owedFcfa: 0, reported: false });
+    expect(page.advancesInFcfa).toBe(7500);
+    expect(page.shownRound).toMatchObject({ number: 1, expectedFcfa: 15000 });
+    expect(page.shownRound.payments).toHaveLength(3);
+    expect(page.shownRound.payments[0]).toMatchObject({ operator: "Mixx by Yas", amountFcfa: 7500, status: "PAID" });
+    expect(page.history.map((h: { event: string }) => h.event)).toContain("STARTED");
+    // No name anywhere on the page (D33).
+    expect(JSON.stringify(page)).not.toMatch(/Akossiwa|Abla|Koffi/);
+  });
+
+  it("opens the compliance view to an administrator with a reason, logs it, and shows the legal names", async () => {
+    const { groupId, members } = await activeGroup();
+    await pay(members[1] as Client, groupId, 1);
+    const admin = await officer("FUCEC", "adjo@fucec.example", "ADMIN");
+    expect((await admin.post(`/v1/console/groups/${groupId}/compliance`, {})).status).toBe(400);
+    const res = await admin.post(`/v1/console/groups/${groupId}/compliance`, { reason: "Contrôle LBC/FT" });
+    expect(res.status).toBe(200);
+    expect(res.body.members.map((m: { legalName: string }) => m.legalName)).toContain("Abla Dzifa Agbeko");
+    expect(res.body.rounds[0].payments[0]).toMatchObject({ legalName: "Abla Dzifa Agbeko", amountFcfa: 7500 });
+    expect(new Date(res.body.closesAt).getTime() - new Date(res.body.openedAt).getTime()).toBe(15 * 60_000);
+    expect(await prisma.auditEvent.count({ where: { type: "STAFF_COMPLIANCE_OPENED" } })).toBe(1);
+  });
+
+  it("keeps the compliance view from an ordinary officer", async () => {
+    const { groupId } = await activeGroup();
+    const res = await (await officer()).post(`/v1/console/groups/${groupId}/compliance`, { reason: "curiosité" });
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("COMPLIANCE_ONLY");
+  });
+
+  it("lets a compliance officer read and open the view, but release no pot", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    await makeDue(groupId, 1);
+    await runPayouts();
+    const essi = await officer("FUCEC", "essi@fucec.example", "COMPLIANCE");
+    const [ready] = (await essi.get("/v1/console/attention")).body;
+    const res = await essi.post(`/v1/console/payouts/${ready.payoutId}/release`);
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("READ_ONLY_ROLE");
+    expect((await essi.post(`/v1/console/groups/${groupId}/compliance`, { reason: "Contrôle LBC/FT" })).status).toBe(200);
   });
 });

@@ -436,7 +436,9 @@
     "secondOfficer": "Un deuxième agent doit approuver cette cagnotte.",
     "adminOnly": "Réservé aux administrateurs de l'IMF.",
     "emailTaken": "Cet e-mail a déjà un accès.",
-    "weakPassword": "12 caractères au moins, différent du mot de passe temporaire."
+    "weakPassword": "12 caractères au moins, différent du mot de passe temporaire.",
+    "complianceOnly": "Réservé aux administrateurs et à la conformité de l'IMF.",
+    "readOnlyRole": "Le rôle Conformité consulte seulement."
   },
   "errors": {
     "validationFailed": "Une information manque ou n'a pas le bon format. Vérifiez et réessayez.",

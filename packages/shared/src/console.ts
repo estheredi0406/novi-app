@@ -76,6 +76,10 @@ export type ConsoleRound = {
     heldSince: string | null;
     paidAt: string | null;
     mfiRef: string | null;
+    // D117: how it left and whether she confirmed it.
+    auto: boolean; // under the MFI's limit, with no officer (D105)
+    via: string | null; // fedapay or mfi (D102)
+    receipt: "CONFIRMED" | "DISPUTED" | null;
   } | null;
 };
 
@@ -98,6 +102,89 @@ export type ConsoleMemberCard = {
 export type ConsoleGroupDetail = ConsoleGroup & {
   roundList: ConsoleRound[];
   members: ConsoleMemberCard[];
+  // D117: the group page (board 12). Members appear by their turn, never by
+  // name (D33); names are only in the compliance view.
+  payoutOrder: string; // DRAWN or FIXED
+  advancesInFcfa: number; // of collectedFcfa, the members' advances (D103)
+  mfiOnTimePct: number | null; // the average of this MFI's groups, to compare
+  seats: ConsoleSeat[];
+  shownRound: ConsoleRoundPayments | null; // the current round, or the last one
+  history: { at: string; event: string; by: string | null; round: number | null }[];
+};
+
+// D117: one seat of the group, by turn.
+export type ConsoleSeat = {
+  turn: number;
+  organiser: boolean;
+  advanceFcfa: number; // her advance, paid with round 1 (D103)
+  paidOnTime: number; // of `roundsDue`
+  roundsDue: number;
+  paid: number; // all her payments in rounds already due, on time or late
+  owedFcfa: number; // shares the advances covered for her, not repaid yet (D104)
+  owedBy: string | null;
+  reported: boolean; // a payment she says left her account, not confirmed (D114)
+  defaulted: boolean;
+  left: boolean; // she left the group (D69)
+  pot: { status: PayoutStatus | "NOT_DUE"; date: string; receipt: "CONFIRMED" | "DISPUTED" | null };
+};
+
+// D117: the payments of one round, without names (D33).
+export type ConsoleRoundPayments = {
+  number: number;
+  dueDate: string;
+  payments: {
+    at: string;
+    operator: string;
+    amountFcfa: number;
+    status: "PAID" | "PENDING" | "FAILED";
+    reported: boolean;
+    providerRef: string | null;
+  }[];
+  coveredFcfa: number[]; // each share the advances paid in this round
+  pot: {
+    amountFcfa: number;
+    status: PayoutStatus;
+    at: string | null;
+    auto: boolean; // left under the MFI's limit, with no officer (D105)
+    via: string | null; // fedapay or mfi (D102)
+    ref: string | null;
+    receipt: "CONFIRMED" | "DISPUTED" | null;
+  } | null;
+  expectedFcfa: number; // the full pot this round should reach
+};
+
+// D117: the compliance view (board 15): names, for anti-money-laundering
+// checks, opened by an administrator or a compliance officer with a reason,
+// logged, and closed after 15 minutes.
+export type ConsoleCompliance = {
+  openedAt: string;
+  closesAt: string;
+  reason: string;
+  members: {
+    turn: number | null;
+    organiser: boolean;
+    legalName: string;
+    identityVerifiedAt: string;
+    phone: string;
+    channel: "APP" | "USSD";
+    recordShared: boolean | null; // D84: agreed to share her record; null: not asked
+    left: boolean;
+  }[];
+  rounds: {
+    number: number;
+    dueDate: string;
+    payments: {
+      at: string;
+      legalName: string;
+      turn: number | null;
+      operator: string;
+      amountFcfa: number;
+      status: "PAID" | "PENDING" | "FAILED";
+      reported: boolean;
+      providerRef: string | null;
+    }[];
+    covered: { legalName: string; amountFcfa: number }[];
+  }[];
 };
 
 // A payout the officer should look at: ready to release (D63), held (not
@@ -245,7 +332,9 @@ export type ConsoleActivity = {
     | "STAFF_AUTO_RELEASE_SET"
     | "STAFF_PAYMENT_ACCOUNT_CONNECTED" // D102
     | "STAFF_PAYMENT_ACCOUNT_DISCONNECTED"
-    | "STAFF_PAYOUTS_ROUTE_SET";
+    | "STAFF_PAYOUTS_ROUTE_SET"
+    | "STAFF_COMPLIANCE_OPENED" // D117
+    | "STAFF_COMPLIANCE_CLOSED";
   // D92: the Journal's filters.
   category: "MONEY" | "GROUPS" | "CREDIT" | "MEMBERS" | "TEAM";
   subject: string | null; // the group, the member or the officer it is about

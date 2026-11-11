@@ -1,6 +1,8 @@
 // The MFI console (Sprint 5): shapes shared by the API and the console app.
 
-export type StaffRole = "OFFICER" | "ADMIN";
+// D117: COMPLIANCE sees everything and opens the compliance view, but moves
+// no money and decides nothing.
+export type StaffRole = "OFFICER" | "ADMIN" | "COMPLIANCE";
 
 // The logged-in staff member, as the console shows them.
 export type StaffProfile = {

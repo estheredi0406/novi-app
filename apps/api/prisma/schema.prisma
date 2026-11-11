@@ -625,6 +625,7 @@ model RecordView {
 enum StaffRole {
   OFFICER // sees groups, held and failed payouts, shared records; retries failed transfers
   ADMIN // the same, and later manages the MFI's staff accounts
+  COMPLIANCE // D117: sees everything and opens the compliance view; moves no money, decides nothing
 }
 
 // An officer of a partner MFI who uses the console. Logs in with email,

@@ -2000,3 +2000,112 @@ tr.clickable:hover td {
 .groups-table .q-meta {
   display: block;
 }
+
+/* D117: the group page and the compliance view. */
+.group-head-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.row-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+a.ghost {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+.group-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 0;
+}
+.group-title .dot {
+  width: 14px;
+  height: 14px;
+}
+.group-sub {
+  margin: 6px 0 0;
+}
+.group-now {
+  margin: 12px 0 20px;
+  font-size: 17px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.queue-head select {
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 10px;
+  font: inherit;
+  background: var(--card);
+}
+.ref-cell {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.pot-line {
+  margin: 0;
+  padding: 14px 24px 20px;
+  border-top: 1px solid var(--line);
+  font-size: 15px;
+  line-height: 23px;
+}
+.current-row td {
+  background: var(--mist);
+}
+.queue ol.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 4px 24px 20px;
+  display: grid;
+  gap: 8px;
+}
+.timeline li {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  font-size: 15px;
+}
+.groups-table td .tag + .tag {
+  margin-left: 6px;
+}
+.compliance-ask {
+  max-width: 640px;
+  padding: 22px;
+  display: grid;
+  gap: 14px;
+}
+.compliance-ask label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+.compliance-ask input {
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0 14px;
+  font: inherit;
+}
+.compliance-banner {
+  background: #fdf1dc;
+  color: #5c3d00;
+  border-radius: 16px;
+  padding: 18px 22px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin: 16px 0 24px;
+  line-height: 23px;
+}

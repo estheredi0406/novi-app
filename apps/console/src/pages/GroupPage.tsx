@@ -1,42 +1,46 @@
-import type { ConsoleGroupDetail } from "@novi/shared";
+import type { ConsoleGroupDetail, ConsoleRoundPayments, StaffRole } from "@novi/shared";
 import { useState } from "react";
 import { GroupStatement } from "../Accounts";
 import { ApiFailure, api } from "../api";
 import { day, fcfa } from "../format";
-import { Ring } from "../Icon";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
-// One group (board K2, D92): the blue band, this round as a ring of how many
-// paid (never who, D33), the money, the rounds as a strip, then each member's
-// Novi record. The receiver appears as a turn number, never a name (D33).
-// D84: above the rounds, each member's Novi record, when she agreed to share it.
+const time = (iso: string) => `${day(iso).slice(0, 5)} ${iso.slice(11, 16)}`;
+
+// One group (board 12, D117): who is where by turn, never by name (D33);
+// one round's payments with their references, so an officer can match them
+// with the operator's statement; every pot; the group's account at the MFI
+// (D113); its history. Names are only in the compliance view, for an
+// administrator or a compliance officer, with a reason (D117).
+// D84, D98: while the group waits for validation, each member's Novi record.
 export function GroupPage({
   t,
   groupId,
   onExpired,
   pilot,
+  role,
 }: {
   t: Text;
   groupId: string;
   onExpired: () => void;
   pilot: boolean;
+  role: StaffRole;
 }) {
   const { data, failed, reload } = useLoad(
     () => api<ConsoleGroupDetail>("GET", `/v1/console/groups/${groupId}`),
     onExpired,
   );
   const [note, setNote] = useState<string | null>(null);
+  const [picked, setPicked] = useState<ConsoleRoundPayments | null>(null);
 
   // D82, pilot only: the next round falls due today, for a test or a demo.
   async function demoDue() {
     if (!window.confirm(t.demoDueConfirm)) return;
     try {
-      const { round } = await api<{ round: number }>(
-        "POST",
-        `/v1/console/groups/${groupId}/demo-due`,
-      );
+      const { round } = await api<{ round: number }>("POST", `/v1/console/groups/${groupId}/demo-due`);
       setNote(t.demoDueDone(round));
+      setPicked(null);
       reload();
     } catch (err) {
       const key = err instanceof ApiFailure ? err.code : "default";
@@ -44,120 +48,340 @@ export function GroupPage({
     }
   }
 
+  async function pickRound(number: number) {
+    try {
+      setPicked(await api<ConsoleRoundPayments>("GET", `/v1/console/groups/${groupId}/rounds/${number}`));
+    } catch {
+      setNote(t.errors.default);
+    }
+  }
+
   if (failed) return <p className="error">{t.errors.default}</p>;
   if (!data) return null;
 
-  const current = data.roundList.find((r) => r.number === data.currentRound);
-  const shown = current ?? data.roundList.at(-1);
-  const status = (r: ConsoleGroupDetail["roundList"][number]) => r.payout?.status ?? "NOT_DUE";
+  const round = picked ?? data.shownRound;
+  const potsSent = data.roundList.filter((r) => r.payout?.status === "PAID").length;
+  const potTag = (s: ConsoleGroupDetail["seats"][number]["pot"]) =>
+    s.status === "PAID"
+      ? s.receipt === "DISPUTED"
+        ? ["red", t.potNotReceived(day(s.date))]
+        : ["green", s.receipt === "CONFIRMED" ? t.potReceivedConfirmed(day(s.date)) : t.potReceivedOn(day(s.date))]
+      : s.status === "NOT_DUE"
+        ? ["blue", t.potComing(day(s.date))]
+        : s.status === "HELD"
+          ? ["wait", t.status.HELD]
+          : s.status === "FAILED"
+            ? ["red", t.status.FAILED]
+            : ["orange", t.status[s.status]];
+
+  function exportCsv() {
+    const q = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+    const lines = [
+      [data!.name, data!.accountRef ?? ""],
+      [],
+      t.seatsCsvHead,
+      ...data!.seats.map((s) => [
+        s.turn,
+        s.organiser ? t.organiserTag : "",
+        s.advanceFcfa,
+        `${s.paidOnTime}/${s.roundsDue}`,
+        s.owedFcfa,
+        s.owedBy ?? "",
+        t.status[s.pot.status] ?? s.pot.status,
+        s.pot.date,
+      ]),
+      [],
+      t.potsCsvHead,
+      ...data!.roundList.map((r) => [
+        r.number,
+        r.dueDate,
+        r.payout?.amountFcfa ?? "",
+        r.payout ? (t.status[r.payout.status] ?? r.payout.status) : "",
+        r.payout?.mfiRef ?? "",
+        r.payout?.receipt ?? "",
+      ]),
+    ];
+    const csv = lines.map((r) => r.map(q).join(";")).join("\r\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
+    link.download = `novi-${data!.name.replace(/[^\p{L}\p{N}]+/gu, "-").toLowerCase()}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
 
   return (
     <>
-      <div className="group-band">
+      <div className="group-head-bar">
         <a href="#/groups" className="link back">
-          ← {t.back}
+          ← {t.groupsNav}
         </a>
-        <h1>{data.name}</h1>
-        <p>
-          {fcfa(data.amountFcfa)} {t.perMember} · {t.frequency[data.frequency]} · {data.size}{" "}
-          {t.members.toLowerCase()} · {t.account} {data.accountRef ?? "…"}
-        </p>
-        {pilot ? (
-          <p className="demo-tool" style={{ marginTop: 10 }}>
-            <button className="ghost" onClick={() => void demoDue()}>
-              {t.demoDue}
-            </button>{" "}
-            {note ? <span className="small">{note}</span> : null}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="group-top">
-        <div className="card round-card">
-          {shown ? (
-            <>
-              <div className="ring-big">
-                <Ring paid={shown.paymentsReceived} size={shown.paymentsExpected} px={120} stroke={9} />
-                <span>
-                  <strong>
-                    {shown.paymentsReceived}/{shown.paymentsExpected}
-                  </strong>
-                  {t.paidOfRound}
-                </span>
-              </div>
-              <div>
-                <strong>{t.roundNow(shown.number, day(shown.dueDate))}</strong>
-                <br />
-                {t.potLine(fcfa(shown.payout?.amountFcfa ?? shown.collectedFcfa))}
-                <br />
-                <span className="muted small">{t.turn(shown.receiverTurn)}</span>
-                <br />
-                <span className={`tag ${status(shown) === "READY" ? "tag-orange" : status(shown) === "PAID" ? "tag-green" : status(shown) === "NOT_DUE" ? "tag-blue" : "tag-red"}`}>
-                  {t.status[status(shown)]}
-                </span>
-              </div>
-            </>
-          ) : (
-            <p className="muted">{t.groupState[data.state]}</p>
-          )}
-        </div>
-        <div className="card money-card">
-          <dl className="money">
-            <div>
-              <dt>{t.collected}</dt>
-              <dd>{fcfa(data.collectedFcfa)}</dd>
-            </div>
-            <div>
-              <dt>{t.sent}</dt>
-              <dd>{fcfa(data.paidOutFcfa)}</dd>
-            </div>
-            <div>
-              <dt>{t.balance}</dt>
-              <dd>{fcfa(data.balanceFcfa)}</dd>
-            </div>
-            <div>
-              <dt>{t.reserveLabel}</dt>
-              <dd>{fcfa(data.reserveFcfa)}</dd>
-            </div>
-          </dl>
-          {data.roundList.length > 0 ? (
-            <div className="strip">
-              <span className="muted small">{t.roundsTitle}</span>
-              <ol>
-                {data.roundList.map((r) => {
-                  const st = status(r);
-                  const cls = st === "PAID" ? "paid" : st.toLowerCase();
-                  return (
-                    <li
-                      key={r.number}
-                      className={`${cls} ${r.number === data.currentRound ? "current" : ""}`}
-                      title={`${t.round} ${r.number} · ${day(r.dueDate)} · ${t.payments(r.paymentsReceived, r.paymentsExpected)}`}
-                    >
-                      T{r.number}
-                      <span>
-                        {st !== "NOT_DUE"
-                          ? t.status[st].toLowerCase()
-                          : r.number === data.currentRound
-                            ? t.stripOpen
-                            : t.stripNext}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
+        <div className="row-actions">
+          <button className="ghost" onClick={exportCsv}>
+            {t.exportExcel}
+          </button>
+          {role === "ADMIN" || role === "COMPLIANCE" ? (
+            <a className="ghost" href={`#/groups/${groupId}/compliance`}>
+              {t.complianceOpen}
+            </a>
           ) : null}
         </div>
       </div>
+      <h1 className="group-title">
+        {data.health ? (
+          <span className={`dot dot-${data.health === "RED" ? "red" : data.health === "AMBER" ? "amber" : "green"}`} aria-hidden="true" />
+        ) : null}
+        {data.name}
+      </h1>
+      <p className="muted group-sub">
+        {fcfa(data.amountFcfa)} {t.frequency[data.frequency]} · {t.membersShort(data.size)} ·{" "}
+        {t.payoutOrder[data.payoutOrder] ?? data.payoutOrder} · {t.account} {data.accountRef ?? "…"}
+      </p>
+      <p className="group-now">
+        {data.state === "ACTIVE" && data.currentRound ? (
+          <>
+            <span>
+              {t.round} <b>{t.roundShort(data.currentRound, data.rounds)}</b>
+              {data.nextPotDate ? ` · ${t.nextPotOn(day(data.nextPotDate))}` : ""}
+            </span>
+          </>
+        ) : (
+          t.groupState[data.state]
+        )}
+        {data.watch ? <span className={`tag tag-${data.health === "RED" ? "red" : "wait"}`}>{t.watchLine(data.watch)}</span> : null}
+      </p>
+      {pilot ? (
+        <p className="demo-tool">
+          <button className="ghost" onClick={() => void demoDue()}>
+            {t.demoDue}
+          </button>{" "}
+          {note ? <span className="small">{note}</span> : null}
+        </p>
+      ) : null}
+
+      <section className="kpis four">
+        <div>
+          <span className="tile-label">{t.colHeld}</span>
+          <span className="tile-number">{fcfa(data.balanceFcfa)}</span>
+          <span className="tile-hint">{t.todayAdvances(fcfa(data.reserveFcfa))}</span>
+        </div>
+        <div>
+          <span className="tile-label">{t.collected}</span>
+          <span className="tile-number">{fcfa(data.collectedFcfa)}</span>
+          <span className="tile-hint">{t.todayAdvances(fcfa(data.advancesInFcfa))}</span>
+        </div>
+        <div>
+          <span className="tile-label">{t.sent}</span>
+          <span className="tile-number">{fcfa(data.paidOutFcfa)}</span>
+          <span className="tile-hint">{t.potsCount(potsSent)}</span>
+        </div>
+        <div>
+          <span className="tile-label">{t.colOnTime}</span>
+          <span className="tile-number">{data.onTimePct === null ? "–" : `${data.onTimePct} %`}</span>
+          <span className="tile-hint">{data.mfiOnTimePct === null ? "" : t.mfiAverage(data.mfiOnTimePct)}</span>
+        </div>
+      </section>
+
+      {data.seats.length > 0 ? (
+        <section className="queue">
+          <div className="queue-head">
+            <h2>{t.members}</h2>
+          </div>
+          <table className="members groups-table">
+            <thead>
+              <tr>
+                <th>{t.colRound}</th>
+                <th className="num">{t.colAdvance}</th>
+                <th>{t.colOnTime}</th>
+                <th>{t.colCovered}</th>
+                <th>{t.colHerPot}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.seats.map((s) => {
+                const [tone, label] = potTag(s.pot);
+                return (
+                  <tr key={s.turn}>
+                    <td>
+                      <b>{s.turn}</b>
+                      {s.organiser ? ` · ${t.organiserTag}` : ""}
+                      {s.left ? <span className="q-meta">{t.seatLeft}</span> : null}
+                    </td>
+                    <td className="num">{fcfa(s.advanceFcfa)}</td>
+                    <td>
+                      {s.roundsDue === 0 ? "–" : t.onTimeOf(s.paidOnTime, s.roundsDue)}
+                      {s.paid > s.paidOnTime ? <span className="q-meta">{t.lateCount(s.paid - s.paidOnTime)}</span> : null}
+                    </td>
+                    <td>
+                      {s.owedFcfa > 0 ? (
+                        <span className="tag tag-wait">{t.owedBy(fcfa(s.owedFcfa), s.owedBy ? day(s.owedBy) : null)}</span>
+                      ) : (
+                        "–"
+                      )}
+                      {s.defaulted ? <span className="tag tag-red">{t.inDefault}</span> : null}
+                      {s.reported ? <span className="q-meta">{t.reportedOpen}</span> : null}
+                    </td>
+                    <td>
+                      <span className={`tag tag-${tone}`}>{label}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
+      ) : null}
+
+      {round ? (
+        <section className="queue">
+          <div className="queue-head">
+            <h2>{t.roundNow(round.number, day(round.dueDate))}</h2>
+            {data.roundList.length > 1 ? (
+              <label className="small muted">
+                <span className="sr-only">{t.pickRound}</span>
+                <select value={round.number} onChange={(e) => void pickRound(Number(e.target.value))}>
+                  {data.roundList.map((r) => (
+                    <option key={r.number} value={r.number}>
+                      {t.round} {r.number} · {day(r.dueDate)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+          </div>
+          {round.payments.length === 0 && round.coveredFcfa.length === 0 ? (
+            <p className="muted empty-line">{t.noPaymentYet}</p>
+          ) : (
+            <table className="members groups-table">
+              <thead>
+                <tr>
+                  <th>{t.colReceivedAt}</th>
+                  <th>{t.colOperator}</th>
+                  <th className="num">{t.colAmount}</th>
+                  <th>{t.colState}</th>
+                  <th>{t.colFedapayRef}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {round.payments.map((p, i) => (
+                  <tr key={i}>
+                    <td>{time(p.at)}</td>
+                    <td>{p.operator}</td>
+                    <td className="num">{fcfa(p.amountFcfa)}</td>
+                    <td>
+                      <span className={`tag tag-${p.status === "PAID" ? "green" : p.reported ? "red" : p.status === "FAILED" ? "red" : "wait"}`}>
+                        {p.status === "PAID" ? t.payPaid : p.reported ? t.payReported : p.status === "FAILED" ? t.payFailed : t.payPending}
+                      </span>
+                    </td>
+                    <td className="ref-cell">{p.providerRef ?? "–"}</td>
+                  </tr>
+                ))}
+                {round.coveredFcfa.map((amount, i) => (
+                  <tr key={`c${i}`}>
+                    <td>{day(round.dueDate).slice(0, 5)}</td>
+                    <td>{t.groupAdvances}</td>
+                    <td className="num">{fcfa(amount)}</td>
+                    <td>
+                      <span className="tag tag-wait">{t.shareCovered}</span>
+                    </td>
+                    <td className="ref-cell">–</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p className="pot-line">
+            {round.pot ? (
+              <>
+                <b>{t.potAmount(fcfa(round.pot.amountFcfa))}</b>
+                {round.pot.at ? ` · ${round.pot.auto ? t.leftAlone : t.leftByOfficer} ${time(round.pot.at)}` : ""}
+                {round.pot.via ? ` · ${round.pot.via === "fedapay" ? "FedaPay" : t.viaMfi}` : ""}
+                {round.pot.ref ? ` ${round.pot.ref}` : ""}{" "}
+                <span className={`tag tag-${round.pot.status === "PAID" ? (round.pot.receipt === "DISPUTED" ? "red" : "green") : round.pot.status === "FAILED" ? "red" : "wait"}`}>
+                  {round.pot.status === "PAID"
+                    ? round.pot.receipt === "DISPUTED"
+                      ? t.disputed
+                      : round.pot.receipt === "CONFIRMED"
+                        ? t.potConfirmed
+                        : t.status.PAID
+                    : t.status[round.pot.status]}
+                </span>
+              </>
+            ) : (
+              // Before its pot exists: what it should reach, and how much is in.
+              <>{t.potExpected(fcfa(round.expectedFcfa), round.payments.filter((p) => p.status === "PAID").length, data.size)}</>
+            )}
+          </p>
+        </section>
+      ) : null}
+
+      {data.roundList.length > 0 ? (
+        <section className="queue">
+          <div className="queue-head">
+            <h2>{t.potsTitle}</h2>
+          </div>
+          <table className="members groups-table">
+            <thead>
+              <tr>
+                <th>{t.colRound}</th>
+                <th>{t.colDue}</th>
+                <th className="num">{t.colPot}</th>
+                <th>{t.colLeft}</th>
+                <th>{t.colRef}</th>
+                <th>{t.colReceived}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.roundList.map((r) => (
+                <tr key={r.number} className={r.number === data.currentRound ? "current-row" : ""}>
+                  <td>{r.number}</td>
+                  <td>{day(r.dueDate).slice(0, 5)}</td>
+                  <td className="num">{r.payout ? fcfa(r.payout.amountFcfa) : "–"}</td>
+                  <td>
+                    {r.payout?.status === "PAID"
+                      ? `${r.payout.auto ? t.leftAloneShort : t.leftByOfficerShort} · ${r.payout.via === "fedapay" ? "FedaPay" : t.viaMfi}`
+                      : r.payout
+                        ? t.status[r.payout.status]
+                        : t.payments(r.paymentsReceived, r.paymentsExpected)}
+                  </td>
+                  <td className="ref-cell">{r.payout?.mfiRef ?? "–"}</td>
+                  <td>
+                    {r.payout?.status === "PAID" ? (
+                      <span className={`tag tag-${r.payout.receipt === "DISPUTED" ? "red" : r.payout.receipt === "CONFIRMED" ? "green" : "wait"}`}>
+                        {r.payout.receipt === "DISPUTED" ? t.disputed : r.payout.receipt === "CONFIRMED" ? t.potConfirmed : t.potUnanswered}
+                      </span>
+                    ) : (
+                      <span className="tag tag-blue">{t.potComingShort}</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ) : null}
 
       <GroupStatement t={t} groupId={groupId} onExpired={onExpired} />
 
-      <h2>{t.recordTitle}</h2>
+      {data.history.length > 0 ? (
+        <section className="queue">
+          <div className="queue-head">
+            <h2>{t.historyTitle}</h2>
+          </div>
+          <ol className="timeline">
+            {data.history.map((h, i) => (
+              <li key={i}>
+                <b>{day(h.at).slice(0, 5)}</b>
+                <span>{t.historyEvent(h.event, h.by, h.round)}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
       {/* D98: records are shown only while the officer decides. */}
-      {data.state !== "STARTING" ? (
-        <p className="muted small">{t.recordClosed}</p>
-      ) : (
+      {data.state !== "STARTING" ? null : (
         <>
+          <h2>{t.recordTitle}</h2>
           <p className="muted small">{t.recordHint}</p>
           <table className="members">
             <thead>

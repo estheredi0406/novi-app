@@ -56,11 +56,26 @@ import {
   resetAccess,
 } from "../services/staffService.js";
 import { documentFor } from "./verify.js";
+import { closeCompliance, groupRound, openCompliance } from "../services/consoleGroupService.js";
 
 // The MFI console's data (Sprint 5.2). Staff only; every answer is limited
 // to the officer's own MFI (D52).
 export const consoleRouter = Router();
 consoleRouter.use(requireStaff);
+
+// D117: a compliance officer reads everything but moves no money and decides
+// nothing: every change is refused, except opening and closing the
+// compliance view and previewing credit rules, which change nothing.
+consoleRouter.use((req, res, next) => {
+  if (
+    res.locals.staff?.role === "COMPLIANCE" &&
+    req.method !== "GET" &&
+    !/\/compliance(\/close)?$|\/credit-policy\/preview$/.test(req.path)
+  ) {
+    throw new AppError("READ_ONLY_ROLE", 403);
+  }
+  next();
+});
 
 const id = z.string().uuid();
 
@@ -70,6 +85,24 @@ consoleRouter.get("/overview", async (_req, res) => {
 
 consoleRouter.get("/groups", async (_req, res) => {
   res.status(200).json(await listConsoleGroups(currentStaff(res).mfiId));
+});
+
+// D117: one round's payments on the group page, without names (D33).
+consoleRouter.get("/groups/:groupId/rounds/:number", async (req, res) => {
+  const number = z.coerce.number().int().min(1).parse(req.params.number);
+  res.status(200).json(await groupRound(currentStaff(res).mfiId, id.parse(req.params.groupId), number));
+});
+
+// D117: the compliance view: names, with a reason, logged, for 15 minutes.
+consoleRouter.post("/groups/:groupId/compliance", async (req, res) => {
+  const staff = currentStaff(res);
+  const { reason } = z.object({ reason: z.string().trim().min(3).max(200) }).strict().parse(req.body);
+  res.status(200).json(await openCompliance(staff.mfiId, staff, id.parse(req.params.groupId), reason));
+});
+
+consoleRouter.post("/groups/:groupId/compliance/close", async (req, res) => {
+  await closeCompliance(currentStaff(res).staffId, id.parse(req.params.groupId));
+  res.status(204).end();
 });
 
 consoleRouter.get("/groups/:groupId", async (req, res) => {
@@ -340,7 +373,7 @@ const newOfficer = z
   .object({
     name: z.string().trim().min(2).max(80),
     email: z.string().trim().email().max(200),
-    role: z.enum(["OFFICER", "ADMIN"]),
+    role: z.enum(["OFFICER", "ADMIN", "COMPLIANCE"]),
   })
   .strict();
 

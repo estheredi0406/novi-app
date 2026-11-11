@@ -25,6 +25,7 @@ import { notifyMembers } from "./notifyService.js";
 import { groupAccount, mfiBankTotal, syncCoreBanking } from "./coreBanking.js";
 import { accountBalance } from "./paymentAccounts.js";
 import { creditFoundPayment, rejectReport } from "./moneyService.js";
+import { groupPageExtras } from "./consoleGroupService.js";
 import { MAX_ATTEMPTS, autoReleaseLimit, needsTwoOfficers, nextRetryAt, releasePayout, runPayouts } from "./payoutService.js";
 import { fundBalance, reserveBalance } from "./reserveService.js";
 import { mfi } from "../providers/index.js";
@@ -287,12 +288,20 @@ export async function getConsoleGroup(
       amountFcfa: round.payout.amountFcfa,
       heldSince: round.payout.heldSince?.toISOString() ?? null,
       paidAt: round.payout.paidAt?.toISOString() ?? null,
-      mfiRef: round.payout.mfiRef,
+      mfiRef: round.payout.mfiRef ? round.payout.mfiRef.replace(/^fedapay:/, "") : null,
+      auto: round.payout.releasedAt !== null && round.payout.releasedById === null,
+      via: round.payout.sentVia,
+      receipt: round.payout.receiptDisputedAt ? "DISPUTED" : round.payout.receiptConfirmedAt ? "CONFIRMED" : null,
     },
   }));
   const [withState] = await withHealth(mfiId, [await withReserve(toConsoleGroup(group))]);
+  const base = withState as ConsoleGroup;
+  // D117: the MFI's average on-time rate, to read this group's against it.
+  const rates = (await listConsoleGroups(mfiId)).map((g) => g.onTimePct).filter((n): n is number => n !== null);
   return {
-    ...(withState as ConsoleGroup),
+    ...base,
+    ...(await groupPageExtras(mfiId, groupId, base.currentRound)),
+    mfiOnTimePct: rates.length ? Math.round(rates.reduce((a, b) => a + b, 0) / rates.length) : null,
     roundList,
     // D98: members' records help the officer decide; once the group is
     // validated or declined, they are no longer shown.
@@ -859,6 +868,8 @@ const ACTIVITY: Record<ConsoleActivity["action"], ConsoleActivity["category"]> =
   STAFF_PAYMENT_ACCOUNT_CONNECTED: "MONEY",
   STAFF_PAYMENT_ACCOUNT_DISCONNECTED: "MONEY",
   STAFF_PAYOUTS_ROUTE_SET: "MONEY",
+  STAFF_COMPLIANCE_OPENED: "MEMBERS", // D117
+  STAFF_COMPLIANCE_CLOSED: "MEMBERS",
   STAFF_RECORD_OPENED: "CREDIT",
   STAFF_CREDIT_POLICY_CHANGED: "CREDIT",
   STAFF_LOAN_PRESELECT: "CREDIT",

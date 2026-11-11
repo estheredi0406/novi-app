@@ -194,7 +194,7 @@ function AddOfficer({
         <div className="field">
           <span>{t.teamRole}</span>
           <div className="seg" role="radiogroup">
-            {(["OFFICER", "ADMIN"] as const).map((r) => (
+            {(["OFFICER", "ADMIN", "COMPLIANCE"] as const).map((r) => (
               <button
                 type="button"
                 key={r}
