@@ -56,16 +56,9 @@ export async function updateProfile(
 // D69: what the solidarity fund paid for her and she has not paid back.
 // While anything is owed she cannot create or join another group.
 export async function owedCovers(userId: string): Promise<number> {
-  const [open, advances] = await Promise.all([
-    prisma.reserveCover.aggregate({
-      where: { userId, repaidAt: null, writtenOffAt: null },
-      _sum: { amountFcfa: true },
-    }),
-    // D88: an advance in her wallet, not yet repaid from her pot.
-    prisma.advance.aggregate({
-      where: { userId, status: { in: ["SENT", "PAID"] } },
-      _sum: { amountFcfa: true },
-    }),
-  ]);
-  return (open._sum.amountFcfa ?? 0) + (advances._sum.amountFcfa ?? 0);
+  const open = await prisma.reserveCover.aggregate({
+    where: { userId, repaidAt: null, writtenOffAt: null },
+    _sum: { amountFcfa: true },
+  });
+  return open._sum.amountFcfa ?? 0;
 }

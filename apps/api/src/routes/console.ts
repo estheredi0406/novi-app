@@ -25,8 +25,6 @@ import {
   resolveReported,
   setAutoRelease,
   retryPayout,
-  listAdvances,
-  sendAdvance,
 } from "../services/consoleService.js";
 import {
   decideLoan,
@@ -372,7 +370,7 @@ consoleRouter.post("/team/:staffId/reset", async (req, res) => {
     .json(await resetAccess(currentStaff(res), id.parse(req.params.staffId)));
 });
 
-// ---------- D89: microloan requests; D88: advances from the fund ----------
+// ---------- D89: microloan requests ----------
 
 consoleRouter.get("/loans", async (_req, res) => {
   res.status(200).json(await listLoans(currentStaff(res).mfiId));
@@ -520,19 +518,3 @@ consoleRouter.post("/credit-policy/preview", async (req, res) => {
     );
 });
 
-consoleRouter.get("/advances", async (_req, res) => {
-  res.status(200).json(await listAdvances(currentStaff(res).mfiId));
-});
-
-consoleRouter.post("/advances/:advanceId/send", async (req, res) => {
-  const staff = currentStaff(res);
-  res
-    .status(200)
-    .json(
-      await sendAdvance(
-        staff.mfiId,
-        staff.staffId,
-        id.parse(req.params.advanceId),
-      ),
-    );
-});

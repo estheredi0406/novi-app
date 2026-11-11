@@ -1,6 +1,5 @@
 import type {
   AttentionItem,
-  ConsoleAdvance,
   ConsoleGroup,
   ConsoleLoan,
   ConsoleOverview,
@@ -18,14 +17,13 @@ type Data = {
   overview: ConsoleOverview;
   attention: AttentionItem[];
   groups: ConsoleGroup[];
-  advances: ConsoleAdvance[];
   loans: ConsoleLoan[];
   reported: ConsoleReported[];
 };
 
 // What the officer sees first (board K1, D92): three numbers, then one list
 // of everything waiting for him, most urgent first, each with its own button
-// (pots to release, problems, advances, groups to validate, loan requests,
+// (pots to release, problems, payments reported, groups to validate, loan requests,
 // pots held), then every group. Totals only, never who paid (D33).
 export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
   const { data, failed, reload } = useLoad<Data>(
@@ -33,32 +31,12 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
       overview: await api<ConsoleOverview>("GET", "/v1/console/overview"),
       attention: await api<AttentionItem[]>("GET", "/v1/console/attention"),
       groups: await api<ConsoleGroup[]>("GET", "/v1/console/groups"),
-      advances: await api<ConsoleAdvance[]>("GET", "/v1/console/advances"),
       loans: await api<ConsoleLoan[]>("GET", "/v1/console/loans"),
       reported: await api<ConsoleReported[]>("GET", "/v1/console/reported"),
     }),
     onExpired,
   );
   const [retrying, setRetrying] = useState<string | null>(null);
-
-  // D88: an advance approved by the group, sent from the solidarity fund.
-  async function sendAdvance(advance: ConsoleAdvance) {
-    if (
-      !window.confirm(
-        t.advanceSendConfirm(fcfa(advance.amountFcfa), advance.groupName),
-      )
-    )
-      return;
-    setRetrying(advance.id);
-    try {
-      await api("POST", `/v1/console/advances/${advance.id}/send`);
-    } catch {
-      window.alert(t.errors.default);
-    } finally {
-      setRetrying(null);
-      reload();
-    }
-  }
 
   async function act(payoutId: string, action: "retry" | "release") {
     setRetrying(payoutId);
@@ -144,8 +122,7 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
 
   if (failed) return <p className="error">{t.errors.default}</p>;
   if (!data) return null;
-  const { overview, attention, groups, advances, loans, reported } = data;
-  const toSend = advances.filter((a) => a.status === "APPROVED");
+  const { overview, attention, groups, loans, reported } = data;
   const toValidate = groups.filter((g) => g.state === "STARTING");
   const openLoans = loans.filter(
     (l) => l.status === "PENDING" || (l.status === "PRESELECTED" && l.documentsSent > 0),
@@ -157,7 +134,7 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
   const watched = (i: AttentionItem) => i.status === "HELD" || (i.status === "FAILED" && i.nextRetryAt !== null);
   const now = byUrgency.filter((i) => !watched(i));
   const held = byUrgency.filter(watched);
-  const total = attention.length + toSend.length + toValidate.length + openLoans.length + reported.length;
+  const total = attention.length + toValidate.length + openLoans.length + reported.length;
 
   const payoutRow = (item: AttentionItem) => {
     const kind =
@@ -281,30 +258,6 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
                     onClick={() => void answer(item, false)}
                   >
                     {t.paymentNotFound}
-                  </button>
-                </div>
-              </li>
-            ))}
-            {toSend.map((advance) => (
-              <li key={advance.id} className="q">
-                <span className="q-icon q-advance">
-                  <Icon name="hand" size={22} />
-                </span>
-                <div>
-                  <a href={`#/groups/${advance.groupId}`} className="q-title">
-                    {advance.groupName}
-                  </a>
-                  <span className="q-meta">{t.advanceLine(advance.receiverTurn)}</span>
-                </div>
-                <span className="tag tag-green">{t.tagAdvance}</span>
-                <span className="q-amount">{fcfa(advance.amountFcfa)}</span>
-                <div className="q-actions">
-                  <button
-                    className="primary small"
-                    disabled={retrying === advance.id}
-                    onClick={() => void sendAdvance(advance)}
-                  >
-                    {t.advanceSend}
                   </button>
                 </div>
               </li>

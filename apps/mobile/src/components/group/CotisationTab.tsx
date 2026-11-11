@@ -271,11 +271,6 @@ export function CotisationTab({
               label={t("hub.swap")}
               onPress={() => router.push({ pathname: "/groups/[id]/swap", params: { id: group.id } } as unknown as Href)}
             />
-            <Tile
-              icon="hand"
-              label={t("hub.advance")}
-              onPress={() => router.push({ pathname: "/groups/[id]/advance", params: { id: group.id } } as unknown as Href)}
-            />
           </View>
           <ErrorMessage messageKey={callError} />
         </View>

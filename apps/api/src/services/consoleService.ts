@@ -1,6 +1,5 @@
 import type {
   AttentionItem,
-  ConsoleAdvance,
   ConsoleActivity,
   ConsoleAnalytics,
   ConsoleGroup,
@@ -803,15 +802,11 @@ export async function listActivity(
   const ids = (k: keyof AuditDetails) => [
     ...new Set(mine.map(({ d }) => d[k]).filter((v): v is string => typeof v === "string")),
   ];
-  const [groups, payouts, advances, loans, users] = await Promise.all([
+  const [groups, payouts, loans, users] = await Promise.all([
     prisma.group.findMany({ where: { id: { in: ids("groupId") } }, select: { id: true, name: true } }),
     prisma.payout.findMany({
       where: { id: { in: ids("payoutId") } },
       select: { id: true, amountFcfa: true, round: { select: { group: { select: { name: true } } } } },
-    }),
-    prisma.advance.findMany({
-      where: { id: { in: ids("advanceId") } },
-      select: { id: true, amountFcfa: true, group: { select: { name: true } } },
     }),
     prisma.loanRequest.findMany({
       where: { id: { in: ids("loanId") } },
@@ -821,18 +816,15 @@ export async function listActivity(
   ]);
   const groupName = new Map(groups.map((g) => [g.id, g.name]));
   const payout = new Map(payouts.map((p) => [p.id, p]));
-  const advance = new Map(advances.map((a) => [a.id, a]));
   const loan = new Map(loans.map((l) => [l.id, l]));
   const userName = new Map(users.map((u) => [u.id, u.legalName]));
 
   const fromEvents: ConsoleActivity[] = mine.map(({ e, d }) => {
     const action = e.type as ConsoleActivity["action"];
     const p = d.payoutId ? payout.get(d.payoutId) : undefined;
-    const a = d.advanceId ? advance.get(d.advanceId) : undefined;
     const l = d.loanId ? loan.get(d.loanId) : undefined;
     const subject =
       p?.round.group.name ??
-      a?.group.name ??
       l?.user.legalName ??
       (d.userId ? userName.get(d.userId) : undefined) ??
       (d.groupId ? groupName.get(d.groupId) : undefined) ??
@@ -856,7 +848,7 @@ export async function listActivity(
       category: ACTIVITY[action],
       subject,
       round: typeof d.round === "number" ? d.round : null,
-      amountFcfa: p?.amountFcfa ?? a?.amountFcfa ?? l?.grantedFcfa ?? l?.amountFcfa ?? null,
+      amountFcfa: p?.amountFcfa ?? l?.grantedFcfa ?? l?.amountFcfa ?? null,
       detail,
     };
   });
@@ -925,135 +917,6 @@ export async function advanceDueDateForDemo(
   });
   await runPayouts(now, groupId);
   return { round: next.number };
-}
-
-// ---------- D88: advances from the fund, sent by the officer ----------
-
-// Approved by the group and waiting to be sent, or sent in the last 30 days.
-// Like the pots, the member appears by her turn, never her name (D33).
-export async function listAdvances(
-  mfiId: string,
-  now = new Date(),
-): Promise<ConsoleAdvance[]> {
-  const since = new Date(now.getTime() - 30 * DAY_MS);
-  const advances = await prisma.advance.findMany({
-    where: {
-      group: { mfiId },
-      OR: [
-        { status: "APPROVED" },
-        {
-          status: { in: ["SENT", "PAID", "REPAID"] },
-          updatedAt: { gte: since },
-        },
-      ],
-    },
-    include: {
-      group: {
-        select: {
-          name: true,
-          memberships: { select: { userId: true, payoutPosition: true } },
-        },
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-  return advances.map((a) => ({
-    id: a.id,
-    groupId: a.groupId,
-    groupName: a.group.name,
-    amountFcfa: a.amountFcfa,
-    status: a.status as ConsoleAdvance["status"],
-    approvedAt: a.updatedAt.toISOString(),
-    receiverTurn:
-      a.group.memberships.find((m) => m.userId === a.userId)?.payoutPosition ??
-      null,
-  }));
-}
-
-// The officer sends an approved advance from the solidarity fund to her
-// wallet, through the MFI, like a pot (D63). Claimed first, so it is never
-// sent twice.
-export async function sendAdvance(
-  mfiId: string,
-  staffId: string,
-  advanceId: string,
-): Promise<ConsoleAdvance[]> {
-  const advance = await prisma.advance.findFirst({
-    where: { id: advanceId, group: { mfiId } },
-    include: { group: true, user: { select: { phone: true } } },
-  });
-  if (!advance) throw new AppError("NOT_FOUND", 404);
-  if (advance.status !== "APPROVED") throw new AppError("NOT_ALLOWED_NOW", 409);
-  if ((await reserveBalance(advance.groupId)) < advance.amountFcfa)
-    throw new AppError("FUND_TOO_LOW", 409);
-  if (!advance.group.mfiAccountRef) throw new AppError("NOT_ALLOWED_NOW", 409);
-
-  const claimed = await prisma.advance.updateMany({
-    where: { id: advance.id, status: "APPROVED" },
-    data: { status: "SENT", releasedById: staffId },
-  });
-  if (claimed.count === 0) throw new AppError("NOT_ALLOWED_NOW", 409);
-
-  const lastPayment = await prisma.contribution.findFirst({
-    where: {
-      userId: advance.userId,
-      status: "PAID",
-      round: { groupId: advance.groupId },
-    },
-    orderBy: { paidAt: "desc" },
-  });
-  let answer: Awaited<ReturnType<typeof mfi.sendPayout>>;
-  try {
-    answer = await mfi.sendPayout({
-      payoutId: `advance-${advance.id}`,
-      accountRef: advance.group.mfiAccountRef,
-      amountFcfa: advance.amountFcfa,
-      phone: advance.user.phone,
-      operator: lastPayment?.operator ?? "MOOV_TG",
-    });
-  } catch {
-    answer = { mfiRef: "", status: "FAILED" };
-  }
-  if (answer.status === "FAILED") {
-    await prisma.advance.update({
-      where: { id: advance.id },
-      data: { status: "APPROVED", releasedById: null },
-    });
-    throw new AppError("MFI_UNAVAILABLE", 503);
-  }
-  const now = new Date();
-  await prisma.$transaction([
-    prisma.advance.update({
-      where: { id: advance.id },
-      data: { status: "PAID", mfiRef: answer.mfiRef, paidAt: now },
-    }),
-    prisma.ledgerEntry.create({
-      data: {
-        groupId: advance.groupId,
-        userId: advance.userId,
-        type: "RESERVE_ADVANCE",
-        amountFcfa: advance.amountFcfa,
-        note: `advance ${advance.id}`,
-      },
-    }),
-    prisma.auditEvent.create({
-      data: { type: "STAFF_ADVANCE_SENT", details: { staffId, advanceId } },
-    }),
-  ]);
-  await notifyMembers(
-    [advance.userId],
-    "money",
-    `/groups/${advance.groupId}?tab=groupe`,
-    {
-      title: "Votre avance est envoyée",
-      body: "Elle arrive sur votre Mobile Money. Elle sera reprise sur votre cagnotte.",
-    },
-    {
-      title: "Your advance was sent",
-      body: "It is on its way to your mobile money. It comes back out of your pot.",
-    },
-  );
-  return listAdvances(mfiId);
 }
 
 // ---------- D113: the three views of the money, side by side ----------

@@ -78,8 +78,8 @@ const RESERVE_TYPES = [
   "RESERVE_COVER",
   "RESERVE_REPAY",
   "RESERVE_RETURN",
-  "RESERVE_ADVANCE", // D88: out to a member, as an advance
-  "RESERVE_ADVANCE_REPAY", // D88: back from her pot
+  "RESERVE_ADVANCE", // D88, removed by D115: lines already written still count
+  "RESERVE_ADVANCE_REPAY",
 ] as const;
 type Db = Tx | typeof prisma;
 
@@ -442,29 +442,6 @@ export async function repayFromPot(
       },
     });
     repaid += cover.amountFcfa;
-  }
-  // D88: then the advance she received from the fund in this group.
-  const advances = await tx.advance.findMany({
-    where: { userId, groupId, status: "PAID" },
-    orderBy: { createdAt: "asc" },
-  });
-  for (const advance of advances) {
-    if (repaid + advance.amountFcfa > potFcfa) break;
-    const done = await tx.advance.updateMany({
-      where: { id: advance.id, status: "PAID" },
-      data: { status: "REPAID", repaidAt: new Date() },
-    });
-    if (done.count === 0) continue;
-    await tx.ledgerEntry.create({
-      data: {
-        groupId,
-        userId,
-        type: "RESERVE_ADVANCE_REPAY",
-        amountFcfa: advance.amountFcfa,
-        note: `advance ${advance.id} from pot`,
-      },
-    });
-    repaid += advance.amountFcfa;
   }
   return repaid;
 }

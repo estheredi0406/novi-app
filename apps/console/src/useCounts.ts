@@ -1,10 +1,10 @@
-import type { ConsoleAdvance, ConsoleGroup, ConsoleLoan, ConsoleOverview } from "@novi/shared";
+import type { ConsoleGroup, ConsoleLoan, ConsoleOverview } from "@novi/shared";
 import { useEffect, useState } from "react";
 import { api } from "./api";
 
 // The numbers on the sidebar (D92): everything in the overview's "À traiter"
-// (pots to release, held, failed or disputed, groups to validate, advances to
-// send, loan requests to look at), and the loan requests alone. A failed count simply shows nothing.
+// (pots to release, held, failed or disputed, payments reported, groups to
+// validate, loan requests to look at), and the loan requests alone. A failed count simply shows nothing.
 export function useCounts(active: boolean, routeKey: string) {
   const [counts, setCounts] = useState({ toDo: 0, loans: 0 });
   useEffect(() => {
@@ -14,9 +14,8 @@ export function useCounts(active: boolean, routeKey: string) {
       api<ConsoleOverview>("GET", "/v1/console/overview"),
       api<ConsoleGroup[]>("GET", "/v1/console/groups"),
       api<ConsoleLoan[]>("GET", "/v1/console/loans"),
-      api<ConsoleAdvance[]>("GET", "/v1/console/advances"),
     ])
-      .then(([o, groups, loans, advances]) => {
+      .then(([o, groups, loans]) => {
         if (!live) return;
         // The same count as "À traiter" on the overview.
         const openLoans = loans.filter(
@@ -29,7 +28,7 @@ export function useCounts(active: boolean, routeKey: string) {
             o.failed +
             o.disputed +
             groups.filter((g) => g.state === "STARTING").length +
-            advances.filter((a) => a.status === "APPROVED").length +
+            o.reported +
             openLoans,
           loans: openLoans,
         });

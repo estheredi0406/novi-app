@@ -1,7 +1,7 @@
 import type { GroupHelp, LoanPage, LoanPurpose } from "@novi/shared";
 import { memberRequest } from "./client";
 
-// D87, D88: help inside the group.
+// D87: help inside the group.
 export const getHelp = (groupId: string) =>
   memberRequest<GroupHelp>("GET", `/v1/groups/${groupId}/help`);
 export const askSwap = (groupId: string, partnerId: string) =>
@@ -26,32 +26,6 @@ export const cancelSwap = (groupId: string, swapId: string) =>
     `/v1/groups/${groupId}/swaps/${swapId}/cancel`,
     {},
   );
-export const askAdvance = (
-  groupId: string,
-  amountFcfa: number,
-  reason: string,
-) =>
-  memberRequest<GroupHelp>("POST", `/v1/groups/${groupId}/advances`, {
-    amountFcfa,
-    ...(reason.trim() ? { reason: reason.trim() } : {}),
-  });
-export const decideAdvance = (
-  groupId: string,
-  advanceId: string,
-  yes: boolean,
-) =>
-  memberRequest<GroupHelp>(
-    "POST",
-    `/v1/groups/${groupId}/advances/${advanceId}/decide`,
-    { yes },
-  );
-export const cancelAdvance = (groupId: string, advanceId: string) =>
-  memberRequest<GroupHelp>(
-    "POST",
-    `/v1/groups/${groupId}/advances/${advanceId}/cancel`,
-    {},
-  );
-
 // D89: microloan requests to the MFI.
 export const getLoans = () => memberRequest<LoanPage>("GET", "/v1/me/loans");
 export const requestLoan = (

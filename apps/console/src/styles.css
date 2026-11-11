@@ -1509,7 +1509,6 @@ table.members tr:last-child td {
 }
 .q-money { background: #fdebdd; color: var(--orange); }
 .q-group { background: var(--mist); color: var(--lagoon); }
-.q-advance { background: #e3f3ea; color: var(--paid); }
 .q-problem { background: #fde8e6; color: var(--problem); }
 .q-wait { background: #fdf1dc; color: #8a5a00; }
 .q-title {

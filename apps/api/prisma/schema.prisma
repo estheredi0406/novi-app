@@ -105,9 +105,8 @@ enum LedgerEntryType {
   RESERVE_COVER  // the reserve pays a late member's share so the pot leaves full
   RESERVE_REPAY  // her late payment refills the reserve
   RESERVE_RETURN // what is left at the end of the cycle, back to a member
-  // D88: a small advance from the fund to a member, repaid from her pot.
-  RESERVE_ADVANCE       // the fund sends the advance to her wallet
-  RESERVE_ADVANCE_REPAY // her pot pays it back
+  RESERVE_ADVANCE       // D88, removed by D115: kept for lines already written
+  RESERVE_ADVANCE_REPAY // D88, removed by D115: kept for lines already written
 }
 
 // Where one seat is in its life.
@@ -180,7 +179,6 @@ model User {
   meetingsCreated GroupMeeting[]
   swapsAsked      TurnSwap[]      @relation("SwapRequester")
   swapsReceived   TurnSwap[]      @relation("SwapPartner")
-  advances        Advance[]       @relation("AdvanceBorrower")
   loanRequests    LoanRequest[]
   meetingsJoined  MeetingAttendance[]
 
@@ -342,7 +340,6 @@ model Group {
   messages       GroupMessage[]
   meetings       GroupMeeting[]
   turnSwaps      TurnSwap[]
-  advances       Advance[]
 
   @@index([state])
   @@map("groups")
@@ -831,7 +828,7 @@ model MeetingAttendance {
 }
 
 
-// ---------- Help inside the group (D87, D88) and credit (D89) ----------
+// ---------- Help inside the group (D87) and credit (D89) ----------
 
 enum SwapStatus {
   ASKED     // she asked a member to swap turns; waiting for that member
@@ -862,44 +859,6 @@ model TurnSwap {
 
   @@index([groupId, status])
   @@map("turn_swaps")
-}
-
-enum AdvanceStatus {
-  ASKED     // waiting for the organiser and one more member
-  APPROVED  // approved by the group; waiting for the MFI officer to send it
-  SENT      // the MFI accepted the transfer
-  PAID      // in her wallet; repaid from her pot on her turn
-  REPAID    // her pot paid it back
-  DECLINED
-  CANCELLED
-}
-
-// D88: a small advance from the solidarity fund, for an emergency. At most
-// one contribution, approved by the organiser and one other member, sent by
-// the MFI, and repaid from her own pot on her turn, with no interest.
-model Advance {
-  id                 String        @id @default(uuid())
-  groupId            String
-  userId             String
-  amountFcfa         Int
-  reason             String?       // a few words for the group ("ma fille est malade")
-  status             AdvanceStatus @default(ASKED)
-  organiserApproval  String?       // the organiser's user id once she approved
-  memberApproval     String?       // the other member who approved
-  declinedById       String?
-  releasedById       String?       // the officer who sent it
-  mfiRef             String?
-  paidAt             DateTime?
-  repaidAt           DateTime?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-
-  group Group @relation(fields: [groupId], references: [id])
-  user  User  @relation("AdvanceBorrower", fields: [userId], references: [id])
-
-  @@index([groupId, status])
-  @@index([userId, status])
-  @@map("advances")
 }
 
 enum LoanPurpose {

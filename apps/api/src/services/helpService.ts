@@ -1,14 +1,11 @@
-import type { AdvanceView, GroupHelp, TurnSwapView } from "@novi/shared";
-import type { Advance, TurnSwap } from "../generated/prisma/client.js";
+import type { GroupHelp, TurnSwapView } from "@novi/shared";
+import type { TurnSwap } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { holdsSeat } from "../lib/groupRules.js";
 import { isoDay } from "../lib/schedule.js";
 import { postEvent } from "./chatService.js";
-import { alertStaff } from "./alertService.js";
-import { owedCovers } from "./memberService.js";
 import { notifyMembers } from "./notifyService.js";
-import { reserveBalance } from "./reserveService.js";
 
 // Help inside the group: what traders already do for each other in a
 // tontine, with the group's agreement written down.
@@ -18,16 +15,10 @@ import { reserveBalance } from "./reserveService.js";
 // then the organiser confirms (unless she is one of the two). Only turns not
 // yet paid out, and not due today, can move. No money is lent.
 //
-// D88, avance de la caisse: in an emergency, a member who has not received
-// her pot yet may ask the solidarity fund for up to one contribution. The
-// organiser and one other member approve; the MFI officer sends it; her own
-// pot repays it on her turn, with no interest. Her future pot is the
-// guarantee, so a member who already received hers cannot ask.
+// D88 (an advance from the group's money) was removed by D115.
 
 const RECENT_MS = 30 * 24 * 60 * 60 * 1000;
 const OPEN_SWAP = ["ASKED", "AGREED"] as const;
-const OPEN_ADVANCE = ["ASKED", "APPROVED", "SENT", "PAID"] as const;
-const ADVANCE_MIN_FCFA = 500;
 
 type Seat = { userId: string; payoutPosition: number | null; name: string };
 
@@ -96,74 +87,6 @@ function swapView(loaded: Loaded, s: TurnSwap, userId: string): TurnSwapView {
   };
 }
 
-// Two approvals: the organiser and one other member. When the organiser is
-// the one asking, two other members.
-function approvalSlot(
-  loaded: Loaded,
-  a: Advance,
-  userId: string,
-): "organiserApproval" | "memberApproval" | null {
-  if (a.status !== "ASKED" || a.userId === userId) return null;
-  if (a.organiserApproval === userId || a.memberApproval === userId)
-    return null;
-  const organiserId = loaded.group.organiserId;
-  const borrowerIsOrganiser = a.userId === organiserId;
-  if (!borrowerIsOrganiser && userId === organiserId)
-    return a.organiserApproval ? null : "organiserApproval";
-  if (!a.memberApproval) return "memberApproval";
-  if (borrowerIsOrganiser && !a.organiserApproval) return "organiserApproval";
-  return null;
-}
-
-function advanceView(loaded: Loaded, a: Advance, userId: string): AdvanceView {
-  return {
-    id: a.id,
-    borrowerName: nameOf(loaded, a.userId),
-    mine: a.userId === userId,
-    amountFcfa: a.amountFcfa,
-    reason: a.reason,
-    status: a.status,
-    approvals: (a.organiserApproval ? 1 : 0) + (a.memberApproval ? 1 : 0),
-    canApprove: approvalSlot(loaded, a, userId) !== null,
-    canCancel: a.status === "ASKED" && a.userId === userId,
-    createdAt: a.createdAt.toISOString(),
-  };
-}
-
-// Paid every round already due in this group, and owes the fund nothing.
-async function upToDate(
-  loaded: Loaded,
-  userId: string,
-  now: Date,
-): Promise<boolean> {
-  const today = isoDay(now);
-  const pastRounds = loaded.group.rounds
-    .filter((r) => isoDay(r.dueDate) < today)
-    .map((r) => r.id);
-  if (pastRounds.length > 0) {
-    const paid = await prisma.contribution.count({
-      where: { userId, status: "PAID", roundId: { in: pastRounds } },
-    });
-    if (paid < pastRounds.length) return false;
-  }
-  return (await owedCovers(userId)) === 0;
-}
-
-async function canAskAdvance(
-  loaded: Loaded,
-  userId: string,
-  now: Date,
-): Promise<boolean> {
-  if (loaded.group.state !== "ACTIVE") return false;
-  // Her pot is the guarantee: it must still be to come.
-  if (!turnCanMove(loaded, roundOf(loaded, userId), now)) return false;
-  const open = await prisma.advance.count({
-    where: { userId, status: { in: [...OPEN_ADVANCE] } },
-  });
-  if (open > 0) return false;
-  return upToDate(loaded, userId, now);
-}
-
 export async function getGroupHelp(
   groupId: string,
   userId: string,
@@ -171,25 +94,13 @@ export async function getGroupHelp(
 ): Promise<GroupHelp> {
   const loaded = await loadGroup(groupId, userId);
   const since = new Date(now.getTime() - RECENT_MS);
-  const [swaps, advances] = await Promise.all([
-    prisma.turnSwap.findMany({
-      where: {
-        groupId,
-        OR: [{ status: { in: [...OPEN_SWAP] } }, { createdAt: { gte: since } }],
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.advance.findMany({
-      where: {
-        groupId,
-        OR: [
-          { status: { in: [...OPEN_ADVANCE] } },
-          { createdAt: { gte: since } },
-        ],
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
+  const swaps = await prisma.turnSwap.findMany({
+    where: {
+      groupId,
+      OR: [{ status: { in: [...OPEN_SWAP] } }, { createdAt: { gte: since } }],
+    },
+    orderBy: { createdAt: "desc" },
+  });
   const myRound = roundOf(loaded, userId);
   const swapOpen = swaps.some(
     (s) =>
@@ -197,14 +108,6 @@ export async function getGroupHelp(
       (s.requesterId === userId || s.partnerId === userId),
   );
   const active = loaded.group.state === "ACTIVE";
-  // D103: an advance comes from this group's own advances, so it is capped
-  // by what they hold now.
-  const fund = await reserveBalance(loaded.group.id);
-  const advanceMaxFcfa = Math.max(
-    0,
-    Math.min(loaded.contributionFcfa, Math.floor(fund / 100) * 100),
-  );
-  const eligible = await canAskAdvance(loaded, userId, now);
   const swapPartners =
     active && turnCanMove(loaded, myRound, now)
       ? loaded.seats
@@ -225,11 +128,7 @@ export async function getGroupHelp(
       : [];
   return {
     swaps: swaps.map((s) => swapView(loaded, s, userId)),
-    advances: advances.map((a) => advanceView(loaded, a, userId)),
     canSwap: !swapOpen && swapPartners.length > 0,
-    canAskAdvance: eligible && advanceMaxFcfa >= ADVANCE_MIN_FCFA,
-    advanceMaxFcfa,
-    fundTooLow: eligible && advanceMaxFcfa < ADVANCE_MIN_FCFA,
     swapPartners,
     myRound,
   };
@@ -497,159 +396,6 @@ export async function cancelSwap(
   const swap = await openSwap(groupId, swapId);
   const moved = await prisma.turnSwap.updateMany({
     where: { id: swap.id, requesterId: userId, status: { in: [...OPEN_SWAP] } },
-    data: { status: "CANCELLED" },
-  });
-  if (moved.count === 0) throw new AppError("NOT_ALLOWED_NOW", 409);
-  return getGroupHelp(groupId, userId, now);
-}
-
-// ---------- D88: an advance from the solidarity fund ----------
-
-export async function askAdvance(
-  groupId: string,
-  userId: string,
-  input: { amountFcfa: number; reason?: string },
-  now = new Date(),
-) {
-  const loaded = await loadGroup(groupId, userId);
-  if (
-    input.amountFcfa < ADVANCE_MIN_FCFA ||
-    input.amountFcfa > loaded.contributionFcfa
-  ) {
-    throw new AppError("ADVANCE_TOO_LARGE", 400);
-  }
-  if (!(await canAskAdvance(loaded, userId, now)))
-    throw new AppError("ADVANCE_NOT_ALLOWED", 409);
-  if ((await reserveBalance(loaded.group.id)) < input.amountFcfa)
-    throw new AppError("FUND_TOO_LOW", 409);
-
-  await prisma.advance.create({
-    data: {
-      groupId,
-      userId,
-      amountFcfa: input.amountFcfa,
-      reason: input.reason?.trim() || null,
-    },
-  });
-  await prisma.auditEvent.create({
-    data: {
-      userId,
-      type: "ADVANCE_ASKED",
-      details: { groupId, amountFcfa: input.amountFcfa },
-    },
-  });
-  const others = loaded.seats
-    .map((s) => s.userId)
-    .filter((id) => id !== userId);
-  const who = nameOf(loaded, userId);
-  const amount = `${String(input.amountFcfa).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} F`;
-  await notifyMembers(
-    others,
-    "money",
-    groupUrl(groupId),
-    {
-      title: `${who} demande une avance de ${amount}`,
-      body: "L'organisatrice et un membre peuvent l'accepter.",
-    },
-    {
-      title: `${who} asks for an advance of ${amount}`,
-      body: "The organiser and one member can approve it.",
-    },
-  );
-  return getGroupHelp(groupId, userId, now);
-}
-
-export async function decideAdvance(
-  groupId: string,
-  userId: string,
-  advanceId: string,
-  yes: boolean,
-  now = new Date(),
-) {
-  const loaded = await loadGroup(groupId, userId);
-  const advance = await prisma.advance.findFirst({
-    where: { id: advanceId, groupId },
-  });
-  if (!advance) throw new AppError("NOT_FOUND", 404);
-  const slot = approvalSlot(loaded, advance, userId);
-  if (!slot) throw new AppError("NOT_ALLOWED_NOW", 409);
-
-  if (!yes) {
-    await prisma.advance.updateMany({
-      where: { id: advance.id, status: "ASKED" },
-      data: { status: "DECLINED", declinedById: userId },
-    });
-    await notifyMembers(
-      [advance.userId],
-      "money",
-      groupUrl(groupId),
-      {
-        title: "Avance refusée",
-        body: `${nameOf(loaded, userId)} n'a pas accepté votre demande.`,
-      },
-      {
-        title: "Advance declined",
-        body: `${nameOf(loaded, userId)} did not approve your request.`,
-      },
-    );
-    return getGroupHelp(groupId, userId, now);
-  }
-
-  const updated = await prisma.advance.update({
-    where: { id: advance.id },
-    data: { [slot]: userId },
-  });
-  if (updated.organiserApproval && updated.memberApproval) {
-    await prisma.advance.updateMany({
-      where: { id: advance.id, status: "ASKED" },
-      data: { status: "APPROVED" },
-    });
-    await prisma.auditEvent.create({
-      data: {
-        userId,
-        type: "ADVANCE_APPROVED",
-        details: { groupId, advanceId },
-      },
-    });
-    // D90: the officers send it from the fund.
-    await alertStaff({
-      mfiId: loaded.group.mfiId,
-      kind: "ADVANCE_TO_SEND",
-      refId: advance.id,
-      groupId,
-      subject: `Avance à verser : ${loaded.group.name}`,
-      lines: [
-        `« ${loaded.group.name} » a approuvé une avance de ${advance.amountFcfa} FCFA depuis le fonds solidaire.`,
-        "Elle sera reprise sur la cagnotte de la bénéficiaire.",
-      ],
-    });
-    const mfiName = (await prisma.mfi.findUniqueOrThrow({ where: { id: loaded.group.mfiId } })).name;
-    await notifyMembers(
-      [advance.userId],
-      "money",
-      groupUrl(groupId),
-      {
-        title: "Votre avance est acceptée",
-        body: `${mfiName} l'envoie sur votre Mobile Money. Elle sera reprise sur votre cagnotte.`,
-      },
-      {
-        title: "Your advance is approved",
-        body: `${mfiName} sends it to your mobile money. It comes back out of your pot.`,
-      },
-    );
-  }
-  return getGroupHelp(groupId, userId, now);
-}
-
-export async function cancelAdvance(
-  groupId: string,
-  userId: string,
-  advanceId: string,
-  now = new Date(),
-) {
-  await loadGroup(groupId, userId);
-  const moved = await prisma.advance.updateMany({
-    where: { id: advanceId, groupId, userId, status: "ASKED" },
     data: { status: "CANCELLED" },
   });
   if (moved.count === 0) throw new AppError("NOT_ALLOWED_NOW", 409);

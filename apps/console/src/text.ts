@@ -13,7 +13,6 @@ export const text = {
     examine: "Examiner",
     see: "Voir",
     tagValidate: "À valider",
-    tagAdvance: "À verser",
     tagNew: "Nouvelle",
     tagDocs: "Pièces",
     allGroups: "Groupes",
@@ -238,15 +237,6 @@ export const text = {
       COMPLETED: "Terminée",
       STARTING: "À valider",
     } as Record<string, string>,
-    advancesTitle: "Avances à verser",
-    advancesHint:
-      "Approuvées par l'organisatrice et un membre. Envoyées depuis les avances du groupe, reprises sur la cagnotte de la bénéficiaire.",
-    advanceLine: (turn: number | null) =>
-      turn ? `Bénéficiaire : tour ${turn}` : "Bénéficiaire",
-    advanceSend: "Verser",
-    advanceSendConfirm: (amount: string, group: string) =>
-      `Verser ${amount} depuis les avances du groupe (${group}) ?`,
-    advanceSent: "Versée",
     recordTitle: "Les membres",
     recordHint:
       "Pour valider le groupe : l'historique Novi de chaque membre qui a accepté de le partager. Ses messages et le détail de ses paiements restent privés.",
@@ -576,7 +566,6 @@ export const text = {
     examine: "Review",
     see: "See",
     tagValidate: "To validate",
-    tagAdvance: "To send",
     tagNew: "New",
     tagDocs: "Documents",
     allGroups: "Groups",
@@ -795,15 +784,6 @@ export const text = {
       COMPLETED: "Completed",
       STARTING: "To validate",
     } as Record<string, string>,
-    advancesTitle: "Advances to send",
-    advancesHint:
-      "Approved by the organiser and one member. Sent from the group's advances, taken back from the member's pot.",
-    advanceLine: (turn: number | null) =>
-      turn ? `Receiver: turn ${turn}` : "Receiver",
-    advanceSend: "Send",
-    advanceSendConfirm: (amount: string, group: string) =>
-      `Send ${amount} from the group's advances (${group})?`,
-    advanceSent: "Sent",
     recordTitle: "Members",
     recordHint:
       "To validate the group: the Novi record of each member who agreed to share it. Her messages and her individual payments stay private.",

@@ -46,11 +46,8 @@ import {
 
 import {
   answerSwap,
-  askAdvance,
   askSwap,
-  cancelAdvance,
   cancelSwap,
-  decideAdvance,
   decideSwap,
   getGroupHelp,
 } from "../services/helpService.js";
@@ -367,11 +364,10 @@ groupsRouter.post("/:id/next-cycle", async (req, res) => {
   res.status(201).json(await startNextCycle(id, currentMember(res).userId));
 });
 
-// ---------- D87, D88: help inside the group ----------
+// ---------- D87: help inside the group ----------
 
 const yesBody = z.object({ yes: z.boolean() }).strict();
 const swapParams = groupId.extend({ swapId: z.string().uuid() });
-const advanceParams = groupId.extend({ advanceId: z.string().uuid() });
 
 groupsRouter.get("/:id/help", async (req, res) => {
   const { id } = groupId.parse(req.params);
@@ -416,31 +412,3 @@ groupsRouter.post("/:id/swaps/:swapId/cancel", async (req, res) => {
   res.json(await cancelSwap(id, currentMember(res).userId, swapId));
 });
 
-groupsRouter.post("/:id/advances", async (req, res) => {
-  const { id } = groupId.parse(req.params);
-  const body = z
-    .object({
-      amountFcfa: z.number().int().positive(),
-      reason: z.string().max(140).optional(),
-    })
-    .strict()
-    .parse(req.body);
-  res.status(201).json(await askAdvance(id, currentMember(res).userId, body));
-});
-
-groupsRouter.post("/:id/advances/:advanceId/decide", async (req, res) => {
-  const { id, advanceId } = advanceParams.parse(req.params);
-  res.json(
-    await decideAdvance(
-      id,
-      currentMember(res).userId,
-      advanceId,
-      yesBody.parse(req.body).yes,
-    ),
-  );
-});
-
-groupsRouter.post("/:id/advances/:advanceId/cancel", async (req, res) => {
-  const { id, advanceId } = advanceParams.parse(req.params);
-  res.json(await cancelAdvance(id, currentMember(res).userId, advanceId));
-});

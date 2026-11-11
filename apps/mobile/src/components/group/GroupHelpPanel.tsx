@@ -1,4 +1,4 @@
-import type { AdvanceView, GroupHelp, TurnSwapView } from "@novi/shared";
+import type { GroupHelp, TurnSwapView } from "@novi/shared";
 import { type Href, router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,22 +6,18 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
 import {
   answerSwap,
-  cancelAdvance,
   cancelSwap,
-  decideAdvance,
   decideSwap,
   getHelp,
 } from "../../api/help";
-import { formatFcfa } from "../../lib/format";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 import { Glyph } from "../art/Glyph";
 import { ErrorMessage } from "../ErrorMessage";
 import { HelpDot, Sheet } from "../Sheet";
 
-// "Entraide" on the group page (D87, D88): swap turns with another member,
-// or ask the fund for a small advance in an emergency. What waits for her
-// answer comes first, with its two buttons; then the two ways to ask.
+// "Entraide" on the group page (D87): swap turns with another member. What
+// waits for her answer comes first, with its two buttons; then the way to ask.
 export function GroupHelpPanel({
   groupId,
   onChanged,
@@ -57,12 +53,6 @@ export function GroupHelpPanel({
 
   const openSwaps = help.swaps.filter(
     (s) => s.status === "ASKED" || s.status === "AGREED",
-  );
-  const openAdvances = help.advances.filter(
-    (a) =>
-      a.status !== "DECLINED" &&
-      a.status !== "CANCELLED" &&
-      a.status !== "REPAID",
   );
 
   const swapLine = (s: TurnSwapView) =>
@@ -115,37 +105,6 @@ export function GroupHelpPanel({
         </View>
       ))}
 
-      {openAdvances.map((a: AdvanceView) => (
-        <View key={a.id} style={styles.card}>
-          <Text style={styles.cardTitle}>
-            {t("help.advanceLine", {
-              name: a.mine ? t("groupView.you") : a.borrowerName,
-              amount: formatFcfa(a.amountFcfa),
-            })}
-          </Text>
-          {a.reason ? <Text style={styles.cardSub}>« {a.reason} »</Text> : null}
-          <Text style={[styles.cardSub, a.status === "PAID" && styles.paid]}>
-            {a.status === "ASKED"
-              ? t("help.approvals", { count: a.approvals })
-              : t(`help.advanceStatus.${a.status}`)}
-          </Text>
-          {a.canApprove ? (
-            <Pair
-              yes={t("help.approve")}
-              no={t("help.refuse")}
-              busy={busy}
-              onYes={() => void run(() => decideAdvance(groupId, a.id, true))}
-              onNo={() => void run(() => decideAdvance(groupId, a.id, false))}
-            />
-          ) : a.canCancel ? (
-            <Link
-              label={t("help.withdraw")}
-              onPress={() => void run(() => cancelAdvance(groupId, a.id))}
-            />
-          ) : null}
-        </View>
-      ))}
-
       <ErrorMessage messageKey={error} />
 
       {help.canSwap ? (
@@ -163,22 +122,6 @@ export function GroupHelpPanel({
             } as unknown as Href)
           }
         />
-      ) : null}
-      {help.canAskAdvance ? (
-        <Tile
-          label={t("help.advanceCta")}
-          sub={t("help.advanceCtaSub", {
-            amount: formatFcfa(help.advanceMaxFcfa),
-          })}
-          onPress={() =>
-            router.push({
-              pathname: "/groups/[id]/advance",
-              params: { id: groupId },
-            } as unknown as Href)
-          }
-        />
-      ) : help.fundTooLow ? (
-        <Text style={styles.note}>{t("help.fundTooLow")}</Text>
       ) : null}
 
       <Sheet

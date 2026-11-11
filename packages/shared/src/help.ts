@@ -1,4 +1,4 @@
-// Help inside the group (D87, D88) and microloans from the MFI (D89).
+// Help inside the group (D87) and microloans from the MFI (D89).
 
 // D87: two members swap their turns to receive the pot.
 export type TurnSwapView = {
@@ -15,36 +15,10 @@ export type TurnSwapView = {
   createdAt: string;
 };
 
-// D88: a small advance from the solidarity fund, repaid from her pot.
-export type AdvanceView = {
-  id: string;
-  borrowerName: string;
-  mine: boolean;
-  amountFcfa: number;
-  reason: string | null;
-  status:
-    | "ASKED"
-    | "APPROVED"
-    | "SENT"
-    | "PAID"
-    | "REPAID"
-    | "DECLINED"
-    | "CANCELLED";
-  approvals: number; // of the two needed
-  canApprove: boolean; // she may approve or decline it now
-  canCancel: boolean;
-  createdAt: string;
-};
-
 // What the "Entraide" part of the group page shows.
 export type GroupHelp = {
   swaps: TurnSwapView[]; // open ones, and those decided in the last 30 days
-  advances: AdvanceView[];
-  // Whether she may ask, and up to how much (one contribution).
-  canSwap: boolean;
-  canAskAdvance: boolean;
-  advanceMaxFcfa: number; // one contribution, or less if the fund holds less
-  fundTooLow: boolean; // she could ask, but the solidarity fund cannot spare 500 F now
+  canSwap: boolean; // whether she may ask for a swap now
   // The members she could swap with: their turn has not been paid out yet.
   swapPartners: {
     memberId: string;
@@ -179,15 +153,4 @@ export type ConsoleLoanDetail = ConsoleLoan & {
   policyUpdatedAt: string | null;
   documents: LoanDocumentView[];
   documentsConsented: boolean;
-};
-
-// D88: approved advances the officer sends from the fund.
-export type ConsoleAdvance = {
-  id: string;
-  groupId: string;
-  groupName: string;
-  amountFcfa: number;
-  status: "APPROVED" | "SENT" | "PAID" | "REPAID";
-  approvedAt: string;
-  receiverTurn: number | null; // her place, never her name (D33)
 };

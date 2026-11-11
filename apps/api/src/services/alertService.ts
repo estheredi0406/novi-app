@@ -5,8 +5,8 @@ import { purgeLoanDocuments } from "./loanService.js";
 // D90: the MFI's staff hear about what waits for them without watching the
 // console, so a member is never kept waiting because nobody looked.
 // - When something arrives (a group to validate, a pot ready to release, a
-//   pot a member says she did not receive, a loan request, an advance to
-//   send), every active officer and administrator of that MFI gets an email
+//   pot a member says she did not receive, a loan request, a payment the
+//   operator still has not confirmed, a transfer refused), every active officer and administrator of that MFI gets an email
 //   with a link straight to it.
 // - Each working morning at 08:00 (Lomé is on GMT all year), one summary of
 //   everything still waiting, if anything is.
@@ -19,7 +19,6 @@ export type AlertKind =
   | "POT_READY"
   | "POT_DISPUTED"
   | "LOAN_REQUEST"
-  | "ADVANCE_TO_SEND"
   | "PAYMENT_REPORTED" // D105: a payment she says left her account
   | "TRANSFER_FAILED"; // D114: a pot refused after its automatic retries
 
@@ -141,12 +140,6 @@ async function stillWaiting(kind: string, refId: string): Promise<boolean> {
       );
     case "TRANSFER_FAILED":
       return (await prisma.payout.count({ where: { id: refId, status: "FAILED" } })) > 0;
-    case "ADVANCE_TO_SEND":
-      return (
-        (await prisma.advance.count({
-          where: { id: refId, status: "APPROVED" },
-        })) > 0
-      );
     default:
       return false;
   }
@@ -178,7 +171,6 @@ const LABEL: Record<string, string> = {
   POT_READY: "une cagnotte à libérer",
   POT_DISPUTED: "une cagnotte « non reçue » à vérifier",
   LOAN_REQUEST: "une demande de crédit",
-  ADVANCE_TO_SEND: "une avance à verser",
   PAYMENT_REPORTED: "un paiement signalé à vérifier",
   TRANSFER_FAILED: "un virement refusé à corriger",
 };
@@ -245,7 +237,7 @@ export async function runAlerts(now = new Date()): Promise<void> {
         details: { mfiId: mfi.id, day: today },
       },
     });
-    const [groups, ready, disputed, loans, advances] = await Promise.all([
+    const [groups, ready, disputed, loans] = await Promise.all([
       prisma.group.count({ where: { mfiId: mfi.id, state: "STARTING" } }),
       prisma.payout.count({
         where: { status: "READY", round: { group: { mfiId: mfi.id } } },
@@ -258,16 +250,12 @@ export async function runAlerts(now = new Date()): Promise<void> {
         },
       }),
       prisma.loanRequest.count({ where: { mfiId: mfi.id, status: "PENDING" } }),
-      prisma.advance.count({
-        where: { status: "APPROVED", group: { mfiId: mfi.id } },
-      }),
     ]);
     const lines = [
       groups ? `${groups} groupe(s) à valider` : null,
       ready ? `${ready} cagnotte(s) à libérer` : null,
       disputed ? `${disputed} cagnotte(s) « non reçue » cette semaine` : null,
       loans ? `${loans} demande(s) de crédit` : null,
-      advances ? `${advances} avance(s) à verser` : null,
     ].filter((l): l is string => l !== null);
     if (lines.length === 0) continue;
     try {

@@ -61,7 +61,7 @@ export async function resetPilotData(): Promise<PilotCounts> {
   await prisma.$transaction([
     // CASCADE empties every table that points at these: memberships, rules,
     // invites, rounds, payments, pots, ledger lines, reminders, the caisse,
-    // chats and voice notes, meetings, swaps, advances, loan documents and
+    // chats and voice notes, meetings, swaps, loan documents and
     // the record shares' views. Users, officers and the MFI point nowhere
     // here, so they stay.
     prisma.$executeRawUnsafe(

@@ -165,7 +165,6 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
           <Text style={styles.sheetTitle}>{group.name}</Text>
           <Text style={styles.sheetSub}>{t("hub.moreSub")}</Text>
           <MoreRow icon="swap" title={t("hub.swap")} sub={t("hub.swapSub")} onPress={() => go("/groups/[id]/swap")} />
-          <MoreRow icon="hand" title={t("hub.advance")} sub={t("hub.advanceSub")} onPress={() => go("/groups/[id]/advance")} />
           <MoreRow
             icon="calendar"
             title={t("hub.meetings")}
