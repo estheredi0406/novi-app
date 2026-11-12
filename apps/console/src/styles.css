@@ -1374,8 +1374,10 @@ h2 {
   font-size: 18px;
   margin: 36px 0 12px;
 }
+/* D129: buttons are blue, as in the member app (D121); orange stays for
+   counts of what waits. */
 .primary {
-  background: var(--orange);
+  background: var(--action);
   border-radius: 12px;
 }
 .primary.small {
