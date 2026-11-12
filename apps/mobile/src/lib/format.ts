@@ -41,3 +41,8 @@ export function shortDay(isoDay: string, language: string): string {
   const locale = language === "en" ? "en-GB" : "fr-FR";
   return date.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 }
+
+// A yearly rate in basis points as people read it: 450 -> "4,5 %" (D123).
+export function pct(bp: number | null): string | null {
+  return bp === null ? null : `${(bp / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %`;
+}

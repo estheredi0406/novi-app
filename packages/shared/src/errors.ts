@@ -56,6 +56,10 @@ export const errors = {
   // Help inside the group and credit (D87, D89)
   SWAP_NOT_POSSIBLE: { messageKey: "help.swapNotPossible" }, // a turn already paid out, due today, or a swap already open
   LOAN_NOT_ELIGIBLE: { messageKey: "loan.notEligible" },
+  SAVINGS_CONSENT_REQUIRED: { messageKey: "savings.consentRequired" },
+  SAVINGS_REFUSED: { messageKey: "savings.refused" },
+  SAVINGS_NOT_ENOUGH: { messageKey: "savings.notEnough" },
+  SAVINGS_WITHDRAWAL_FAILED: { messageKey: "savings.withdrawFailed" },
   LOAN_TOO_LARGE: { messageKey: "loan.tooLarge" },
   DOCUMENT_INVALID: { messageKey: "loan.documentInvalid" }, // D91: not a photo, or too large
   DOCUMENTS_CONSENT_REQUIRED: { messageKey: "loan.documentsConsentRequired" },

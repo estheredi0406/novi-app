@@ -18,6 +18,7 @@ import type {
   Mfi,
 } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
+import { hasSaved, savingsPolicy } from "./savingsService.js";
 import { AppError } from "../lib/errors.js";
 import { potShare } from "../lib/groupRules.js";
 import { alertStaff } from "./alertService.js";
@@ -350,6 +351,10 @@ export async function getLoanPage(
     ? await policyOf(stats.mfi.id)
     : { ...DEFAULT_POLICY, documents: DEFAULT_DOCUMENTS };
   const checks = checksFor(stats, policy, requests, now);
+  // D123: the MFI may ask that she has started saving with it first.
+  if (stats.mfi && (await savingsPolicy(stats.mfi.id)).requireForLoan) {
+    checks.push({ key: "SAVINGS", ok: await hasSaved(userId, stats.mfi.id), figures: {} });
+  }
   const rate =
     stats.paymentsMade > 0 ? stats.paymentsOnTime / stats.paymentsMade : null;
   return {

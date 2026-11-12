@@ -49,7 +49,8 @@ export type LoanCheck = {
     | "NO_DEBT"
     | "NO_OPEN_REQUEST"
     | "WAIT_AFTER_REFUSAL"
-    | "CEILING";
+    | "CEILING"
+    | "SAVINGS"; // D123: the MFI asks that she has started saving with it
   ok: boolean;
   figures: Record<string, number>;
 };

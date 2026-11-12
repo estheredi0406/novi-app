@@ -15,6 +15,7 @@ import { Members } from "./pages/Members";
 import { FirstPassword } from "./pages/FirstPassword";
 import { Team } from "./pages/Team";
 import { LoanPage, LoanPolicy, Loans } from "./pages/Loans";
+import { Savings } from "./pages/Savings";
 import { Icon, type IconName } from "./Icon";
 import { useCounts } from "./useCounts";
 
@@ -149,6 +150,8 @@ export function App() {
       <RecordPage key={id} t={t} shareId={id} onExpired={expired} />
     ) : section === "records" ? (
       <Records t={t} onExpired={expired} />
+    ) : section === "savings" ? (
+      <Savings t={t} onExpired={expired} isAdmin={staff.role === "ADMIN"} />
     ) : section === "analytics" ? (
       <Analytics t={t} onExpired={expired} />
     ) : section === "members" ? (
@@ -182,6 +185,7 @@ export function App() {
           {link("#/", !section, "home", t.overview, counts.toDo)}
           {link("#/groups", section === "groups", "groups", t.groupsNav)}
           {link("#/loans", section === "loans" || section === "loan-policy", "bank", t.loansNav, counts.loans)}
+          {link("#/savings", section === "savings", "coin", t.savingsNav, counts.savings)}
           {link("#/members", section === "members" || section === "records", "user", t.membersNav)}
           {link("#/analytics", section === "analytics", "chart", t.analytics)}
           {link("#/settings", section === "settings" || section === "team" || section === "activity", "sliders", t.settings)}

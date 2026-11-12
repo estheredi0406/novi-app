@@ -38,6 +38,7 @@ import {
   saveCreditPolicy,
 } from "../services/loanService.js";
 import { AppError } from "../lib/errors.js";
+import { consoleSavings, decideAccount, saveSavingsPolicy } from "../services/savingsService.js";
 import {
   changeOrganiser,
   changePhone,
@@ -557,3 +558,31 @@ consoleRouter.post("/credit-policy/preview", async (req, res) => {
     );
 });
 
+// ---------- D123: members' savings ----------
+
+consoleRouter.get("/savings", async (_req, res) => {
+  res.json(await consoleSavings(currentStaff(res).mfiId));
+});
+
+consoleRouter.post("/savings/:accountId/decide", async (req, res) => {
+  const staff = currentStaff(res);
+  const accountId = z.string().uuid().parse(req.params.accountId);
+  const body = z
+    .union([
+      z.object({ open: z.literal(true) }).strict(),
+      z.object({ open: z.literal(false), reason: z.string().trim().min(3).max(300) }).strict(),
+    ])
+    .parse(req.body);
+  res.json(await decideAccount(staff.mfiId, staff.staffId, accountId, body));
+});
+
+consoleRouter.put("/savings/policy", async (req, res) => {
+  const staff = currentStaff(res);
+  if (staff.role !== "ADMIN") throw new AppError("ADMIN_ONLY", 403);
+  const bp = z.number().int().min(0).max(2400).nullable(); // at most 24 %
+  const body = z
+    .object({ freeBp: bp, lock3Bp: bp, lock6Bp: bp, lock12Bp: bp, requireForLoan: z.boolean() })
+    .strict()
+    .parse(req.body);
+  res.json(await saveSavingsPolicy(staff.mfiId, staff.staffId, body));
+});

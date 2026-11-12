@@ -9,4 +9,5 @@ export * from "./money.js";
 export * from "./news.js";
 export * from "./pinRules.js";
 export * from "./record.js";
+export * from "./savings.js";
 export * from "./staff.js";

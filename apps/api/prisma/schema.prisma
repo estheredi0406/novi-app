@@ -160,6 +160,7 @@ model User {
   sessions    Session[]
   consents    Consent[]
   auditEvents AuditEvent[]
+  savingsAccounts SavingsAccount[]
 
   organisedGroups Group[]        @relation("GroupOrganiser")
   memberships     Membership[]   @relation("SeatHolder")
@@ -300,6 +301,7 @@ model Mfi {
 
   groups        Group[]
   rulesVersions RulesVersion[]
+  savingsAccounts SavingsAccount[]
   staff         StaffUser[]
   recordShares RecordShare[]
   loanRequests LoanRequest[]
@@ -545,6 +547,7 @@ model Payout {
   receiptDisputedAt  DateTime? // "I did not receive it": shown to the officer
   toNextOfKin        Boolean   @default(false) // D69: sent to her next of kin after her death
   coverRepaidFcfa    Int       @default(0) // D69: her own unpaid covers, repaid from her pot first
+  keptFcfa           Int? // D123: the part of her pot she keeps in savings at the MFI; set once, when it is first sent
   // D114: a refused transfer is tried again by itself (after 5 min, 30 min,
   // 2 h); after that, an officer looks at it.
   attempts           Int       @default(0)
@@ -1045,4 +1048,96 @@ model BankEntry {
   @@unique([source, sourceId])
   @@index([accountId, bookedAt])
   @@map("bank_entries")
+}
+
+
+// ---------- D123: her savings at the MFI ----------
+
+enum SavingsStatus {
+  REQUESTED // she agreed; the MFI has not opened it yet
+  OPEN
+  REFUSED
+}
+
+enum SavingsPocket {
+  FREE // she withdraws when she wants
+  LOCKED // kept until a date, for a better rate
+}
+
+enum SavingsEntryKind {
+  POT_KEPT
+  WITHDRAWAL
+}
+
+// One savings account per member per MFI, opened by the MFI from the identity
+// Novi verified, once she agreed to share it.
+model SavingsAccount {
+  id            String        @id @default(uuid())
+  userId        String
+  mfiId         String
+  ref           String        @unique // EP-... at the MFI
+  status        SavingsStatus @default(REQUESTED)
+  consentAt     DateTime
+  openedAt      DateTime?
+  decidedById   String?
+  refusedReason String?
+  createdAt     DateTime      @default(now())
+
+  user    User           @relation(fields: [userId], references: [id])
+  mfi     Mfi            @relation(fields: [mfiId], references: [id])
+  entries SavingsEntry[]
+
+  @@unique([userId, mfiId])
+  @@index([mfiId, status])
+  @@map("savings_accounts")
+}
+
+// One movement on her savings: a pot (or part of one) kept, or a withdrawal.
+// A kept amount is a lot of its own, with its pocket, its rate when it came
+// in and, when locked, the day it is free.
+model SavingsEntry {
+  id         String           @id @default(uuid())
+  accountId  String
+  kind       SavingsEntryKind
+  pocket     SavingsPocket
+  amountFcfa Int // + kept, - withdrawn
+  rateBp     Int? // yearly rate in basis points when it came in (450 = 4.5 %)
+  lockMonths Int?
+  unlockAt   DateTime?
+  payoutId   String?          @unique // the pot it came from
+  status     String           @default("DONE") // a withdrawal: SENDING, DONE or FAILED
+  brokenAt   DateTime? // a placement she took back before its date: no interest
+  mfiRef     String?
+  createdAt  DateTime         @default(now())
+
+  account SavingsAccount @relation(fields: [accountId], references: [id])
+
+  @@index([accountId, createdAt])
+  @@map("savings_entries")
+}
+
+// Where she wants her pot of one round, chosen up to 3 days before it.
+model PotChoice {
+  roundId    String        @id
+  userId     String
+  keepFcfa   Int
+  pocket     SavingsPocket
+  lockMonths Int?
+  updatedAt  DateTime      @updatedAt
+
+  @@map("pot_choices")
+}
+
+// The MFI's savings rates, set in the console, and whether a loan needs a
+// savings account (D123).
+model SavingsPolicy {
+  mfiId          String   @id
+  freeBp         Int?
+  lock3Bp        Int?
+  lock6Bp        Int?
+  lock12Bp       Int?
+  requireForLoan Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+
+  @@map("savings_policies")
 }

@@ -13,6 +13,7 @@ import {
   withdrawLoan,
 } from "../services/loanService.js";
 import { getStatement, listNews } from "../services/newsService.js";
+import { breakPlacement, choosePot, mySavings, withdraw } from "../services/savingsService.js";
 import { savePushToken } from "../services/notifyService.js";
 import { answerReceipt } from "../services/payoutService.js";
 import {
@@ -153,6 +154,39 @@ meRouter.post("/payouts/:payoutId/receipt", async (req, res) => {
   const payoutId = z.string().uuid().parse(req.params.payoutId);
   await answerReceipt(currentMember(res).userId, payoutId, received);
   res.status(204).end();
+});
+
+// ---------- D123: her savings at the MFI ----------
+
+meRouter.get("/savings", async (_req, res) => {
+  res.json(await mySavings(currentMember(res).userId));
+});
+
+meRouter.put("/savings/choices/:roundId", async (req, res) => {
+  const roundId = z.string().uuid().parse(req.params.roundId);
+  const body = z
+    .object({
+      keepFcfa: z.number().int().min(0).max(10_000_000),
+      pocket: z.enum(["FREE", "LOCKED"]),
+      lockMonths: z.union([z.literal(3), z.literal(6), z.literal(12)]).nullable(),
+      consent: z.boolean(),
+    })
+    .strict()
+    .parse(req.body);
+  res.json(await choosePot(currentMember(res).userId, { roundId, ...body }));
+});
+
+// Takes a whole placement back before its date: it earns nothing.
+meRouter.post("/savings/:accountId/placements/:entryId/withdraw", async (req, res) => {
+  const accountId = z.string().uuid().parse(req.params.accountId);
+  const entryId = z.string().uuid().parse(req.params.entryId);
+  res.json(await breakPlacement(currentMember(res).userId, { accountId, entryId }));
+});
+
+meRouter.post("/savings/:accountId/withdraw", async (req, res) => {
+  const accountId = z.string().uuid().parse(req.params.accountId);
+  const body = z.object({ amountFcfa: z.number().int().min(500).max(10_000_000) }).strict().parse(req.body);
+  res.json(await withdraw(currentMember(res).userId, { accountId, ...body }));
 });
 
 // ---------- D89: microloan requests to the MFI ----------

@@ -1,4 +1,4 @@
-import type { GroupSummary, Invitation, NewsItem } from "@novi/shared";
+import type { GroupSummary, Invitation, MySavings, NewsItem } from "@novi/shared";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
 import { listMyGroups, listMyInvitations } from "../../api/groups";
 import { listNews } from "../../api/news";
+import { getSavings } from "../../api/savings";
+import { formatFcfa, shortDay } from "../../lib/format";
 import { BottomBar, CowrieMark } from "../../components/BottomBar";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { GroupCard } from "../../components/hub/GroupCard";
@@ -39,6 +41,7 @@ export default function HomeScreen() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [savings, setSavings] = useState<MySavings | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,12 +52,14 @@ export default function HomeScreen() {
       let active = true;
       void (async () => {
         try {
-          const [nextInvitations, nextGroups, nextNews] = await Promise.all([
+          const [nextInvitations, nextGroups, nextNews, nextSavings] = await Promise.all([
             listMyInvitations(),
             listMyGroups(),
             listNews(3).catch(() => [] as NewsItem[]),
+            getSavings().catch(() => null),
           ]);
           if (!active) return;
+          setSavings(nextSavings);
           setInvitations(nextInvitations);
           setGroups(nextGroups);
           setNews(nextNews);
@@ -78,6 +83,7 @@ export default function HomeScreen() {
       groups={groups}
       invitations={invitations}
       news={news}
+      savings={savings}
       loaded={loaded}
       error={error}
     />
@@ -91,6 +97,7 @@ export function HomeView({
   groups,
   invitations,
   news,
+  savings = null,
   loaded,
   error,
 }: {
@@ -98,6 +105,7 @@ export function HomeView({
   groups: GroupSummary[];
   invitations: Invitation[];
   news: NewsItem[];
+  savings?: MySavings | null;
   loaded: boolean;
   error: string | null;
 }) {
@@ -219,6 +227,52 @@ export function HomeView({
       </View>
 
       <ErrorMessage messageKey={error} />
+
+      {/* D123: three days before her pot, where it goes; then her savings. */}
+      {savings && (savings.choices.length > 0 || savings.accounts.length > 0) ? (
+        <View style={styles.section}>
+          {savings.choices.map((c) => (
+            <Pressable
+              key={c.roundId}
+              accessibilityRole="button"
+              onPress={() => router.push({ pathname: "/savings-choice" as never, params: { round: c.roundId } })}
+              style={[styles.box, c.keepFcfa > 0 ? null : styles.invite]}
+            >
+              <View style={[styles.avatar, { backgroundColor: colors.turnSoft }]}>
+                <CowrieMark size={22} fill={colors.yourTurn} />
+              </View>
+              <View style={styles.boxText}>
+                <Text style={styles.boxTitle}>{t("savings.homeChoice", { date: shortDay(c.dueDate, i18n.language) })}</Text>
+                <Text style={styles.boxSub}>
+                  {c.keepFcfa > 0
+                    ? t("savings.homeChoiceDone", { kept: formatFcfa(c.keepFcfa).replace(" FCFA", " F") })
+                    : t("savings.homeChoiceSub", { pot: formatFcfa(c.potFcfa).replace(" FCFA", " F") })}
+                </Text>
+              </View>
+              <LineIcon name="chevron" color={colors.action} />
+            </Pressable>
+          ))}
+          {savings.accounts.map((a) => (
+            <Pressable
+              key={a.id}
+              accessibilityRole="button"
+              onPress={() => router.push("/savings" as never)}
+              style={styles.box}
+            >
+              <View style={[styles.avatar, { backgroundColor: colors.turnSoft }]}>
+                <CowrieMark size={22} fill={colors.yourTurn} />
+              </View>
+              <View style={styles.boxText}>
+                <Text style={styles.boxSub}>{t("savings.homeSavings", { mfi: a.mfiName })}</Text>
+                <Text style={styles.savingsAmount}>
+                  {a.status === "OPEN" ? formatFcfa(a.totalFcfa).replace(" FCFA", " F") : t("savings.homeOpening")}
+                </Text>
+              </View>
+              <LineIcon name="chevron" color={colors.action} />
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       {invitations.length > 0 ? (
         <View style={styles.section}>
@@ -377,6 +431,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   invite: { borderColor: colors.accent, borderWidth: 2 },
+  savingsAmount: { fontFamily: fonts.display, fontSize: 20, lineHeight: 28, color: colors.indigo },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   avatarText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.white },
   boxText: { flex: 1, minWidth: 0, gap: 2 },

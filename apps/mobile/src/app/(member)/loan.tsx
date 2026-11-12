@@ -65,6 +65,8 @@ function checkText(t: TFunction, c: LoanCheck): [string, string] {
         t("loan.cond.wait", { days: f.wait }),
         f.days ? t("loan.cond.refusedAgo", { days: f.days }) : "",
       ];
+    case "SAVINGS": // D123
+      return [t("loan.cond.savings"), ""];
     default:
       return [t("loan.cond.open"), ""];
   }

@@ -8,6 +8,7 @@ import { payoutSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import { accountForMfi } from "./paymentAccounts.js";
 import { syncCoreBanking } from "./coreBanking.js";
+import { bookKept, keptForPayout } from "./savingsService.js";
 import type { PayoutAnswer } from "../providers/mfi/MfiAdapter.js";
 import { deleteGroupVoices, postEvent } from "./chatService.js";
 import { alertStaff } from "./alertService.js";
@@ -313,8 +314,16 @@ async function sendToMfi(
   if (!accountRef)
     throw new Error(`payout ${payoutId}: the group has no MFI account`);
   let answer: PayoutAnswer;
+  // D123: the part of her pot she keeps in savings at the MFI does not leave;
+  // when she keeps it all, nothing is sent and the pot is settled at once.
+  const kept = await keptForPayout(payoutId);
+  if (details.amountFcfa - kept <= 0) {
+    await settlePayout(payoutId, `savings:${payoutId}`);
+    return;
+  }
   try {
-    const { amountFcfa, phone, operator } = details;
+    const { phone, operator } = details;
+    const amountFcfa = details.amountFcfa - kept;
     // D102: from the MFI's own FedaPay balance when it connected one and
     // sends pots that way; otherwise through the MFI stand-in (D49).
     const { mfiId } = await prisma.payout
@@ -545,6 +554,7 @@ async function settlePayout(payoutId: string, mfiRef: string) {
         payoutId,
       },
     });
+    await bookKept(tx, payoutId, paidAt);
     await tx.auditEvent.create({
       data: {
         userId: payout.beneficiaryId,
