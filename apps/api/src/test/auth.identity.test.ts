@@ -130,3 +130,20 @@ describe("identity check", () => {
     expect(res.body.error.code).toBe("NIU_ALREADY_REGISTERED");
   });
 });
+// D131: the test register only lends an ID number; testers type their own
+// name and date of birth.
+describe("identity check against the test register", () => {
+  it("matches the ID number only, and keeps the name she typed", async () => {
+    anid.checkNameAndDate = false;
+    const token = await verifiedPhone();
+    const mine = { niu: "0000-000-0001", legalName: "Esther Afi Sessenou", dateOfBirth: "2001-06-04" };
+    const started = await startCheck(token, mine);
+    expect(started.status).toBe(200);
+    const confirmed = await confirmCheck(token, started.body.pendingToken, lastAnidCode());
+    expect(confirmed.status).toBe(200);
+    expect(confirmed.body.legalName).toBe("Esther Afi Sessenou");
+    // An ID number that is not in the register is still refused.
+    const unknown = await startCheck(token, { ...mine, niu: "0000-000-0999" });
+    expect(unknown.body.error.code).toBe("ID_MISMATCH");
+  });
+});

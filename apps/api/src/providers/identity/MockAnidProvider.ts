@@ -139,14 +139,20 @@ function maskPhone(phone: string): string {
 export class MockAnidProvider implements IdentityProvider {
   // Codes "sent" by the mock, readable by tests. A real service never exposes them.
   readonly sentCodes = new Map<string, string>();
+  // D131: the fake register only lends testers an ID number. She types her
+  // own name and date of birth (or any): they are not compared, and the name
+  // she typed is the one kept. Real ANID compares all three (D12); the tests
+  // of that rule turn this on.
+  checkNameAndDate = false;
   private readonly pending = new Map<string, PendingVerification>();
 
   async startVerification(details: IdentityDetails): Promise<StartVerificationResult> {
     const record = DEMO_REGISTER.find(
       (r) =>
         r.niu === details.niu.trim() &&
-        (details.fullName === undefined || normalizeName(r.fullName) === normalizeName(details.fullName)) &&
-        r.dateOfBirth === details.dateOfBirth,
+        (!this.checkNameAndDate ||
+          ((details.fullName === undefined || normalizeName(r.fullName) === normalizeName(details.fullName)) &&
+            r.dateOfBirth === details.dateOfBirth)),
     );
     if (!record) return { kind: "NO_MATCH" };
 
@@ -157,7 +163,9 @@ export class MockAnidProvider implements IdentityProvider {
       code,
       expiresAt: Date.now() + CODE_LIFETIME_MS,
       attemptsLeft: MAX_CODE_ATTEMPTS,
-      fullName: record.fullName,
+      // The name to keep: hers as typed in the app; the register's on a
+      // basic phone, where she types no name.
+      fullName: this.checkNameAndDate ? record.fullName : (details.fullName ?? record.fullName),
     });
     this.sentCodes.set(transactionId, code);
     console.log(`[mock ANID] code ${code} sent to ${record.phone}`);

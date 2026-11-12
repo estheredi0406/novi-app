@@ -31,7 +31,9 @@ describe("mock ANID identity check", () => {
   });
 
   it("refuses a different date of birth", async () => {
-    const result = await new MockAnidProvider().startVerification({ ...akossiwa, dateOfBirth: "1984-03-13" });
+    const strict = new MockAnidProvider();
+    strict.checkNameAndDate = true; // real ANID's rule (D12)
+    const result = await strict.startVerification({ ...akossiwa, dateOfBirth: "1984-03-13" });
     expect(result.kind).toBe("NO_MATCH");
   });
 
