@@ -91,7 +91,6 @@ export function Savings({ t, onExpired, isAdmin }: { t: Text; onExpired: () => v
             <thead>
               <tr>
                 <th>{t.savingsColName}</th>
-                <th>{t.savingsColPhone}</th>
                 <th>{t.savingsColVerified}</th>
                 <th>{t.savingsColPot}</th>
                 <th>{t.savingsColWish}</th>
@@ -101,11 +100,12 @@ export function Savings({ t, onExpired, isAdmin }: { t: Text; onExpired: () => v
             <tbody>
               {data.requests.map((r) => (
                 <tr key={r.id}>
-                  <td>
+                  <td className="name-cell">
                     <strong>{r.legalName}</strong>
                     <div className="muted small">{r.ref}</div>
+                    {/* D135: the number under the name, so the table fits a laptop. */}
+                    <div className="muted small">{r.phone}</div>
                   </td>
-                  <td>{r.phone}</td>
                   <td>{t.savingsVerified(day(r.idVerifiedAt))}</td>
                   <td>{r.potDate ? day(r.potDate) : "–"}</td>
                   <td>{r.keepFcfa ? t.savingsWish(fcfa(r.keepFcfa), r.lockMonths ?? 0) : "–"}</td>
@@ -126,7 +126,7 @@ export function Savings({ t, onExpired, isAdmin }: { t: Text; onExpired: () => v
                         </button>
                       </span>
                     ) : (
-                      <span className="row">
+                      <span className="savings-actions">
                         <button className="primary small" disabled={busy} onClick={() => void decide(r.id, { open: true })}>
                           {t.savingsOpen}
                         </button>

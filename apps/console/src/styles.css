@@ -2132,3 +2132,35 @@ a.ghost {
 
 /* D134: a colour and its count in the "À surveiller" filter. */
 .dot-count { display: inline-flex; align-items: center; gap: 4px; margin-left: 2px; margin-right: 4px; font-weight: 700; }
+
+/* D135: the accounts to open fit a laptop screen: the name keeps its line,
+   the two actions stand one above the other. */
+td.name-cell { min-width: 150px; }
+.savings-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+
+/* D135: on a phone or a tablet, a wide table scrolls sideways inside its
+   frame instead of pushing the whole page sideways. */
+@media (max-width: 1000px) {
+  table.members,
+  table.team {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table.members th,
+  table.members td,
+  table.team th,
+  table.team td {
+    white-space: nowrap;
+  }
+  table.members td .q-meta,
+  table.members td .muted {
+    white-space: normal;
+  }
+  main,
+  .queue {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
