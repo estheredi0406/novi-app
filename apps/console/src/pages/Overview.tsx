@@ -349,9 +349,28 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
                   </a>
                   <span className="q-meta">{g.watch ? t.watchLine(g.watch) : ""}</span>
                 </div>
-                <a className="ghost" href={`#/groups/${g.id}`}>
-                  {t.open}
-                </a>
+                {(() => {
+                  // D138: a refused pot Novi will try again later can be
+                  // tried now, once the cause is fixed (a wallet, the
+                  // payment account). It never sends twice.
+                  const failed =
+                    g.watch?.reason === "RETRYING"
+                      ? attention.find((i) => i.groupId === g.id && i.status === "FAILED" && i.canRetry)
+                      : undefined;
+                  return failed ? (
+                    <button
+                      className="primary small"
+                      disabled={retrying === failed.payoutId}
+                      onClick={() => void act(failed.payoutId, "retry")}
+                    >
+                      {t.retryNow}
+                    </button>
+                  ) : (
+                    <a className="ghost" href={`#/groups/${g.id}`}>
+                      {t.open}
+                    </a>
+                  );
+                })()}
               </li>
             ))}
           </ol>

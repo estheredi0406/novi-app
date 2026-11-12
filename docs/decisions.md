@@ -462,3 +462,7 @@ Checked every console page at 390, 768, 1280 and 1366 pixels wide. The menu alre
 ## D136: the console settings cards get a clean layout (12 November 2026)
 
 The FedaPay and automatic release cards looked loose: the status sat far to the right in bold, the field label was glued to a small input, the button did not line up and "Aucune" floated on its own. Both cards now share one layout: the title with its status as a pill (blue when set, saffron when waiting), a short lede, labels above their fields, an amount field with "FCFA" inside it, and the secondary choice ("Aucune", or the payouts box with "Déconnecter") on its own line under a dashed rule. The webhook address sits in a box that selects in one click. Checked at 1280 and 390 pixels, with no sideways overflow.
+
+## D138: "Relancer maintenant" on a refused pot Novi will try again later (12 November 2026)
+
+From Esther's own test: a pot refused by FedaPay waits for Novi's automatic tries (5 minutes, 30 minutes, 2 hours, D114), and until they are used up it only shows under "À surveiller", with no button. Once the cause is fixed (the receiver's wallet, or the MFI's payment account), the officer had to wait. The group's row under "À surveiller" now has a "Relancer maintenant" button when one of its pots is waiting for an automatic retry; it uses the same retry as "Relancer" in "À décider", which never sends a pot twice. Console only.

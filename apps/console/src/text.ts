@@ -67,6 +67,7 @@ export const text = {
       `${n} paiement${n > 1 ? "s" : ""} manquant${n > 1 ? "s" : ""}`,
     since: (d: string) => `depuis le ${d}`,
     retry: "Relancer",
+    retryNow: "Relancer maintenant",
     toValidate: "Groupes à valider",
     toValidateHint:
       "Le groupe a démarré côté membres. Vérifiez-le avant d'ouvrir son compte.",
@@ -866,6 +867,7 @@ export const text = {
     missing: (n: number) => `${n} payment${n > 1 ? "s" : ""} missing`,
     since: (d: string) => `since ${d}`,
     retry: "Retry",
+    retryNow: "Retry now",
     toValidate: "Groups to validate",
     toValidateHint:
       "Members have started this group. Check it before its account opens.",
