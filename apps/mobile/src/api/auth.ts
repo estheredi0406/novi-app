@@ -24,7 +24,8 @@ export function startIdentityCheck(input: {
   verificationToken: string;
   consentToIdCheck: boolean;
   niu: string;
-  legalName: string;
+  firstName: string;
+  lastName: string;
   dateOfBirth: string;
 }) {
   return publicRequest<IdentityStarted>("POST", "/v1/auth/identity/start", input);

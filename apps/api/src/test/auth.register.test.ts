@@ -38,7 +38,7 @@ describe("sign-up", () => {
     expect(res.status).toBe(201);
     expect(res.body.member).toMatchObject({
       displayName: "Akossiwa",
-      legalName: "Akossiwa Afi Mensah",
+      legalName: "Akossiwa Mensah",
       area: "Bè",
       market: "Assigamé",
     });

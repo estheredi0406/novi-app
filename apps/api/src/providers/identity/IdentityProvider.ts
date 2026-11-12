@@ -8,7 +8,9 @@
 // of MOSIP-based registers), and she then confirms it is hers.
 export type IdentityDetails = {
   niu: string;
-  fullName?: string; // the app's sign-up checks it; USSD leaves it out
+  firstName?: string; // D132: the app's sign-up sends both names apart
+  lastName?: string;
+  fullName?: string; // an older app sends one full name; USSD leaves names out
   dateOfBirth: string; // YYYY-MM-DD
 };
 

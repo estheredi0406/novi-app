@@ -84,7 +84,7 @@ describe("her savings record", () => {
     const { tokens } = await signedUpMember();
     const record = (await as(tokens.accessToken).get("/v1/me/record")).body;
     expect(record).toMatchObject({
-      legalName: "Akossiwa Afi Mensah",
+      legalName: "Akossiwa Mensah",
       groupsJoined: 0,
       paymentsMade: 0,
       missed: 0,
@@ -273,13 +273,13 @@ describe("sharing it with one MFI by name (D54)", () => {
 
     const listed = (await mawuli.client.get("/v1/console/records")).body;
     expect(listed).toEqual([
-      expect.objectContaining({ shareId: share.id, legalName: "Akossiwa Afi Mensah", views: 0 }),
+      expect.objectContaining({ shareId: share.id, legalName: "Akossiwa Mensah", views: 0 }),
     ]);
     const opened = (await mawuli.client.get(`/v1/console/records/${share.id}`)).body;
-    expect(opened).toMatchObject({ status: "VALID", record: { legalName: "Akossiwa Afi Mensah" } });
+    expect(opened).toMatchObject({ status: "VALID", record: { legalName: "Akossiwa Mensah" } });
     const document = await mawuli.client.get(`/v1/console/records/${share.id}/document`);
     expect(document.headers["content-type"]).toContain("text/html");
-    expect(document.text).toContain("Akossiwa Afi Mensah");
+    expect(document.text).toContain("Akossiwa Mensah");
 
     const [mine] = (await akossiwa.get("/v1/me/record/shares")).body;
     expect(mine.views).toBe(2); // the facts, then the document

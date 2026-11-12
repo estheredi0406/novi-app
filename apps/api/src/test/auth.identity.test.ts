@@ -14,7 +14,7 @@ const outbox = sms.sent;
 const anid = identity;
 
 const PHONE = "+22890000001";
-const AKOSSIWA = { niu: "0000-000-0001", legalName: "Akossiwa Afi Mensah", dateOfBirth: "1984-03-12" };
+const AKOSSIWA = { niu: "0000-000-0001", legalName: "Akossiwa Mensah", dateOfBirth: "1984-03-12" };
 
 // Completes the SMS step and returns the sign-up verification token.
 async function verifiedPhone(): Promise<string> {
@@ -96,7 +96,7 @@ describe("identity check", () => {
     const res = await confirmCheck(token, body.pendingToken, lastAnidCode());
     expect(res.status).toBe(200);
     expect(res.body.identityToken).toBeTypeOf("string");
-    expect(res.body.legalName).toBe("Akossiwa Afi Mensah");
+    expect(res.body.legalName).toBe("Akossiwa Mensah");
   });
 
   it("refuses a wrong ANID code", async () => {
@@ -112,7 +112,7 @@ describe("identity check", () => {
     await prisma.user.create({
       data: {
         phone: "+22890000009",
-        legalName: "AKOSSIWA AFI MENSAH",
+        legalName: "AKOSSIWA MENSAH",
         displayName: "Akossiwa",
         area: "Bè",
         language: "FR",
@@ -130,20 +130,25 @@ describe("identity check", () => {
     expect(res.body.error.code).toBe("NIU_ALREADY_REGISTERED");
   });
 });
-// D131: the test register only lends an ID number; testers type their own
-// name and date of birth.
-describe("identity check against the test register", () => {
-  it("matches the ID number only, and keeps the name she typed", async () => {
-    anid.checkNameAndDate = false;
+// D132: first name and surname apart, compared without capitals, spaces or
+// accents; the name kept is the record's, which the app shows to confirm.
+describe("identity check with first name and surname apart", () => {
+  it("matches both names and the date, and keeps the name on the record", async () => {
     const token = await verifiedPhone();
-    const mine = { niu: "0000-000-0001", legalName: "Esther Afi Sessenou", dateOfBirth: "2001-06-04" };
-    const started = await startCheck(token, mine);
+    const typed = { niu: "0000-000-0001", firstName: "  akossiwa ", lastName: "MENSAH", dateOfBirth: "1984-03-12" };
+    const started = await startCheck(token, typed as never);
     expect(started.status).toBe(200);
     const confirmed = await confirmCheck(token, started.body.pendingToken, lastAnidCode());
     expect(confirmed.status).toBe(200);
-    expect(confirmed.body.legalName).toBe("Esther Afi Sessenou");
-    // An ID number that is not in the register is still refused.
-    const unknown = await startCheck(token, { ...mine, niu: "0000-000-0999" });
-    expect(unknown.body.error.code).toBe("ID_MISMATCH");
+    expect(confirmed.body.legalName).toBe("Akossiwa Mensah");
+  });
+
+  it("ignores accents, and refuses a wrong surname or a swapped pair", async () => {
+    const token = await verifiedPhone();
+    const helene = { niu: "0000-000-0036", firstName: "Helene", lastName: "quashie", dateOfBirth: "1985-08-10" };
+    const base = { niu: "0000-000-0001", dateOfBirth: "1984-03-12" };
+    expect((await startCheck(token, { ...base, firstName: "Akossiwa", lastName: "Agbo" } as never)).body.error.code).toBe("ID_MISMATCH");
+    expect((await startCheck(token, { ...base, firstName: "Mensah", lastName: "Akossiwa" } as never)).body.error.code).toBe("ID_MISMATCH");
+    expect((await startCheck(token, helene as never)).status).toBe(200);
   });
 });

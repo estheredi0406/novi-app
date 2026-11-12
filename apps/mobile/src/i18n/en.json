@@ -54,15 +54,16 @@
   },
   "idDetails": {
     "step": "Step 4 · Check it is you",
-    "title": "Copy what is on your e-ID card",
+    "title": "Copy your ID card",
     "niu": "NIU (ID number)",
-    "legalName": "Your name exactly as on the card",
     "dateOfBirth": "Date of birth",
     "day": "Day",
     "month": "Month",
     "year": "Year",
-    "nameHint": "The name printed on the card, not a nickname.",
-    "submit": "Check with ANID"
+    "nameHint": "As on the card: capitals and accents do not matter.",
+    "submit": "Check with ANID",
+    "firstName": "First name",
+    "lastName": "Surname"
   },
   "anidCode": {
     "title": "ANID sent you a code",
@@ -1168,5 +1169,13 @@
     "homeChoiceChosen": "Your pot of {{date}}",
     "amountRange": "Between {{min}} and {{max}}",
     "typeAmount": "Amount to place, in francs"
+  },
+  "idConfirm": {
+    "step": "Step 4 · Identity confirmed",
+    "title": "ANID confirmed your identity",
+    "question": "Is this you?",
+    "yes": "Yes, it's me",
+    "no": "No, it's not me",
+    "note": "This is the name on your identity record. Your MFI uses it for your accounts. You will choose the name your group sees just after."
   }
 }

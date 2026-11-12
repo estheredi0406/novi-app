@@ -678,8 +678,8 @@ describe("the group page and the compliance view (D117)", () => {
     expect((await admin.post(`/v1/console/groups/${groupId}/compliance`, {})).status).toBe(400);
     const res = await admin.post(`/v1/console/groups/${groupId}/compliance`, { reason: "Contrôle LBC/FT" });
     expect(res.status).toBe(200);
-    expect(res.body.members.map((m: { legalName: string }) => m.legalName)).toContain("Abla Dzifa Agbeko");
-    expect(res.body.rounds[0].payments[0]).toMatchObject({ legalName: "Abla Dzifa Agbeko", amountFcfa: 7500 });
+    expect(res.body.members.map((m: { legalName: string }) => m.legalName)).toContain("Abla Agbeko");
+    expect(res.body.rounds[0].payments[0]).toMatchObject({ legalName: "Abla Agbeko", amountFcfa: 7500 });
     expect(new Date(res.body.closesAt).getTime() - new Date(res.body.openedAt).getTime()).toBe(15 * 60_000);
     expect(await prisma.auditEvent.count({ where: { type: "STAFF_COMPLIANCE_OPENED" } })).toBe(1);
   });

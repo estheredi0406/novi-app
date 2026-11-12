@@ -54,15 +54,16 @@
   },
   "idDetails": {
     "step": "Étape 4 · Vérification d'identité",
-    "title": "Recopiez votre carte d'identité électronique",
+    "title": "Recopiez votre carte d'identité",
     "niu": "NIU (numéro d'identification)",
-    "legalName": "Votre nom exactement comme sur la carte",
     "dateOfBirth": "Date de naissance",
     "day": "Jour",
     "month": "Mois",
     "year": "Année",
-    "nameHint": "Le nom imprimé sur la carte, pas un surnom.",
-    "submit": "Vérifier avec l'ANID"
+    "nameHint": "Comme sur la carte : vos capitales ou accents ne comptent pas.",
+    "submit": "Vérifier avec l'ANID",
+    "firstName": "Prénom",
+    "lastName": "Nom de famille"
   },
   "anidCode": {
     "title": "L'ANID vous a envoyé un code",
@@ -1168,5 +1169,13 @@
     "homeChoiceChosen": "Votre cagnotte du {{date}}",
     "amountRange": "Entre {{min}} et {{max}}",
     "typeAmount": "Montant à placer, en francs"
+  },
+  "idConfirm": {
+    "step": "Étape 4 · Identité confirmée",
+    "title": "L'ANID a confirmé votre identité",
+    "question": "Est-ce bien vous ?",
+    "yes": "Oui, c'est moi",
+    "no": "Non, ce n'est pas moi",
+    "note": "Ce nom est celui de votre dossier d'identité. Votre caisse l'utilise pour vos comptes. Le prénom que votre groupe verra, vous le choisirez juste après."
   }
 }

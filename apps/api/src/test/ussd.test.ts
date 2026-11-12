@@ -82,7 +82,7 @@ describe("the USSD gateway's callback", () => {
   });
 
   it("lets any pilot account in, since every one was opened with a demo identity", async () => {
-    const afiavi = { niu: "0000-000-0021", legalName: "Afiavi Enyonam Edoh", dateOfBirth: "1986-08-19" };
+    const afiavi = { niu: "0000-000-0021", legalName: "Edem Lassey", dateOfBirth: "1986-08-19" };
     await signedUpMember("+22891000021", undefined, afiavi, "Afiavi");
     expect((await dial("+22891000021", "4829")).text).toMatch(/^CON Novi\n1\. Payer ma cotisation/);
     expect((await dial("+254711000000", "")).text).toMatch(/^END /);
@@ -143,7 +143,7 @@ describe("sign-up by USSD (D106)", () => {
     // Second call: the code, then her name from ANID, her first name, her PIN.
     expect((await call(ENYONAM, "", "call-2")).text).toBe("CON Tapez le code reçu de l'ANID par SMS :\n0. Recommencer");
     const shown = await call(ENYONAM, code, "call-2");
-    expect(shown.text).toBe("CON Identité vérifiée :\nENYONAM AFIWA ATTISSO\nEst-ce bien vous ?\n1. Oui\n2. Non");
+    expect(shown.text).toBe("CON Identité vérifiée :\nRuth Akue\nEst-ce bien vous ?\n1. Oui\n2. Non");
     expect((await call(ENYONAM, `${code}*1`, "call-2")).text).toMatch(/^CON Le prénom que votre groupe verra/);
     expect((await call(ENYONAM, `${code}*1*Enyonam`, "call-2")).text).toMatch(/^CON Choisissez un code PIN/);
     expect((await call(ENYONAM, `${code}*1*Enyonam*4829`, "call-2")).text).toBe("CON Retapez votre code PIN :");
@@ -151,7 +151,7 @@ describe("sign-up by USSD (D106)", () => {
     expect(done.text).toMatch(/^END Votre compte Novi est ouvert/);
 
     const user = await prisma.user.findUniqueOrThrow({ where: { phone: ENYONAM }, include: { consents: true } });
-    expect(user).toMatchObject({ legalName: "ENYONAM AFIWA ATTISSO", displayName: "Enyonam", language: "FR" });
+    expect(user).toMatchObject({ legalName: "Ruth Akue", displayName: "Enyonam", language: "FR" });
     expect(user.consents.map((c) => c.type).sort()).toEqual(["CREDIT_DATA_USE", "ID_CHECK", "TERMS"]);
     expect(await prisma.ussdSignup.count()).toBe(0);
     // She can now use Novi by USSD with her PIN.
@@ -161,7 +161,7 @@ describe("sign-up by USSD (D106)", () => {
   it("keeps her place if the call drops after the code: the next call starts at her name", async () => {
     const code = await codeSent();
     await call(ENYONAM, code, "call-2"); // the line drops here
-    expect((await call(ENYONAM, "", "call-3")).text).toMatch(/^CON Identité vérifiée :\nENYONAM AFIWA ATTISSO/);
+    expect((await call(ENYONAM, "", "call-3")).text).toMatch(/^CON Identité vérifiée :\nRuth Akue/);
     expect((await call(ENYONAM, "1*Enyonam*4829*4829", "call-3")).text).toMatch(/^END Votre compte Novi est ouvert/);
   });
 
@@ -189,7 +189,7 @@ describe("sign-up by USSD (D106)", () => {
   });
 
   it("tells her when this identity already has an account", async () => {
-    const enyonam = { niu: "0000-000-0009", legalName: "Enyonam Afiwa Attisso", dateOfBirth: "1983-12-15" };
+    const enyonam = { niu: "0000-000-0009", legalName: "Ruth Akue", dateOfBirth: "1983-12-15" };
     await signedUpMember("+22891000009", undefined, enyonam, "Enyonam");
     const code = await codeSent();
     expect((await call(ENYONAM, code, "call-2")).text).toMatch(/^END Cette identité a déjà un compte Novi/);

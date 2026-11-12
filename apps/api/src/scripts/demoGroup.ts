@@ -16,8 +16,8 @@ import { acceptRules, createGroup, inviteToGroup, proposeGroup, startGroup } fro
 // the same rules (D26 to D29) and ends up exactly as if it had been set up by hand.
 
 const DEMO_MEMBERS = [
-  { phone: "+22899000002", niu: "DEMO-0002", legalName: "Abla Dzifa Agbeko", displayName: "Abla" },
-  { phone: "+22899000003", niu: "DEMO-0003", legalName: "Koffi Selom Amegah", displayName: "Koffi" },
+  { phone: "+22899000002", niu: "DEMO-0002", legalName: "Abla Agbeko", displayName: "Abla" },
+  { phone: "+22899000003", niu: "DEMO-0003", legalName: "Koffi Amegah", displayName: "Koffi" },
 ];
 
 async function demoMember(member: (typeof DEMO_MEMBERS)[number]) {

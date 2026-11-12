@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MockAnidProvider } from "./MockAnidProvider.js";
 
-const akossiwa = { niu: "0000-000-0001", fullName: "Akossiwa Afi Mensah", dateOfBirth: "1984-03-12" };
+const akossiwa = { niu: "0000-000-0001", fullName: "Akossiwa Mensah", dateOfBirth: "1984-03-12" };
 
 // Starts a verification that is expected to succeed and returns its ticket and code.
 async function startAndReadCode(anid: MockAnidProvider) {
@@ -25,15 +25,13 @@ describe("mock ANID identity check", () => {
   it("ignores capitals and extra spaces in the name", async () => {
     const result = await new MockAnidProvider().startVerification({
       ...akossiwa,
-      fullName: "  akossiwa   AFI mensah ",
+      fullName: "  akossiwa   mensah ",
     });
     expect(result.kind).toBe("CODE_SENT");
   });
 
   it("refuses a different date of birth", async () => {
-    const strict = new MockAnidProvider();
-    strict.checkNameAndDate = true; // real ANID's rule (D12)
-    const result = await strict.startVerification({ ...akossiwa, dateOfBirth: "1984-03-13" });
+    const result = await new MockAnidProvider().startVerification({ ...akossiwa, dateOfBirth: "1984-03-13" });
     expect(result.kind).toBe("NO_MATCH");
   });
 

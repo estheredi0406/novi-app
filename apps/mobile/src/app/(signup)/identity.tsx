@@ -36,7 +36,8 @@ export default function IdentityScreen() {
   const { t } = useTranslation();
   const { draft, update } = useSignUp();
   const [niu, setNiu] = useState("");
-  const [legalName, setLegalName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
@@ -51,7 +52,7 @@ export default function IdentityScreen() {
   const { verificationToken } = draft;
 
   const dateOfBirth = toIsoDate(day, month, year);
-  const isComplete = niu.replace(/\D/g, "").length === 11 && legalName.trim().length >= 2 && dateOfBirth !== null;
+  const isComplete = niu.replace(/\D/g, "").length === 11 && firstName.trim().length >= 1 && lastName.trim().length >= 1 && dateOfBirth !== null;
 
   async function check() {
     if (!dateOfBirth) return;
@@ -62,7 +63,9 @@ export default function IdentityScreen() {
         verificationToken,
         consentToIdCheck: draft.consentToIdCheck ?? false,
         niu: niu.trim(),
-        legalName: legalName.trim(),
+        // D132: the first name and the surname apart, as on the card.
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         dateOfBirth,
       });
       update({ pendingToken: result.pendingToken, maskedPhone: result.maskedPhone });
@@ -91,7 +94,7 @@ export default function IdentityScreen() {
     >
       {__DEV__ ? (
         <View style={styles.demo}>
-          <Text style={[type.small, styles.ink]}>Demo record: 0000-000-0001 · AKOSSIWA AFI MENSAH · 12 03 1984</Text>
+          <Text style={[type.small, styles.ink]}>Demo record: 0000-000-0001 · Akossiwa · Mensah · 12 03 1984</Text>
         </View>
       ) : null}
 
@@ -105,10 +108,17 @@ export default function IdentityScreen() {
         autoCorrect={false}
       />
       <Field
-        label={t("idDetails.legalName")}
-        value={legalName}
-        onChangeText={setLegalName}
-        autoCapitalize="characters"
+        label={t("idDetails.firstName")}
+        value={firstName}
+        onChangeText={setFirstName}
+        autoCapitalize="words"
+        autoCorrect={false}
+      />
+      <Field
+        label={t("idDetails.lastName")}
+        value={lastName}
+        onChangeText={setLastName}
+        autoCapitalize="words"
         autoCorrect={false}
       />
 

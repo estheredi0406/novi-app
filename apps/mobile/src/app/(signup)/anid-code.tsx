@@ -32,7 +32,8 @@ export default function AnidCodeScreen() {
     try {
       const result = await confirmIdentityCheck(verificationToken, pendingToken, value);
       update({ identityToken: result.identityToken, legalName: result.legalName });
-      router.push("/pin");
+      // D132: she sees the name on her record and confirms it is hers.
+      router.push("/identity-confirm" as never);
     } catch (err) {
       setCode("");
       if (err instanceof ApiError && err.code === "ID_BLOCKED") {

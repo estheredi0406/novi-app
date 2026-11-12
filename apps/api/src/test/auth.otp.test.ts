@@ -127,7 +127,7 @@ describe("SMS codes", () => {
     await prisma.user.create({
       data: {
         phone: NEW_NUMBER,
-        legalName: "AKOSSIWA AFI MENSAH",
+        legalName: "AKOSSIWA MENSAH",
         displayName: "Akossiwa",
         area: "Bè",
         language: "FR",

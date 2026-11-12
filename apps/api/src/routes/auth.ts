@@ -72,9 +72,13 @@ const identityStartBody = z.object({
     .transform((v) => v.replace(/\D/g, ""))
     .refine((digits) => digits.length === 11)
     .transform((d) => `${d.slice(0, 4)}-${d.slice(4, 7)}-${d.slice(7)}`),
-  legalName: z.string().trim().min(2).max(120),
+  // D132: the first name and the surname apart; an older app sends one
+  // full name instead.
+  legalName: z.string().trim().min(2).max(120).optional(),
+  firstName: z.string().trim().min(1).max(60).optional(),
+  lastName: z.string().trim().min(1).max(60).optional(),
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-});
+}).refine((b) => (b.firstName !== undefined && b.lastName !== undefined) || b.legalName !== undefined);
 
 const identityConfirmBody = z.object({
   verificationToken: z.string().min(1),

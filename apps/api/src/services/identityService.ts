@@ -49,7 +49,9 @@ export async function startIdentityCheck(input: {
   verificationToken: string;
   consentToIdCheck: boolean;
   niu: string;
-  legalName: string;
+  legalName?: string; // an older app: one full name
+  firstName?: string; // D132: the first name and the surname apart
+  lastName?: string;
   dateOfBirth: string;
 }) {
   const phone = await phoneFromSignUpToken(input.verificationToken);
@@ -59,10 +61,12 @@ export async function startIdentityCheck(input: {
   const failures = await recentFailures(niuHash);
   if (failures.length >= MAX_FAILURES) throw blocked(failures);
 
-  const legalName = input.legalName.trim().replace(/\s+/g, " ");
+  const tidy = (v: string | undefined) => v?.trim().replace(/\s+/g, " ");
   const result = await identity.startVerification({
     niu: input.niu,
-    fullName: legalName,
+    firstName: tidy(input.firstName),
+    lastName: tidy(input.lastName),
+    fullName: input.firstName === undefined && input.lastName === undefined ? tidy(input.legalName) : undefined,
     dateOfBirth: input.dateOfBirth,
   });
   if (result.kind === "NO_MATCH") return recordFailure(niuHash, phone, "ID_MISMATCH");
@@ -70,7 +74,6 @@ export async function startIdentityCheck(input: {
   const pendingToken = await createStepToken("IDENTITY_PENDING", phone, PENDING_MINUTES, {
     tx: result.transactionId,
     niuHash,
-    legalName,
     idConsentAt: new Date().toISOString(),
   });
   // Pilot mode (D61): the mock ANID keeps the code it "sent", to show it on screen.
@@ -85,8 +88,8 @@ export async function confirmIdentityCheck(input: { verificationToken: string; p
   const pending = await verifyStepToken(input.pendingToken, "IDENTITY_PENDING");
   if (!pending || pending.subject !== phone) throw new AppError("ID_CODE_EXPIRED", 400);
 
-  const { tx, niuHash, legalName, idConsentAt } = pending.claims;
-  if (typeof tx !== "string" || typeof niuHash !== "string" || typeof legalName !== "string" || typeof idConsentAt !== "string") {
+  const { tx, niuHash, idConsentAt } = pending.claims;
+  if (typeof tx !== "string" || typeof niuHash !== "string" || typeof idConsentAt !== "string") {
     throw new AppError("ID_CODE_EXPIRED", 400);
   }
 
@@ -95,6 +98,9 @@ export async function confirmIdentityCheck(input: { verificationToken: string; p
   if (result.kind === "EXPIRED") return recordFailure(niuHash, phone, "ID_CODE_EXPIRED");
 
   await prisma.identityCheck.create({ data: { niuKeyedHash: niuHash, phone, matched: true } });
+  // D132: the name kept is the one on her record, as ANID returns it; the
+  // app shows it for her to confirm before she goes on.
+  const legalName = result.fullName.trim().replace(/\s+/g, " ");
 
   // Only now, after ANID confirmed she owns this identity, may she learn
   // that it already has an account.
