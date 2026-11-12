@@ -79,5 +79,11 @@ if (existsSync(appDist)) {
   app.get("/app/{*screen}", (_req, res) => res.sendFile(`${appDist}/index.html`));
 }
 
+// D133: the site's root has no page of its own. A payment page (FedaPay's
+// checkout, opened from the web version) sends the member back here once she
+// has paid, so the root sends her on to the app, which checks the payment
+// and shows the receipt. Without the app built, to the console.
+app.get("/", (_req, res) => res.redirect(302, existsSync(appDist) ? "/app/" : "/console/"));
+
 // Must come last: turns every error into the standard error response.
 app.use(errorHandler);
