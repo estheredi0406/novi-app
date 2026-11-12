@@ -320,6 +320,7 @@ export type ConsoleActivity = {
     | "STAFF_ACCESS_RESET"
     | "STAFF_DEMO_DUE"
     | "STAFF_CREDIT_POLICY_CHANGED"
+    | "STAFF_MISMATCH_RESOLVED"
     | "STAFF_SAVINGS_OPENED"
     | "STAFF_SAVINGS_REFUSED"
     | "STAFF_SAVINGS_POLICY_CHANGED"
@@ -381,6 +382,38 @@ export type ConsoleAccounts = {
   bankAccounts: number;
   fedapay: { source: "mfi" | "demo"; amountFcfa: number | null; checkedAt: string | null } | null;
   inTransitFcfa: number; // pots sent, not yet confirmed
+};
+
+// D124: the "Comptes" page. Where the money is, today's movements with where
+// each one is now, and what needs a person.
+export type ConsoleMoneyWhere = "GROUP_ACCOUNT" | "WAITING" | "REPORTED" | "MISMATCH" | "FAILED" | "SENDING" | "SENT";
+export type ConsoleMoney = ConsoleAccounts & {
+  savingsFcfa: number; // members' placed savings (D123)
+  owedFcfa: number; // what the MFI owes: the groups (Novi's ledger) plus the savings
+  today: {
+    at: string;
+    kind: "CONTRIBUTION" | "PAYOUT" | "SAVINGS_WITHDRAWAL";
+    groupId: string | null;
+    groupName: string; // a savings withdrawal: the savings account's reference
+    round: number | null;
+    seat: number | null; // the seat by its turn to receive (D117), never a name
+    amountFcfa: number; // + in, - out
+    keptFcfa?: number; // a pot: the part placed in savings (D123)
+    ref: string | null; // FedaPay's reference
+    where: ConsoleMoneyWhere;
+  }[];
+  toCheck: {
+    contributionId: string;
+    at: string;
+    groupId: string;
+    groupName: string;
+    round: number;
+    seat: number | null;
+    expectedFcfa: number;
+    receivedFcfa: number;
+    ref: string | null;
+    paidNow: boolean; // credited since, after all (a later, correct confirmation)
+  }[];
 };
 
 export type ConsoleGroupAccount = {

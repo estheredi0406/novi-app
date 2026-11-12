@@ -39,6 +39,7 @@ import {
 } from "../services/loanService.js";
 import { AppError } from "../lib/errors.js";
 import { consoleSavings, decideAccount, saveSavingsPolicy } from "../services/savingsService.js";
+import { getMoney, resolveMismatch } from "../services/moneyCheckService.js";
 import {
   changeOrganiser,
   changePhone,
@@ -585,4 +586,17 @@ consoleRouter.put("/savings/policy", async (req, res) => {
     .strict()
     .parse(req.body);
   res.json(await saveSavingsPolicy(staff.mfiId, staff.staffId, body));
+});
+
+// ---------- D124: where the money is, and what does not match ----------
+
+consoleRouter.get("/money", async (_req, res) => {
+  res.json(await getMoney(currentStaff(res).mfiId));
+});
+
+consoleRouter.post("/money/mismatches/:contributionId/resolve", async (req, res) => {
+  const staff = currentStaff(res);
+  const contributionId = z.string().uuid().parse(req.params.contributionId);
+  const { note } = z.object({ note: z.string().trim().min(3).max(300) }).strict().parse(req.body);
+  res.json(await resolveMismatch(staff.mfiId, staff.staffId, contributionId, note));
 });

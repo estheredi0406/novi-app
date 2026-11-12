@@ -2109,3 +2109,16 @@ a.ghost {
   margin: 16px 0 24px;
   line-height: 23px;
 }
+
+/* D124: the Comptes page. */
+.money-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.money-head h1 { margin: 0; }
+.button-secondary {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 12px;
+  border: 1px solid var(--line); background: #fff; color: var(--action, #0b4f8a); font-weight: 700; text-decoration: none;
+}
+.check-card { display: flex; flex-direction: column; gap: 6px; padding: 14px 18px; border-top: 1px solid var(--line); }
+.check-card .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.check-card p { margin: 0; }
+.kpis.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 900px) { .kpis.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
