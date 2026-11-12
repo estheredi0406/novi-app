@@ -12,7 +12,7 @@ import { receiptSms, failedSms, notFoundSms } from "../lib/smsText.js";
 import { sms } from "../providers/index.js";
 import { accountForMfi, accountForPayment, forgetBalance, type PaymentAccount } from "./paymentAccounts.js";
 import { syncCoreBanking } from "./coreBanking.js";
-import { runPayouts } from "./payoutService.js";
+import { runPayouts, pilotFastForward } from "./payoutService.js";
 import { creditReserve } from "./reserveService.js";
 import { canSkip } from "./advanceService.js";
 import { postEvent } from "./chatService.js";
@@ -364,6 +364,10 @@ async function settle(contributionId: string, answer: CollectionStatus): Promise
   });
 
   if (credited) {
+    // D127: in the pilot, the last payment of a round makes it due now.
+    await pilotFastForward(contribution.roundId).catch((err: unknown) =>
+      console.error("Pilot fast-forward failed:", err),
+    );
     // The last payment of a round whose day has passed releases its held pot
     // at once, instead of waiting for the next run of the job (D48).
     await runPayouts(new Date(), contribution.round.groupId).catch((err: unknown) =>

@@ -147,12 +147,15 @@ export default function SavingsChoiceScreen() {
           </View>
           <Text style={styles.title}>{t("savings.choiceTitle", { pot: F(pot) })}</Text>
           <Choice on={mode === "WALLET"} title={t("savings.allWallet")} sub={t("savings.allWalletSub")} onPress={() => setMode("WALLET")} />
-          <Choice
-            on={mode === "PART"}
-            title={t("savings.placePart")}
-            sub={t("savings.placePartSub", { mfi: choice.mfiName })}
-            onPress={() => setMode("PART")}
-          />
+          {/* A part leaves at least 500 F on each side: a smaller pot is not split. */}
+          {pot >= 1000 ? (
+            <Choice
+              on={mode === "PART"}
+              title={t("savings.placePart")}
+              sub={t("savings.placePartSub", { mfi: choice.mfiName })}
+              onPress={() => setMode("PART")}
+            />
+          ) : null}
           <Choice on={mode === "ALL"} title={t("savings.placeAll")} sub={t("savings.placeAllSub")} onPress={() => setMode("ALL")} />
           <View style={styles.grow} />
           <ErrorMessage messageKey={error} />

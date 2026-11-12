@@ -20,6 +20,9 @@ const mockPayments = payments;
 // D123: a member keeps her pot, or part of it, in savings at the MFI.
 const GROUP = { name: "Pagnes Assigamé", amountFcfa: 5000, frequency: "WEEKLY", dueDay: 5, size: 3, payoutOrder: "DRAWN" };
 const PAST = new Date("2026-01-02T00:00:00Z");
+// D126: the choice is made before the pot's day; payOutRoundOne then moves the
+// day into the past to send the pot.
+const SOON = () => new Date(Date.now() + 86_400_000);
 
 function as(accessToken: string) {
   const auth = (req: request.Test) => req.set("Authorization", `Bearer ${accessToken}`);
@@ -101,9 +104,16 @@ describe("choosing where her pot goes (D123)", () => {
     expect(body.choices[0]).toMatchObject({ potFcfa: 15000, keepFcfa: 0, accountStatus: null });
   });
 
-  it("asks her agreement before an account is requested, then requests it once", async () => {
+  it("closes the choice once the pot's day has passed, even with nothing paid (D126)", async () => {
     const { round, receiver } = await activeGroup();
     await prisma.round.update({ where: { id: round.id }, data: { dueDate: PAST } });
+    expect((await receiver.get("/v1/me/savings")).body.choices).toHaveLength(0);
+    expect((await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(0, false, "LOCKED", null))).status).toBe(409);
+  });
+
+  it("asks her agreement before an account is requested, then requests it once", async () => {
+    const { round, receiver } = await activeGroup();
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: SOON() } });
     const refused = await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(10000, false));
     expect(refused.status).toBe(400);
     expect(refused.body.error.code).toBe("SAVINGS_CONSENT_REQUIRED");
@@ -116,7 +126,7 @@ describe("choosing where her pot goes (D123)", () => {
 
   it("accepts \"all on my phone\" without a length, and any amount up to the pot", async () => {
     const { round, receiver } = await activeGroup();
-    await prisma.round.update({ where: { id: round.id }, data: { dueDate: PAST } });
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: SOON() } });
     const phone = await receiver.put(`/v1/me/savings/choices/${round.id}`, { keepFcfa: 0, pocket: "LOCKED", lockMonths: null, consent: false });
     expect(phone.status).toBe(200);
     expect(phone.body.choices[0]).toMatchObject({ keepFcfa: 0, accountStatus: null });
@@ -129,7 +139,7 @@ describe("choosing where her pot goes (D123)", () => {
 
   it("refuses a choice for a pot that is not hers", async () => {
     const { round, members, receiver } = await activeGroup();
-    await prisma.round.update({ where: { id: round.id }, data: { dueDate: PAST } });
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: SOON() } });
     const other = members.find((m) => m !== receiver) as Member;
     expect((await other.put(`/v1/me/savings/choices/${round.id}`, choice(5000))).status).toBe(409);
   });
@@ -138,7 +148,7 @@ describe("choosing where her pot goes (D123)", () => {
 describe("sending a pot with a part kept (D123)", () => {
   it("keeps the chosen part at the MFI and sends only the rest to her wallet", async () => {
     const { groupId, members, round, receiver } = await activeGroup();
-    await prisma.round.update({ where: { id: round.id }, data: { dueDate: PAST } });
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: SOON() } });
     await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(10000));
     const { mfiId, staffId } = await officer();
     const account = await prisma.savingsAccount.findFirstOrThrow();
@@ -153,7 +163,7 @@ describe("sending a pot with a part kept (D123)", () => {
 
   it("sends nothing when she keeps it all, and still settles the pot", async () => {
     const { groupId, members, round, receiver } = await activeGroup();
-    await prisma.round.update({ where: { id: round.id }, data: { dueDate: PAST } });
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: SOON() } });
     await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(15000, true, "LOCKED", 6));
     const { mfiId, staffId } = await officer();
     await decideAccount(mfiId, staffId, (await prisma.savingsAccount.findFirstOrThrow()).id, { open: true });
@@ -170,7 +180,7 @@ describe("sending a pot with a part kept (D123)", () => {
 
   it("sends the whole pot to her wallet when the MFI has not opened her account yet", async () => {
     const { groupId, members, round, receiver } = await activeGroup();
-    await prisma.round.update({ where: { id: round.id }, data: { dueDate: PAST } });
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: SOON() } });
     await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(10000));
 
     const payout = await payOutRoundOne(groupId, members);
@@ -183,7 +193,7 @@ describe("sending a pot with a part kept (D123)", () => {
 describe("withdrawing and the rules of the pockets (D123)", () => {
   async function saved(pocket: "FREE" | "LOCKED", lockMonths: 3 | 6 | 12 | null) {
     const g = await activeGroup();
-    await prisma.round.update({ where: { id: g.round.id }, data: { dueDate: PAST } });
+    await prisma.round.update({ where: { id: g.round.id }, data: { dueDate: SOON() } });
     await g.receiver.put(`/v1/me/savings/choices/${g.round.id}`, choice(10000, true, pocket, lockMonths));
     const o = await officer();
     await decideAccount(o.mfiId, o.staffId, (await prisma.savingsAccount.findFirstOrThrow()).id, { open: true });
@@ -243,5 +253,51 @@ describe("withdrawing and the rules of the pockets (D123)", () => {
     expect(theirs.checks.find((c) => c.key === "SAVINGS")).toMatchObject({ ok: true });
     const other = await prisma.user.findFirstOrThrow({ where: { id: { not: round.beneficiaryId } } });
     expect((await getLoanPage(other.id)).checks.find((c) => c.key === "SAVINGS")).toMatchObject({ ok: false });
+  });
+});
+
+describe("pilot: rounds follow each other (D127)", () => {
+  async function inPilot<T>(run: () => Promise<T>): Promise<T> {
+    const before = process.env.PILOT_SHOW_CODES;
+    process.env.PILOT_SHOW_CODES = "true";
+    try {
+      return await run();
+    } finally {
+      if (before === undefined) delete process.env.PILOT_SHOW_CODES;
+      else process.env.PILOT_SHOW_CODES = before;
+    }
+  }
+  const phones = ["+22890000001", "+22890000002", "+22890000003"];
+
+  it("opens the choice for the whole current round, and sends the pot once all have paid", async () => {
+    await inPilot(async () => {
+      const { groupId, members, round, receiver } = await activeGroup();
+      const later = new Date(Date.now() + 20 * 86_400_000);
+      await prisma.round.update({ where: { id: round.id }, data: { dueDate: later } });
+      expect((await receiver.get("/v1/me/savings")).body.choices).toHaveLength(1);
+
+      const round2 = await prisma.round.findUniqueOrThrow({
+        where: { groupId_number: { groupId, number: 2 } },
+        include: { beneficiary: true },
+      });
+      const second = members[phones.indexOf(round2.beneficiary.phone)] as Member;
+      expect((await second.get("/v1/me/savings")).body.choices).toHaveLength(0);
+
+      for (const m of members) await pay(m, groupId, 1);
+      const payout = await prisma.payout.findFirstOrThrow({ where: { roundId: round.id } });
+      expect(payout.status).not.toBe("HELD");
+      expect((await prisma.round.findUniqueOrThrow({ where: { id: round.id } })).dueDate.getTime()).toBeLessThanOrEqual(Date.now());
+      expect((await receiver.get("/v1/me/savings")).body.choices).toHaveLength(0);
+      // The next round is now the one being paid, and its pot's choice opens.
+      expect((await second.get("/v1/me/savings")).body.choices).toHaveLength(1);
+    });
+  });
+
+  it("keeps the calendar outside the pilot", async () => {
+    const { groupId, members, round } = await activeGroup();
+    const later = new Date(Date.now() + 20 * 86_400_000);
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: later } });
+    for (const m of members) await pay(m, groupId, 1);
+    expect(await prisma.payout.count({ where: { roundId: round.id } })).toBe(0);
   });
 });

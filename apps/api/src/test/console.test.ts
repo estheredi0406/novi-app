@@ -496,39 +496,39 @@ describe("analytics and the officers' log (D67)", () => {
 });
 
 describe("bringing a due date forward, in the pilot only (D82)", () => {
-  it("makes the next round due today, so a full pot is ready to release, and logs it", async () => {
+  it("makes the next round due today, and logs it", async () => {
     vi.stubEnv("PILOT_SHOW_CODES", "true");
     const { groupId, members } = await activeGroup();
-    for (const member of members) await pay(member, groupId, 1);
+    // D127: two of three paid, so round 1 has not left by itself.
+    await pay(members[0] as Client, groupId, 1);
+    await pay(members[1] as Client, groupId, 1);
     const mawuli = await officer();
     expect((await mawuli.get("/v1/staff/me")).body.pilot).toBe(true);
 
     const res = await mawuli.post(`/v1/console/groups/${groupId}/demo-due`);
     expect(res.body).toEqual({ round: 1 });
-    const payout = await prisma.payout.findFirstOrThrow({
-      where: { round: { groupId, number: 1 } },
-    });
-    expect(payout.status).toBe("READY");
+    expect(await prisma.payout.count({ where: { round: { groupId, number: 1 } } })).toBe(1);
     expect(
       await prisma.auditEvent.count({ where: { type: "STAFF_DEMO_DUE" } }),
     ).toBe(1);
     vi.unstubAllEnvs();
   });
 
-  it("can run a whole cycle in one session: the next round opens for payment at once", async () => {
+  it("can run a whole cycle in one session: a paid round leaves at once and the next opens (D127)", async () => {
     vi.stubEnv("PILOT_SHOW_CODES", "true");
     const { groupId, members } = await activeGroup();
     const mawuli = await officer();
     for (const member of members) await pay(member, groupId, 1);
-    await mawuli.post(`/v1/console/groups/${groupId}/demo-due`);
+    // No button needed: the last payment made round 1 due, and its pot is ready.
     const first = await prisma.payout.findFirstOrThrow({
       where: { round: { groupId, number: 1 } },
     });
+    expect(first.status).toBe("READY");
+    expect(
+      await prisma.auditEvent.count({ where: { type: "PILOT_ROUND_FAST_FORWARD" } }),
+    ).toBe(1);
     await mawuli.post(`/v1/console/payouts/${first.id}/release`);
 
-    expect(
-      (await mawuli.post(`/v1/console/groups/${groupId}/demo-due`)).body,
-    ).toEqual({ round: 2 });
     // Round 2 is now the one open: members can pay it straight away.
     const paid = await (members[0] as Client).post(
       `/v1/groups/${groupId}/rounds/2/pay`,

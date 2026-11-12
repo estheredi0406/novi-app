@@ -1,3 +1,4 @@
+import { pilotMode } from "../lib/pilot.js";
 import type {
   ConsoleSavings,
   ConsoleSavingsPolicy,
@@ -157,17 +158,32 @@ function accountView(
 
 // Her rounds whose pot is hers, not sent yet, from three days before.
 async function openChoices(userId: string, now: Date) {
+  // D126: the choice opens 3 days before the pot and closes on its day, or
+  // as soon as Novi starts handling the pot (held because not full, ready,
+  // sent). A pot already past is not a question any more: what she chose
+  // stands, and a pot on hold has no amount to split yet.
+  // D127: in the pilot, rounds follow each other as soon as they are paid, so
+  // the choice is open for the whole round being paid now, whatever its date.
   const opens = new Date(now.getTime() + CHOICE_OPENS_DAYS * DAY_MS);
-  return prisma.round.findMany({
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const fast = pilotMode();
+  const rounds = await prisma.round.findMany({
     where: {
       beneficiaryId: userId,
-      dueDate: { lte: opens },
-      OR: [{ payout: null }, { payout: { status: { notIn: ["PAID", "SENDING", "SENT"] } } }],
+      dueDate: fast ? { gte: today } : { gte: today, lte: opens },
+      payout: null,
       group: { state: "ACTIVE" },
     },
     include: { group: { include: { mfi: true, rulesVersions: { orderBy: { version: "desc" }, take: 1 } } }, payout: true },
     orderBy: { dueDate: "asc" },
   });
+  if (!fast) return rounds;
+  const current: typeof rounds = [];
+  for (const r of rounds) {
+    const before = await prisma.round.count({ where: { groupId: r.groupId, number: { lt: r.number }, payout: null } });
+    if (before === 0) current.push(r);
+  }
+  return current;
 }
 
 export async function mySavings(userId: string, now = new Date()): Promise<MySavings> {
@@ -189,7 +205,7 @@ export async function mySavings(userId: string, now = new Date()): Promise<MySav
       groupName: r.group.name,
       roundNumber: r.number,
       dueDate: r.dueDate.toISOString().slice(0, 10),
-      potFcfa: r.payout?.amountFcfa ?? rules.amountFcfa * rules.size,
+      potFcfa: rules.amountFcfa * rules.size,
       mfiName: r.group.mfi.name,
       accountStatus: (account?.status ?? null) as PotChoiceView["accountStatus"],
       keepFcfa: choice?.keepFcfa ?? 0,
@@ -214,7 +230,7 @@ export async function choosePot(
   const round = (await openChoices(userId, now)).find((r) => r.id === input.roundId);
   if (!round) throw new AppError("NOT_ALLOWED_NOW", 409);
   const rules = round.group.rulesVersions[0];
-  const pot = round.payout?.amountFcfa ?? (rules ? rules.amountFcfa * rules.size : 0);
+  const pot = rules ? rules.amountFcfa * rules.size : 0;
   if (!Number.isInteger(input.keepFcfa) || input.keepFcfa < 0 || input.keepFcfa > pot)
     throw new AppError("VALIDATION_FAILED", 400);
   // "All on my phone" needs no length; a placement needs 3, 6 or 12 months.

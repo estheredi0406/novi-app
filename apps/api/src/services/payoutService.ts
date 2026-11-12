@@ -1,3 +1,4 @@
+import { pilotMode } from "../lib/pilot.js";
 import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
@@ -77,6 +78,34 @@ export async function runPayouts(
   }
   // D113: the MFI's books follow every pot paid and every advance returned.
   await syncCoreBanking().catch((err) => console.error("Core banking booking failed:", err));
+}
+
+// D127: in the pilot, rounds follow each other. Testers should not wait a
+// week (or a month) to see a pot leave: as soon as every share of a round is
+// paid, and every earlier round's pot has left, the round is due now and its
+// pot is handled at once (released alone under the MFI's limit, or by the
+// officers above it, D105). The next round then becomes the one to pay. Only
+// on the pilot server (pilotMode); a real launch keeps the calendar.
+export async function pilotFastForward(roundId: string, now = new Date()): Promise<boolean> {
+  if (!pilotMode()) return false;
+  const round = await prisma.round.findUnique({
+    where: { id: roundId },
+    include: { contributions: { where: { status: "PAID" } }, payout: true, group: true },
+  });
+  if (!round || round.payout || round.dueDate <= now || round.group.state !== "ACTIVE") return false;
+  const earlierOpen = await prisma.round.count({
+    where: { groupId: round.groupId, number: { lt: round.number }, payout: null },
+  });
+  if (earlierOpen > 0) return false;
+  const members = await prisma.membership.count({
+    where: { groupId: round.groupId, payoutPosition: { not: null } },
+  });
+  if (new Set(round.contributions.map((c) => c.userId)).size < members) return false;
+  await prisma.round.update({ where: { id: round.id }, data: { dueDate: now } });
+  await prisma.auditEvent.create({
+    data: { type: "PILOT_ROUND_FAST_FORWARD", details: { groupId: round.groupId, round: round.number } },
+  });
+  return true;
 }
 
 // Each member's contribution under the group's current rules.
