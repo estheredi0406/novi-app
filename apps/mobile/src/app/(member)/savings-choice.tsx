@@ -62,7 +62,7 @@ export default function SavingsChoiceScreen() {
         setChoice(c);
         if (!c) return;
         setMode(c.keepFcfa === 0 ? "WALLET" : c.keepFcfa >= c.potFcfa ? "ALL" : "PART");
-        setPlace(c.keepFcfa > 0 && c.keepFcfa < c.potFcfa ? c.keepFcfa : Math.round(c.potFcfa / 2 / 500) * 500);
+        setPlace(c.keepFcfa > 0 && c.keepFcfa < c.potFcfa ? c.keepFcfa : Math.max(500, Math.round(c.potFcfa / 2 / 500) * 500));
         if (c.lockMonths === 3 || c.lockMonths === 6 || c.lockMonths === 12) setMonths(c.lockMonths);
       },
       (err: unknown) => setError(errorKey(err)),
@@ -87,13 +87,29 @@ export default function SavingsChoiceScreen() {
   const kept = mode === "WALLET" ? 0 : mode === "ALL" ? pot : place;
   const rateOf = (m: 3 | 6 | 12) => (m === 3 ? choice.rates.lock3Bp : m === 6 ? choice.rates.lock6Bp : choice.rates.lock12Bp);
   const needsConsent = kept > 0 && choice.accountStatus === null;
-  const until = shortDay(addMonths(months), i18n.language);
+  // D125: a part is at least 500 F and leaves at least 500 F on her phone.
+  const partMin = 500;
+  const partMax = pot - 500;
+  const partOk = Number.isInteger(place) && place >= partMin && place <= partMax;
+  const keptOk = Number.isInteger(kept) && kept > 0 && kept <= pot;
+  // The end date with its year: a 12-month placement ends next year.
+  const until = new Date(`${addMonths(months)}T12:00:00Z`).toLocaleDateString(i18n.language === "en" ? "en-GB" : "fr-FR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 
   async function save(keep: number) {
     setBusy(true);
     setError(null);
     try {
-      await choosePot(choice!.roundId, { keepFcfa: keep, pocket: "LOCKED", lockMonths: keep > 0 ? months : null, consent });
+      await choosePot(choice!.roundId, {
+        keepFcfa: Math.round(keep),
+        pocket: "LOCKED",
+        lockMonths: keep > 0 ? months : null,
+        consent,
+      });
       router.back();
     } catch (err) {
       setError(errorKey(err));
@@ -153,20 +169,24 @@ export default function SavingsChoiceScreen() {
           <Text style={styles.title}>{t("savings.howMuch")}</Text>
           <Stepper
             value={place}
-            min={500}
-            max={pot - 500}
+            min={partMin}
+            max={partMax}
             step={pot >= 20_000 ? 1000 : 500}
             onChange={setPlace}
             caption={t("savings.placed")}
             lessLabel={t("savings.less")}
             moreLabel={t("savings.more")}
+            inputLabel={t("savings.typeAmount")}
+            rangeHint={t("savings.amountRange", { min: F(partMin), max: F(partMax) })}
           />
-          <View style={styles.split}>
-            <LineIcon name="phone" color={colors.muted} size={20} />
-            <Text style={styles.splitText}>{t("savings.onPhoneLine", { amount: F(pot - place) })}</Text>
-          </View>
+          {partOk ? (
+            <View style={styles.split}>
+              <LineIcon name="phone" color={colors.muted} size={20} />
+              <Text style={styles.splitText}>{t("savings.onPhoneLine", { amount: F(pot - place) })}</Text>
+            </View>
+          ) : null}
           <View style={styles.grow} />
-          <PrimaryButton label={t("savings.next")} onPress={next} />
+          <PrimaryButton label={t("savings.next")} disabled={!partOk} onPress={next} />
         </>
       ) : null}
 
@@ -200,7 +220,7 @@ export default function SavingsChoiceScreen() {
             );
           })}
           <View style={styles.grow} />
-          <PrimaryButton label={t("savings.next")} onPress={next} />
+          <PrimaryButton label={t("savings.next")} disabled={!keptOk} onPress={next} />
         </>
       ) : null}
 
@@ -234,7 +254,7 @@ export default function SavingsChoiceScreen() {
           <ErrorMessage messageKey={error} />
           <PrimaryButton
             label={t("savings.confirmPlace", { amount: F(kept) })}
-            disabled={busy || (needsConsent && !consent)}
+            disabled={busy || !keptOk || (mode === "PART" && !partOk) || (needsConsent && !consent)}
             onPress={() => void save(kept)}
           />
         </>

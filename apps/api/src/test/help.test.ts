@@ -241,9 +241,24 @@ describe("microloan requests (D89, D91)", () => {
   async function qualified() {
     const ctx = await activeGroup();
     await pay(ctx.abla, ctx.groupId, 1);
-    await prisma.group.update({
+    const group = await prisma.group.update({
       where: { id: ctx.groupId },
       data: { state: "COMPLETED" },
+    });
+    // D125: she has started saving at the MFI, which a loan asks by default.
+    const membership = await prisma.membership.findFirstOrThrow({
+      where: { groupId: ctx.groupId, user: { displayName: "Abla" } },
+    });
+    await prisma.savingsAccount.create({
+      data: {
+        userId: membership.userId,
+        mfiId: group.mfiId as string,
+        ref: `EP-T-${membership.userId.slice(0, 8)}`,
+        status: "OPEN",
+        consentAt: new Date(),
+        openedAt: new Date(),
+        entries: { create: { kind: "POT_KEPT", pocket: "LOCKED", amountFcfa: 5000, lockMonths: 3 } },
+      },
     });
     return ctx;
   }

@@ -33,8 +33,9 @@ import { accountForMfi } from "./paymentAccounts.js";
 //    says first what she would get by waiting.
 // 5. Interest is shown as an estimate: simple interest, day by day, on each
 //    amount at the rate it came in with. The MFI credits it by its own rules.
-// 6. An MFI can ask that a member has started saving before she asks for a
-//    loan (SavingsPolicy.requireForLoan).
+// 6. A member must have started saving at the MFI before she asks for a loan
+//    (SavingsPolicy.requireForLoan, on by default since D125; the MFI can
+//    turn it off in the console).
 // Novi never holds the money (D2): the MFI does, in its FedaPay balance and
 // its own books; Novi records her choices and instructions.
 
@@ -57,7 +58,7 @@ export async function savingsPolicy(mfiId: string): Promise<Policy> {
     lock3Bp: row?.lock3Bp ?? null,
     lock6Bp: row?.lock6Bp ?? null,
     lock12Bp: row?.lock12Bp ?? null,
-    requireForLoan: row?.requireForLoan ?? false,
+    requireForLoan: row?.requireForLoan ?? true,
   };
 }
 
@@ -214,9 +215,10 @@ export async function choosePot(
   if (!round) throw new AppError("NOT_ALLOWED_NOW", 409);
   const rules = round.group.rulesVersions[0];
   const pot = round.payout?.amountFcfa ?? (rules ? rules.amountFcfa * rules.size : 0);
-  if (input.keepFcfa < 0 || input.keepFcfa > pot || input.keepFcfa % 500 !== 0)
+  if (!Number.isInteger(input.keepFcfa) || input.keepFcfa < 0 || input.keepFcfa > pot)
     throw new AppError("VALIDATION_FAILED", 400);
-  if (input.pocket === "LOCKED" && !LOCK_MONTHS.includes(input.lockMonths as 3 | 6 | 12))
+  // "All on my phone" needs no length; a placement needs 3, 6 or 12 months.
+  if (input.keepFcfa > 0 && input.pocket === "LOCKED" && !LOCK_MONTHS.includes(input.lockMonths as 3 | 6 | 12))
     throw new AppError("VALIDATION_FAILED", 400);
 
   if (input.keepFcfa > 0) {
@@ -299,7 +301,7 @@ export async function bookKept(
     lock3Bp: row?.lock3Bp ?? null,
     lock6Bp: row?.lock6Bp ?? null,
     lock12Bp: row?.lock12Bp ?? null,
-    requireForLoan: row?.requireForLoan ?? false,
+    requireForLoan: row?.requireForLoan ?? true,
   };
   await tx.savingsEntry.create({
     data: {

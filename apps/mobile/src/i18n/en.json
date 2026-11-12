@@ -832,7 +832,7 @@
       "wait": "No refusal in the last {{days}} days",
       "refusedAgo": "refused {{days}} day(s) ago",
       "open": "No other request open",
-      "savings": "Have started saving at the caisse"
+      "savings": "Have a savings account at the caisse, with at least one pot placed"
     },
     "you": "You: {{what}}",
     "almost": "Almost there!",
@@ -1123,8 +1123,8 @@
     "refused": "The caisse did not open your savings account.",
     "notEnough": "This amount is not available: locked savings wait for their date.",
     "withdrawFailed": "The withdrawal did not go through. Your money is still in your savings. Try again later.",
-    "homeChoice": "Your pot comes {{date}}",
-    "homeChoiceSub": "Where do you want your {{pot}}?",
+    "homeChoice": "Where do you want to place your pot?",
+    "homeChoiceSub": "Tap to choose. {{pot}} comes on {{date}}",
     "homeChoiceDone": "{{kept}} placed at the caisse, the rest on your phone",
     "homeSavings": "My savings at {{mfi}}",
     "homeOpening": "Account being opened",
@@ -1164,6 +1164,9 @@
     "lost": "You lose {{gain}} of gains",
     "toPhone": "The whole amount comes to your phone.",
     "keepPlacement": "Keep my placement",
-    "takeBackAnyway": "Take back {{amount}} anyway"
+    "takeBackAnyway": "Take back {{amount}} anyway",
+    "homeChoiceChosen": "Your pot of {{date}}",
+    "amountRange": "Between {{min}} and {{max}}",
+    "typeAmount": "Amount to place, in francs"
   }
 }

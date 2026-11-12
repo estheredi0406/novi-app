@@ -114,6 +114,19 @@ describe("choosing where her pot goes (D123)", () => {
     expect(await prisma.savingsAccount.count()).toBe(1);
   });
 
+  it("accepts \"all on my phone\" without a length, and any amount up to the pot", async () => {
+    const { round, receiver } = await activeGroup();
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: PAST } });
+    const phone = await receiver.put(`/v1/me/savings/choices/${round.id}`, { keepFcfa: 0, pocket: "LOCKED", lockMonths: null, consent: false });
+    expect(phone.status).toBe(200);
+    expect(phone.body.choices[0]).toMatchObject({ keepFcfa: 0, accountStatus: null });
+    const odd = await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(7250, true, "LOCKED", 12));
+    expect(odd.status).toBe(200);
+    expect(odd.body.choices[0]).toMatchObject({ keepFcfa: 7250, lockMonths: 12 });
+    const tooMuch = await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(15500, true, "LOCKED", 12));
+    expect(tooMuch.status).toBe(400);
+  });
+
   it("refuses a choice for a pot that is not hers", async () => {
     const { round, members, receiver } = await activeGroup();
     await prisma.round.update({ where: { id: round.id }, data: { dueDate: PAST } });

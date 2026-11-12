@@ -1136,7 +1136,7 @@ model SavingsPolicy {
   lock3Bp        Int?
   lock6Bp        Int?
   lock12Bp       Int?
-  requireForLoan Boolean  @default(false)
+  requireForLoan Boolean  @default(true)
   updatedAt      DateTime @updatedAt
 
   @@map("savings_policies")

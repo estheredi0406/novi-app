@@ -242,11 +242,19 @@ export function HomeView({
                 <CowrieMark size={22} fill={colors.yourTurn} />
               </View>
               <View style={styles.boxText}>
-                <Text style={styles.boxTitle}>{t("savings.homeChoice", { date: shortDay(c.dueDate, i18n.language) })}</Text>
+                {/* D125: the question first, then the amount and the day. */}
+                <Text style={styles.boxTitle}>
+                  {c.keepFcfa > 0
+                    ? t("savings.homeChoiceChosen", { date: shortDay(c.dueDate, i18n.language) })
+                    : t("savings.homeChoice")}
+                </Text>
                 <Text style={styles.boxSub}>
                   {c.keepFcfa > 0
                     ? t("savings.homeChoiceDone", { kept: formatFcfa(c.keepFcfa).replace(" FCFA", " F") })
-                    : t("savings.homeChoiceSub", { pot: formatFcfa(c.potFcfa).replace(" FCFA", " F") })}
+                    : t("savings.homeChoiceSub", {
+                        pot: formatFcfa(c.potFcfa).replace(" FCFA", " F"),
+                        date: shortDay(c.dueDate, i18n.language),
+                      })}
                 </Text>
               </View>
               <LineIcon name="chevron" color={colors.action} />

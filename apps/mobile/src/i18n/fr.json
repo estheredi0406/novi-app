@@ -832,7 +832,7 @@
       "wait": "Pas de refus dans les {{days}} derniers jours",
       "refusedAgo": "refus il y a {{days}} jour(s)",
       "open": "Pas d'autre demande en cours",
-      "savings": "Avoir commencé à épargner à la caisse"
+      "savings": "Avoir un compte épargne à la caisse, avec au moins une cagnotte placée"
     },
     "you": "Vous : {{what}}",
     "almost": "Presque !",
@@ -1123,8 +1123,8 @@
     "refused": "La caisse n'a pas ouvert votre compte d'épargne.",
     "notEnough": "Ce montant n'est pas disponible : l'épargne bloquée attend sa date.",
     "withdrawFailed": "Le retrait n'est pas passé. Votre argent est toujours sur votre épargne. Réessayez plus tard.",
-    "homeChoice": "Votre cagnotte arrive {{date}}",
-    "homeChoiceSub": "Où voulez-vous vos {{pot}} ?",
+    "homeChoice": "Où voulez-vous placer votre cagnotte ?",
+    "homeChoiceSub": "Touchez pour choisir. {{pot}} arrivent le {{date}}",
     "homeChoiceDone": "{{kept}} placés à la caisse, le reste sur votre téléphone",
     "homeSavings": "Mon épargne à la {{mfi}}",
     "homeOpening": "Compte en cours d'ouverture",
@@ -1164,6 +1164,9 @@
     "lost": "Vous perdez {{gain}} de gains",
     "toPhone": "Le montant entier arrive sur votre téléphone.",
     "keepPlacement": "Garder mon placement",
-    "takeBackAnyway": "Retirer {{amount}} quand même"
+    "takeBackAnyway": "Retirer {{amount}} quand même",
+    "homeChoiceChosen": "Votre cagnotte du {{date}}",
+    "amountRange": "Entre {{min}} et {{max}}",
+    "typeAmount": "Montant à placer, en francs"
   }
 }

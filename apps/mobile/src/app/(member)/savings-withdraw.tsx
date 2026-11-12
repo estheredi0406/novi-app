@@ -80,6 +80,7 @@ export default function SavingsWithdrawScreen() {
         onChange={setAmount}
         lessLabel={t("savings.less")}
         moreLabel={t("savings.more")}
+        rangeHint={t("savings.amountRange", { min: F(500), max: F(max) })}
       />
       <View style={styles.quick}>
         {[5000, 10000, max].filter((v, i, all) => v >= 500 && v <= max && all.indexOf(v) === i).map((v) => (
@@ -94,7 +95,7 @@ export default function SavingsWithdrawScreen() {
       </View>
       <Text style={styles.note}>{t("savings.toNote")}</Text>
       <ErrorMessage messageKey={error} />
-      <PrimaryButton label={t("savings.withdrawGo", { amount: F(amount) })} disabled={busy || max < 500} onPress={send} />
+      <PrimaryButton label={t("savings.withdrawGo", { amount: F(amount) })} disabled={busy || max < 500 || amount < 500 || amount > max} onPress={send} />
     </Screen>
   );
 }
