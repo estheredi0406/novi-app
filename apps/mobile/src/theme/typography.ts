@@ -12,7 +12,8 @@ export const fonts = {
 // Body text is 17 points, above the common 14 to 16, so it stays readable
 // for older eyes and in bright market sunlight.
 export const type = {
-  display: { fontFamily: fonts.display, fontSize: 40, lineHeight: 44 },
+  // D122: room under the line for g, j, p and q (Android clipped them at 44).
+  display: { fontFamily: fonts.display, fontSize: 40, lineHeight: 52 },
   title: { fontFamily: fonts.bodyBold, fontSize: 24, lineHeight: 30 },
   body: { fontFamily: fonts.body, fontSize: 17, lineHeight: 24 },
   label: { fontFamily: fonts.bodySemiBold, fontSize: 15, lineHeight: 20 },

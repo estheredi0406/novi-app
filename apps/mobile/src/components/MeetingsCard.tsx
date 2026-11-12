@@ -33,11 +33,11 @@ export function MeetingsCard({ groupId, page }: { groupId: string; page: Meeting
           <Path d="M27 20 L35 15 V29 L27 24 Z" fill={colors.card} stroke={colors.indigo} strokeWidth={1.8} strokeLinejoin="round" />
         </Svg>
         <View style={styles.text}>
-          <Text style={styles.label}>{open ? t("meetings.openNow") : t("meetings.title")}</Text>
+          <Text style={[styles.label, open && styles.labelOpen]}>{open ? t("meetings.openNow") : t("meetings.title")}</Text>
           {next ? <Text style={styles.title} numberOfLines={1}>{next.title}</Text> : null}
           <Text style={styles.sub}>{sub}</Text>
         </View>
-        <Glyph name="chevron" color={colors.indigo} />
+        <Glyph name="chevron" color={colors.action} />
       </WaxCard>
     </Pressable>
   );
@@ -47,7 +47,9 @@ const styles = StyleSheet.create({
   card: { flexDirection: "row", alignItems: "center", gap: 14, padding: 14 },
   open: { borderColor: colors.accent, borderWidth: 2.5 },
   text: { flex: 1, gap: 2 },
-  label: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.accent },
+  // D122: orange only while a meeting is live (D121), otherwise a plain label.
+  label: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.lagoon },
+  labelOpen: { color: colors.accent },
   title: { fontFamily: fonts.bodyBold, fontSize: 18, color: colors.indigo },
   sub: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
 });

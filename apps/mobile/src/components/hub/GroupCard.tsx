@@ -13,14 +13,16 @@ import { fonts } from "../../theme/typography";
 import { CowrieMark, openRound } from "../BottomBar";
 import { ErrorMessage } from "../ErrorMessage";
 import { LineIcon, type LineIconName } from "../LineIcon";
+import { CycleRing } from "../art/CycleRing";
 import { sheetColumn } from "../WebFrame";
 
-// One running group on home (D92, redrawn in D121 from canvas boards 30 to
-// 32): a square white panel under the pagne band that speaks only of her. One
-// figure in large type: what she must pay (with the orange Payer button and,
-// below, when her pot comes), else her pot to come, else the pot she received
-// in green. Who receives this round is on the group page, not here. The
-// group's actions (Appeler, Discussion, Plus) are plain blue links.
+// One running group on home (D92; D121; redrawn in D122 from canvas boards
+// 33 to 35, 33a): a rounded white card riding over the pagne band, about her
+// only. On the left, her cycle as a ring (CycleRing), the round in the
+// middle. On the right, one figure in large type: what she must pay (orange,
+// with the Payer button and, below, when her pot comes), else her pot to
+// come, else the pot she received, in green. Who receives this round is on the
+// group page, not here. Appeler, Discussion and Plus are plain blue links.
 export function GroupCard({ group, width }: { group: GroupSummary; width: number }) {
   const { t, i18n } = useTranslation();
   const [more, setMore] = useState(false);
@@ -68,47 +70,73 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
         <LineIcon name="chevron" color={colors.action} />
       </Pressable>
 
-      {owes ? (
-        <>
-          <Big small={t("hub.toPayBefore", { date: day(round.dueDate) })} amount={amountDue} />
-          <Pressable accessibilityRole="button" onPress={() => openRound(group)} style={styles.pay}>
-            <CowrieMark size={30} />
-            <Text style={styles.payText}>{t("hub.pay", { amount: amountDue })}</Text>
-          </Pressable>
-          {myPot && !potReceived ? (
-            <View style={styles.potRow}>
-              <View style={styles.potIcon}>
-                <CowrieMark size={22} fill={colors.yourTurn} />
-              </View>
-              <View>
-                <Text style={styles.small}>{t("hub.yourPot")}</Text>
-                <Text style={styles.potLine}>{t("hub.potLine", { pot, date: day(myPot.dueDate) })}</Text>
-              </View>
-            </View>
-          ) : null}
-        </>
-      ) : (
-        <>
-          {pending ? (
-            <Text style={[styles.status, styles.statusPending]}>{t("hub.payingText")}</Text>
-          ) : (
-            <View style={styles.okRow}>
-              <LineIcon name="check" color={colors.paid} size={18} />
-              <Text style={[styles.status, styles.statusPaid]}>
-                {potReceived ? t("hub.gotPot") : t("hub.paidThisRound")}
-              </Text>
-            </View>
-          )}
-          {myPot && potReceived ? (
+      <View style={styles.cycle}>
+        <CycleRing
+          rounds={group.size}
+          current={round.number}
+          state={owes ? "owe" : pending ? "pending" : "paid"}
+          potRound={myPot?.number ?? null}
+        >
+          <Text style={styles.ringBig}>{t("hub.roundShort", { number: round.number })}</Text>
+          <Text style={styles.ringSmall}>{t("hub.ofRounds", { total: group.size })}</Text>
+        </CycleRing>
+        <View style={styles.side}>
+          {owes ? (
             <>
-              <Big small={t("hub.gotPotOn", { date: day(myPot.dueDate) })} amount={pot} green />
-              <Text style={styles.small}>{t("hub.keepPaying")}</Text>
+              <Text style={styles.small}>{t("hub.toPayBefore", { date: day(round.dueDate) })}</Text>
+              <Text style={[styles.amount, styles.amountDue]} numberOfLines={1} adjustsFontSizeToFit>
+                {amountDue}
+              </Text>
             </>
-          ) : myPot ? (
-            <Big small={t("hub.yourPotOn", { date: day(myPot.dueDate) })} amount={pot} />
-          ) : null}
-        </>
-      )}
+          ) : (
+            <>
+              {pending ? (
+                <Text style={[styles.status, styles.statusPending]}>{t("hub.payingText")}</Text>
+              ) : (
+                <View style={styles.okRow}>
+                  <LineIcon name="check" color={colors.paid} size={17} />
+                  <Text style={[styles.status, styles.statusPaid]}>
+                    {potReceived ? t("hub.gotPotShort") : t("hub.paidThisRound")}
+                  </Text>
+                </View>
+              )}
+              {myPot && potReceived ? (
+                <>
+                  <Text style={styles.small}>{t("hub.gotOn", { date: day(myPot.dueDate) })}</Text>
+                  <Text style={[styles.amount, styles.amountGreen]} numberOfLines={1} adjustsFontSizeToFit>
+                    {pot}
+                  </Text>
+                </>
+              ) : myPot ? (
+                <>
+                  <Text style={styles.small}>{t("hub.yourPot")}</Text>
+                  <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
+                    {pot}
+                  </Text>
+                  <Text style={styles.potDate}>{day(myPot.dueDate)}</Text>
+                </>
+              ) : null}
+            </>
+          )}
+        </View>
+      </View>
+
+      {owes ? (
+        <Pressable accessibilityRole="button" onPress={() => openRound(group)} style={styles.pay}>
+          <CowrieMark size={28} />
+          <Text style={styles.payText}>{t("hub.pay", { amount: amountDue })}</Text>
+        </Pressable>
+      ) : null}
+      {owes && myPot && !potReceived ? (
+        <View style={styles.potRow}>
+          <CowrieMark size={20} fill={colors.yourTurn} />
+          <Text style={styles.potText}>
+            <Text style={styles.potBold}>{t("hub.potBold", { pot })}</Text>
+            {`, ${day(myPot.dueDate)}`}
+          </Text>
+        </View>
+      ) : null}
+      {potReceived ? <Text style={styles.small}>{t("hub.keepPaying")}</Text> : null}
 
       <View style={styles.actions}>
         <Action icon="phone" label={t("hub.call")} onPress={() => void call()} busy={calling} />
@@ -157,17 +185,6 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
           />
         </SafeAreaView>
       </Modal>
-    </View>
-  );
-}
-
-// One figure in large type, always hers: what she owes, her pot, or the pot
-// she received (green).
-function Big({ small, amount, green = false }: { small: string; amount: string; green?: boolean }) {
-  return (
-    <View style={styles.big}>
-      <Text style={styles.small}>{small}</Text>
-      <Text style={[styles.amount, green && styles.amountGreen]}>{amount}</Text>
     </View>
   );
 }
@@ -226,39 +243,40 @@ function MoreRow({ icon, title, sub, onPress }: { icon: LineIconName; title: str
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
-    paddingHorizontal: 24,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    overflow: "hidden",
+    paddingHorizontal: 20,
     paddingTop: 18,
     gap: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
   },
   head: { flexDirection: "row", alignItems: "center", gap: 8 },
   name: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 17, color: colors.indigo },
-  big: { gap: 2 },
+  cycle: { flexDirection: "row", alignItems: "center", gap: 16 },
+  side: { flex: 1, minWidth: 0, gap: 4 },
+  ringBig: { fontFamily: fonts.display, fontSize: 20, lineHeight: 26, color: colors.indigo },
+  ringSmall: { fontFamily: fonts.body, fontSize: 12, lineHeight: 16, color: colors.muted },
   small: { fontFamily: fonts.body, fontSize: 14, lineHeight: 19, color: colors.muted },
-  amount: { fontFamily: fonts.display, fontSize: 34, lineHeight: 42, color: colors.indigo },
+  amount: { fontFamily: fonts.display, fontSize: 28, lineHeight: 36, color: colors.indigo },
+  amountDue: { color: colors.accent },
   amountGreen: { color: colors.paid },
+  potDate: { fontFamily: fonts.bodyBold, fontSize: 14, lineHeight: 19, color: colors.turnText },
   okRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  status: { fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 21 },
+  status: { flexShrink: 1, fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 21 },
   statusPaid: { color: colors.paid },
   statusPending: { color: colors.action },
   potRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-    paddingTop: 14,
-  },
-  potIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    gap: 10,
+    borderRadius: 16,
     backgroundColor: colors.turnSoft,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  potLine: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.indigo },
+  potText: { flex: 1, fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.turnText },
+  potBold: { fontFamily: fonts.bodyBold },
   pay: {
     minHeight: 56,
     borderRadius: 16,
@@ -271,8 +289,8 @@ const styles = StyleSheet.create({
   payText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
   actions: {
     flexDirection: "row",
-    marginHorizontal: -24,
-    marginTop: 4,
+    marginHorizontal: -20,
+    marginTop: 0,
     borderTopWidth: 1,
     borderTopColor: colors.line,
   },

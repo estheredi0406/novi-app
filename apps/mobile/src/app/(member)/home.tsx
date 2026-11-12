@@ -29,7 +29,10 @@ import { useAppWidth } from "../../components/WebFrame";
 // on it, then "Pour vous" (things about her, never about one group), then the
 // latest news from all her groups. Invitations and groups still being set up
 // sit under the cards. A new member sees how a tontine works and one button.
-const OVERLAP = 0;
+// The rounded group card rides over the band's lower edge (D122, board 33a).
+const OVERLAP = 28;
+const CARD_SIDE = 16;
+const CARD_GAP = 12;
 
 export default function HomeScreen() {
   const { member } = useSession();
@@ -112,7 +115,8 @@ export function HomeView({
   const running = cardsInOrder(groups);
   const preparing = groups.filter((g) => !g.currentRound && g.state !== "COMPLETED" && g.state !== "CANCELLED");
   const isNew = loaded && groups.length === 0;
-  const cardWidth = width;
+  const cardWidth = width - 2 * CARD_SIDE;
+  const step = cardWidth + CARD_GAP;
   const newsToday = news.some((n) => !n.mine && Date.now() - Date.parse(n.createdAt) < 86_400_000);
 
   // What "Écouter" reads: her name, then this week in each group.
@@ -167,10 +171,10 @@ export function HomeView({
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              snapToInterval={cardWidth}
+              snapToInterval={step}
               decelerationRate="fast"
               contentContainerStyle={styles.cards}
-              onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / cardWidth))}
+              onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / step))}
               style={styles.cardsScroll}
             >
               {running.map((g) => (
@@ -325,10 +329,10 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: colors.accent,
   },
-  // The group panel sits square under the band, edge to edge (D121).
-  lift: { marginTop: -20, marginHorizontal: -24 },
+  // The group card is rounded and rides over the band (D122, board 33a).
+  lift: { marginTop: -20 - OVERLAP, marginHorizontal: -24 },
   cardsScroll: { overflow: "visible" },
-  cards: { gap: 0 },
+  cards: { gap: CARD_GAP, paddingHorizontal: CARD_SIDE },
   pager: { flexDirection: "row", justifyContent: "center", gap: 4, marginTop: 14 },
   pagerPad: { paddingBottom: 4 },
   first: {

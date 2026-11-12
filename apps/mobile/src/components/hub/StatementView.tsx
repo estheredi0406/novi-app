@@ -1,4 +1,4 @@
-import type { SavingsRecord, Statement, StatementLine } from "@novi/shared";
+import type { Statement, StatementLine } from "@novi/shared";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type Href, router } from "expo-router";
@@ -7,21 +7,24 @@ import { getStatement } from "../../api/news";
 import { formatFcfa } from "../../lib/format";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
-import { SeatRing } from "../art/SeatRing";
+import { CowrieMark } from "../BottomBar";
+import { LineIcon } from "../LineIcon";
 
-// Her transactions on "Mon relevé" (D92, board E6), as a table: her on-time
-// share on a ring at the top (the same facts the MFI sees if she shares her
-// record), then every franc she paid or received, month by month, with the
-// group and the turn. Her advance has its own line (D103); a share the
-// advances covered shows with its deadline (D104); a payment pending or not
-// confirmed shows too, and opens the round to say what happened.
+// Her transactions in Historique (D92; redrawn in D122 from canvas boards 38
+// and 39). What still needs her eye sits apart at the top, "En cours": a
+// payment not confirmed yet or that failed, and a share the group's advances
+// covered that she has not repaid. Below, month by month, the money that
+// moved. "Payé" shows only money that left and was confirmed, "Reçu" only
+// money that came in; when nothing came in yet, it says when her pot comes.
+// Every line opens its round, where the details are.
 type Filter = "ALL" | "PAID" | "RECEIVED";
 
-const OUT = new Set<StatementLine["kind"]>(["PAID", "ADVANCE", "PENDING", "FAILED"]);
+const OUT = new Set<StatementLine["kind"]>(["PAID", "ADVANCE"]);
 const IN = new Set<StatementLine["kind"]>(["RECEIVED", "ADVANCE_BACK"]);
-const short = (amount: number) => formatFcfa(amount).replace(" FCFA", "");
+const short = (amount: number) => formatFcfa(amount).replace(" FCFA", " F");
+const open = (l: StatementLine) => (l.kind === "FAILED" || l.kind === "PENDING" || (l.kind === "COVERED" && !l.repaid));
 
-export function StatementView({ record }: { record: SavingsRecord }) {
+export function StatementView({ nextPot }: { nextPot: { pot: number; date: string; group: string } | null }) {
   const { t, i18n } = useTranslation();
   const [statement, setStatement] = useState<Statement | null>(null);
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -33,46 +36,30 @@ export function StatementView({ record }: { record: SavingsRecord }) {
       .catch(() => setStatement({ lines: [] }));
   }, []);
 
-  const made = record.paymentsMade;
-  const onTime = record.paidOnTime;
-  const rate = made > 0 ? Math.round((onTime / made) * 100) : null;
-  // The ring shows at most 12 payments: the latest ones, late ones in red.
-  const recent = (statement?.lines ?? []).filter((l) => l.kind === "PAID").slice(0, 12).reverse();
-
   const locale = i18n.language === "en" ? "en-GB" : "fr-FR";
   const all = statement?.lines ?? [];
   const groups = [...new Map(all.map((l) => [l.groupId, l.groupName])).entries()];
-  const lines = all.filter(
-    (l) =>
-      (group === null || l.groupId === group) &&
-      (filter === "ALL" || (filter === "PAID" ? OUT.has(l.kind) : IN.has(l.kind))),
+  const mine = all.filter((l) => group === null || l.groupId === group);
+  const waiting = filter === "ALL" ? mine.filter(open) : [];
+  const lines = mine.filter((l) =>
+    filter === "ALL" ? !open(l) && l.kind !== "COVERED" : filter === "PAID" ? OUT.has(l.kind) : IN.has(l.kind),
   );
   const months = new Map<string, StatementLine[]>();
   for (const l of lines) {
     const key = l.at.slice(0, 7);
     months.set(key, [...(months.get(key) ?? []), l]);
   }
+  const potDay = nextPot
+    ? new Date(`${nextPot.date}T12:00:00Z`).toLocaleDateString(locale, {
+        weekday: "long",
+        day: "numeric",
+        month: "short",
+        timeZone: "UTC",
+      })
+    : "";
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.summary}>
-        {recent.length > 0 ? (
-          <SeatRing paid={recent.map((l) => l.onTime === true)} size={112}>
-            <Text style={[styles.rate, rate !== null && rate >= 100 && styles.rateWide]} numberOfLines={1} adjustsFontSizeToFit>
-              {rate === null ? "…" : `${rate} %`}
-            </Text>
-          </SeatRing>
-        ) : null}
-        <View style={styles.summaryText}>
-          <Text style={styles.big}>{t("record.onTimeOf", { onTime, made })}</Text>
-          <Text style={styles.light}>{t("record.onTimeLabel")}</Text>
-          <Text style={styles.light}>
-            {t("record.potsLine", { count: record.potsReceived })}
-            {record.missed === 0 ? ` · ${t("record.noDebt")}` : ""}
-          </Text>
-        </View>
-      </View>
-
       <View style={styles.filters}>
         {(["ALL", "PAID", "RECEIVED"] as const).map((f) => (
           <Chip
@@ -92,11 +79,34 @@ export function StatementView({ record }: { record: SavingsRecord }) {
         </ScrollView>
       ) : null}
 
-      {statement && lines.length === 0 ? <Text style={styles.empty}>{t("statement.empty")}</Text> : null}
+      {waiting.length > 0 ? (
+        <View style={[styles.box, styles.boxWaiting]}>
+          <Text style={styles.waitingTitle}>{t("statement.inProgress")}</Text>
+          {waiting.map((l) => (
+            <Row key={l.id} line={l} locale={locale} />
+          ))}
+        </View>
+      ) : null}
+
+      {statement && lines.length === 0 && waiting.length === 0 ? (
+        filter === "RECEIVED" ? (
+          <View style={[styles.box, styles.emptyBox]}>
+            <CowrieMark size={36} fill={colors.yourTurn} />
+            <Text style={styles.emptyTitle}>{t("statement.nothingIn")}</Text>
+            {nextPot ? (
+              <Text style={styles.emptyText}>
+                {t("statement.potComes", { pot: short(nextPot.pot), date: potDay, group: nextPot.group })}
+              </Text>
+            ) : null}
+          </View>
+        ) : (
+          <Text style={styles.empty}>{t(filter === "PAID" ? "statement.nothingOut" : "statement.empty")}</Text>
+        )
+      ) : null}
 
       {[...months.entries()].map(([month, items]) => {
         const sum = (set: Set<StatementLine["kind"]>) =>
-          items.filter((l) => set.has(l.kind) && l.kind !== "FAILED" && l.kind !== "PENDING").reduce((s, l) => s + l.amountFcfa, 0);
+          items.filter((l) => set.has(l.kind)).reduce((s, l) => s + l.amountFcfa, 0);
         const title = new Date(`${month}-15T12:00:00Z`).toLocaleDateString(locale, {
           month: "long",
           year: "numeric",
@@ -106,20 +116,16 @@ export function StatementView({ record }: { record: SavingsRecord }) {
           <View key={month} style={styles.month}>
             <Text style={styles.monthTitle}>{title.charAt(0).toUpperCase() + title.slice(1)}</Text>
             <View style={styles.box}>
-              <View style={[styles.row, styles.head]}>
-                <Text style={[styles.colDate, styles.headText]}>{t("statement.colDate")}</Text>
-                <Text style={[styles.colDetail, styles.headText]}>{t("statement.colDetail")}</Text>
-                <Text style={[styles.colNum, styles.headText]}>{t("statement.colPaid")}</Text>
-                <Text style={[styles.colNum, styles.headText]}>{t("statement.colReceived")}</Text>
-              </View>
-              {items.map((l) => (
-                <Row key={l.id} line={l} locale={locale} />
+              {items.map((l, i) => (
+                <Row key={l.id} line={l} locale={locale} first={i === 0} />
               ))}
-              <View style={[styles.row, styles.totalRow]}>
-                <Text style={[styles.colDate, styles.totalText]} />
-                <Text style={[styles.colDetail, styles.totalText]}>{t("statement.total")}</Text>
-                <Text style={[styles.colNum, styles.totalText]}>{short(sum(OUT))}</Text>
-                <Text style={[styles.colNum, styles.totalText, styles.in]}>{short(sum(IN))}</Text>
+              <View style={styles.totalRow}>
+                {filter !== "RECEIVED" ? (
+                  <Text style={styles.totalText}>{t("statement.totalOut", { amount: short(sum(OUT)) })}</Text>
+                ) : null}
+                {filter !== "PAID" ? (
+                  <Text style={[styles.totalText, styles.in]}>{t("statement.totalIn", { amount: short(sum(IN)) })}</Text>
+                ) : null}
               </View>
             </View>
           </View>
@@ -142,7 +148,7 @@ function Chip({ on, label, onPress }: { on: boolean; label: string; onPress: () 
   );
 }
 
-function Row({ line, locale }: { line: StatementLine; locale: string }) {
+function Row({ line, locale, first = false }: { line: StatementLine; locale: string; first?: boolean }) {
   const { t } = useTranslation();
   const date = new Date(line.at).toLocaleDateString(locale, { day: "2-digit", month: "2-digit", timeZone: "UTC" });
   const title =
@@ -164,25 +170,29 @@ function Row({ line, locale }: { line: StatementLine; locale: string }) {
           ? { text: t("statement.pending"), style: styles.tagWait }
           : line.kind === "FAILED"
             ? { text: line.reported ? t("statement.reported") : t("statement.failed"), style: styles.tagLate }
-            : line.kind === "COVERED"
-              ? line.repaid
-                ? { text: t("statement.repaid"), style: styles.tagOk }
-                : {
-                    text: t("statement.repayBy", {
-                      date: line.dueBy
-                        ? new Date(line.dueBy).toLocaleDateString(locale, { day: "numeric", month: "short", timeZone: "UTC" })
-                        : "…",
-                    }),
-                    style: styles.tagTurn,
-                  }
-              : null;
-  const struck = line.kind === "FAILED";
-  // A payment to look at, or a share to repay, opens its round.
-  const opens = line.kind === "FAILED" || line.kind === "PENDING" || (line.kind === "COVERED" && !line.repaid);
-  const body = (
-    <View style={styles.row}>
-      <Text style={[styles.colDate, styles.cell]}>{date}</Text>
-      <View style={styles.colDetail}>
+            : line.kind === "ADVANCE"
+              ? { text: t("statement.advanceTag"), style: styles.tagGrey }
+              : line.kind === "COVERED"
+                ? line.repaid
+                  ? { text: t("statement.repaid"), style: styles.tagOk }
+                  : {
+                      text: t("statement.repayBy", {
+                        date: line.dueBy
+                          ? new Date(line.dueBy).toLocaleDateString(locale, { day: "numeric", month: "short", timeZone: "UTC" })
+                          : "…",
+                      }),
+                      style: styles.tagTurn,
+                    }
+                : null;
+  const isIn = IN.has(line.kind);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.push(`/groups/${line.groupId}/rounds/${line.round}` as Href)}
+      style={[styles.row, first && styles.rowFirst]}
+    >
+      <Text style={styles.date}>{date}</Text>
+      <View style={styles.detail}>
         <Text style={styles.cellBold} numberOfLines={1}>
           {title}
         </Text>
@@ -196,40 +206,16 @@ function Row({ line, locale }: { line: StatementLine; locale: string }) {
         ) : null}
         {tag ? <Text style={[styles.tag, tag.style]}>{tag.text}</Text> : null}
       </View>
-      <Text style={[styles.colNum, styles.cell, struck && styles.struck]}>
-        {OUT.has(line.kind) ? short(line.amountFcfa) : ""}
+      <Text style={[styles.amount, isIn && styles.in, line.kind === "FAILED" && styles.struck]}>
+        {isIn ? `+${short(line.amountFcfa)}` : short(line.amountFcfa)}
       </Text>
-      <Text style={[styles.colNum, styles.cell, styles.in]}>{IN.has(line.kind) ? short(line.amountFcfa) : ""}</Text>
-    </View>
-  );
-  return opens ? (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => router.push(`/groups/${line.groupId}/rounds/${line.round}` as Href)}
-    >
-      {body}
+      <LineIcon name="chevron" size={16} color={colors.action} />
     </Pressable>
-  ) : (
-    body
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { gap: 16 },
-  summary: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-    padding: 20,
-    borderRadius: 22,
-    backgroundColor: colors.indigo,
-  },
-  // D118: "100 %" fits inside the ring (it spilled over its left side).
-  rate: { fontFamily: fonts.display, fontSize: 20, color: colors.white, textAlign: "center" },
-  rateWide: { fontSize: 17 },
-  summaryText: { flex: 1, gap: 2 },
-  big: { fontFamily: fonts.display, fontSize: 22, lineHeight: 28, color: colors.white },
-  light: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.onDark, opacity: 0.85 },
   filters: { flexDirection: "row", gap: 8 },
   filter: {
     paddingHorizontal: 14,
@@ -243,6 +229,9 @@ const styles = StyleSheet.create({
   filterText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.ink },
   filterTextOn: { color: colors.white },
   empty: { fontFamily: fonts.body, fontSize: 15, color: colors.muted },
+  emptyBox: { alignItems: "center", gap: 8, paddingHorizontal: 18, paddingVertical: 22 },
+  emptyTitle: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 17, color: colors.indigo },
+  emptyText: { textAlign: "center", fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.muted },
   month: { gap: 8 },
   monthTitle: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.indigo },
   box: {
@@ -252,26 +241,34 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     overflow: "hidden",
   },
+  boxWaiting: { borderWidth: 2, borderColor: colors.accent },
+  waitingTitle: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.accent, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 2 },
   row: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: colors.line,
   },
-  head: { backgroundColor: colors.shell, borderTopWidth: 0, paddingVertical: 8 },
-  headText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.muted },
-  colDate: { width: 42 },
-  colDetail: { flex: 1, minWidth: 0, gap: 2 },
-  colNum: { width: 62, textAlign: "right" },
-  cell: { fontFamily: fonts.body, fontSize: 14, color: colors.ink },
-  cellBold: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.ink },
+  rowFirst: { borderTopWidth: 0 },
+  date: { width: 40, fontFamily: fonts.body, fontSize: 13, color: colors.muted },
+  detail: { flex: 1, minWidth: 0, gap: 2 },
+  cellBold: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
   sub: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
-  in: { color: colors.paid, fontFamily: fonts.bodyBold },
+  amount: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
+  in: { color: colors.paid },
   struck: { color: colors.muted, textDecorationLine: "line-through" },
-  totalRow: { borderTopWidth: 2 },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderTopWidth: 2,
+    borderTopColor: colors.line,
+  },
   totalText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.ink },
   tag: {
     alignSelf: "flex-start",
@@ -285,6 +282,7 @@ const styles = StyleSheet.create({
   },
   tagOk: { backgroundColor: colors.paidSoft, color: colors.paid },
   tagLate: { backgroundColor: colors.problemSoft, color: colors.problem },
-  tagWait: { backgroundColor: colors.mist, color: colors.lagoon },
+  tagWait: { backgroundColor: colors.mist, color: colors.action },
   tagTurn: { backgroundColor: colors.turnSoft, color: colors.turnText },
+  tagGrey: { backgroundColor: colors.shell, color: colors.muted },
 });

@@ -85,6 +85,6 @@ const styles = StyleSheet.create({
   track: { height: 6, borderRadius: 3, backgroundColor: colors.line, overflow: "hidden" },
   fill: { height: 6, borderRadius: 3, backgroundColor: colors.lagoon },
   text: { gap: 8 },
-  title: { fontFamily: fonts.display, fontSize: 32, lineHeight: 38, color: colors.indigo },
+  title: { fontFamily: fonts.display, fontSize: 32, lineHeight: 42, color: colors.indigo },
   lede: { fontFamily: fonts.body, fontSize: 16, lineHeight: 23, color: colors.muted },
 });

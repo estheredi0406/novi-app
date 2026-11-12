@@ -12,11 +12,9 @@ import { RulesCard } from "../RulesCard";
 import { GroupHelpPanel } from "./GroupHelpPanel";
 import { HelpDot, Sheet } from "../Sheet";
 
-// How many turns after the current one the list shows before "Voir les 15".
-const AHEAD = 4;
-
-// The "Le groupe" tab (approved design F3): who receives, and on which day,
-// readable with fifteen members; the caisse de secours, explained behind
+// The "Le groupe" tab (approved design F3): who receives, and on which day
+// (D122, board 37: every round always shown, each saying in words where it
+// stands, her own line in indigo); the caisse de secours, explained behind
 // "?"; the rules and the register one tap away.
 export function GroupInfoTab({
   group,
@@ -31,7 +29,6 @@ export function GroupInfoTab({
 }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
-  const [all, setAll] = useState(false);
   const [sheet, setSheet] = useState<"caisse" | "rules" | null>(null);
 
   const seatFor = (number: number) =>
@@ -42,24 +39,11 @@ export function GroupInfoTab({
       ? t("groupView.you")
       : (seat?.displayName ?? r.beneficiaryName);
   };
-  const received = rounds.filter((r) => r.payoutStatus === "PAID");
-  const currentIndex = rounds.findIndex((r) => r.isCurrent);
-  const from = currentIndex >= 0 ? currentIndex : received.length;
   const mine = rounds.find((r) => seatFor(r.number)?.memberId === memberId);
 
-  // Collapsed: the pots already received in one line, the current turn, the
-  // next few, and her own turn if it comes later.
-  const shown = all
-    ? rounds
-    : rounds.filter(
-        (r, i) =>
-          (i >= from && i <= from + AHEAD) ||
-          (r === mine && r.payoutStatus !== "PAID"),
-      );
-  const later = all
-    ? []
-    : rounds.filter((r, i) => i > from + AHEAD && r !== mine);
   const lastDay = rounds.at(-1)?.dueDate;
+  const pot = formatFcfa(group.rules.amountFcfa * group.rules.size).replace(" FCFA", " F");
+  const longDay = (iso: string) => shortDay(iso, lang);
 
   const reserve = group.reserve;
   const caisseText = t("caisse.body");
@@ -67,111 +51,49 @@ export function GroupInfoTab({
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>{t("groupInfo.whoWhen")}</Text>
+      <Text style={styles.lede}>{t("groupInfo.lede", { pot })}</Text>
       <View style={styles.list}>
-        {!all && received.length > 0 ? (
-          <View style={[styles.row, styles.rowSoft]}>
-            <Text style={[styles.day, styles.receivedCount]}>
-              ✓ {t("groupInfo.received", { count: received.length })}
-            </Text>
-            <Text style={styles.names} numberOfLines={1}>
-              {received.map(nameFor).join(", ")}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setAll(true)}
-              hitSlop={8}
-            >
-              <Text style={styles.link}>{t("groupInfo.see")}</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {shown.map((r) => {
+        <View style={styles.headRow}>
+          <Text style={styles.headText}>{t("groupInfo.colWho")}</Text>
+          <Text style={styles.headText}>{t("groupInfo.colWhere")}</Text>
+        </View>
+        {rounds.map((r) => {
           const now = r.isCurrent;
           const isMine = r === mine;
           const seat = seatFor(r.number);
+          const status = seat?.exitReason
+            ? { text: t(seat.exitReason === "DEATH" ? "groupView.toKin" : "groupView.left"), kind: "next" as const }
+            : r.payoutStatus === "PAID"
+              ? r.receipt === "DISPUTED"
+                ? { text: t("groupView.disputed"), kind: "problem" as const }
+                : { text: t(isMine ? "groupInfo.youGot" : "groupInfo.got", { pot }), kind: "done" as const }
+              : now
+                ? { text: t(isMine ? "groupInfo.youGetNow" : "groupInfo.getsNow"), kind: "now" as const }
+                : isMine
+                  ? { text: t("groupInfo.yourPot"), kind: "mine" as const }
+                  : { text: t("groupInfo.later"), kind: "next" as const };
           return (
-            <View
-              key={r.number}
-              style={[
-                styles.row,
-                now && styles.rowNow,
-                isMine && styles.rowMine,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.day,
-                  now && styles.dayNow,
-                  isMine && styles.dayMine,
-                ]}
-              >
-                {shortDay(r.dueDate, lang)}
-              </Text>
-              <Text
-                style={[styles.name, isMine && styles.nameMine]}
-                numberOfLines={1}
-              >
-                {nameFor(r)}
-              </Text>
-              {seat?.exitReason ? (
-                <Text style={[styles.note, isMine && styles.dayMine]}>
-                  {t(
-                    seat.exitReason === "DEATH"
-                      ? "groupView.toKin"
-                      : "groupView.left",
-                  )}
+            <View key={r.number} style={[styles.row, isMine && styles.rowMine]}>
+              <View style={[styles.num, isMine && styles.numMine]}>
+                <Text style={[styles.numText, isMine && styles.numTextMine]}>{r.number}</Text>
+              </View>
+              <View style={styles.who}>
+                <Text style={styles.name} numberOfLines={1}>
+                  {nameFor(r)}
                 </Text>
-              ) : r.payoutStatus === "PAID" ? (
-                r.receipt === "DISPUTED" ? (
-                  <Text style={[styles.note, styles.problem]}>
-                    {t("groupView.disputed")}
-                  </Text>
-                ) : (
-                  <Glyph
-                    name="check"
-                    color={isMine ? colors.white : colors.paid}
-                  />
-                )
-              ) : now ? (
-                <Text style={[styles.nowTag, isMine && styles.dayMine]}>
-                  {t("groupInfo.thisTurn")}
+                <Text style={styles.day}>
+                  {now ? t("groupInfo.dayNow", { date: longDay(r.dueDate) }) : longDay(r.dueDate)}
                 </Text>
-              ) : null}
+              </View>
+              <View style={[styles.pill, styles[`pill_${status.kind}`]]}>
+                {status.kind === "done" ? <Glyph name="check" color={colors.paid} /> : null}
+                <Text style={[styles.pillText, styles[`pillText_${status.kind}`]]}>{status.text}</Text>
+              </View>
             </View>
           );
         })}
-
-        {later.length > 0 ? (
-          <View style={[styles.row, styles.rowLast]}>
-            <Text style={styles.more}>
-              {t("groupInfo.more", {
-                count: later.length,
-                date: lastDay ? shortDay(lastDay, lang) : "",
-              })}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setAll(true)}
-              hitSlop={8}
-            >
-              <Text style={styles.link}>
-                {t("groupInfo.seeAll", { count: rounds.length })}
-              </Text>
-            </Pressable>
-          </View>
-        ) : all ? (
-          <View style={[styles.row, styles.rowLast]}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setAll(false)}
-              hitSlop={8}
-            >
-              <Text style={styles.link}>{t("groupInfo.seeLess")}</Text>
-            </Pressable>
-          </View>
-        ) : null}
       </View>
+      {lastDay ? <Text style={styles.foot}>{t("groupInfo.cycleEnds", { date: longDay(lastDay) })}</Text> : null}
 
       {group.state === "ACTIVE" ? (
         <GroupHelpPanel groupId={group.id} onChanged={onChanged} />
@@ -283,39 +205,61 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     overflow: "hidden",
   },
+  lede: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.muted, marginTop: -8 },
+  headRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    backgroundColor: colors.shell,
+  },
+  headText: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.muted },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    minHeight: 48,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    minHeight: 56,
   },
-  rowLast: { borderBottomWidth: 0, justifyContent: "space-between" },
-  rowSoft: { backgroundColor: colors.shell },
-  rowNow: { backgroundColor: colors.turnSoft },
-  rowMine: { backgroundColor: colors.indigo },
-  day: { width: 92, fontFamily: fonts.body, fontSize: 14, color: colors.muted },
-  dayNow: { fontFamily: fonts.bodyBold, color: colors.turnText },
-  dayMine: { fontFamily: fonts.bodyBold, color: colors.mist },
-  receivedCount: { fontFamily: fonts.bodyBold, color: colors.paid },
-  names: { flex: 1, fontFamily: fonts.body, fontSize: 14, color: colors.muted },
-  name: {
-    flex: 1,
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 16,
-    color: colors.ink,
+  rowMine: { backgroundColor: colors.mist, borderLeftWidth: 4, borderLeftColor: colors.indigo, paddingLeft: 10 },
+  num: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.shell,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  nameMine: { fontFamily: fonts.bodyBold, color: colors.white },
-  note: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.muted },
-  problem: { color: colors.problem },
-  nowTag: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    color: colors.turnText,
+  numMine: { backgroundColor: colors.indigo },
+  numText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.indigo },
+  numTextMine: { color: colors.white },
+  who: { flex: 1, minWidth: 0 },
+  name: { fontFamily: fonts.bodyBold, fontSize: 16, lineHeight: 22, color: colors.indigo },
+  day: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted },
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    maxWidth: "48%",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 9,
   },
+  pill_done: { backgroundColor: colors.paidSoft },
+  pill_now: { backgroundColor: colors.turnSoft },
+  pill_mine: { backgroundColor: colors.turnSoft },
+  pill_next: { backgroundColor: colors.shell },
+  pill_problem: { backgroundColor: colors.problemSoft },
+  pillText: { flexShrink: 1, fontFamily: fonts.bodyBold, fontSize: 13, lineHeight: 17, textAlign: "right" },
+  pillText_done: { color: colors.paid },
+  pillText_now: { color: colors.turnText },
+  pillText_mine: { color: colors.turnText },
+  pillText_next: { color: colors.muted },
+  pillText_problem: { color: colors.problem },
+  foot: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: -6 },
   more: { flex: 1, fontFamily: fonts.body, fontSize: 14, color: colors.muted },
   link: {
     fontFamily: fonts.bodyBold,
