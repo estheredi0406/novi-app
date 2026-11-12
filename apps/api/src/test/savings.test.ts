@@ -5,6 +5,7 @@ import { prisma } from "../lib/db.js";
 import { mfi, payments } from "../providers/index.js";
 import { MockMfiAdapter } from "../providers/mfi/MockMfiAdapter.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
+import { listAttention, releaseRoundPayout } from "../services/consoleService.js";
 import { getLoanPage } from "../services/loanService.js";
 import { releasePayout, runPayouts } from "../services/payoutService.js";
 import { balances, decideAccount, saveSavingsPolicy } from "../services/savingsService.js";
@@ -178,15 +179,55 @@ describe("sending a pot with a part kept (D123)", () => {
     expect(body.accounts[0]).toMatchObject({ freeFcfa: 0, lockedFcfa: 15000 });
   });
 
-  it("sends the whole pot to her wallet when the MFI has not opened her account yet", async () => {
+  it("holds the pot until the MFI opens her account, then keeps her part (D141)", async () => {
     const { groupId, members, round, receiver } = await activeGroup();
     await prisma.round.update({ where: { id: round.id }, data: { dueDate: SOON() } });
     await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(10000));
 
+    const waiting = await payOutRoundOne(groupId, members);
+    expect(waiting.status).toBe("READY");
+    expect(mockMfi.payouts.has(waiting.id)).toBe(false);
+    const { mfiId, staffId } = await officer();
+    const [item] = await listAttention(mfiId, staffId);
+    expect(item).toMatchObject({ payoutId: waiting.id, savingsToOpenFcfa: 10000, canRelease: false });
+    await expect(releaseRoundPayout(mfiId, staffId, waiting.id)).rejects.toMatchObject({ code: "SAVINGS_ACCOUNT_TO_OPEN" });
+
+    await decideAccount(mfiId, staffId, (await prisma.savingsAccount.findFirstOrThrow()).id, { open: true });
+    expect(await releasePayout(waiting.id, null)).toBe(true);
+    const sent = await prisma.payout.findUniqueOrThrow({ where: { id: waiting.id } });
+    expect(sent).toMatchObject({ status: "PAID", keptFcfa: 10000 });
+    expect(mockMfi.payouts.get(sent.id)).toMatchObject({ amountFcfa: 5000 });
+  });
+
+  it("sends the whole pot to her wallet when the MFI refuses her account (D141)", async () => {
+    const { groupId, members, round, receiver } = await activeGroup();
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: SOON() } });
+    await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(10000));
+    const { mfiId, staffId } = await officer();
+    await decideAccount(mfiId, staffId, (await prisma.savingsAccount.findFirstOrThrow()).id, { open: false, reason: "test" });
+
     const payout = await payOutRoundOne(groupId, members);
-    expect(payout.keptFcfa).toBe(0);
+    expect(payout).toMatchObject({ status: "PAID", keptFcfa: 0 });
     expect(mockMfi.payouts.get(payout.id)).toMatchObject({ amountFcfa: 15000 });
     expect(await prisma.savingsEntry.count()).toBe(0);
+  });
+
+  it("works out the kept part again after a refused transfer (D141)", async () => {
+    const { groupId, members, round, receiver } = await activeGroup();
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: SOON() } });
+    await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(10000));
+    const { mfiId, staffId } = await officer();
+    await decideAccount(mfiId, staffId, (await prisma.savingsAccount.findFirstOrThrow()).id, { open: true });
+    for (const m of members) await pay(m, groupId, 1);
+    await prisma.round.update({ where: { groupId_number: { groupId, number: 1 } }, data: { dueDate: PAST } });
+    await runPayouts();
+    const payout = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 1 } } });
+    await prisma.payout.update({ where: { id: payout.id }, data: { status: "FAILED", keptFcfa: null, attempts: 1, failedAt: PAST } });
+    // She changes her mind while it waits: the next try uses the new choice.
+    await prisma.potChoice.update({ where: { roundId: round.id }, data: { keepFcfa: 4000 } });
+    await runPayouts();
+    const sent = await prisma.payout.findUniqueOrThrow({ where: { id: payout.id } });
+    expect(sent).toMatchObject({ status: "PAID", keptFcfa: 4000 });
   });
 });
 
@@ -287,9 +328,21 @@ describe("pilot: rounds follow each other (D127)", () => {
       const payout = await prisma.payout.findFirstOrThrow({ where: { roundId: round.id } });
       expect(payout.status).not.toBe("HELD");
       expect((await prisma.round.findUniqueOrThrow({ where: { id: round.id } })).dueDate.getTime()).toBeLessThanOrEqual(Date.now());
-      expect((await receiver.get("/v1/me/savings")).body.choices).toHaveLength(0);
       // The next round is now the one being paid, and its pot's choice opens.
       expect((await second.get("/v1/me/savings")).body.choices).toHaveLength(1);
+      // D137: her full pot waits for the officer, and is still hers to split.
+      expect(payout.status).toBe("READY");
+      const open = await receiver.get("/v1/me/savings");
+      expect(open.body.choices).toHaveLength(1);
+      expect((await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(5000))).status).toBe(200);
+      // D141: her account must be open first; then the pot leaves with her part kept.
+      expect(await releasePayout(payout.id, null)).toBe(false);
+      const { mfiId, staffId } = await officer();
+      await decideAccount(mfiId, staffId, (await prisma.savingsAccount.findFirstOrThrow()).id, { open: true });
+      expect(await releasePayout(payout.id, null)).toBe(true);
+      const sent = await prisma.payout.findUniqueOrThrow({ where: { id: payout.id } });
+      expect(sent.keptFcfa).toBe(5000);
+      expect((await receiver.get("/v1/me/savings")).body.choices).toHaveLength(0);
     });
   });
 

@@ -164,6 +164,10 @@ async function openChoices(userId: string, now: Date) {
   // stands, and a pot on hold has no amount to split yet.
   // D127: in the pilot, rounds follow each other as soon as they are paid, so
   // the choice is open for the whole round being paid now, whatever its date.
+  // D137: a full pot waiting for an officer (READY) is still hers to split:
+  // the part she keeps is only read when the pot is first sent. Without this,
+  // in the pilot the last payment made the pot READY at once and the
+  // question vanished before she could answer it.
   const opens = new Date(now.getTime() + CHOICE_OPENS_DAYS * DAY_MS);
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const fast = pilotMode();
@@ -171,7 +175,7 @@ async function openChoices(userId: string, now: Date) {
     where: {
       beneficiaryId: userId,
       dueDate: fast ? { gte: today } : { gte: today, lte: opens },
-      payout: null,
+      OR: [{ payout: null }, { payout: { status: "READY", keptFcfa: null } }],
       group: { state: "ACTIVE" },
     },
     include: { group: { include: { mfi: true, rulesVersions: { orderBy: { version: "desc" }, take: 1 } } }, payout: true },
@@ -267,6 +271,24 @@ export async function choosePot(
   };
   await prisma.potChoice.upsert({ where: { roundId: round.id }, create: { roundId: round.id, ...data }, update: data });
   return mySavings(userId, now);
+}
+
+// D141: she chose to keep part of this pot in savings and the MFI has not
+// opened her account yet: the pot waits (no release, no auto-release, no
+// retry) until an officer opens the account, or refuses it (then all of it
+// goes to her phone). Returns the amount she keeps, or 0 if nothing waits.
+export async function savingsToOpen(payoutId: string): Promise<number> {
+  const payout = await prisma.payout.findUnique({
+    where: { id: payoutId },
+    include: { round: { include: { group: true } } },
+  });
+  if (!payout || payout.toNextOfKin || payout.keptFcfa !== null) return 0;
+  const choice = await prisma.potChoice.findUnique({ where: { roundId: payout.roundId } });
+  if (!choice || choice.userId !== payout.beneficiaryId || choice.keepFcfa <= 0) return 0;
+  const account = await prisma.savingsAccount.findUnique({
+    where: { userId_mfiId: { userId: payout.beneficiaryId, mfiId: payout.round.group.mfiId } },
+  });
+  return account?.status === "REQUESTED" ? choice.keepFcfa : 0;
 }
 
 // Called once, when a pot is first sent: how much of it stays in her savings.

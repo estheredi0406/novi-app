@@ -289,8 +289,13 @@ describe("her answer once the pot arrives (D63)", () => {
   it("lets the member who received it confirm, once", async () => {
     const { groupId, round, receiver } = await paidOut();
     const payoutId = round.payout?.id as string;
+    // D139: home asks her first, with what reached her phone.
+    const home = async () =>
+      (await receiver.get("/v1/groups")).body.find((g: { id: string }) => g.id === groupId).currentRound.myTurn;
+    expect((await home()).confirm).toEqual({ payoutId, amountFcfa: round.payout?.amountFcfa });
 
     expect((await receiver.post(`/v1/me/payouts/${payoutId}/receipt`, { received: true })).status).toBe(204);
+    expect((await home()).confirm).toBeNull();
     expect((await receiver.post(`/v1/me/payouts/${payoutId}/receipt`, { received: false })).status).toBe(409);
     const seen = (await receiver.get(`/v1/groups/${groupId}/rounds`)).body;
     expect(seen[0]).toMatchObject({ payoutId, receipt: "CONFIRMED" });

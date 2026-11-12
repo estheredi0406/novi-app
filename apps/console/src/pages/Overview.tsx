@@ -121,16 +121,20 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
   });
 
   const payoutRow = (item: AttentionItem) => {
-    const tag =
-      item.status === "READY"
+    // D141: she keeps part of her pot in savings and her account is not open.
+    const toOpen = item.savingsToOpenFcfa > 0;
+    const tag = toOpen
+      ? ["wait", t.tagSavingsToOpen]
+      : item.status === "READY"
         ? item.firstApprovedBy
           ? ["wait", t.tagSecond]
           : ["orange", t.ready]
         : item.status === "DISPUTED"
           ? ["red", t.disputed]
           : ["red", t.tagFixNumber];
-    const meta =
-      item.status === "READY"
+    const meta = toOpen
+      ? t.savingsToOpenHint(fcfa(item.savingsToOpenFcfa))
+      : item.status === "READY"
         ? item.firstApprovedBy
           ? t.firstBy(item.firstApprovedBy)
           : t.readyHint(item.receiverTurn)
@@ -152,7 +156,11 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
         </div>
         <span className="q-amount">{fcfa(item.amountFcfa)}</span>
         <div className="q-actions">
-          {item.canRelease ? (
+          {toOpen ? (
+            <a className="primary small" href="#/savings">
+              {t.savingsToOpenLink}
+            </a>
+          ) : item.canRelease ? (
             <button className="primary small" disabled={retrying === item.payoutId} onClick={() => release(item)}>
               {!item.needsTwo ? t.release : item.firstApprovedBy ? t.releaseSecond : t.approveFirst}
             </button>
@@ -355,7 +363,7 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
                   // payment account). It never sends twice.
                   const failed =
                     g.watch?.reason === "RETRYING"
-                      ? attention.find((i) => i.groupId === g.id && i.status === "FAILED" && i.canRetry)
+                      ? attention.find((i) => i.groupId === g.id && i.status === "FAILED" && i.canRetry && !i.savingsToOpenFcfa)
                       : undefined;
                   return failed ? (
                     <button

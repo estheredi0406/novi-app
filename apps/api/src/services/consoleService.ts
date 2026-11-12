@@ -28,6 +28,7 @@ import { creditFoundPayment, rejectReport } from "./moneyService.js";
 import { groupPageExtras } from "./consoleGroupService.js";
 import { MAX_ATTEMPTS, autoReleaseLimit, needsTwoOfficers, nextRetryAt, releasePayout, runPayouts } from "./payoutService.js";
 import { fundBalance, reserveBalance } from "./reserveService.js";
+import { savingsToOpen } from "./savingsService.js";
 import { mfi } from "../providers/index.js";
 
 // What an MFI officer sees and does in the console (Sprint 5.2). Every query
@@ -413,8 +414,16 @@ export async function listAttention(mfiId: string, staffId?: string): Promise<At
     ),
   );
 
+  // D141: pots that wait for the receiver's savings account to be opened.
+  const toOpen = new Map(
+    await Promise.all(
+      payouts.map(async (p) => [p.id, ["READY", "FAILED"].includes(p.status) ? await savingsToOpen(p.id) : 0] as const),
+    ),
+  );
+
   return payouts.map((payout) => {
     const { round } = payout;
+    const waitsForSavings = toOpen.get(payout.id) ?? 0;
     const rules = round.group.rulesVersions.find(
       (r) => r.version === round.group.currentVersion,
     );
@@ -460,7 +469,9 @@ export async function listAttention(mfiId: string, staffId?: string): Promise<At
       transferRef: payout.mfiRef ? payout.mfiRef.replace(/^fedapay:/, "") : null,
       // D105: a ready pot above the limit needs two different officers; the
       // one who gave the first approval cannot give the second.
-      canRelease: payout.status === "READY" && !(staffId && payout.firstApprovedById === staffId),
+      canRelease:
+        payout.status === "READY" && waitsForSavings === 0 && !(staffId && payout.firstApprovedById === staffId),
+      savingsToOpenFcfa: waitsForSavings,
       needsTwo: payout.status === "READY" && needsTwoOfficers(payout.amountFcfa, limit),
       firstApprovedBy: payout.firstApprovedById ? (firstNames.get(payout.firstApprovedById) ?? null) : null,
       receiverTurn: round.number,
@@ -504,6 +515,7 @@ export async function releaseRoundPayout(
   });
   if (!payout) throw new AppError("NOT_FOUND", 404);
   if (payout.status !== "READY") throw new AppError("NOT_ALLOWED_NOW", 409);
+  if ((await savingsToOpen(payoutId)) > 0) throw new AppError("SAVINGS_ACCOUNT_TO_OPEN", 409);
 
   // D105: above the MFI's limit, a first officer approves and a second,
   // different one releases. Each step is logged with the officer's name.

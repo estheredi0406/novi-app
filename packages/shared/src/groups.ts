@@ -141,6 +141,10 @@ export type CurrentRound = {
     number: number;
     dueDate: string;
     payoutStatus: PayoutStatus;
+    // D139: her pot reached her wallet and she has not said yet whether the
+    // money arrived: home asks her, with the amount that reached her phone
+    // (the pot less what she kept in savings).
+    confirm: { payoutId: string; amountFcfa: number } | null;
   } | null;
   onTimeStreak: number; // her payments on time in a row in this group, up to now
 };

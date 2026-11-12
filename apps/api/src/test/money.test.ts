@@ -311,6 +311,7 @@ describe("what each person sees", () => {
       number: hers.number,
       dueDate: hers.dueDate.toISOString().slice(0, 10),
       payoutStatus: "NOT_DUE",
+      confirm: null,
     });
   });
 

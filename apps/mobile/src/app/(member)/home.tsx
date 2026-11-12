@@ -5,11 +5,13 @@ import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
 import { listMyGroups, listMyInvitations } from "../../api/groups";
+import { answerReceipt } from "../../api/money";
 import { listNews } from "../../api/news";
 import { getSavings } from "../../api/savings";
 import { formatFcfa, shortDay } from "../../lib/format";
 import { BottomBar, CowrieMark } from "../../components/BottomBar";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { PrimaryButton } from "../../components/PrimaryButton";
 import { GroupCard } from "../../components/hub/GroupCard";
 import { NewsRow, newsTitle } from "../../components/hub/NewsRow";
 import { LaguneBand } from "../../components/LaguneBand";
@@ -44,6 +46,7 @@ export default function HomeScreen() {
   const [savings, setSavings] = useState<MySavings | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
 
   // Reloads every time home comes back into view, for example after she pays,
   // answers an invitation or creates a group.
@@ -73,7 +76,7 @@ export default function HomeScreen() {
       return () => {
         active = false;
       };
-    }, []),
+    }, [tick]),
   );
 
   if (!member) return null;
@@ -86,6 +89,7 @@ export default function HomeScreen() {
       savings={savings}
       loaded={loaded}
       error={error}
+      onChanged={() => setTick((n) => n + 1)}
     />
   );
 }
@@ -100,6 +104,7 @@ export function HomeView({
   savings = null,
   loaded,
   error,
+  onChanged,
 }: {
   name: string;
   groups: GroupSummary[];
@@ -108,8 +113,30 @@ export function HomeView({
   savings?: MySavings | null;
   loaded: boolean;
   error: string | null;
+  onChanged?: () => void;
 }) {
   const { t, i18n } = useTranslation();
+  // D139: a pot that reached her wallet waits for her "did it arrive?" on
+  // home, first thing under the cards, not only inside the group.
+  const toConfirm = groups.flatMap((g) =>
+    g.currentRound?.myTurn?.confirm
+      ? [{ group: g, number: g.currentRound.myTurn.number, ...g.currentRound.myTurn.confirm }]
+      : [],
+  );
+  const [answering, setAnswering] = useState<string | null>(null);
+  const [answerError, setAnswerError] = useState<string | null>(null);
+  async function answer(payoutId: string, received: boolean) {
+    setAnswering(payoutId);
+    setAnswerError(null);
+    try {
+      await answerReceipt(payoutId, received);
+      onChanged?.();
+    } catch (err) {
+      setAnswerError(errorKey(err));
+    } finally {
+      setAnswering(null);
+    }
+  }
   const { width } = useAppWidth();
   const [page, setPage] = useState(0);
 
@@ -141,6 +168,8 @@ export function HomeView({
 
   const tiles: { icon: LineIconName; label: string; onPress: () => void }[] = [
     { icon: "bank", label: t("hub.tileLoan"), onPress: () => router.push("/loan" as never) },
+    // D142: her savings at the caisse, always one touch away.
+    { icon: "hand", label: t("hub.tileSavings"), onPress: () => router.push("/savings" as never) },
     { icon: "plus", label: t("hub.tileNew"), onPress: () => router.push("/groups/new") },
     ...(isNew ? [] : [{ icon: "qr" as const, label: t("hub.tileShare"), onPress: () => router.push("/loan" as never) }]),
   ];
@@ -227,6 +256,45 @@ export function HomeView({
       </View>
 
       <ErrorMessage messageKey={error} />
+
+      {toConfirm.length > 0 ? (
+        <View style={styles.section}>
+          {toConfirm.map((c) => (
+            <View key={c.payoutId} style={[styles.box, styles.invite, styles.confirm]}>
+              <View style={styles.confirmHead}>
+                <View style={[styles.avatar, { backgroundColor: colors.turnSoft }]}>
+                  <CowrieMark size={22} fill={colors.yourTurn} />
+                </View>
+                <View style={styles.boxText}>
+                  <Text style={styles.boxTitle}>
+                    {t("groupView.receiptTitle", {
+                      amount: formatFcfa(c.amountFcfa).replace(" FCFA", " F"),
+                      number: c.number,
+                    })}
+                  </Text>
+                  <Text style={styles.boxSub}>
+                    {c.group.name} · {t("groupView.receiptHint", { mfi: c.group.mfiName })}
+                  </Text>
+                </View>
+              </View>
+              <PrimaryButton
+                label={t("groupView.receiptYes")}
+                disabled={answering !== null}
+                onPress={() => void answer(c.payoutId, true)}
+              />
+              <Pressable
+                accessibilityRole="button"
+                disabled={answering !== null}
+                onPress={() => void answer(c.payoutId, false)}
+                style={styles.confirmNo}
+              >
+                <Text style={styles.link}>{t("groupView.receiptNo")}</Text>
+              </Pressable>
+            </View>
+          ))}
+          <ErrorMessage messageKey={answerError} />
+        </View>
+      ) : null}
 
       {/* D123: three days before her pot, where it goes; then her savings. */}
       {savings && (savings.choices.length > 0 || savings.accounts.length > 0) ? (
@@ -439,6 +507,9 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   invite: { borderColor: colors.accent, borderWidth: 2 },
+  confirm: { flexDirection: "column", alignItems: "stretch", gap: 14 },
+  confirmHead: { flexDirection: "row", alignItems: "center", gap: 14 },
+  confirmNo: { minHeight: 44, alignItems: "center", justifyContent: "center" },
   savingsAmount: { fontFamily: fonts.display, fontSize: 20, lineHeight: 28, color: colors.indigo },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   avatarText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.white },

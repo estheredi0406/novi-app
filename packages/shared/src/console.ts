@@ -205,6 +205,7 @@ export type AttentionItem = {
   needsTwo: boolean; // D105: above the MFI's limit, two officers approve
   firstApprovedBy: string | null; // D105: the officer who gave the first approval
   receiverTurn: number; // whose turn: her place in the order, never her name (D33)
+  savingsToOpenFcfa: number; // D141: she keeps this much in savings and her account is not open yet: the pot waits
   attempts: number; // D114: transfers tried so far
   nextRetryAt: string | null; // D114: Novi tries again by itself then; null: the officer decides
   receiptCheck: "PAID" | "SENT" | "FAILED" | "UNKNOWN" | null; // D114: the sender asked again after "not received"

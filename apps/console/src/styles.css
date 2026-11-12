@@ -2202,3 +2202,38 @@ td.name-cell { min-width: 150px; }
 @media (max-width: 600px) {
   .setting-row > *, .setting-field input, .money-input { width: 100%; min-width: 0; }
 }
+
+/* D140: the "À décider" rows. The tag column keeps one width so titles line up,
+   and below 1200px (a laptop window beside another, a tablet) the buttons
+   move under the title instead of sticking out of the card. */
+.queue .q:not(.q-watch):not(.q-line) {
+  grid-template-columns: 150px minmax(0, 1fr) auto auto;
+}
+@media (max-width: 1200px) {
+  .queue .q:not(.q-watch):not(.q-line) {
+    grid-template-columns: 150px minmax(0, 1fr) auto;
+    row-gap: 10px;
+  }
+  .queue .q:not(.q-watch):not(.q-line) > .q-actions {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 900px) {
+  .queue .q:not(.q-watch):not(.q-line) {
+    grid-template-columns: 1fr;
+  }
+  .queue .q:not(.q-watch):not(.q-line) > .q-actions {
+    grid-column: auto;
+  }
+  .queue .q:not(.q-watch):not(.q-line) > .q-amount {
+    text-align: left;
+  }
+}
+/* D141: a link that acts as the row's main button. */
+a.primary {
+  display: inline-block;
+  text-decoration: none;
+}

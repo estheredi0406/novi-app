@@ -466,3 +466,23 @@ The FedaPay and automatic release cards looked loose: the status sat far to the 
 ## D138: "Relancer maintenant" on a refused pot Novi will try again later (12 November 2026)
 
 From Esther's own test: a pot refused by FedaPay waits for Novi's automatic tries (5 minutes, 30 minutes, 2 hours, D114), and until they are used up it only shows under "À surveiller", with no button. Once the cause is fixed (the receiver's wallet, or the MFI's payment account), the officer had to wait. The group's row under "À surveiller" now has a "Relancer maintenant" button when one of its pots is waiting for an automatic retry; it uses the same retry as "Relancer" in "À décider", which never sends a pot twice. Console only.
+
+## D139: "Avez-vous reçu votre cagnotte ?" on home (12 November 2026)
+
+From Esther's own test: once her pot reached her wallet, a member was asked whether the money arrived only inside the group, on the Cotisation tab, so she could miss it. Home now asks her first, right under the group cards, with the amount that reached her phone (the pot less what she kept in savings), the group and the MFI, and the two answers ("Oui, je l'ai reçue", "Non, elle n'est pas arrivée"). The question leaves home once she answers. A pot kept whole in savings sent nothing to her phone, so nothing is asked. The API adds `confirm` (the payout and the amount) to her turn in the home summary. Needs a new app update (`eas update`) and the API deployed.
+
+## D140: the "À décider" rows fit narrower windows (12 November 2026)
+
+In a laptop window beside another one, or on a tablet, the "À décider" rows squeezed the group name onto several lines and the "Libérer la cagnotte" or "Relancer" button stuck out of the card. Below 1200 pixels the button now sits under the title, and on a phone everything stacks. The tag column keeps one width so titles line up. Checked at 1366, 1100, 960, 800 and 390 pixels: nothing sticks out.
+
+## D137: the pot choice stays open while the pot waits for release (12 November 2026)
+
+From Esther's own test: in the pilot, the last payment made the pot "À libérer" at once, and the question "Où voulez-vous placer votre cagnotte ?" vanished before the member could answer. The choice now stays open while the pot waits for an officer (READY): the part she keeps is only read when the pot is first sent.
+
+## D141: a pot waits for the member's savings account to be opened (12 November 2026)
+
+From Esther's own test: Oura chose to keep part of her pot in savings, but her account was still "à ouvrir" when the pot left, so the whole 99 000 F went to her phone, and the "nothing kept" stayed recorded even after the account was opened. Esther chose that the pot waits: when a member chose to keep part of her pot and the MFI has not opened her account yet, the pot is neither released by an officer, nor released alone under the ceiling, nor retried. In "À décider" it shows "Compte à ouvrir · elle garde X en épargne : ouvrez d'abord son compte" with a button to the Épargne page, and the officers are alerted as for any pot to release. Once the account is opened, the pot leaves with her part kept (alone if under the ceiling, otherwise by an officer); if the MFI refuses the account, all of it goes to her phone. A transfer that was refused no longer fixes the kept amount: it is worked out again on the next try. The member's app now says the pot waits until her account is open. This matches the MFI's own rule: no deposit before the account is opened.
+
+## D142: "Mon épargne" in "Pour vous" on home (12 November 2026)
+
+From Esther's own test: her savings were only reachable from the savings card, which appears once she has an account. "Pour vous" now has a "Mon épargne" tile next to "Crédit".

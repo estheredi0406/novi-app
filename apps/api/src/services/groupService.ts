@@ -323,6 +323,23 @@ export async function listMyGroups(userId: string): Promise<GroupSummary[]> {
 
 // The round open for payment today in a running group, seen from her side:
 // whether she has paid it, and whether its pot is hers.
+// D139: her pot is on her phone and she has not answered "did it arrive?".
+// A pot she kept whole in savings sent nothing to her phone: nothing to ask.
+function toConfirm(
+  payout: {
+    id: string;
+    status: string;
+    amountFcfa: number;
+    keptFcfa: number | null;
+    receiptConfirmedAt: Date | null;
+    receiptDisputedAt: Date | null;
+  } | null,
+): { payoutId: string; amountFcfa: number } | null {
+  if (!payout || payout.status !== "PAID" || payout.receiptConfirmedAt || payout.receiptDisputedAt) return null;
+  const sent = payout.amountFcfa - (payout.keptFcfa ?? 0);
+  return sent > 0 ? { payoutId: payout.id, amountFcfa: sent } : null;
+}
+
 async function currentRoundFor(
   groupId: string,
   userId: string,
@@ -333,7 +350,9 @@ async function currentRoundFor(
     orderBy: { number: "asc" },
     include: {
       contributions: { where: { userId } },
-      payout: { select: { status: true } },
+      payout: {
+        select: { id: true, status: true, amountFcfa: true, keptFcfa: true, receiptConfirmedAt: true, receiptDisputedAt: true },
+      },
       beneficiary: { select: { displayName: true } },
     },
   });
@@ -388,6 +407,7 @@ async function currentRoundFor(
           number: mine.number,
           dueDate: isoDay(mine.dueDate),
           payoutStatus: mine.payout?.status ?? "NOT_DUE",
+          confirm: toConfirm(mine.payout),
         }
       : null,
     onTimeStreak: streak,

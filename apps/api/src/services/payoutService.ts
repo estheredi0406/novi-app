@@ -9,7 +9,7 @@ import { payoutSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import { accountForMfi } from "./paymentAccounts.js";
 import { syncCoreBanking } from "./coreBanking.js";
-import { bookKept, keptForPayout } from "./savingsService.js";
+import { bookKept, keptForPayout, savingsToOpen } from "./savingsService.js";
 import type { PayoutAnswer } from "../providers/mfi/MfiAdapter.js";
 import { deleteGroupVoices, postEvent } from "./chatService.js";
 import { alertStaff } from "./alertService.js";
@@ -248,8 +248,10 @@ async function handleRound(round: DueRound, now: Date) {
     return;
   }
   if (readyId) {
-    if (leavesAlone(details.amountFcfa, limit)) await autoRelease(readyId, limit);
-    else await alertPotReady(round, readyId, details.amountFcfa);
+    // D141: a pot that cannot leave alone because her savings account is not
+    // open yet is shown to the officers like any pot waiting for them.
+    const left = leavesAlone(details.amountFcfa, limit) && (await autoRelease(readyId, limit));
+    if (!left) await alertPotReady(round, readyId, details.amountFcfa);
   }
   if (!round.payout || round.payout.status === "HELD") return;
 
@@ -272,12 +274,14 @@ export const needsTwoOfficers = (amountFcfa: number, limit: number | null) => li
 
 // D105: released by Novi under the MFI's own limit, logged as such; no
 // officer's name, because none was needed.
-async function autoRelease(payoutId: string, limit: number | null) {
+async function autoRelease(payoutId: string, limit: number | null): Promise<boolean> {
   if (await releasePayout(payoutId, null)) {
     await prisma.auditEvent.create({
       data: { type: "PAYOUT_AUTO_RELEASED", details: { payoutId, limitFcfa: limit } },
     });
+    return true;
   }
+  return false;
 }
 
 // The officer's release (D63): claims a READY pot, records who released it,
@@ -287,6 +291,8 @@ export async function releasePayout(
   staffId: string | null,
   now = new Date(),
 ): Promise<boolean> {
+  // D141: her savings account must be open before her pot leaves.
+  if ((await savingsToOpen(payoutId)) > 0) return false;
   const claimed = await prisma.$transaction(async (tx) => {
     const moved = await tx.payout.updateMany({
       where: { id: payoutId, status: "READY" },
@@ -375,7 +381,9 @@ async function sendToMfi(
     console.error(`MFI did not accept payout ${payoutId}:`, err);
     await prisma.payout.update({
       where: { id: payoutId },
-      data: { status: "FAILED", failedAt: new Date() },
+      // D141: nothing left, so the part she keeps is worked out again on the
+      // next try (her account may be open by then).
+      data: { status: "FAILED", failedAt: new Date(), keptFcfa: null },
     });
     await alertIfLastTry(payoutId);
     return;
@@ -505,6 +513,8 @@ async function claimForSending(
   if (payout.status === "FAILED") {
     const at = nextRetryAt(payout);
     if (!at || at > now) return null;
+    // D141: a pot that waits for her savings account is not tried again yet.
+    if ((await savingsToOpen(payout.id)) > 0) return null;
     const claimed = await prisma.payout.updateMany({
       where: { id: payout.id, status: "FAILED", attempts: payout.attempts },
       data: { ...sending, attempts: { increment: 1 } },
@@ -530,7 +540,7 @@ async function applyAnswer(payoutId: string, answer: PayoutAnswer) {
     data: {
       status: answer.status,
       mfiRef: answer.mfiRef,
-      ...(answer.status === "FAILED" ? { failedAt: new Date() } : {}),
+      ...(answer.status === "FAILED" ? { failedAt: new Date(), keptFcfa: null } : {}),
     },
   });
   if (moved.count > 0 && answer.status === "FAILED") await alertIfLastTry(payoutId);
