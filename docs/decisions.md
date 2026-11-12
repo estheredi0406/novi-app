@@ -458,3 +458,7 @@ Novi set 50 000 F for every institution (D105). Now it sets none: until the inst
 
 ### D135. The console on a phone, a tablet and a laptop (12 Nov 2026)
 Checked every console page at 390, 768, 1280 and 1366 pixels wide. The menu already moved to the top on a phone, but the wide tables (Groupes, Crédits, Comptes, Épargne, the team in Réglages) pushed the whole page sideways below about 1000 pixels. On those screens a table now scrolls sideways inside its own frame and the page stays still. The "Comptes à ouvrir" table on Épargne did not fit even a 1280-pixel laptop (the "Refuser" button stuck out): the phone number now sits under the name, the name keeps its line, and the two actions stand one above the other. After the change no page is wider than the screen at any of the four widths.
+
+## D136: the console settings cards get a clean layout (12 November 2026)
+
+The FedaPay and automatic release cards looked loose: the status sat far to the right in bold, the field label was glued to a small input, the button did not line up and "Aucune" floated on its own. Both cards now share one layout: the title with its status as a pill (blue when set, saffron when waiting), a short lede, labels above their fields, an amount field with "FCFA" inside it, and the secondary choice ("Aucune", or the payouts box with "Déconnecter") on its own line under a dashed rule. The webhook address sits in a box that selects in one click. Checked at 1280 and 390 pixels, with no sideways overflow.

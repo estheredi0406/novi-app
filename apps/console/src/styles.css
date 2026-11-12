@@ -2164,3 +2164,41 @@ td.name-cell { min-width: 150px; }
     max-width: 100%;
   }
 }
+
+/* D136: the settings cards (FedaPay, automatic release). Title with its
+   status as a pill, a short lede, labels above their fields, and the
+   secondary choice on its own line under a dashed rule. */
+.queue.setting { margin-top: 28px; padding-bottom: 6px; }
+.setting-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 20px 24px 6px; }
+.setting-head h2 { margin: 0; }
+.setting-status { font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 999px; }
+.setting-status.is-set { background: var(--mist); color: var(--indigo); }
+.setting-status.is-wait { background: #fcebcc; color: #7a4b05; }
+.setting-lede { color: var(--muted); margin: 0; padding: 0 24px 16px; max-width: 70ch; }
+.setting-warn { margin: 0 24px 16px; }
+.setting-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 14px; padding: 0 24px 20px; }
+.setting-field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; color: var(--muted); }
+.setting-field input,
+.money-input {
+  font: inherit; font-size: 16px; font-weight: 600; color: var(--ink);
+  height: 46px; padding: 0 12px; min-width: 220px;
+  border: 1.5px solid var(--line); border-radius: 12px; background: var(--card);
+}
+.setting-field input:focus,
+.money-input:focus-within { outline: none; border-color: var(--action); box-shadow: 0 0 0 3px rgba(11, 79, 138, 0.15); }
+.money-input { display: inline-flex; align-items: center; gap: 8px; }
+.money-input input { border: 0; height: 100%; padding: 0; min-width: 0; width: 140px; flex: 1; box-shadow: none; }
+.money-input input:focus { box-shadow: none; }
+.money-input em { font-style: normal; font-size: 14px; font-weight: 700; color: var(--muted); }
+.setting-row .primary { height: 46px; padding: 0 22px; }
+.setting-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 0 24px; padding: 14px 0 16px; border-top: 1px dashed var(--line); }
+.setting-foot.spread { justify-content: space-between; }
+.setting-block { display: flex; flex-direction: column; gap: 6px; padding: 0 24px 16px; }
+.setting-label { font-size: 14px; font-weight: 600; color: var(--muted); }
+.copy-box { display: block; background: var(--cotton); border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; overflow-wrap: anywhere; user-select: all; }
+.check { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; }
+.check input { width: 18px; height: 18px; accent-color: var(--action); }
+.setting-note { color: var(--muted); font-size: 13px; margin: 0; padding: 0 24px 16px; }
+@media (max-width: 600px) {
+  .setting-row > *, .setting-field input, .money-input { width: 100%; min-width: 0; }
+}

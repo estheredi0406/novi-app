@@ -282,44 +282,44 @@ function AutoRelease({ t, message }: { t: Text; message: (err: unknown) => strin
   }
 
   const typed = Number(amount.replace(/\s/g, ""));
+  const chosen = data.autoReleaseChosen;
   return (
-    <section className="queue" style={{ marginTop: 28 }}>
-      <div className="queue-head">
+    <section className="queue setting">
+      <div className="setting-head">
         <h2>{t.autoTitle}</h2>
-        <strong>
-          {!data.autoReleaseChosen
-            ? t.autoNotChosen
-            : data.autoReleaseFcfa === null
-              ? t.autoOff
-              : t.autoUpTo(fcfa(data.autoReleaseFcfa))}
-        </strong>
+        <span className={`setting-status ${chosen ? "is-set" : "is-wait"}`}>
+          {!chosen ? t.autoNotChosen : data.autoReleaseFcfa === null ? t.autoOff : t.autoUpTo(fcfa(data.autoReleaseFcfa))}
+        </span>
       </div>
-      <p className="muted" style={{ padding: "0 24px", margin: 0 }}>
-        {t.autoLede}
-      </p>
+      <p className="setting-lede">{t.autoLede}</p>
       <form
-        className="auto-release"
-        style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap", padding: "16px 24px 22px" }}
+        className="setting-row"
         onSubmit={(e) => {
           e.preventDefault();
           if (Number.isInteger(typed) && typed >= 0) void save(typed);
         }}
       >
-        <label>
-          {t.autoAmount}
-          <input inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100 000" />
+        <label className="setting-field">
+          <span>{t.autoAmount}</span>
+          <span className="money-input">
+            <input inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100 000" />
+            <em>FCFA</em>
+          </span>
         </label>
         <button className="primary" disabled={amount.trim() === ""}>
           {t.autoSave}
         </button>
-        {/* D134: "none" is a choice too: every pot then waits for an officer. */}
-        {data.autoReleaseFcfa !== null || !data.autoReleaseChosen ? (
+      </form>
+      {/* D134: "none" is a choice too: every pot then waits for an officer. */}
+      {data.autoReleaseFcfa !== null || !chosen ? (
+        <div className="setting-foot">
+          <span className="muted small">{t.autoOr}</span>
           <button type="button" className="ghost" onClick={() => void save(null)}>
             {t.autoTurnOff}
           </button>
-        ) : null}
-        {note ? <span className="muted small">{note}</span> : null}
-      </form>
+        </div>
+      ) : null}
+      {note ? <p className="setting-note">{note}</p> : null}
     </section>
   );
 }
@@ -353,34 +353,27 @@ function PaymentAccount({ t, message }: { t: Text; message: (err: unknown) => st
 
   const day = data.connectedAt ? new Date(data.connectedAt).toLocaleDateString("fr-FR") : "";
   const webhookUrl = `${window.location.origin}${data.webhookPath}`;
-  const row = { display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" as const, padding: "0 24px 16px" };
   return (
-    <section className="queue" style={{ marginTop: 28 }}>
-      <div className="queue-head">
+    <section className="queue setting">
+      <div className="setting-head">
         <h2>{t.payTitle}</h2>
-        <strong>
+        <span className={`setting-status ${data.connected ? "is-set" : "is-wait"}`}>
           {data.connected ? t.payConnected(data.live ? t.payModeLive : t.payModeSandbox, day) : t.payNotConnected}
-        </strong>
+        </span>
       </div>
-      <p className="muted" style={{ padding: "0 24px", margin: "0 0 12px" }}>
-        {t.payLede}
-      </p>
+      <p className="setting-lede">{t.payLede}</p>
       {!data.connected ? (
-        <p className={data.usesDemo ? "muted" : "warn"} style={{ padding: "0 24px", margin: "0 0 12px" }}>
-          {data.usesDemo ? t.payDemo : t.payBlocked}
-        </p>
+        <p className={data.usesDemo ? "setting-lede" : "warn setting-warn"}>{data.usesDemo ? t.payDemo : t.payBlocked}</p>
       ) : null}
 
       {data.connected ? (
         <>
-          <p className="muted small" style={{ padding: "0 24px", margin: "0 0 4px" }}>
-            {t.payWebhook}
-          </p>
-          <p style={{ padding: "0 24px", margin: "0 0 16px" }}>
-            <code>{webhookUrl}</code>
-          </p>
-          <div style={row}>
-            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div className="setting-block">
+            <span className="setting-label">{t.payWebhook}</span>
+            <code className="copy-box">{webhookUrl}</code>
+          </div>
+          <div className="setting-foot spread">
+            <label className="check">
               <input
                 type="checkbox"
                 checked={data.payoutsViaFedapay}
@@ -402,29 +395,25 @@ function PaymentAccount({ t, message }: { t: Text; message: (err: unknown) => st
               {t.payDisconnect}
             </button>
           </div>
-          {!data.payoutsViaFedapay ? (
-            <p className="muted small" style={{ padding: "0 24px", margin: "0 0 16px" }}>
-              {t.payPayoutsOff}
-            </p>
-          ) : null}
+          {!data.payoutsViaFedapay ? <p className="setting-note">{t.payPayoutsOff}</p> : null}
         </>
       ) : (
         <form
-          style={{ ...row, paddingBottom: 22 }}
+          className="setting-row"
           onSubmit={(e) => {
             e.preventDefault();
             void send("PUT", "/v1/console/payment-account", { secretKey, webhookSecret, live });
           }}
         >
-          <label>
-            {t.paySecret}
+          <label className="setting-field">
+            <span>{t.paySecret}</span>
             <input type="password" autoComplete="off" value={secretKey} onChange={(e) => setSecretKey(e.target.value)} required minLength={10} />
           </label>
-          <label>
-            {t.payWebhookSecret}
+          <label className="setting-field">
+            <span>{t.payWebhookSecret}</span>
             <input type="password" autoComplete="off" value={webhookSecret} onChange={(e) => setWebhookSecret(e.target.value)} required minLength={10} />
           </label>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <label className="check">
             <input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} />
             {t.payLive}
           </label>
@@ -433,11 +422,7 @@ function PaymentAccount({ t, message }: { t: Text; message: (err: unknown) => st
           </button>
         </form>
       )}
-      {note ? (
-        <p className="muted small" style={{ padding: "0 24px 16px", margin: 0 }}>
-          {note}
-        </p>
-      ) : null}
+      {note ? <p className="setting-note">{note}</p> : null}
     </section>
   );
 }
