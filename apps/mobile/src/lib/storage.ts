@@ -1,10 +1,40 @@
 import type { AuthTokens } from "@novi/shared";
 import * as Crypto from "expo-crypto";
-import * as SecureStore from "expo-secure-store";
+import * as Native from "expo-secure-store";
+import { Platform } from "react-native";
 import type { AppLanguage } from "../i18n";
 
 // Everything Novi keeps on the phone, in the phone's encrypted keystore
 // (Keychain on iPhone, Keystore on Android). The PIN is never stored.
+// D128: a browser has no keystore, and expo-secure-store does nothing on the
+// web (the page stayed blank). The web version (D119) keeps the same few
+// values in the browser's own storage for this site, as any website keeps
+// its sign-in; the PIN is still never stored, and the session still ends
+// with the usual expiry and sign-out.
+const web = {
+  getItemAsync: async (key: string): Promise<string | null> => {
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItemAsync: async (key: string, value: string): Promise<void> => {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {
+      // Private browsing with storage off: she signs in again next time.
+    }
+  },
+  deleteItemAsync: async (key: string): Promise<void> => {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // Nothing kept, nothing to remove.
+    }
+  },
+};
+const SecureStore = Platform.OS === "web" ? web : Native;
 const KEYS = {
   accessToken: "novi.accessToken",
   refreshToken: "novi.refreshToken",
