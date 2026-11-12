@@ -141,7 +141,9 @@ export function GroupPage({
           <>
             <span>
               {t.round} <b>{t.roundShort(data.currentRound, data.rounds)}</b>
-              {data.nextPotDate ? ` · ${t.nextPotOn(day(data.nextPotDate))}` : ""}
+              {data.nextPotDate
+                ? ` · ${data.nextPotDate.slice(0, 10) < new Date().toISOString().slice(0, 10) ? t.nextPotLate(day(data.nextPotDate)) : t.nextPotOn(day(data.nextPotDate))}`
+                : ""}
             </span>
           </>
         ) : (

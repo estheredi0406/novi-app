@@ -1123,8 +1123,9 @@ h1::before {
 }
 
 /* D82: the demo tool, only in pilot mode. */
+/* D130: room between the demo button and the figures below it. */
 .demo-tool {
-  margin: 6px 0 0;
+  margin: 10px 0 24px;
 }
 .demo-tool .ghost {
   border-style: dashed;
@@ -2113,7 +2114,7 @@ a.ghost {
 }
 
 /* D124: the Comptes page. */
-.money-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.money-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
 .money-head h1 { margin: 0; }
 .button-secondary {
   display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 12px;

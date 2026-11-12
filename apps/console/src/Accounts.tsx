@@ -39,6 +39,7 @@ export function MoneyViews({ t, onExpired }: { t: Text; onExpired: () => void })
         <div>
           <span className="tile-label">{data.fedapay?.source === "demo" ? t.moneyFedapayDemo : t.moneyFedapay}</span>
           <span className="tile-number">{fedapay === null ? "–" : fcfa(fedapay)}</span>
+          {data.fedapay === null ? <span className="tile-hint">{t.moneyFedapayNone}</span> : fedapay === null ? <span className="tile-hint">{t.moneyFedapayUnread}</span> : null}
           {data.inTransitFcfa > 0 ? <span className="tile-hint">{t.moneyInTransit(fcfa(data.inTransitFcfa))}</span> : null}
         </div>
       </div>

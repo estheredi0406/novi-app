@@ -144,7 +144,13 @@ export function Groups({ t, onExpired }: { t: Text; onExpired: () => void }) {
                     <span className="q-meta">{t.membersShort(g.size)}</span>
                   </td>
                   <td>{g.currentRound ? t.roundShort(g.currentRound, g.rounds) : "–"}</td>
-                  <td>{g.state === "ACTIVE" && g.nextPotDate ? day(g.nextPotDate) : "–"}</td>
+                  <td>
+                    {g.state === "ACTIVE" && g.nextPotDate ? day(g.nextPotDate) : "–"}
+                    {/* D130: a date already past is a pot on hold, not a next pot. */}
+                    {g.state === "ACTIVE" && g.nextPotDate && g.nextPotDate.slice(0, 10) < new Date().toISOString().slice(0, 10) ? (
+                      <span className="tag tag-orange" style={{ marginLeft: 6 }}>{t.potWaiting}</span>
+                    ) : null}
+                  </td>
                   <td className="num">{fcfa(g.balanceFcfa)}</td>
                   <td className="num">{g.onTimePct === null ? "–" : `${g.onTimePct} %`}</td>
                 </tr>

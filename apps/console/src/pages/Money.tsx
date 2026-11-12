@@ -61,7 +61,10 @@ export function Money({ t, onExpired }: { t: Text; onExpired: () => void }) {
         <div>
           <span className="tile-label">{data.fedapay?.source === "demo" ? t.moneyFedapayDemo : t.moneyFedapay}</span>
           <span className="tile-number">{fedapay === null ? "–" : fcfa(fedapay)}</span>
-          <span className="tile-hint">{t.moneyAtFedapay}</span>
+          <span className="tile-hint">
+            {/* D130: say why there is no figure, instead of a bare dash. */}
+            {data.fedapay === null ? t.moneyFedapayNone : fedapay === null ? t.moneyFedapayUnread : t.moneyAtFedapay}
+          </span>
         </div>
         <div>
           <span className="tile-label">{t.moneyGroups}</span>
