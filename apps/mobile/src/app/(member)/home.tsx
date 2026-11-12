@@ -401,16 +401,21 @@ export function HomeView({
 
       <View style={styles.section}>
         <Text style={styles.h}>{t("hub.forYou")}</Text>
-        <View style={styles.tiles}>
-          {tiles.map((tile) => (
-            <Pressable key={tile.label} accessibilityRole="button" onPress={tile.onPress} style={styles.tile}>
-              <View style={styles.tileIcon}>
-                <LineIcon name={tile.icon} />
-              </View>
-              <Text style={styles.tileText}>{tile.label}</Text>
-            </Pressable>
+        {/* D142: two tiles per row, so each label fits on one or two lines. */}
+        <View style={styles.tileRows}>
+          {[0, 2].filter((i) => i < tiles.length).map((i) => (
+            <View key={i} style={styles.tiles}>
+              {tiles.slice(i, i + 2).map((tile) => (
+                <Pressable key={tile.label} accessibilityRole="button" onPress={tile.onPress} style={styles.tile}>
+                  <View style={styles.tileIcon}>
+                    <LineIcon name={tile.icon} />
+                  </View>
+                  <Text style={styles.tileText}>{tile.label}</Text>
+                </Pressable>
+              ))}
+              {tiles.slice(i, i + 2).length === 1 ? <View style={styles.tileSpacer} /> : null}
+            </View>
           ))}
-          {tiles.length === 2 ? <View style={styles.tileSpacer} /> : null}
         </View>
       </View>
 
@@ -516,14 +521,15 @@ const styles = StyleSheet.create({
   boxText: { flex: 1, minWidth: 0, gap: 2 },
   boxTitle: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.ink },
   boxSub: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted },
+  tileRows: { gap: 12 },
   tiles: { flexDirection: "row", gap: 12 },
   tile: {
     flex: 1,
+    flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingTop: 18,
-    paddingBottom: 16,
-    paddingHorizontal: 6,
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderRadius: 18,
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -531,14 +537,14 @@ const styles = StyleSheet.create({
   },
   tileSpacer: { flex: 1 },
   tileIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: colors.mist,
     alignItems: "center",
     justifyContent: "center",
   },
-  tileText: { fontFamily: fonts.bodyBold, fontSize: 13, lineHeight: 17, color: colors.ink, textAlign: "center" },
+  tileText: { flex: 1, minWidth: 0, fontFamily: fonts.bodyBold, fontSize: 14, lineHeight: 18, color: colors.ink },
   newsBox: {
     backgroundColor: colors.card,
     borderRadius: 18,

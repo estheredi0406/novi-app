@@ -11,6 +11,9 @@ import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { mfi as mfiStandIn } from "../providers/index.js";
 import { accountForMfi } from "./paymentAccounts.js";
+import { hasApp, notifyMembers } from "./notifyService.js";
+import { savingsDecidedSms } from "../lib/smsText.js";
+import { sms } from "../providers/index.js";
 
 // D123: a member can keep her pot, or part of it, in a savings account at the
 // MFI that holds her group's money, instead of receiving it on her wallet.
@@ -536,7 +539,35 @@ export async function decideAccount(
       details: { staffId, accountId: account.id, ref: account.ref },
     },
   });
+  await tellSavingsDecided(account.userId, mfiId, decision.open, account.ref);
   return consoleSavings(mfiId, now);
+}
+
+// D143: she hears at once that her account is open (her pot can now leave
+// with her part kept), or that it was refused (her pot goes to her phone):
+// a notification, and an SMS if she has no app. Never stops the decision.
+async function tellSavingsDecided(userId: string, mfiId: string, open: boolean, ref: string) {
+  try {
+    const [user, mfiRow] = await Promise.all([
+      prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { phone: true, language: true } }),
+      prisma.mfi.findUniqueOrThrow({ where: { id: mfiId }, select: { name: true } }),
+    ]);
+    const name = mfiRow.name;
+    await notifyMembers(
+      [userId],
+      "money",
+      "/savings",
+      open
+        ? { title: "Votre compte d'épargne est ouvert", body: `${name} a ouvert votre compte ${ref}. La part de votre cagnotte choisie y sera placée.` }
+        : { title: "Compte d'épargne non ouvert", body: `${name} n'a pas ouvert votre compte. Toute votre cagnotte ira sur votre téléphone.` },
+      open
+        ? { title: "Your savings account is open", body: `${name} opened your account ${ref}. The part of your pot you chose will be placed there.` }
+        : { title: "Savings account not opened", body: `${name} did not open your account. Your whole pot will go to your phone.` },
+    );
+    if (!(await hasApp(userId))) await sms.send(user.phone, savingsDecidedSms(user.language, name, open, ref));
+  } catch (err) {
+    console.error("Savings decision not told to the member:", err);
+  }
 }
 
 export async function saveSavingsPolicy(mfiId: string, staffId: string, input: ConsoleSavingsPolicy): Promise<ConsoleSavings> {

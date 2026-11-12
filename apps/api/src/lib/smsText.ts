@@ -64,6 +64,17 @@ export function recordOpenedSms(language: Language, mfiName: string): string {
   }
 }
 
+// D143: the MFI decided on her savings account.
+export function savingsDecidedSms(language: Language, mfiName: string, open: boolean, ref: string): string {
+  if (language === "EN")
+    return open
+      ? `Novi: ${mfiName} opened your savings account ${ref}. The part of your pot you chose will be placed there.`
+      : `Novi: ${mfiName} did not open your savings account. Your whole pot will go to your phone.`;
+  return open
+    ? `Novi : ${mfiName} a ouvert votre compte d'épargne ${ref}. La part de votre cagnotte choisie y sera placée.`
+    : `Novi : ${mfiName} n'a pas ouvert votre compte d'épargne. Toute votre cagnotte ira sur votre téléphone.`;
+}
+
 // D106: the USSD code, when one is set (USSD_CODE, e.g. *384*12345#), so an
 // invitation can be answered from any phone, even without an account yet.
 const ussdCode = () => process.env.USSD_CODE?.trim() || null;

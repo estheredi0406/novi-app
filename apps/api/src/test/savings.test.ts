@@ -2,7 +2,8 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { app } from "../app.js";
 import { prisma } from "../lib/db.js";
-import { mfi, payments } from "../providers/index.js";
+import { mfi, payments, sms } from "../providers/index.js";
+import { MockSmsProvider } from "../providers/sms/MockSmsProvider.js";
 import { MockMfiAdapter } from "../providers/mfi/MockMfiAdapter.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
 import { listAttention, releaseRoundPayout } from "../services/consoleService.js";
@@ -197,6 +198,23 @@ describe("sending a pot with a part kept (D123)", () => {
     const sent = await prisma.payout.findUniqueOrThrow({ where: { id: waiting.id } });
     expect(sent).toMatchObject({ status: "PAID", keptFcfa: 10000 });
     expect(mockMfi.payouts.get(sent.id)).toMatchObject({ amountFcfa: 5000 });
+  });
+
+  it("tells her when her account is opened, by SMS if she has no app (D143)", async () => {
+    const { round, receiver } = await activeGroup();
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: SOON() } });
+    await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(10000));
+    const { mfiId, staffId } = await officer();
+    if (!(sms instanceof MockSmsProvider)) throw new Error("Tests require the mock SMS provider.");
+    const before = sms.sent.length;
+    const account = await prisma.savingsAccount.findFirstOrThrow();
+    await decideAccount(mfiId, staffId, account.id, { open: true });
+    expect(sms.sent.slice(before)).toEqual([
+      expect.objectContaining({
+        to: round.beneficiary.phone,
+        text: `Novi : Caisse Mawuli a ouvert votre compte d'épargne ${account.ref}. La part de votre cagnotte choisie y sera placée.`,
+      }),
+    ]);
   });
 
   it("sends the whole pot to her wallet when the MFI refuses her account (D141)", async () => {

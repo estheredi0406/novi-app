@@ -486,3 +486,7 @@ From Esther's own test: Oura chose to keep part of her pot in savings, but her a
 ## D142: "Mon épargne" in "Pour vous" on home (12 November 2026)
 
 From Esther's own test: her savings were only reachable from the savings card, which appears once she has an account. "Pour vous" now has a "Mon épargne" tile next to "Crédit".
+
+## D143: she is told when her savings account is opened or refused (12 November 2026)
+
+From Esther's own test: since D141 a pot waits for the member's savings account, so she must know when the MFI decides. When an officer opens her account, she gets a notification ("Votre compte d'épargne est ouvert", with the account number: the part of her pot she chose will be placed there); when it is refused, she learns that her whole pot will go to her phone. Without the app, she gets the same by SMS (D111). The decision is never stopped by a notification that fails. "Pour vous" on home now shows its tiles two per row, icon beside the label, so "Partager mon relevé" no longer squeezes onto three lines.
