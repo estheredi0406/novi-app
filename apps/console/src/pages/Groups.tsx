@@ -30,6 +30,8 @@ export function Groups({ t, onExpired }: { t: Text; onExpired: () => void }) {
   if (!data) return null;
 
   const count = (f: Filter) => data.filter(keep[f]).length;
+  const red = data.filter((g) => g.health === "RED").length;
+  const amber = data.filter((g) => g.health === "AMBER").length;
   // D133: opens on every group (the ones to watch come first), so a group
   // just validated is there at once. A search looks through every group,
   // whatever the tab: a group never hides behind a filter.
@@ -75,13 +77,30 @@ export function Groups({ t, onExpired }: { t: Text; onExpired: () => void }) {
 
   const chip = (f: Filter, label: string) => (
     <button className={`filter ${filter === f ? "on" : ""}`} onClick={() => setChosen(f)} aria-pressed={filter === f}>
+      {/* D134: only the colours present, each with its own count, so one
+          orange group reads as one, not as a red and an orange. */}
       {f === "WATCH" ? (
         <>
-          <span className="dot dot-red" aria-hidden="true" />
-          <span className="dot dot-amber" aria-hidden="true" />
+          {label} ·{" "}
+          {red > 0 ? (
+            <span className="dot-count" title={t.healthRed}>
+              <span className="dot dot-red" aria-hidden="true" />
+              {red}
+            </span>
+          ) : null}
+          {amber > 0 ? (
+            <span className="dot-count" title={t.healthAmber}>
+              <span className="dot dot-amber" aria-hidden="true" />
+              {amber}
+            </span>
+          ) : null}
+          {red + amber === 0 ? "0" : null}
         </>
-      ) : null}
-      {label} · {count(f)}
+      ) : (
+        <>
+          {label} · {count(f)}
+        </>
+      )}
     </button>
   );
 
