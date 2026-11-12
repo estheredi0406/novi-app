@@ -286,7 +286,13 @@ function AutoRelease({ t, message }: { t: Text; message: (err: unknown) => strin
     <section className="queue" style={{ marginTop: 28 }}>
       <div className="queue-head">
         <h2>{t.autoTitle}</h2>
-        <strong>{data.autoReleaseFcfa === null ? t.autoOff : t.autoUpTo(fcfa(data.autoReleaseFcfa))}</strong>
+        <strong>
+          {!data.autoReleaseChosen
+            ? t.autoNotChosen
+            : data.autoReleaseFcfa === null
+              ? t.autoOff
+              : t.autoUpTo(fcfa(data.autoReleaseFcfa))}
+        </strong>
       </div>
       <p className="muted" style={{ padding: "0 24px", margin: 0 }}>
         {t.autoLede}
@@ -301,12 +307,13 @@ function AutoRelease({ t, message }: { t: Text; message: (err: unknown) => strin
       >
         <label>
           {t.autoAmount}
-          <input inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="50 000" />
+          <input inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="100 000" />
         </label>
         <button className="primary" disabled={amount.trim() === ""}>
           {t.autoSave}
         </button>
-        {data.autoReleaseFcfa !== null ? (
+        {/* D134: "none" is a choice too: every pot then waits for an officer. */}
+        {data.autoReleaseFcfa !== null || !data.autoReleaseChosen ? (
           <button type="button" className="ghost" onClick={() => void save(null)}>
             {t.autoTurnOff}
           </button>

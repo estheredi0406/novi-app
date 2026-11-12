@@ -335,6 +335,7 @@ describe("payouts that need a look (D53)", () => {
       disputed: 0,
       reported: 0,
       autoReleaseFcfa: null,
+      autoReleaseChosen: false, // D134: the MFI has not chosen its ceiling
     });
     // D92: a held pot has not left, so the ring shows no pot paid out yet,
     // and the group is flagged for a look.

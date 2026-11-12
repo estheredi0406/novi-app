@@ -487,6 +487,7 @@ export async function getOverview(mfiId: string): Promise<ConsoleOverview> {
     disputed: attention.filter((a) => a.status === "DISPUTED").length,
     reported: reported.length,
     autoReleaseFcfa: mfi.autoReleaseFcfa,
+    autoReleaseChosen: mfi.autoReleaseChosenAt !== null,
   };
 }
 
@@ -586,7 +587,7 @@ export async function resolveReported(
 
 // D105: the admin sets the amount up to which pots leave without an officer.
 export async function setAutoRelease(mfiId: string, staffId: string, amountFcfa: number | null): Promise<number | null> {
-  await prisma.mfi.update({ where: { id: mfiId }, data: { autoReleaseFcfa: amountFcfa } });
+  await prisma.mfi.update({ where: { id: mfiId }, data: { autoReleaseFcfa: amountFcfa, autoReleaseChosenAt: new Date() } });
   await prisma.auditEvent.create({ data: { type: "STAFF_AUTO_RELEASE_SET", details: { staffId, amountFcfa } } });
   // Pots already waiting under the new limit leave on the job's next run.
   return amountFcfa;

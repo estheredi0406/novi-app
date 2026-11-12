@@ -223,6 +223,7 @@ export type ConsoleOverview = {
   disputed: number; // members who said the money did not arrive (D63)
   reported: number; // D105: payments a member says left her account, to check
   autoReleaseFcfa: number | null; // D105: pots up to this leave without an officer; null: off
+  autoReleaseChosen: boolean; // D134: false until the MFI has chosen its ceiling (or chosen none)
 };
 
 // D102: the MFI's own FedaPay account, as the console shows it. The keys

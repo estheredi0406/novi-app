@@ -80,6 +80,8 @@ const payoutOf = (groupId: string, number = 1) =>
 describe("pots that leave by themselves (D105)", () => {
   it("sends a full pot up to the MFI's limit on its due date, with no officer, and logs it", async () => {
     const { groupId, members } = await activeGroup();
+    // D134: the limit is the MFI's choice; this one chose 50 000 F.
+    await prisma.mfi.updateMany({ data: { autoReleaseFcfa: 50000, autoReleaseChosenAt: new Date() } });
     for (const member of members) await pay(member, groupId, 1);
     await makeDue(groupId, 1);
     await runPayouts();
@@ -285,5 +287,20 @@ describe("payments checked again by Novi itself (D114)", () => {
     const { contributionId } = await lostWebhook();
     for (const minutes of [16, 61, 6 * 60 + 1, 24 * 60 + 1, 48 * 60]) await runPaymentChecks(later(minutes));
     expect((await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } })).autoChecks).toBe(4);
+  });
+});
+
+// D134: Novi sets no ceiling; the institution chooses one, or none.
+describe("the ceiling is the institution's choice (D134)", () => {
+  it("starts with none chosen, so every pot waits for an officer, and records the choice", async () => {
+    await activeGroup(); // the pilot institutions exist once a group starts
+    const mfiRow = await prisma.mfi.findFirstOrThrow({ where: { code: "MAWULI" } });
+    expect(mfiRow).toMatchObject({ autoReleaseFcfa: null, autoReleaseChosenAt: null });
+    const { setAutoRelease } = await import("../services/consoleService.js");
+    const staff = await prisma.staffUser.findFirst({ where: { mfiId: mfiRow.id } });
+    await setAutoRelease(mfiRow.id, staff?.id ?? "staff", null);
+    const after = await prisma.mfi.findUniqueOrThrow({ where: { id: mfiRow.id } });
+    expect(after.autoReleaseFcfa).toBeNull();
+    expect(after.autoReleaseChosenAt).not.toBeNull();
   });
 });

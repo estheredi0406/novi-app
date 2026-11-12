@@ -452,3 +452,6 @@ Also in D133: on the web version, the Payer button opens FedaPay's payment page,
 
 ### D134. The "À surveiller" filter shows the colours present (12 Nov 2026)
 The filter showed a red dot and an orange dot before its count, so one orange group read as a red and an orange. It now shows only the colours present, each with its own count ("À surveiller · ● 3" in orange, or a red and an orange count side by side), with a tooltip for each colour. Also agreed: the automatic release ceiling (D105) stays the institution's to set in Réglages; Novi does not change its default.
+
+### D134 (continued). The automatic release ceiling is the institution's choice, with no default (12 Nov 2026)
+Novi set 50 000 F for every institution (D105). Now it sets none: until the institution chooses, every full pot waits for an officer to release it, and "Aujourd'hui" shows "Choisissez votre libération automatique" with a link to the setting. In Réglages the state reads "Pas encore choisie" until the administrator saves an amount or chooses "Aucune : un agent libère tout"; either is recorded (autoReleaseChosenAt). Institutions whose administrator had already set the ceiling keep it; the others lose the former default when this is deployed.

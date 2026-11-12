@@ -288,7 +288,10 @@ model Mfi {
   // D105: a full pot up to this amount leaves on its due date without an
   // officer; above it, two different officers approve. Set by the admin;
   // empty (null) turns it off: one officer releases every pot (D63).
-  autoReleaseFcfa Int? @default(50000)
+  // D134: no ceiling until the MFI chooses one; null means every pot waits
+  // for an officer. autoReleaseChosenAt says the MFI made that choice.
+  autoReleaseFcfa     Int?
+  autoReleaseChosenAt DateTime?
   // D102: the MFI's own FedaPay account. Members' payments go into it and
   // pots leave from it, so the money is the MFI's, never Novi's. Both keys
   // are stored encrypted (D101) and never shown again once saved.

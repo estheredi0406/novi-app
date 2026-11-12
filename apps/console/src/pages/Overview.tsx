@@ -1,4 +1,4 @@
-import type { AttentionItem, ConsoleGroup, ConsoleLoan, ConsoleReported, ConsoleToday } from "@novi/shared";
+import type { AttentionItem, ConsoleGroup, ConsoleLoan, ConsoleOverview, ConsoleReported, ConsoleToday } from "@novi/shared";
 import { useState } from "react";
 import { MoneyViews } from "../Accounts";
 import { api } from "../api";
@@ -12,6 +12,7 @@ type Data = {
   groups: ConsoleGroup[];
   loans: ConsoleLoan[];
   reported: ConsoleReported[];
+  overview: ConsoleOverview;
 };
 
 // "Aujourd'hui" (board 11, D116): today's figures, the accounts (D113), what
@@ -27,6 +28,7 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
       groups: await api<ConsoleGroup[]>("GET", "/v1/console/groups"),
       loans: await api<ConsoleLoan[]>("GET", "/v1/console/loans"),
       reported: await api<ConsoleReported[]>("GET", "/v1/console/reported"),
+      overview: await api<ConsoleOverview>("GET", "/v1/console/overview"),
     }),
     onExpired,
   );
@@ -205,6 +207,21 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
           <span className="tile-hint">{t.todayAdvances(fcfa(today.advancesFcfa))}</span>
         </div>
       </section>
+
+      {/* D134: no ceiling until the institution chooses one. */}
+      {!data.overview.autoReleaseChosen ? (
+        <section className="queue choose-ceiling">
+          <div className="queue-head">
+            <h2>{t.autoChooseTitle}</h2>
+            <a className="button-secondary" href="#/team">
+              {t.autoChooseLink}
+            </a>
+          </div>
+          <p className="muted" style={{ padding: "0 24px 18px", margin: 0 }}>
+            {t.autoChooseBody}
+          </p>
+        </section>
+      ) : null}
 
       <MoneyViews t={t} onExpired={onExpired} />
 

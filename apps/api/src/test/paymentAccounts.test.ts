@@ -185,6 +185,8 @@ describe("pots out of the MFI's account (D102)", () => {
       where: { groupId_number: { groupId: g.groupId, number: 1 } },
       data: { dueDate: new Date("2026-01-02T00:00:00Z") },
     });
+    // D134: the pot leaves by itself only under a ceiling the MFI chose.
+    await prisma.mfi.updateMany({ data: { autoReleaseFcfa: 50000, autoReleaseChosenAt: new Date() } });
     return g;
   }
 
