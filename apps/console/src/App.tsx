@@ -186,7 +186,7 @@ export function App() {
         </a>
         <nav>
           {link("#/", !section, "home", t.overview, counts.toDo)}
-          {link("#/groups", section === "groups", "groups", t.groupsNav)}
+          {link("#/groups", section === "groups", "groups", t.groupsNav, counts.groups)}
           {link("#/loans", section === "loans" || section === "loan-policy", "bank", t.loansNav, counts.loans)}
           {link("#/money", section === "money", "coin", t.moneyNav, counts.money)}
           {link("#/savings", section === "savings", "hand", t.savingsNav, counts.savings)}

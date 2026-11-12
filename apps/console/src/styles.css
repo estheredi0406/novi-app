@@ -2125,3 +2125,7 @@ a.ghost {
 .check-card p { margin: 0; }
 .kpis.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 900px) { .kpis.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* D133: validate a group from the list or its page. */
+.validate-actions { display: inline-flex; gap: 10px; align-items: center; margin-top: 6px; }
+.validate-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 18px 0 4px; padding: 12px 16px; background: var(--card); border-radius: 14px; box-shadow: var(--shadow); }

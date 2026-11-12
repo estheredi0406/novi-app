@@ -4,6 +4,7 @@ import { api } from "../api";
 import { day, fcfa } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
+import { ValidateGroup } from "../ValidateGroup";
 
 type Filter = "WATCH" | "VALIDATE" | "ALL" | "DONE";
 
@@ -21,18 +22,21 @@ const order = (g: ConsoleGroup) => (g.health === "RED" ? 0 : g.health === "AMBER
 // reason for it, filtered and searched, and exported for the MFI's own files.
 // Totals only, never who paid (D33).
 export function Groups({ t, onExpired }: { t: Text; onExpired: () => void }) {
-  const { data, failed } = useLoad(() => api<ConsoleGroup[]>("GET", "/v1/console/groups"), onExpired);
+  const { data, failed, reload } = useLoad(() => api<ConsoleGroup[]>("GET", "/v1/console/groups"), onExpired);
   const [chosen, setChosen] = useState<Filter | null>(null);
   const [query, setQuery] = useState("");
+  const [justValidated, setJustValidated] = useState<string | null>(null);
   if (failed) return <p className="error">{t.errors.default}</p>;
   if (!data) return null;
 
   const count = (f: Filter) => data.filter(keep[f]).length;
-  // Opens on the groups to watch, or on all of them when none needs it.
-  const filter = chosen ?? (count("WATCH") > 0 ? "WATCH" : "ALL");
+  // D133: opens on every group (the ones to watch come first), so a group
+  // just validated is there at once. A search looks through every group,
+  // whatever the tab: a group never hides behind a filter.
+  const filter = chosen ?? "ALL";
   const q = query.trim().toLowerCase();
   const shown = data
-    .filter(keep[filter])
+    .filter(q ? () => true : keep[filter])
     .filter((g) => !q || g.name.toLowerCase().includes(q) || (g.accountRef ?? "").toLowerCase().includes(q))
     .sort((a, b) => order(a) - order(b) || a.name.localeCompare(b.name));
 
@@ -136,6 +140,18 @@ export function Groups({ t, onExpired }: { t: Text; onExpired: () => void }) {
                           {g.name}
                         </a>
                         {reason(g) ? <span className="q-meta">{reason(g)}</span> : null}
+                        {justValidated === g.id ? <span className="q-meta paid-text">✓ {t.validatedNow}</span> : null}
+                        {g.state === "STARTING" ? (
+                          <ValidateGroup
+                            t={t}
+                            group={g}
+                            onDone={(approved) => {
+                              if (approved) setJustValidated(g.id);
+                              setChosen("ALL");
+                              reload();
+                            }}
+                          />
+                        ) : null}
                       </span>
                     </span>
                   </td>

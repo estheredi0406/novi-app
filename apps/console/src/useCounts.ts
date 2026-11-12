@@ -6,7 +6,7 @@ import { api } from "./api";
 // (pots to release, held, failed or disputed, payments reported, groups to
 // validate, loan requests to look at), and the loan requests alone. A failed count simply shows nothing.
 export function useCounts(active: boolean, routeKey: string) {
-  const [counts, setCounts] = useState({ toDo: 0, loans: 0, savings: 0, money: 0 });
+  const [counts, setCounts] = useState({ toDo: 0, loans: 0, savings: 0, money: 0, groups: 0 });
   useEffect(() => {
     if (!active) return;
     let live = true;
@@ -33,6 +33,8 @@ export function useCounts(active: boolean, routeKey: string) {
             o.reported +
             openLoans,
           loans: openLoans,
+          // D133: groups waiting to be validated, also shown on "Groupes".
+          groups: groups.filter((g) => g.state === "STARTING").length,
           // D123: savings accounts to open, before the member's pot day.
           savings: savings?.requests.length ?? 0,
           // D124: payments FedaPay confirmed for another amount.

@@ -238,11 +238,13 @@
     "monthDayLabel": "Jour du mois (1 à 28)",
     "sizeLabel": "Combien de membres, vous comprise ou compris",
     "orderLabel": "Ordre des tours",
-    "potHint": "À chaque tour, un membre reçoit {{pot}}.",
+    "potHint": "À chaque tour, une seule membre reçoit toute la cagnotte : {{pot}}. Chacune la reçoit une fois.",
     "namePlaceholder": "ex. Vendeuses du vendredi",
     "daily": "Chaque jour",
     "everyDay": "chaque jour sauf dimanche",
-    "dailyHint": "Du lundi au samedi. Le dimanche, pas de paiement."
+    "dailyHint": "Du lundi au samedi. Le dimanche, pas de paiement.",
+    "advanceHint": "Au tour 1, chacune verse aussi une avance de {{advance}}, en plus de sa cotisation. Elle couvre une membre qui a un empêchement et vous est rendue à la fin. Rien n'est retiré de la cagnotte.",
+    "feesHint": "* Novi ne prend aucun frais sur vos paiements. Votre opérateur (Flooz, Mixx) peut appliquer ses frais habituels, par exemple pour retirer l'argent en espèces chez un agent."
   },
   "newGroup": {
     "title": "Nouveau groupe",
@@ -265,11 +267,11 @@
     "removeTitle": "Retirer {{name}} du groupe ?",
     "removeMessage": "Sa place se libère, et vous pouvez inviter un autre numéro.",
     "withdraw": "Annuler l'invitation",
-    "inviteLabel": "Inviter un numéro de téléphone",
+    "inviteLabel": "Inviter des numéros de téléphone",
     "sendInvite": "Envoyer l'invitation",
     "inviteConfirmTitle": "Envoyer l'invitation au {{phone}} ?",
     "inviteConfirmMessage": "Vérifiez chaque chiffre. Une fois l'invitation envoyée, le groupe ne voit qu'une partie du numéro, et une erreur inviterait quelqu'un d'autre.",
-    "inviteHint": "La personne reçoit un SMS.",
+    "inviteHint": "Chaque personne invitée reçoit un SMS.",
     "propose": "Envoyer les règles aux membres",
     "proposeHint": "Les membres répondent une fois les règles envoyées.",
     "setOrder": "Fixer l'ordre des tours",
@@ -283,7 +285,11 @@
     "editRules": "Modifier les règles",
     "cancel": "Annuler le groupe",
     "cancelTitle": "Annuler le groupe ?",
-    "cancelMessage": "Aucun argent n'a circulé. Chaque membre est libéré, et le groupe ne peut pas redémarrer."
+    "cancelMessage": "Aucun argent n'a circulé. Chaque membre est libéré, et le groupe ne peut pas redémarrer.",
+    "addToList": "+ Ajouter un autre numéro",
+    "removeFromList": "Retirer",
+    "sendInvites": "Envoyer les {{count}} invitations",
+    "invitesConfirmTitle": "Envoyer {{count}} invitations ? {{phones}}"
   },
   "order": {
     "title": "Ordre des tours",

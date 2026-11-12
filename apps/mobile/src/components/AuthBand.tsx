@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { APP_LANGUAGES, currentLanguage, setAppLanguage } from "../i18n";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
@@ -49,7 +50,29 @@ export function AuthBand({
         ) : (
           <View style={styles.spacer} />
         )}
-        <ListenButton text={listenText} />
+        <View style={styles.right}>
+          {/* D133: the language can be changed on every sign-up and login
+              screen, not only on the first one; the choice holds everywhere. */}
+          <View style={styles.langs} accessibilityRole="radiogroup">
+            {APP_LANGUAGES.map(({ language }) => {
+              const on = currentLanguage() === language;
+              return (
+                <Pressable
+                  key={language}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: on }}
+                  accessibilityLabel={language}
+                  onPress={() => setAppLanguage(language)}
+                  hitSlop={6}
+                  style={[styles.lang, on && styles.langOn]}
+                >
+                  <Text style={[styles.langText, on && styles.langTextOn]}>{language}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <ListenButton text={listenText} />
+        </View>
       </View>
 
       {step ? (
@@ -77,6 +100,12 @@ export function AuthBand({
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 24, paddingTop: 12, gap: 20 },
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 },
+  right: { flexDirection: "row", alignItems: "center", gap: 8 },
+  langs: { flexDirection: "row", borderRadius: 18, backgroundColor: colors.mist, padding: 3 },
+  lang: { minWidth: 36, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", paddingHorizontal: 8 },
+  langOn: { backgroundColor: colors.action },
+  langText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.action },
+  langTextOn: { color: colors.white },
   back: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: colors.mist },
   spacer: { width: 44, height: 44 },
   backText: { textAlign: "center", fontSize: 30, lineHeight: 34, marginTop: -3, color: colors.lagoon },

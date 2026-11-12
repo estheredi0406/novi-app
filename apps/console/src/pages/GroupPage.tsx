@@ -5,6 +5,7 @@ import { ApiFailure, api } from "../api";
 import { day, fcfa } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
+import { ValidateGroup } from "../ValidateGroup";
 
 const time = (iso: string) => `${day(iso).slice(0, 5)} ${iso.slice(11, 16)}`;
 
@@ -383,6 +384,11 @@ export function GroupPage({
       {/* D98: records are shown only while the officer decides. */}
       {data.state !== "STARTING" ? null : (
         <>
+          {/* D133: she can validate from here too, after reading the records. */}
+          <div className="validate-bar">
+            <span className="tag tag-blue">{t.tagValidate}</span>
+            <ValidateGroup t={t} group={{ id: groupId, name: data.name }} onDone={() => reload()} />
+          </div>
           <h2>{t.recordTitle}</h2>
           <p className="muted small">{t.recordHint}</p>
           <table className="members">

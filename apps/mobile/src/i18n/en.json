@@ -238,11 +238,13 @@
     "monthDayLabel": "Day of the month (1 to 28)",
     "sizeLabel": "How many members, you included",
     "orderLabel": "Order of turns",
-    "potHint": "Each turn, one member receives {{pot}}.",
+    "potHint": "Each round, one member receives the whole pot: {{pot}}. Each member receives it once.",
     "namePlaceholder": "e.g. Friday traders",
     "daily": "Every day",
     "everyDay": "every day but Sunday",
-    "dailyHint": "Monday to Saturday. No payment on Sundays."
+    "dailyHint": "Monday to Saturday. No payment on Sundays.",
+    "advanceHint": "In round 1, each member also pays an advance of {{advance}}, on top of her contribution. It covers a member who cannot pay and comes back to you at the end. Nothing is taken from the pot.",
+    "feesHint": "* Novi takes no fee on your payments. Your operator (Flooz, Mixx) may charge its usual fees, for example to take cash out at an agent."
   },
   "newGroup": {
     "title": "New group",
@@ -265,11 +267,11 @@
     "removeTitle": "Remove {{name}} from the group?",
     "removeMessage": "Their place becomes free, and you can invite another number.",
     "withdraw": "Withdraw",
-    "inviteLabel": "Invite a phone number",
+    "inviteLabel": "Invite phone numbers",
     "sendInvite": "Send the invitation",
     "inviteConfirmTitle": "Send the invitation to {{phone}}?",
     "inviteConfirmMessage": "Check every digit. Once it is sent, the group sees only part of the number, and a mistake would invite someone else.",
-    "inviteHint": "They get an SMS.",
+    "inviteHint": "Each person invited receives an SMS.",
     "propose": "Send the rules to members",
     "proposeHint": "Members can answer once the rules are sent.",
     "setOrder": "Set the order of turns",
@@ -283,7 +285,11 @@
     "editRules": "Change the rules",
     "cancel": "Cancel the group",
     "cancelTitle": "Cancel the group?",
-    "cancelMessage": "No money has moved. Every member is released, and the group cannot be restarted."
+    "cancelMessage": "No money has moved. Every member is released, and the group cannot be restarted.",
+    "addToList": "+ Add another number",
+    "removeFromList": "Remove",
+    "sendInvites": "Send the {{count}} invitations",
+    "invitesConfirmTitle": "Send {{count}} invitations? {{phones}}"
   },
   "order": {
     "title": "Order of turns",

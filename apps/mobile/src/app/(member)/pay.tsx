@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { WebView as WebViewType } from "react-native-webview";
 import { checkContribution } from "../../api/money";
+import { API_URL } from "../../lib/apiUrl";
 import { canCallInApp } from "../../lib/openCall";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
@@ -91,6 +92,12 @@ export default function PayScreen() {
             onShouldStartLoadWithRequest={(req) => {
               if (FEDAPAY.test(req.url) || req.url.startsWith("about:"))
                 return true;
+              // D133: the payment page sends her back to Novi once done:
+              // close the page here; the round screen shows the receipt.
+              if (API_URL && req.url.startsWith(API_URL)) {
+                router.back();
+                return false;
+              }
               void Linking.openURL(req.url);
               return false;
             }}

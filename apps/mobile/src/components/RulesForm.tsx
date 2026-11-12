@@ -155,7 +155,11 @@ export function RulesForm({
 
       {amountFcfa > 0 ? (
         <View style={styles.note}>
+          {/* D133: who receives what, the advance paid on top in round 1 (never
+              taken from the pot), and what Novi and the operator charge. */}
           <Text style={[type.body, styles.ink]}>{t("rules.potHint", { pot: formatFcfa(amountFcfa * size) })}</Text>
+          <Text style={[type.small, styles.ink]}>{t("rules.advanceHint", { advance: formatFcfa(Math.ceil(amountFcfa / 2)) })}</Text>
+          <Text style={[type.small, styles.muted]}>{t("rules.feesHint")}</Text>
         </View>
       ) : null}
 
@@ -173,5 +177,5 @@ const styles = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   muted: { color: colors.muted },
   ink: { color: colors.ink },
-  note: { padding: 16, borderRadius: 14, backgroundColor: colors.mist },
+  note: { padding: 16, borderRadius: 14, backgroundColor: colors.mist, gap: 8 },
 });

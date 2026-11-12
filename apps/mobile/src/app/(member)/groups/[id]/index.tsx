@@ -57,6 +57,8 @@ export default function GroupScreen() {
   const [meetings, setMeetings] = useState<MeetingsPage | null>(null);
   const [rounds, setRounds] = useState<RoundSummary[]>([]);
   const [digits, setDigits] = useState("");
+  // D133: several numbers can be listed, then invited in one go.
+  const [queue, setQueue] = useState<string[]>([]);
   const country = usePhoneCountry();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -276,10 +278,34 @@ export default function GroupScreen() {
             textContentType="telephoneNumber"
             maxLength={country.length}
           />
+          {queue.length + 1 < rules.size - placesTaken ? (
+            <TextButton
+              label={t("group.addToList")}
+              disabled={busy || !country.valid(digits) || queue.includes(country.full(digits))}
+              onPress={() => {
+                setQueue([...queue, country.full(digits)]);
+                setDigits("");
+              }}
+            />
+          ) : null}
+          {queue.length > 0 ? (
+            <View style={styles.queue}>
+              {queue.map((phone) => (
+                <View key={phone} style={styles.queueRow}>
+                  <Text style={[type.body, styles.ink]}>{formatPhone(phone)}</Text>
+                  <TextButton label={t("group.removeFromList")} onPress={() => setQueue(queue.filter((p) => p !== phone))} />
+                </View>
+              ))}
+            </View>
+          ) : null}
           <PrimaryButton
-            label={t("group.sendInvite")}
-            disabled={busy || !country.valid(digits)}
-            onPress={() => confirmInvite(group.id, country.full(digits))}
+            label={
+              toSend().length > 1
+                ? t("group.sendInvites", { count: toSend().length })
+                : t("group.sendInvite")
+            }
+            disabled={busy || toSend().length === 0}
+            onPress={() => confirmInvites(group.id, toSend())}
           />
           <Text style={[type.small, styles.muted]}>
             {t("group.inviteHint")}
@@ -414,22 +440,45 @@ export default function GroupScreen() {
     </Screen>
   );
 
-  // Shows the whole number she typed before the SMS goes out: once sent, the
-  // group sees only part of it, and a typo would invite someone else (D43).
-  function confirmInvite(groupId: string, phone: string) {
+  // The numbers listed, plus the one still in the field if it is complete.
+  function toSend(): string[] {
+    const typed = country.valid(digits) ? [country.full(digits)] : [];
+    return [...queue, ...typed.filter((p) => !queue.includes(p))];
+  }
+
+  // Shows every whole number before the SMS go out: once sent, the group sees
+  // only part of each, and a typo would invite someone else (D43). D133: the
+  // numbers are sent one after the other; one refused (already invited, not a
+  // valid number) does not stop the others, and the error says which.
+  function confirmInvites(groupId: string, phones: string[]) {
+    const list = phones.map(formatPhone).join(", ");
     Alert.alert(
-      t("group.inviteConfirmTitle", { phone: formatPhone(phone) }),
+      phones.length > 1
+        ? t("group.invitesConfirmTitle", { count: phones.length, phones: list })
+        : t("group.inviteConfirmTitle", { phone: list }),
       t("group.inviteConfirmMessage"),
       [
         { text: t("common.back"), style: "cancel" },
         {
-          text: t("group.sendInvite"),
+          text: phones.length > 1 ? t("group.sendInvites", { count: phones.length }) : t("group.sendInvite"),
           onPress: () =>
-            void run(async () => {
-              const next = await invite(groupId, phone);
+            void (async () => {
+              setBusy(true);
+              setError(null);
+              const failed: string[] = [];
+              for (const phone of phones) {
+                try {
+                  setGroup(await invite(groupId, phone));
+                } catch (err) {
+                  failed.push(phone);
+                  setError(errorKey(err));
+                }
+              }
+              setQueue(failed);
               setDigits("");
-              return next;
-            }),
+              setBusy(false);
+              if (failed.length > 0) load();
+            })(),
         },
       ],
     );
@@ -449,6 +498,8 @@ function byTurn(a: GroupSeat, b: GroupSeat): number {
 }
 
 const styles = StyleSheet.create({
+  queue: { gap: 2, padding: 12, borderRadius: 14, backgroundColor: colors.mist },
+  queueRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   bandName: {
     fontFamily: fonts.display,
     fontSize: 26,
