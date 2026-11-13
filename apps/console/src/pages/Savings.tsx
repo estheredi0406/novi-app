@@ -1,17 +1,115 @@
 import type { ConsoleSavings, ConsoleSavingsPolicy } from "@novi/shared";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { api, ApiFailure } from "../api";
 import { day, fcfa } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
-// D123, canvas board 48: members' savings at the MFI, placed for 3, 6 or 12
-// months (no free savings: one simple product for the MFI). The accounts members
-// asked for (open the urgent ones first: the day of their pot is shown; if an
-// account is not open that day, the whole pot goes to her phone), the open
-// accounts, and the rates the MFI pays, which only an administrator sets.
-const pct = (bp: number | null) => (bp === null ? "" : String(bp / 100));
+// D123, canvas board 48: members' savings at the MFI. D147: first, the
+// caisse's conditions (rates, fees, minimum, early-withdrawal rule), which
+// members read before they place anything; until they are complete the caisse
+// cannot validate a group and Novi offers no savings. Then the accounts
+// members asked for, the open accounts and the withdrawals.
+const pct = (bp: number | null) => (bp === null ? "" : String(bp / 100).replace(".", ","));
 const toBp = (s: string) => (s.trim() === "" ? null : Math.round(Number(s.replace(",", ".")) * 100));
+const num = (n: number | null) => (n === null ? "" : String(n));
+const toFcfa = (s: string) => (s.trim() === "" ? null : Number(s));
+
+type Form = {
+  free: string;
+  l3: string;
+  l6: string;
+  l12: string;
+  o3: boolean;
+  o6: boolean;
+  o12: boolean;
+  opening: string;
+  monthly: string;
+  withdrawal: string;
+  min: string;
+  early: "LOSE_GAINS" | "PENALTY" | null;
+  penalty: string;
+  require: boolean;
+};
+const emptyForm: Form = {
+  free: "",
+  l3: "",
+  l6: "",
+  l12: "",
+  o3: true,
+  o6: true,
+  o12: true,
+  opening: "",
+  monthly: "",
+  withdrawal: "",
+  min: "",
+  early: null,
+  penalty: "",
+  require: true,
+};
+
+function bodyOf(f: Form): Omit<ConsoleSavingsPolicy, "complete"> {
+  const anyLock = f.o3 || f.o6 || f.o12;
+  return {
+    freeBp: toBp(f.free),
+    lock3Bp: f.o3 ? toBp(f.l3) : null,
+    lock6Bp: f.o6 ? toBp(f.l6) : null,
+    lock12Bp: f.o12 ? toBp(f.l12) : null,
+    requireForLoan: f.require,
+    openingFeeFcfa: toFcfa(f.opening),
+    monthlyFeeFcfa: toFcfa(f.monthly),
+    withdrawalFeeFcfa: toFcfa(f.withdrawal),
+    minKeepFcfa: toFcfa(f.min),
+    earlyRule: anyLock ? f.early : null,
+    earlyPenaltyBp: anyLock && f.early === "PENALTY" ? toBp(f.penalty) : null,
+  };
+}
+
+// What is still empty, named as on the form.
+function missingOf(f: Form, t: Text): string[] {
+  const out: string[] = [];
+  if (!f.o3 && !f.o6 && !f.o12) out.push(t.termsOneDuration);
+  for (const [on, v, m] of [
+    [f.o3, f.l3, 3],
+    [f.o6, f.l6, 6],
+    [f.o12, f.l12, 12],
+  ] as const)
+    if (on && v.trim() === "") out.push(t.savingsRateLock(m));
+  if (f.opening === "") out.push(t.termsOpening);
+  if (f.monthly === "") out.push(t.termsMonthly);
+  if (f.withdrawal === "") out.push(t.termsWithdrawal);
+  if (f.min === "") out.push(t.termsMin);
+  if ((f.o3 || f.o6 || f.o12) && (f.early === null || (f.early === "PENALTY" && f.penalty.trim() === "")))
+    out.push(t.termsEarly);
+  return out;
+}
+
+function Pct({
+  value,
+  onChange,
+  disabled,
+  t,
+  unit,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled: boolean;
+  t: Text;
+  unit?: string;
+}) {
+  return (
+    <span className="money-input pct">
+      <input
+        inputMode="decimal"
+        disabled={disabled}
+        value={value}
+        placeholder="–"
+        onChange={(e) => onChange(e.target.value.replace(/[^0-9.,]/g, ""))}
+      />
+      <em>{unit ?? t.savingsPerYear}</em>
+    </span>
+  );
+}
 
 export function Savings({ t, onExpired, isAdmin }: { t: Text; onExpired: () => void; isAdmin: boolean }) {
   const { data, failed, reload } = useLoad(() => api<ConsoleSavings>("GET", "/v1/console/savings"), onExpired);
@@ -19,12 +117,28 @@ export function Savings({ t, onExpired, isAdmin }: { t: Text; onExpired: () => v
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [rates, setRates] = useState({ free: "", l3: "", l6: "", l12: "", require: false });
+  const [form, setForm] = useState<Form>(emptyForm);
 
   useEffect(() => {
     if (!data) return;
     const p = data.policy;
-    setRates({ free: pct(p.freeBp), l3: pct(p.lock3Bp), l6: pct(p.lock6Bp), l12: pct(p.lock12Bp), require: p.requireForLoan });
+    setForm({
+      free: pct(p.freeBp),
+      l3: pct(p.lock3Bp),
+      l6: pct(p.lock6Bp),
+      l12: pct(p.lock12Bp),
+      // A duration is offered once it has a rate; a new caisse starts with all three.
+      o3: p.lock3Bp !== null || !p.complete,
+      o6: p.lock6Bp !== null || !p.complete,
+      o12: p.lock12Bp !== null || !p.complete,
+      opening: num(p.openingFeeFcfa),
+      monthly: num(p.monthlyFeeFcfa),
+      withdrawal: num(p.withdrawalFeeFcfa),
+      min: num(p.minKeepFcfa),
+      early: p.earlyRule,
+      penalty: pct(p.earlyPenaltyBp),
+      require: p.requireForLoan,
+    });
   }, [data]);
 
   if (failed) return <p className="error">{t.errors.default}</p>;
@@ -48,21 +162,128 @@ export function Savings({ t, onExpired, isAdmin }: { t: Text; onExpired: () => v
       setRefusing(null);
       setReason("");
     });
-  const savePolicy = () => {
-    const body: ConsoleSavingsPolicy = {
-      freeBp: toBp(rates.free),
-      lock3Bp: toBp(rates.l3),
-      lock6Bp: toBp(rates.l6),
-      lock12Bp: toBp(rates.l12),
-      requireForLoan: rates.require,
-    };
-    return run(() => api("PUT", "/v1/console/savings/policy", body));
-  };
+  const body = bodyOf(form);
+  const missing = missingOf(form, t);
+  const savePolicy = () => run(() => api("PUT", "/v1/console/savings/policy", body));
 
   return (
     <>
       <h1>{t.savingsTitle}</h1>
       <p className="muted">{t.savingsLede}</p>
+
+      {/* D147: the conditions come first: nothing works without them. */}
+      <section className="queue setting terms">
+        <div className="setting-head">
+          <h2>{t.termsTitle}</h2>
+          <span className={`setting-status ${data.policy.complete ? "is-set" : "is-wait"}`}>
+            {data.policy.complete ? t.termsComplete : t.termsToFill}
+          </span>
+        </div>
+        <p className="setting-lede">{t.termsLede}</p>
+
+        <h3 className="terms-sub">{t.termsRates}</h3>
+        <div className="terms-grid">
+          {(
+            [
+              ["o3", "l3", 3],
+              ["o6", "l6", 6],
+              ["o12", "l12", 12],
+            ] as const
+          ).map(([on, key, months]) => (
+            <Fragment key={key}>
+              <span className="terms-label">{t.savingsRateLock(months)}</span>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  disabled={!isAdmin}
+                  checked={form[on]}
+                  onChange={(e) => setForm({ ...form, [on]: e.target.checked })}
+                />
+                {t.termsOffered}
+              </label>
+              {form[on] ? (
+                <Pct value={form[key]} disabled={!isAdmin} onChange={(v) => setForm({ ...form, [key]: v })} t={t} />
+              ) : (
+                <span className="muted small">{t.termsNotOffered}</span>
+              )}
+            </Fragment>
+          ))}
+        </div>
+
+        <h3 className="terms-sub">{t.termsFees}</h3>
+        <div className="terms-grid">
+          {(
+            [
+              ["opening", t.termsOpening],
+              ["monthly", t.termsMonthly],
+              ["withdrawal", t.termsWithdrawal],
+              ["min", t.termsMin],
+            ] as const
+          ).map(([key, label]) => (
+            <Fragment key={key}>
+              <span className="terms-label">{label}</span>
+              <span />
+              <span className="money-input">
+                <input
+                  inputMode="numeric"
+                  disabled={!isAdmin}
+                  value={form[key]}
+                  placeholder="–"
+                  onChange={(e) => setForm({ ...form, [key]: e.target.value.replace(/[^0-9]/g, "") })}
+                />
+                <em>FCFA</em>
+              </span>
+            </Fragment>
+          ))}
+        </div>
+
+        <h3 className="terms-sub">{t.termsEarly}</h3>
+        <div className="terms-early">
+          <label className="check">
+            <input
+              type="radio"
+              name="early"
+              disabled={!isAdmin}
+              checked={form.early === "LOSE_GAINS"}
+              onChange={() => setForm({ ...form, early: "LOSE_GAINS" })}
+            />
+            {t.termsLoseGains}
+          </label>
+          <label className="check">
+            <input
+              type="radio"
+              name="early"
+              disabled={!isAdmin}
+              checked={form.early === "PENALTY"}
+              onChange={() => setForm({ ...form, early: "PENALTY" })}
+            />
+            {t.termsPenalty}
+            {form.early === "PENALTY" ? (
+              <Pct value={form.penalty} disabled={!isAdmin} onChange={(v) => setForm({ ...form, penalty: v })} t={t} unit="%" />
+            ) : null}
+          </label>
+        </div>
+
+        <div className="setting-foot spread">
+          <label className="check">
+            <input
+              type="checkbox"
+              disabled={!isAdmin}
+              checked={form.require}
+              onChange={(e) => setForm({ ...form, require: e.target.checked })}
+            />
+            {t.savingsRequireHint}
+          </label>
+          {isAdmin ? (
+            <button className="primary" disabled={busy} onClick={() => void savePolicy()}>
+              {t.savingsSave}
+            </button>
+          ) : (
+            <span className="muted small">{t.savingsAdminOnly}</span>
+          )}
+        </div>
+        {missing.length > 0 ? <p className="setting-note">{t.termsMissing(missing.join(", "))}</p> : null}
+      </section>
 
       <div className="kpis">
         <div>
@@ -217,52 +438,6 @@ export function Savings({ t, onExpired, isAdmin }: { t: Text; onExpired: () => v
         )}
       </section>
 
-      <section className="cond-box">
-        <h2>{t.savingsRatesTitle}</h2>
-        <p className="muted">{t.savingsRatesHint}</p>
-        {(
-          [
-            ["l3", t.savingsRateLock(3)],
-            ["l6", t.savingsRateLock(6)],
-            ["l12", t.savingsRateLock(12)],
-          ] as const
-        ).map(([key, label]) => (
-          <div className="policy-row" key={key}>
-            <div>
-              <strong>{label}</strong>
-            </div>
-            <input
-              type="text"
-              inputMode="decimal"
-              disabled={!isAdmin}
-              value={rates[key]}
-              placeholder="–"
-              onChange={(e) => setRates({ ...rates, [key]: e.target.value })}
-            />
-            <span className="muted">{t.savingsPerYear}</span>
-          </div>
-        ))}
-        <div className="policy-row">
-          <div>
-            <strong>{t.savingsRequire}</strong>
-            <p className="muted small">{t.savingsRequireHint}</p>
-          </div>
-          <input
-            type="checkbox"
-            disabled={!isAdmin}
-            checked={rates.require}
-            onChange={(e) => setRates({ ...rates, require: e.target.checked })}
-          />
-          <span />
-        </div>
-        {isAdmin ? (
-          <button className="primary" disabled={busy} onClick={() => void savePolicy()}>
-            {t.savingsSave}
-          </button>
-        ) : (
-          <p className="muted small">{t.savingsAdminOnly}</p>
-        )}
-      </section>
       {message ? <p className="error">{message}</p> : null}
     </>
   );

@@ -175,7 +175,6 @@ export function CotisationTab({
           </View>
           {detail ? (
             <>
-              <Text style={styles.hint}>{t("hub.inTurnOrder")}</Text>
               <MemberFaces payments={detail.payments} memberId={memberId} receiverIndex={focus.number - 1} />
             </>
           ) : null}

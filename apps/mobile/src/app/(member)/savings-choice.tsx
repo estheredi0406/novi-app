@@ -1,10 +1,10 @@
-import type { PotChoiceView } from "@novi/shared";
+import type { PotChoiceView, SavingsTerms } from "@novi/shared";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
-import { choosePot, getSavings } from "../../api/savings";
+import { choosePot, choosePotForGroup, getSavings } from "../../api/savings";
 import { CheckRow } from "../../components/CheckRow";
 import { CowrieMark } from "../../components/BottomBar";
 import { ErrorMessage } from "../../components/ErrorMessage";
@@ -17,17 +17,17 @@ import { formatFcfa, pct, shortDay } from "../../lib/format";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// D123, revised: three days before her pot, what she does with it, one
-// question per screen (no long scroll on a small phone):
+// D123, revised; D147: from the day she joins the group until her pot leaves,
+// what she does with it, one question per screen (no long scroll on a small
+// phone), with the caisse's conditions on the first and last screen:
 //   1. receive it all on her phone, place a part, or place it all;
 //   2. how much to place (only for "a part");
-//   3. for how long: 3, 6 or 12 months, each with what it earns;
+//   3. for how long: the durations the caisse offers, each with what it earns;
 //   4. the summary, and the first time her agreement to share her identity.
 // Placed money stays at the MFI until its date, at the MFI's rate: there is
 // no free savings pocket, so the MFI keeps one simple product.
 type Mode = "WALLET" | "PART" | "ALL";
 type Step = "what" | "amount" | "months" | "summary";
-const LOCKS = [3, 6, 12] as const;
 const F = (n: number) => formatFcfa(n).replace(" FCFA", " F");
 // The same count as the server: simple interest, day by day, until the date.
 const gain = (amount: number, bp: number | null, months: number) => {
@@ -37,15 +37,16 @@ const gain = (amount: number, bp: number | null, months: number) => {
   const days = (end.getTime() - Date.now()) / 86_400_000;
   return Math.floor((amount * bp * days) / (10_000 * 365));
 };
-const addMonths = (months: number) => {
-  const d = new Date();
+// D147: a placement starts when her pot arrives, not today.
+const addMonths = (months: number, from: string | null) => {
+  const d = from ? new Date(`${from}T12:00:00Z`) : new Date();
   d.setMonth(d.getMonth() + months);
   return d.toISOString().slice(0, 10);
 };
 
 export default function SavingsChoiceScreen() {
   const { t, i18n } = useTranslation();
-  const { round } = useLocalSearchParams<{ round: string }>();
+  const { round, group } = useLocalSearchParams<{ round?: string; group?: string }>();
   const [choice, setChoice] = useState<PotChoiceView | null>(null);
   const [step, setStep] = useState<Step>("what");
   const [mode, setMode] = useState<Mode>("WALLET");
@@ -58,16 +59,19 @@ export default function SavingsChoiceScreen() {
   useEffect(() => {
     getSavings().then(
       (s) => {
-        const c = s.choices.find((x) => x.roundId === round) ?? null;
+        const c = s.choices.find((x) => (round ? x.roundId === round : x.groupId === group)) ?? null;
         setChoice(c);
         if (!c) return;
         setMode(c.keepFcfa === 0 ? "WALLET" : c.keepFcfa >= c.potFcfa ? "ALL" : "PART");
-        setPlace(c.keepFcfa > 0 && c.keepFcfa < c.potFcfa ? c.keepFcfa : Math.max(500, Math.round(c.potFcfa / 2 / 500) * 500));
-        if (c.lockMonths === 3 || c.lockMonths === 6 || c.lockMonths === 12) setMonths(c.lockMonths);
+        const min = Math.max(500, c.terms.minKeepFcfa);
+        setPlace(c.keepFcfa > 0 && c.keepFcfa < c.potFcfa ? c.keepFcfa : Math.max(min, Math.round(c.potFcfa / 2 / 500) * 500));
+        const offered = c.terms.locks.map((l) => l.months);
+        const saved = c.lockMonths;
+        setMonths(saved === 3 || saved === 6 || saved === 12 ? (offered.includes(saved) ? saved : offered.at(-1) ?? 12) : (offered.at(-1) ?? 12));
       },
       (err: unknown) => setError(errorKey(err)),
     );
-  }, [round]);
+  }, [round, group]);
 
   const order: Step[] = mode === "PART" ? ["what", "amount", "months", "summary"] : ["what", "months", "summary"];
   const index = order.indexOf(step);
@@ -85,15 +89,21 @@ export default function SavingsChoiceScreen() {
 
   const pot = choice.potFcfa;
   const kept = mode === "WALLET" ? 0 : mode === "ALL" ? pot : place;
-  const rateOf = (m: 3 | 6 | 12) => (m === 3 ? choice.rates.lock3Bp : m === 6 ? choice.rates.lock6Bp : choice.rates.lock12Bp);
+  const terms = choice.terms;
+  const LOCKS = terms.locks.map((l) => l.months);
+  const rateOf = (m: 3 | 6 | 12) => terms.locks.find((l) => l.months === m)?.bp ?? null;
   const needsConsent = kept > 0 && choice.accountStatus === null;
-  // D125: a part is at least 500 F and leaves at least 500 F on her phone.
-  const partMin = 500;
+  // D125: a part leaves at least 500 F on her phone; D147: and is at least the
+  // caisse's minimum.
+  const partMin = Math.max(500, terms.minKeepFcfa);
   const partMax = pot - 500;
   const partOk = Number.isInteger(place) && place >= partMin && place <= partMax;
   const keptOk = Number.isInteger(kept) && kept > 0 && kept <= pot;
-  // The end date with its year: a 12-month placement ends next year.
-  const until = new Date(`${addMonths(months)}T12:00:00Z`).toLocaleDateString(i18n.language === "en" ? "en-GB" : "fr-FR", {
+  // The end date with its year: a 12-month placement ends next year. Before
+  // the group starts her pot's day is not known yet: "12 mois après".
+  const until = !choice.dueDate
+    ? t("savings.afterPot", { count: months })
+    : new Date(`${addMonths(months, choice.dueDate)}T12:00:00Z`).toLocaleDateString(i18n.language === "en" ? "en-GB" : "fr-FR", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -104,13 +114,10 @@ export default function SavingsChoiceScreen() {
     setBusy(true);
     setError(null);
     try {
-      await choosePot(choice!.roundId, {
-        keepFcfa: Math.round(keep),
-        pocket: "LOCKED",
-        lockMonths: keep > 0 ? months : null,
-        consent,
-      });
-      router.back();
+      const body = { keepFcfa: Math.round(keep), pocket: "LOCKED" as const, lockMonths: keep > 0 ? months : null, consent };
+      await (choice!.roundId ? choosePot(choice!.roundId, body) : choosePotForGroup(choice!.groupId, body));
+      if (router.canGoBack()) router.back();
+      else router.replace("/home" as never);
     } catch (err) {
       setError(errorKey(err));
     } finally {
@@ -142,13 +149,15 @@ export default function SavingsChoiceScreen() {
           <View style={styles.kicker}>
             <CowrieMark size={24} fill={colors.yourTurn} />
             <Text style={styles.kickerText}>
-              {t("savings.potComes", { date: shortDay(choice.dueDate, i18n.language), group: choice.groupName })}
+              {choice.dueDate
+                ? t("savings.potComes", { date: shortDay(choice.dueDate, i18n.language), group: choice.groupName })
+                : t("savings.potOf", { group: choice.groupName })}
             </Text>
           </View>
           <Text style={styles.title}>{t("savings.choiceTitle", { pot: F(pot) })}</Text>
           <Choice on={mode === "WALLET"} title={t("savings.allWallet")} sub={t("savings.allWalletSub")} onPress={() => setMode("WALLET")} />
-          {/* A part leaves at least 500 F on each side: a smaller pot is not split. */}
-          {pot >= 1000 ? (
+          {/* A part leaves 500 F on her phone and is at least the caisse's minimum. */}
+          {pot >= partMin + 500 ? (
             <Choice
               on={mode === "PART"}
               title={t("savings.placePart")}
@@ -156,7 +165,10 @@ export default function SavingsChoiceScreen() {
               onPress={() => setMode("PART")}
             />
           ) : null}
-          <Choice on={mode === "ALL"} title={t("savings.placeAll")} sub={t("savings.placeAllSub")} onPress={() => setMode("ALL")} />
+          {pot >= terms.minKeepFcfa ? (
+            <Choice on={mode === "ALL"} title={t("savings.placeAll")} sub={t("savings.placeAllSub", { mfi: choice.mfiName })} onPress={() => setMode("ALL")} />
+          ) : null}
+          <Terms terms={terms} mfi={choice.mfiName} />
           <View style={styles.grow} />
           <ErrorMessage messageKey={error} />
           {mode === "WALLET" ? (
@@ -234,16 +246,9 @@ export default function SavingsChoiceScreen() {
             {pot - kept > 0 ? <Line label={t("savings.sumPhone")} value={F(pot - kept)} /> : null}
             <Line label={t("savings.sumPlaced", { mfi: choice.mfiName })} value={F(kept)} />
             <Line label={t("savings.sumUntil")} value={until} />
-            {gain(kept, rateOf(months), months) !== null ? (
-              <Line
-                label={t("savings.sumBack")}
-                value={F(kept + (gain(kept, rateOf(months), months) ?? 0))}
-                strong
-              />
-            ) : (
-              <Text style={styles.small}>{t("savings.rateLater", { mfi: choice.mfiName })}</Text>
-            )}
+            <Line label={t("savings.sumBack")} value={F(kept + (gain(kept, rateOf(months), months) ?? 0))} strong />
           </View>
+          <Terms terms={terms} mfi={choice.mfiName} />
           {needsConsent ? (
             <View style={styles.consent}>
               <Text style={styles.small}>{t("savings.consentText", { mfi: choice.mfiName })}</Text>
@@ -295,6 +300,34 @@ function Choice({ on, title, sub, onPress }: { on: boolean; title: string; sub: 
         <Text style={styles.choiceSub}>{sub}</Text>
       </View>
     </Pressable>
+  );
+}
+
+// D147: the caisse's conditions in three short lines: rates, fees, and the
+// minimum with what she loses taking it back early.
+function Terms({ terms, mfi }: { terms: SavingsTerms; mfi: string }) {
+  const { t } = useTranslation();
+  const rates = t("savings.termsRates", {
+    list: terms.locks.map((l) => t("savings.termsRate", { count: l.months, rate: pct(l.bp) ?? "0 %" })).join(" · "),
+  });
+  const fees = [
+    terms.openingFeeFcfa > 0 ? t("savings.feeOpening", { amount: F(terms.openingFeeFcfa) }) : null,
+    terms.monthlyFeeFcfa > 0 ? t("savings.feeMonthly", { amount: F(terms.monthlyFeeFcfa) }) : null,
+    terms.withdrawalFeeFcfa > 0 ? t("savings.feeWithdrawal", { amount: F(terms.withdrawalFeeFcfa) }) : null,
+  ].filter(Boolean);
+  const early =
+    terms.early.rule === "PENALTY"
+      ? t("savings.earlyPenalty", { rate: pct(terms.early.penaltyBp) })
+      : t("savings.earlyGains");
+  return (
+    <View style={styles.terms} accessibilityRole="summary">
+      <Text style={styles.termsTitle}>{t("savings.termsTitle", { mfi })}</Text>
+      <Text style={styles.termsLine}>{rates}</Text>
+      <Text style={styles.termsLine}>{fees.length > 0 ? t("savings.fees", { list: fees.join(" · ") }) : t("savings.noFees")}</Text>
+      <Text style={styles.termsLine}>
+        {t("savings.minLine", { amount: F(terms.minKeepFcfa) })} · {early}
+      </Text>
+    </View>
   );
 }
 
@@ -381,4 +414,7 @@ const styles = StyleSheet.create({
   lineStrong: { fontFamily: fonts.display, fontSize: 20, lineHeight: 26, color: colors.paid },
   consent: { gap: 6, padding: 12, borderRadius: 16, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   small: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted },
+  terms: { gap: 3, padding: 12, borderRadius: 14, backgroundColor: colors.mist },
+  termsTitle: { fontFamily: fonts.bodyBold, fontSize: 14, lineHeight: 19, color: colors.indigo },
+  termsLine: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.ink },
 });

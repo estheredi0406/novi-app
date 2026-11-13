@@ -11,7 +11,7 @@ import { getLoanPage } from "../services/loanService.js";
 import { releasePayout, runPayouts } from "../services/payoutService.js";
 import { balances, decideAccount, saveSavingsPolicy } from "../services/savingsService.js";
 import { createStaff } from "../services/staffService.js";
-import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
+import { ABLA, KOFFI, savingsTermsFor, signedUpMember } from "./helpers.js";
 
 if (!(mfi instanceof MockMfiAdapter) || !(payments instanceof MockPaymentProvider)) {
   throw new Error("Tests require the mock MFI and payment providers.");
@@ -36,7 +36,7 @@ function as(accessToken: string) {
 }
 type Member = ReturnType<typeof as>;
 
-async function activeGroup() {
+async function activeGroup(terms = true) {
   const people = [
     await signedUpMember(),
     await signedUpMember("+22890000002", undefined, ABLA, "Abla"),
@@ -45,6 +45,7 @@ async function activeGroup() {
   const members = people.map((p) => as(p.tokens.accessToken));
   const groupId = (await members[0]!.post("/v1/groups", GROUP)).body.id as string;
   await prisma.mfi.updateMany({ data: { autoReleaseFcfa: null } });
+  if (terms) await savingsTermsFor();
   await members[0]!.post(`/v1/groups/${groupId}/invites`, { phone: "+22890000002" });
   await members[0]!.post(`/v1/groups/${groupId}/invites`, { phone: "+22890000003" });
   await members[0]!.post(`/v1/groups/${groupId}/propose`);
@@ -88,6 +89,22 @@ async function payOutRoundOne(groupId: string, members: Member[]) {
   return prisma.payout.findUniqueOrThrow({ where: { id: payout.id } });
 }
 
+// D147: a complete set of conditions for saveSavingsPolicy.
+const terms = (over: Record<string, unknown> = {}) => ({
+  freeBp: 0,
+  lock3Bp: 0,
+  lock6Bp: 0,
+  lock12Bp: 0,
+  requireForLoan: false,
+  openingFeeFcfa: 0,
+  monthlyFeeFcfa: 0,
+  withdrawalFeeFcfa: 0,
+  minKeepFcfa: 1000,
+  earlyRule: "LOSE_GAINS" as "LOSE_GAINS" | "PENALTY",
+  earlyPenaltyBp: null as number | null,
+  ...over,
+});
+
 const choice = (keepFcfa: number, consent = true, pocket: "FREE" | "LOCKED" = "FREE", lockMonths: 3 | 6 | 12 | null = null) => ({
   keepFcfa,
   pocket,
@@ -96,14 +113,58 @@ const choice = (keepFcfa: number, consent = true, pocket: "FREE" | "LOCKED" = "F
 });
 
 describe("choosing where her pot goes (D123)", () => {
-  it("opens the choice three days before her pot, not earlier", async () => {
-    const { round, receiver } = await activeGroup();
-    await prisma.round.update({ where: { id: round.id }, data: { dueDate: new Date(Date.now() + 10 * 86_400_000) } });
+  it("asks her as soon as she joins, before the start, and carries her choice to her round (D147)", async () => {
+    const people = [
+      await signedUpMember(),
+      await signedUpMember("+22890000002", undefined, ABLA, "Abla"),
+      await signedUpMember("+22890000003", undefined, KOFFI, "Koffi"),
+    ];
+    const [org, abla, koffi] = people.map((p) => as(p.tokens.accessToken)) as [Member, Member, Member];
+    const groupId = (await org.post("/v1/groups", GROUP)).body.id as string;
+    await savingsTermsFor("MAWULI", { lock6Bp: 500, lock12Bp: null });
+    await org.post(`/v1/groups/${groupId}/invites`, { phone: "+22890000002" });
+    await org.post(`/v1/groups/${groupId}/invites`, { phone: "+22890000003" });
+    await org.post(`/v1/groups/${groupId}/propose`);
+    await abla.post(`/v1/groups/${groupId}/accept`, { version: 1 });
+
+    const before = (await abla.get("/v1/me/savings")).body.choices;
+    expect(before).toEqual([
+      expect.objectContaining({ groupId, roundId: null, started: false, potFcfa: 15000, chosen: false }),
+    ]);
+    expect(before[0].terms).toMatchObject({ freeBp: 0, minKeepFcfa: 1000, early: { rule: "LOSE_GAINS" } });
+    // Below the caisse's minimum, or a duration it does not offer: refused.
+    const put = (body: object) => abla.put(`/v1/me/savings/groups/${groupId}`, body);
+    expect((await put(choice(500))).status).toBe(400);
+    expect((await put(choice(5000, true, "LOCKED", 12))).status).toBe(400);
+    // Her account is asked for at once, weeks before her turn.
+    expect((await put(choice(5000, true, "LOCKED", 6))).status).toBe(200);
+    expect(await prisma.savingsAccount.count({ where: { status: "REQUESTED" } })).toBe(1);
+
+    await koffi.post(`/v1/groups/${groupId}/accept`, { version: 1 });
+    await org.post(`/v1/groups/${groupId}/start`);
+    const hers = await prisma.round.findFirstOrThrow({ where: { groupId, beneficiary: { phone: "+22890000002" } } });
+    expect(await prisma.potChoice.findUnique({ where: { roundId: hers.id } })).toMatchObject({
+      keepFcfa: 5000,
+      pocket: "LOCKED",
+      lockMonths: 6,
+    });
+  });
+
+  it("offers no savings while the caisse has not set its conditions (D147)", async () => {
+    const { round, receiver, groupId } = await activeGroup(false);
     expect((await receiver.get("/v1/me/savings")).body.choices).toHaveLength(0);
-    await prisma.round.update({ where: { id: round.id }, data: { dueDate: new Date(Date.now() + 2 * 86_400_000) } });
+    expect((await receiver.put(`/v1/me/savings/groups/${groupId}`, choice(5000))).body.error.code).toBe(
+      "SAVINGS_TERMS_MISSING",
+    );
+    expect((await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(5000))).status).toBe(409);
+  });
+
+  it("keeps her choice open for every pot of hers until it leaves (D147)", async () => {
+    const { round, receiver } = await activeGroup();
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: new Date(Date.now() + 30 * 86_400_000) } });
     const { body } = await receiver.get("/v1/me/savings");
     expect(body.choices).toHaveLength(1);
-    expect(body.choices[0]).toMatchObject({ potFcfa: 15000, keepFcfa: 0, accountStatus: null });
+    expect(body.choices[0]).toMatchObject({ potFcfa: 15000, started: true, chosen: false, keepFcfa: 0, accountStatus: null });
   });
 
   it("closes the choice once the pot's day has passed, even with nothing paid (D126)", async () => {
@@ -131,7 +192,8 @@ describe("choosing where her pot goes (D123)", () => {
     await prisma.round.update({ where: { id: round.id }, data: { dueDate: SOON() } });
     const phone = await receiver.put(`/v1/me/savings/choices/${round.id}`, { keepFcfa: 0, pocket: "LOCKED", lockMonths: null, consent: false });
     expect(phone.status).toBe(200);
-    expect(phone.body.choices[0]).toMatchObject({ keepFcfa: 0, accountStatus: null });
+    // D144: "all on my phone" is an answer: home stops asking.
+    expect(phone.body.choices[0]).toMatchObject({ chosen: true, keepFcfa: 0, accountStatus: null });
     const odd = await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(7250, true, "LOCKED", 12));
     expect(odd.status).toBe(200);
     expect(odd.body.choices[0]).toMatchObject({ keepFcfa: 7250, lockMonths: 12 });
@@ -190,7 +252,10 @@ describe("sending a pot with a part kept (D123)", () => {
     expect(mockMfi.payouts.has(waiting.id)).toBe(false);
     const { mfiId, staffId } = await officer();
     const [item] = await listAttention(mfiId, staffId);
-    expect(item).toMatchObject({ payoutId: waiting.id, savingsToOpenFcfa: 10000, canRelease: false });
+    expect(item).toMatchObject({ payoutId: waiting.id, savingsToOpenFcfa: 10000, herKeepFcfa: 10000, canRelease: false });
+    // D144: home shows the same split as the console.
+    const home = (await receiver.get("/v1/groups")).body.find((g: { id: string }) => g.id === groupId);
+    expect(home.currentRound.myTurn).toMatchObject({ keepFcfa: 10000 });
     await expect(releaseRoundPayout(mfiId, staffId, waiting.id)).rejects.toMatchObject({ code: "SAVINGS_ACCOUNT_TO_OPEN" });
 
     await decideAccount(mfiId, staffId, (await prisma.savingsAccount.findFirstOrThrow()).id, { open: true });
@@ -279,7 +344,7 @@ describe("withdrawing and the rules of the pockets (D123)", () => {
 
   it("lets her take a whole placement back before its date, without its gains", async () => {
     const { receiver, account, mfiId, staffId, round } = await saved("LOCKED", 12);
-    await saveSavingsPolicy(mfiId, staffId, { freeBp: null, lock3Bp: null, lock6Bp: null, lock12Bp: 800, requireForLoan: false });
+    await saveSavingsPolicy(mfiId, staffId, terms({ lock12Bp: 800 }));
     const before = (await receiver.get("/v1/me/savings")).body.accounts[0];
     expect(before.locked).toHaveLength(1);
     const lotId = before.locked[0].id as string;
@@ -292,9 +357,18 @@ describe("withdrawing and the rules of the pockets (D123)", () => {
     expect((await receiver.post(`/v1/me/savings/${account.id}/placements/${lotId}/withdraw`)).status).toBe(404);
   });
 
+  it("takes the caisse's penalty when she takes a placement back early (D147)", async () => {
+    const { receiver, account, mfiId, staffId } = await saved("LOCKED", 12);
+    await saveSavingsPolicy(mfiId, staffId, terms({ earlyRule: "PENALTY", earlyPenaltyBp: 200 }));
+    const lotId = (await receiver.get("/v1/me/savings")).body.accounts[0].locked[0].id as string;
+    expect((await receiver.post(`/v1/me/savings/${account.id}/placements/${lotId}/withdraw`)).status).toBe(200);
+    const out = await prisma.savingsEntry.findFirstOrThrow({ where: { kind: "WITHDRAWAL" } });
+    expect(mockMfi.payouts.get(out.id)).toMatchObject({ amountFcfa: 9800 }); // 10 000 less 2 %
+  });
+
   it("frees locked money on its day, and counts interest at the rate it came in with", async () => {
     const { mfiId, staffId, account } = await saved("LOCKED", 3);
-    await saveSavingsPolicy(mfiId, staffId, { freeBp: 300, lock3Bp: 600, lock6Bp: null, lock12Bp: null, requireForLoan: false });
+    await saveSavingsPolicy(mfiId, staffId, terms({ freeBp: 300, lock3Bp: 600 }));
     const entries = await prisma.savingsEntry.findMany({ where: { accountId: account.id } });
     const inFourMonths = new Date(Date.now() + 122 * 86_400_000);
     const b = balances(entries, inFourMonths);
@@ -307,7 +381,7 @@ describe("withdrawing and the rules of the pockets (D123)", () => {
 
   it("lets the MFI ask for savings before a loan", async () => {
     const { mfiId, staffId, round } = await saved("FREE", null);
-    await saveSavingsPolicy(mfiId, staffId, { freeBp: null, lock3Bp: null, lock6Bp: null, lock12Bp: null, requireForLoan: true });
+    await saveSavingsPolicy(mfiId, staffId, terms({ requireForLoan: true }));
     const theirs = await getLoanPage(round.beneficiaryId);
     expect(theirs.checks.find((c) => c.key === "SAVINGS")).toMatchObject({ ok: true });
     const other = await prisma.user.findFirstOrThrow({ where: { id: { not: round.beneficiaryId } } });
@@ -340,13 +414,13 @@ describe("pilot: rounds follow each other (D127)", () => {
         include: { beneficiary: true },
       });
       const second = members[phones.indexOf(round2.beneficiary.phone)] as Member;
-      expect((await second.get("/v1/me/savings")).body.choices).toHaveLength(0);
+      // D147: her later pot is hers to direct from the start too.
+      expect((await second.get("/v1/me/savings")).body.choices).toHaveLength(1);
 
       for (const m of members) await pay(m, groupId, 1);
       const payout = await prisma.payout.findFirstOrThrow({ where: { roundId: round.id } });
       expect(payout.status).not.toBe("HELD");
       expect((await prisma.round.findUniqueOrThrow({ where: { id: round.id } })).dueDate.getTime()).toBeLessThanOrEqual(Date.now());
-      // The next round is now the one being paid, and its pot's choice opens.
       expect((await second.get("/v1/me/savings")).body.choices).toHaveLength(1);
       // D137: her full pot waits for the officer, and is still hers to split.
       expect(payout.status).toBe("READY");

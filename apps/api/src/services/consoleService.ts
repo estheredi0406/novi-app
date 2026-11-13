@@ -28,7 +28,7 @@ import { creditFoundPayment, rejectReport } from "./moneyService.js";
 import { groupPageExtras } from "./consoleGroupService.js";
 import { MAX_ATTEMPTS, autoReleaseLimit, needsTwoOfficers, nextRetryAt, releasePayout, runPayouts } from "./payoutService.js";
 import { fundBalance, reserveBalance } from "./reserveService.js";
-import { savingsToOpen } from "./savingsService.js";
+import { savingsTerms, savingsToOpen } from "./savingsService.js";
 import { mfi } from "../providers/index.js";
 
 // What an MFI officer sees and does in the console (Sprint 5.2). Every query
@@ -421,8 +421,13 @@ export async function listAttention(mfiId: string, staffId?: string): Promise<At
     ),
   );
 
+  // D144: what each receiver chose for her pot, so the officer sees the
+  // split before releasing it (her choice is hers; the MFI only reads it).
+  const wishes = await prisma.potChoice.findMany({ where: { roundId: { in: payouts.map((p) => p.roundId) } } });
+
   return payouts.map((payout) => {
     const { round } = payout;
+    const wish = wishes.find((w) => w.roundId === payout.roundId && w.userId === payout.beneficiaryId);
     const waitsForSavings = toOpen.get(payout.id) ?? 0;
     const rules = round.group.rulesVersions.find(
       (r) => r.version === round.group.currentVersion,
@@ -472,6 +477,7 @@ export async function listAttention(mfiId: string, staffId?: string): Promise<At
       canRelease:
         payout.status === "READY" && waitsForSavings === 0 && !(staffId && payout.firstApprovedById === staffId),
       savingsToOpenFcfa: waitsForSavings,
+      herKeepFcfa: payout.keptFcfa ?? wish?.keepFcfa ?? null,
       needsTwo: payout.status === "READY" && needsTwoOfficers(payout.amountFcfa, limit),
       firstApprovedBy: payout.firstApprovedById ? (firstNames.get(payout.firstApprovedById) ?? null) : null,
       receiverTurn: round.number,
@@ -499,6 +505,7 @@ export async function getOverview(mfiId: string): Promise<ConsoleOverview> {
     reported: reported.length,
     autoReleaseFcfa: mfi.autoReleaseFcfa,
     autoReleaseChosen: mfi.autoReleaseChosenAt !== null,
+    savingsTermsComplete: (await savingsTerms(mfiId)) !== null,
   };
 }
 
@@ -653,6 +660,9 @@ export async function approveGroup(
   groupId: string,
 ): Promise<ConsoleGroup[]> {
   await waitingGroup(mfiId, groupId);
+  // D147: members must be able to read the caisse's savings conditions
+  // before their tontine starts.
+  if (!(await savingsTerms(mfiId))) throw new AppError("SAVINGS_TERMS_MISSING", 409);
   await prisma.auditEvent.create({
     data: { type: "STAFF_GROUP_APPROVED", details: { staffId, groupId } },
   });

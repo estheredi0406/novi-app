@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AuthResponse } from "@novi/shared";
 import request from "supertest";
 import { app } from "../app.js";
+import { prisma } from "../lib/db.js";
 import { identity, sms } from "../providers/index.js";
 import { MockAnidProvider } from "../providers/identity/MockAnidProvider.js";
 import { MockSmsProvider } from "../providers/sms/MockSmsProvider.js";
@@ -67,4 +68,36 @@ export async function signedUpMember(
   });
   if (res.status !== 201) throw new Error(`sign-up failed: ${JSON.stringify(res.body)}`);
   return { ...(res.body as AuthResponse), installationId };
+}
+// D147: the caisse's savings conditions, complete, so it can validate groups
+// and members can place their pots. Rates at 0 unless a test sets them.
+export async function savingsTermsFor(
+  code = "MAWULI",
+  over: Partial<{
+    freeBp: number | null;
+    lock3Bp: number | null;
+    lock6Bp: number | null;
+    lock12Bp: number | null;
+    minKeepFcfa: number;
+    earlyRule: "LOSE_GAINS" | "PENALTY";
+    earlyPenaltyBp: number | null;
+  }> = {},
+) {
+  const mfi = await prisma.mfi.findFirstOrThrow({ where: { code } });
+  const data = {
+    freeBp: 0,
+    lock3Bp: 0,
+    lock6Bp: 0,
+    lock12Bp: 0,
+    openingFeeFcfa: 0,
+    monthlyFeeFcfa: 0,
+    withdrawalFeeFcfa: 0,
+    minKeepFcfa: 1000,
+    earlyRule: "LOSE_GAINS" as const,
+    earlyPenaltyBp: null,
+    termsSetAt: new Date(),
+    ...over,
+  };
+  await prisma.savingsPolicy.upsert({ where: { mfiId: mfi.id }, create: { mfiId: mfi.id, ...data }, update: data });
+  return mfi.id;
 }

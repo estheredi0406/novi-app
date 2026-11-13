@@ -311,7 +311,6 @@ export default function RoundScreen() {
       <View style={styles.section}>
         <View style={styles.whoHead}>
           <Text style={styles.label}>{t("money.whoPaid")}</Text>
-          <Text style={styles.small}>{t("hub.inTurnOrder")}</Text>
         </View>
         <View style={styles.card}>
           <MemberFaces payments={round.payments} memberId={member?.id ?? ""} receiverIndex={round.number - 1} />

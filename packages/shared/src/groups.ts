@@ -145,8 +145,12 @@ export type CurrentRound = {
     // money arrived: home asks her, with the amount that reached her phone
     // (the pot less what she kept in savings).
     confirm: { payoutId: string; amountFcfa: number } | null;
+    // D144: the part of her pot that goes to her savings (what was kept if
+    // the pot has left, else what she chose); 0: all on her phone.
+    keepFcfa: number;
   } | null;
   onTimeStreak: number; // her payments on time in a row in this group, up to now
+  nextDueDate: string | null; // D145: when the next round is due; null: this is the last round of the cycle
 };
 // ---------- The group's chat (D70) ----------
 

@@ -582,7 +582,20 @@ consoleRouter.put("/savings/policy", async (req, res) => {
   if (staff.role !== "ADMIN") throw new AppError("ADMIN_ONLY", 403);
   const bp = z.number().int().min(0).max(2400).nullable(); // at most 24 %
   const body = z
-    .object({ freeBp: bp, lock3Bp: bp, lock6Bp: bp, lock12Bp: bp, requireForLoan: z.boolean() })
+    .object({
+      freeBp: bp,
+      lock3Bp: bp,
+      lock6Bp: bp,
+      lock12Bp: bp,
+      requireForLoan: z.boolean(),
+      // D147: the caisse's conditions; a fee of 0 is a real answer.
+      openingFeeFcfa: z.number().int().min(0).max(1_000_000).nullable(),
+      monthlyFeeFcfa: z.number().int().min(0).max(1_000_000).nullable(),
+      withdrawalFeeFcfa: z.number().int().min(0).max(1_000_000).nullable(),
+      minKeepFcfa: z.number().int().min(0).max(1_000_000).nullable(),
+      earlyRule: z.enum(["LOSE_GAINS", "PENALTY"]).nullable(),
+      earlyPenaltyBp: bp,
+    })
     .strict()
     .parse(req.body);
   res.json(await saveSavingsPolicy(staff.mfiId, staff.staffId, body));

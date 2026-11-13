@@ -312,6 +312,7 @@ describe("what each person sees", () => {
       dueDate: hers.dueDate.toISOString().slice(0, 10),
       payoutStatus: "NOT_DUE",
       confirm: null,
+      keepFcfa: 0,
     });
   });
 

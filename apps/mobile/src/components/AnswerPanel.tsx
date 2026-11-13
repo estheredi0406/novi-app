@@ -4,6 +4,8 @@ import { StyleSheet, Text, View } from "react-native";
 import { Alert } from "../lib/alert";
 import { ApiError, errorKey } from "../api/client";
 import { acceptRules, counterRules, declineGroup } from "../api/groups";
+import { getSavings } from "../api/savings";
+import { router } from "expo-router";
 import { colors } from "../theme/colors";
 import { fonts, type } from "../theme/typography";
 import { CheckRow } from "./CheckRow";
@@ -17,6 +19,19 @@ import { TextButton } from "./TextButton";
 // - canAnswer: false while the group is a draft; she can then only say no
 // - hasSeat: she already holds a seat, so "say no" reads "leave the group"
 // - waiting: when she cannot answer, explain that the rules are not sent yet
+// D147: right after she joins, where her pot goes, with the caisse's savings
+// conditions. Only when the caisse offers savings and she has not answered;
+// if she leaves the screen, a card on home asks again until the start.
+async function askPot(groupId: string) {
+  try {
+    const { choices } = await getSavings();
+    const open = choices.find((c) => c.groupId === groupId && !c.started && !c.chosen);
+    if (open) router.push({ pathname: "/savings-choice" as never, params: { group: groupId } });
+  } catch {
+    // Home asks again; nothing is lost.
+  }
+}
+
 export function AnswerPanel({
   groupId,
   mfiName,
@@ -92,7 +107,10 @@ export function AnswerPanel({
           <PrimaryButton
             label={t("answer.accept", { version })}
             onPress={() =>
-              void run(() => acceptRules(groupId, version, consent), onSeat)
+              void run(() => acceptRules(groupId, version, consent), () => {
+                onSeat();
+                void askPot(groupId);
+              })
             }
             disabled={busy}
           />

@@ -205,6 +205,7 @@ export type AttentionItem = {
   needsTwo: boolean; // D105: above the MFI's limit, two officers approve
   firstApprovedBy: string | null; // D105: the officer who gave the first approval
   receiverTurn: number; // whose turn: her place in the order, never her name (D33)
+  herKeepFcfa: number | null; // D144: what she chose to keep in savings from this pot; null: she has not chosen (all to her phone)
   savingsToOpenFcfa: number; // D141: she keeps this much in savings and her account is not open yet: the pot waits
   attempts: number; // D114: transfers tried so far
   nextRetryAt: string | null; // D114: Novi tries again by itself then; null: the officer decides
@@ -225,6 +226,7 @@ export type ConsoleOverview = {
   reported: number; // D105: payments a member says left her account, to check
   autoReleaseFcfa: number | null; // D105: pots up to this leave without an officer; null: off
   autoReleaseChosen: boolean; // D134: false until the MFI has chosen its ceiling (or chosen none)
+  savingsTermsComplete: boolean; // D147: false until the caisse has set all its savings conditions
 };
 
 // D102: the MFI's own FedaPay account, as the console shows it. The keys

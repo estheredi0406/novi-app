@@ -401,6 +401,13 @@ model Membership {
   // (cycles finished, payments on time, caisse debt) to validate the group.
   shareConsentAt  DateTime?
   defaultedAt     DateTime?  // D104: a second missed turn without repaying
+  // D147: where her pot goes, chosen after she joins and before the group
+  // starts; copied to her round when the calendar is written. Never chosen:
+  // all to her mobile money.
+  potKeepFcfa     Int?
+  potPocket       SavingsPocket?
+  potLockMonths   Int?
+  potChoiceAt     DateTime?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
@@ -1140,7 +1147,25 @@ model SavingsPolicy {
   lock6Bp        Int?
   lock12Bp       Int?
   requireForLoan Boolean  @default(true)
+  // D147: the caisse's savings conditions, all required before it can
+  // validate a group or Novi offers savings: a lock rate left empty means the
+  // caisse does not offer that duration. Novi shows the fees; the caisse
+  // applies them in its books. The early rule is applied by Novi when she
+  // takes a placement back before its date.
+  openingFeeFcfa    Int?
+  monthlyFeeFcfa    Int?
+  withdrawalFeeFcfa Int?
+  minKeepFcfa       Int?
+  earlyRule         EarlyWithdrawalRule?
+  earlyPenaltyBp    Int?
+  termsSetAt        DateTime?
   updatedAt      DateTime @updatedAt
 
   @@map("savings_policies")
+}
+
+// D147: what she loses when she takes a placement back before its date.
+enum EarlyWithdrawalRule {
+  LOSE_GAINS // she gets her money back without the gains
+  PENALTY    // she gets her money back less a percentage, kept by the caisse
 }

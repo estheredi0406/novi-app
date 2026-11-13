@@ -162,18 +162,26 @@ meRouter.get("/savings", async (_req, res) => {
   res.json(await mySavings(currentMember(res).userId));
 });
 
+const potChoiceBody = z
+  .object({
+    keepFcfa: z.number().int().min(0).max(10_000_000),
+    pocket: z.enum(["FREE", "LOCKED"]),
+    lockMonths: z.union([z.literal(3), z.literal(6), z.literal(12)]).nullable(),
+    consent: z.boolean(),
+  })
+  .strict();
+
 meRouter.put("/savings/choices/:roundId", async (req, res) => {
   const roundId = z.string().uuid().parse(req.params.roundId);
-  const body = z
-    .object({
-      keepFcfa: z.number().int().min(0).max(10_000_000),
-      pocket: z.enum(["FREE", "LOCKED"]),
-      lockMonths: z.union([z.literal(3), z.literal(6), z.literal(12)]).nullable(),
-      consent: z.boolean(),
-    })
-    .strict()
-    .parse(req.body);
+  const body = potChoiceBody.parse(req.body);
   res.json(await choosePot(currentMember(res).userId, { roundId, ...body }));
+});
+
+// D147: her choice for her pot in a group, before it starts or while it runs.
+meRouter.put("/savings/groups/:groupId", async (req, res) => {
+  const groupId = z.string().uuid().parse(req.params.groupId);
+  const body = potChoiceBody.parse(req.body);
+  res.json(await choosePot(currentMember(res).userId, { groupId, ...body }));
 });
 
 // Takes a whole placement back before its date: it earns nothing.

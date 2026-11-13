@@ -4,7 +4,7 @@ import { app } from "../app.js";
 import { prisma } from "../lib/db.js";
 import { base32Decode, codeForStep, totpStep } from "../lib/totp.js";
 import { createStaff } from "../services/staffService.js";
-import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
+import { ABLA, KOFFI, savingsTermsFor, signedUpMember } from "./helpers.js";
 
 // D95: a group chooses the MFI that keeps its money, as part of its rules.
 // D98: an officer sees members' records only while he validates the group.
@@ -139,6 +139,7 @@ describe("members' records only while the officer validates (D98)", () => {
     expect(during.state).toBe("STARTING");
     expect(during.members.filter((m: { consent: boolean }) => m.consent)).toHaveLength(2);
 
+    await savingsTermsFor();
     expect((await desk.post(`/v1/console/groups/${groupId}/approve`)).status).toBe(200);
     const after = (await desk.get(`/v1/console/groups/${groupId}`)).body;
     expect(after.state).toBe("ACTIVE");

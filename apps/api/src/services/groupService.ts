@@ -36,6 +36,7 @@ import {
 import { drawOrder } from "../lib/payoutOrder.js";
 import { currentRoundNumber, dueDates, isoDay } from "../lib/schedule.js";
 import { onTimeStreak } from "../lib/streak.js";
+import { carryChoices } from "./savingsService.js";
 import { inviteSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import { unreadCount } from "./chatService.js";
@@ -366,6 +367,9 @@ async function currentRoundFor(
   if (!round) return null;
 
   const mine = rounds.find((r) => r.beneficiaryId === userId);
+  const next = rounds.find((r) => r.number === round.number + 1);
+  // D144: what she chose to keep in savings from her pot, for home.
+  const myChoice = mine ? await prisma.potChoice.findUnique({ where: { roundId: mine.id } }) : null;
   const paidBy = new Set(
     (
       await prisma.contribution.findMany({
@@ -408,9 +412,12 @@ async function currentRoundFor(
           dueDate: isoDay(mine.dueDate),
           payoutStatus: mine.payout?.status ?? "NOT_DUE",
           confirm: toConfirm(mine.payout),
+          keepFcfa:
+            mine.payout?.keptFcfa ?? (myChoice && myChoice.userId === userId ? myChoice.keepFcfa : 0),
         }
       : null,
     onTimeStreak: streak,
+    nextDueDate: next ? isoDay(next.dueDate) : null,
   };
 }
 
@@ -1087,7 +1094,10 @@ async function openAccount(groupId: string, userId: string | null) {
       data: { state: "ACTIVE", mfiAccountRef: accountRef, startedAt },
     });
     // The calendar is written once, by the request that made the group ACTIVE.
-    if (moved.count === 1) await createRounds(tx, groupId, startedAt, rules);
+    if (moved.count === 1) {
+      await createRounds(tx, groupId, startedAt, rules);
+      await carryChoices(tx, groupId); // D147: choices made before the start
+    }
     await tx.auditEvent.create({
       data: { userId, type: "GROUP_ACTIVE", details: { groupId } },
     });

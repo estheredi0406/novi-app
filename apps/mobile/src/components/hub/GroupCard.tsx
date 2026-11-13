@@ -1,4 +1,4 @@
-import type { GroupSummary } from "@novi/shared";
+import type { GroupSummary, PotChoiceView } from "@novi/shared";
 import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,7 +23,19 @@ import { sheetColumn } from "../WebFrame";
 // with the Payer button and, below, when her pot comes), else her pot to
 // come, else the pot she received, in green. Who receives this round is on the
 // group page, not here. Appeler, Discussion and Plus are plain blue links.
-export function GroupCard({ group, width }: { group: GroupSummary; width: number }) {
+// D144: the big figure is the pot she will receive, said as such ("Vous
+// recevrez le 14 nov."), never a bare amount that reads like a balance; under
+// it, where it goes once she has chosen, with a link to change it while the
+// choice is open.
+export function GroupCard({
+  group,
+  width,
+  choice = null,
+}: {
+  group: GroupSummary;
+  width: number;
+  choice?: PotChoiceView | null;
+}) {
   const { t, i18n } = useTranslation();
   const [more, setMore] = useState(false);
   const [calling, setCalling] = useState(false);
@@ -39,7 +51,40 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
   // Her own pot: still to come, or already received (D121: home speaks of her).
   const myPot = round.myTurn;
   const potReceived = myPot?.payoutStatus === "PAID";
-
+  const F = (n: number) => formatFcfa(n).replace(" FCFA", " F");
+  const keep = Math.min(myPot?.keepFcfa ?? 0, round.potFcfa);
+  const toPhone = round.potFcfa - keep;
+  // D145: her pot is this round and has not reached her yet.
+  const potNow = Boolean(myPot) && myPot!.number === round.number && !potReceived;
+  const potLater = Boolean(myPot) && myPot!.number > round.number;
+  const waitsAccount =
+    potNow && myPot!.payoutStatus === "READY" && keep > 0 && choice?.accountStatus === "REQUESTED";
+  const potState = !potNow
+    ? null
+    : waitsAccount
+      ? t("hub.potWaitsAccount")
+      : myPot!.payoutStatus === "NOT_DUE" || myPot!.payoutStatus === "HELD"
+        ? t("hub.potFilling", { paid: round.paidCount, total: group.size })
+        : myPot!.payoutStatus === "READY"
+          ? t("hub.potReady") // D146: full, but not sent until the caisse releases it
+          : myPot!.payoutStatus === "FAILED"
+            ? t("hub.potFailed") // D146: never "en route" when it is stuck
+            : t("hub.potOnWay");
+  // Where her pot goes, once she has chosen (D144), with "Modifier" while open.
+  const split = !myPot
+    ? null
+    : potReceived
+      ? keep > 0 && toPhone > 0
+        ? t("hub.keptToo", { kept: F(keep) })
+        : null
+      : keep >= round.potFcfa
+        ? t("hub.splitAllSaved")
+        : keep > 0
+          ? t("hub.splitPart", { phone: F(toPhone), kept: F(keep) })
+          : choice
+            ? t("hub.splitAllPhone") // D147: never answered: all to her mobile money
+            : null;
+  const canChange = Boolean(choice) && !potReceived;
   const open = (tab?: string) =>
     router.push({ pathname: "/groups/[id]", params: tab ? { id: group.id, tab } : { id: group.id } });
 
@@ -63,11 +108,19 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
 
   return (
     <View style={[styles.card, { width }]}>
-      <Pressable accessibilityRole="button" onPress={() => open()} style={styles.head}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("hub.openGroup", { name: group.name })}
+        onPress={() => open()}
+        style={styles.head}
+      >
         <Text style={styles.name} numberOfLines={1}>
           {group.name}
         </Text>
-        <LineIcon name="chevron" color={colors.action} />
+        {/* D145: a clear round button to open the group, not a small arrow. */}
+        <View style={styles.openBtn}>
+          <LineIcon name="chevron" color={colors.white} size={26} />
+        </View>
       </Pressable>
 
       <View style={styles.cycle}>
@@ -80,6 +133,8 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
           <Text style={styles.ringBig}>{t("hub.roundShort", { number: round.number })}</Text>
           <Text style={styles.ringSmall}>{t("hub.ofRounds", { total: group.size })}</Text>
         </CycleRing>
+        {/* D145: one big figure, and only money she pays, money coming to
+            her phone or money she got, always with a line saying which. */}
         <View style={styles.side}>
           {owes ? (
             <>
@@ -88,34 +143,52 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
                 {amountDue}
               </Text>
             </>
-          ) : (
+          ) : pending ? (
+            <Text style={[styles.status, styles.statusPending]}>{t("hub.payingText")}</Text>
+          ) : potReceived ? (
             <>
-              {pending ? (
-                <Text style={[styles.status, styles.statusPending]}>{t("hub.payingText")}</Text>
-              ) : (
-                <View style={styles.okRow}>
-                  <LineIcon name="check" color={colors.paid} size={17} />
-                  <Text style={[styles.status, styles.statusPaid]}>
-                    {potReceived ? t("hub.gotPotShort") : t("hub.paidThisRound")}
-                  </Text>
-                </View>
-              )}
-              {myPot && potReceived ? (
+              <View style={styles.okRow}>
+                <LineIcon name="check" color={colors.paid} size={17} />
+                <Text style={[styles.status, styles.statusPaid]}>{t("hub.gotPotShort")}</Text>
+              </View>
+              <Text style={styles.small}>
+                {toPhone > 0
+                  ? t("hub.phoneGot", { date: day(myPot!.dueDate) })
+                  : t("hub.savedGot", { date: day(myPot!.dueDate) })}
+              </Text>
+              <Text style={[styles.amount, styles.amountGreen]} numberOfLines={1} adjustsFontSizeToFit>
+                {F(toPhone > 0 ? toPhone : keep)}
+              </Text>
+            </>
+          ) : potNow ? (
+            <>
+              <Text style={[styles.status, styles.statusTurn]}>{t("hub.yourTurnNow")}</Text>
+              <Text style={[styles.small, styles.turnDetail]}>{potState}</Text>
+              {toPhone > 0 ? (
                 <>
-                  <Text style={styles.small}>{t("hub.gotOn", { date: day(myPot.dueDate) })}</Text>
-                  <Text style={[styles.amount, styles.amountGreen]} numberOfLines={1} adjustsFontSizeToFit>
-                    {pot}
-                  </Text>
-                </>
-              ) : myPot ? (
-                <>
-                  <Text style={styles.small}>{t("hub.yourPot")}</Text>
+                  <Text style={styles.small}>{t("hub.toPhone")}</Text>
                   <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
-                    {pot}
+                    {F(toPhone)}
                   </Text>
-                  <Text style={styles.potDate}>{day(myPot.dueDate)}</Text>
                 </>
               ) : null}
+            </>
+          ) : (
+            <>
+              <View style={styles.okRow}>
+                <LineIcon name="check" color={colors.paid} size={17} />
+                <Text style={[styles.status, styles.statusPaid]}>{t("hub.paidThisRound")}</Text>
+              </View>
+              {round.nextDueDate ? (
+                <>
+                  <Text style={styles.small}>{t("hub.nextPayment", { date: day(round.nextDueDate) })}</Text>
+                  <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
+                    {F(group.amountFcfa)}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.small}>{t("hub.lastPayment")}</Text>
+              )}
             </>
           )}
         </View>
@@ -127,13 +200,36 @@ export function GroupCard({ group, width }: { group: GroupSummary; width: number
           <Text style={styles.payText}>{t("hub.pay", { amount: amountDue })}</Text>
         </Pressable>
       ) : null}
-      {owes && myPot && !potReceived ? (
+      {/* D145: the pot's size, said as hers, when, and where it comes from. */}
+      {myPot && (potLater || (potNow && owes)) ? (
         <View style={styles.potRow}>
           <CowrieMark size={20} fill={colors.yourTurn} />
-          <Text style={styles.potText}>
-            <Text style={styles.potBold}>{t("hub.potBold", { pot })}</Text>
-            {`, ${day(myPot.dueDate)}`}
-          </Text>
+          <View style={styles.potTextBox}>
+            <Text style={[styles.potText, styles.potBold]}>{t("hub.turnTitle", { date: day(myPot.dueDate) })}</Text>
+            <Text style={styles.potText}>{t("hub.turnPot", { pot, count: group.size })}</Text>
+          </View>
+        </View>
+      ) : null}
+      {split ? (
+        <View style={styles.splitRow}>
+          <Text style={styles.splitText}>{split}</Text>
+          {canChange ? (
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={() =>
+                router.push({ pathname: "/savings-choice" as never, params: { group: choice!.groupId } })
+              }
+            >
+              <Text style={styles.splitLink}>{t("hub.changeChoice")}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+      {owes && potReceived ? (
+        <View style={styles.okRow}>
+          <LineIcon name="check" color={colors.paid} size={17} />
+          <Text style={[styles.small, styles.statusPaid]}>{t("hub.gotPotOn", { date: day(myPot!.dueDate) })}</Text>
         </View>
       ) : null}
       {potReceived ? <Text style={styles.small}>{t("hub.keepPaying")}</Text> : null}
@@ -251,7 +347,15 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     gap: 14,
   },
-  head: { flexDirection: "row", alignItems: "center", gap: 8 },
+  head: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 44 },
+  openBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.action,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   name: { flex: 1, fontFamily: fonts.bodyBold, fontSize: 17, color: colors.indigo },
   cycle: { flexDirection: "row", alignItems: "center", gap: 16 },
   side: { flex: 1, minWidth: 0, gap: 4 },
@@ -261,11 +365,15 @@ const styles = StyleSheet.create({
   amount: { fontFamily: fonts.display, fontSize: 28, lineHeight: 36, color: colors.indigo },
   amountDue: { color: colors.accent },
   amountGreen: { color: colors.paid },
-  potDate: { fontFamily: fonts.bodyBold, fontSize: 14, lineHeight: 19, color: colors.turnText },
+  splitRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  splitText: { flex: 1, fontFamily: fonts.body, fontSize: 14, lineHeight: 19, color: colors.turnText },
+  splitLink: { fontFamily: fonts.bodyBold, fontSize: 14, lineHeight: 19, color: colors.action },
   okRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   status: { flexShrink: 1, fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 21 },
   statusPaid: { color: colors.paid },
   statusPending: { color: colors.action },
+  statusTurn: { color: colors.turnText },
+  turnDetail: { color: colors.turnText, marginBottom: 4 },
   potRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -275,8 +383,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  potText: { flex: 1, fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.turnText },
+  potText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 20, color: colors.turnText },
   potBold: { fontFamily: fonts.bodyBold },
+  potTextBox: { flex: 1, gap: 2 },
   pay: {
     minHeight: 56,
     borderRadius: 16,

@@ -7,6 +7,11 @@ export const choosePot = (
   roundId: string,
   body: { keepFcfa: number; pocket: "FREE" | "LOCKED"; lockMonths: 3 | 6 | 12 | null; consent: boolean },
 ) => memberRequest<MySavings>("PUT", `/v1/me/savings/choices/${roundId}`, body);
+// D147: her choice for her pot in a group, before it starts or while it runs.
+export const choosePotForGroup = (
+  groupId: string,
+  body: { keepFcfa: number; pocket: "FREE" | "LOCKED"; lockMonths: 3 | 6 | 12 | null; consent: boolean },
+) => memberRequest<MySavings>("PUT", `/v1/me/savings/groups/${groupId}`, body);
 export const withdrawSavings = (accountId: string, amountFcfa: number) =>
   memberRequest<MySavings>("POST", `/v1/me/savings/${accountId}/withdraw`, { amountFcfa });
 export const takeBackPlacement = (accountId: string, entryId: string) =>

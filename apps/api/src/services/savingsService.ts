@@ -5,8 +5,10 @@ import type {
   MySavings,
   PotChoiceView,
   SavingsAccountView,
+  SavingsTerms,
 } from "@novi/shared";
-import type { SavingsEntry, SavingsPocket } from "../generated/prisma/client.js";
+import type { Prisma, SavingsEntry, SavingsPocket } from "../generated/prisma/client.js";
+import { potShare } from "../lib/groupRules.js";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { mfi as mfiStandIn } from "../providers/index.js";
@@ -19,9 +21,13 @@ import { sms } from "../providers/index.js";
 // MFI that holds her group's money, instead of receiving it on her wallet.
 //
 // The rules, in one place:
-// 1. Three days before the round whose pot is hers, she can choose where it
-//    goes: all on her wallet (the default), all kept, or a part kept. She can
-//    change her mind until the pot is sent.
+// 1. D147: as soon as she has joined a group, before it starts, Novi asks
+//    where her pot goes: all on her wallet (the default if she never
+//    answers), all kept, or a part kept, with the caisse's conditions on the
+//    same screen. She can change her mind until the pot is sent.
+// 1b. D147: the caisse must have set its conditions (rates, fees, minimum,
+//    early-withdrawal rule) first: until then it cannot validate a group and
+//    Novi offers no savings at all.
 // 2. Kept money goes into one of two pockets: FREE (she withdraws when she
 //    wants) or LOCKED for 3, 6 or 12 months (she cannot withdraw it before;
 //    the MFI pays a better rate). The rate is the MFI's, fixed when the money
@@ -29,12 +35,13 @@ import { sms } from "../providers/index.js";
 // 3. One savings account per member per MFI. The first time she keeps money,
 //    she agrees that Novi sends the MFI the identity it verified (her name,
 //    date of birth, number, and that ANID confirmed her identity); the MFI
-//    opens the account from its console. If it is not open when her pot is
-//    sent, the whole pot goes to her wallet, as before, and she is told.
+//    opens the account from its console. D141: the pot waits until it is
+//    opened; refused, the whole pot goes to her wallet and she is told.
 // 4. A withdrawal goes only to her own Novi number, like a pot, from the
 //    MFI's account. Locked money becomes free on its unlock day. Before that
-//    day she can take a whole placement back, but it earns nothing: the app
-//    says first what she would get by waiting.
+//    day she can take a whole placement back on the caisse's early rule (D147:
+//    without gains, or less a penalty): the app says first what she would get
+//    by waiting.
 // 5. Interest is shown as an estimate: simple interest, day by day, on each
 //    amount at the rate it came in with. The MFI credits it by its own rules.
 // 6. A member must have started saving at the MFI before she asks for a loan
@@ -43,7 +50,6 @@ import { sms } from "../providers/index.js";
 // Novi never holds the money (D2): the MFI does, in its FedaPay balance and
 // its own books; Novi records her choices and instructions.
 
-export const CHOICE_OPENS_DAYS = 3;
 export const LOCK_MONTHS = [3, 6, 12] as const;
 const DAY_MS = 86_400_000;
 
@@ -53,6 +59,12 @@ type Policy = {
   lock6Bp: number | null;
   lock12Bp: number | null;
   requireForLoan: boolean;
+  openingFeeFcfa: number | null;
+  monthlyFeeFcfa: number | null;
+  withdrawalFeeFcfa: number | null;
+  minKeepFcfa: number | null;
+  earlyRule: "LOSE_GAINS" | "PENALTY" | null;
+  earlyPenaltyBp: number | null;
 };
 
 export async function savingsPolicy(mfiId: string): Promise<Policy> {
@@ -63,10 +75,47 @@ export async function savingsPolicy(mfiId: string): Promise<Policy> {
     lock6Bp: row?.lock6Bp ?? null,
     lock12Bp: row?.lock12Bp ?? null,
     requireForLoan: row?.requireForLoan ?? true,
+    openingFeeFcfa: row?.openingFeeFcfa ?? null,
+    monthlyFeeFcfa: row?.monthlyFeeFcfa ?? null,
+    withdrawalFeeFcfa: row?.withdrawalFeeFcfa ?? null,
+    minKeepFcfa: row?.minKeepFcfa ?? null,
+    earlyRule: row?.earlyRule ?? null,
+    earlyPenaltyBp: row?.earlyPenaltyBp ?? null,
   };
 }
 
-export function rateFor(policy: Policy, pocket: SavingsPocket, lockMonths: number | null): number | null {
+// D147: the conditions a member reads, or null while any is missing.
+export function termsOf(p: Policy): SavingsTerms | null {
+  const locks = (
+    [
+      [3, p.lock3Bp],
+      [6, p.lock6Bp],
+      [12, p.lock12Bp],
+    ] as const
+  )
+    .filter(([, bp]) => bp !== null)
+    .map(([months, bp]) => ({ months, bp: bp as number }));
+  // The app offers blocked savings only (D123: one simple product), so at
+  // least one duration with its rate, and the early rule, are required.
+  if (locks.length === 0 || p.openingFeeFcfa === null || p.monthlyFeeFcfa === null) return null;
+  if (p.withdrawalFeeFcfa === null || p.minKeepFcfa === null) return null;
+  if (p.earlyRule === null || (p.earlyRule === "PENALTY" && p.earlyPenaltyBp === null)) return null;
+  return {
+    freeBp: p.freeBp,
+    locks,
+    openingFeeFcfa: p.openingFeeFcfa,
+    monthlyFeeFcfa: p.monthlyFeeFcfa,
+    withdrawalFeeFcfa: p.withdrawalFeeFcfa,
+    minKeepFcfa: p.minKeepFcfa,
+    early: { rule: p.earlyRule, penaltyBp: p.earlyRule === "PENALTY" ? p.earlyPenaltyBp : null },
+  };
+}
+
+export async function savingsTerms(mfiId: string): Promise<SavingsTerms | null> {
+  return termsOf(await savingsPolicy(mfiId));
+}
+
+export function rateFor(policy: Pick<Policy, "freeBp" | "lock3Bp" | "lock6Bp" | "lock12Bp">, pocket: SavingsPocket, lockMonths: number | null): number | null {
   if (pocket === "FREE") return policy.freeBp;
   return lockMonths === 3 ? policy.lock3Bp : lockMonths === 6 ? policy.lock6Bp : lockMonths === 12 ? policy.lock12Bp : null;
 }
@@ -159,121 +208,219 @@ function accountView(
   };
 }
 
-// Her rounds whose pot is hers, not sent yet, from three days before.
-async function openChoices(userId: string, now: Date) {
-  // D126: the choice opens 3 days before the pot and closes on its day, or
-  // as soon as Novi starts handling the pot (held because not full, ready,
-  // sent). A pot already past is not a question any more: what she chose
-  // stands, and a pot on hold has no amount to split yet.
-  // D127: in the pilot, rounds follow each other as soon as they are paid, so
-  // the choice is open for the whole round being paid now, whatever its date.
-  // D137: a full pot waiting for an officer (READY) is still hers to split:
-  // the part she keeps is only read when the pot is first sent. Without this,
-  // in the pilot the last payment made the pot READY at once and the
-  // question vanished before she could answer it.
-  const opens = new Date(now.getTime() + CHOICE_OPENS_DAYS * DAY_MS);
+// Her pots she can still direct (D147): in each group she has joined that
+// has not started yet (no round: the choice is kept on her seat), and each
+// round of hers in a running group whose pot has not left (no payout yet, or
+// a full pot waiting for an officer, D137). Only at a caisse whose savings
+// conditions are complete.
+type Open = {
+  groupId: string;
+  roundId: string | null;
+  roundNumber: number | null;
+  dueDate: Date | null;
+  started: boolean;
+  group: { name: string; mfiId: string; mfi: { name: string; code: string } };
+  potFcfa: number;
+  terms: SavingsTerms;
+  saved: { keepFcfa: number; pocket: SavingsPocket; lockMonths: number | null } | null;
+};
+
+async function openChoices(userId: string, now: Date): Promise<Open[]> {
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const fast = pilotMode();
-  const rounds = await prisma.round.findMany({
-    where: {
-      beneficiaryId: userId,
-      dueDate: fast ? { gte: today } : { gte: today, lte: opens },
-      OR: [{ payout: null }, { payout: { status: "READY", keptFcfa: null } }],
-      group: { state: "ACTIVE" },
-    },
-    include: { group: { include: { mfi: true, rulesVersions: { orderBy: { version: "desc" }, take: 1 } } }, payout: true },
-    orderBy: { dueDate: "asc" },
-  });
-  if (!fast) return rounds;
-  const current: typeof rounds = [];
-  for (const r of rounds) {
-    const before = await prisma.round.count({ where: { groupId: r.groupId, number: { lt: r.number }, payout: null } });
-    if (before === 0) current.push(r);
+  const [seats, rounds] = await Promise.all([
+    prisma.membership.findMany({
+      where: { userId, state: "ACCEPTED", group: { state: { in: ["PROPOSED", "STARTING"] } } },
+      include: { group: { include: { mfi: true, rulesVersions: { orderBy: { version: "desc" }, take: 1 } } } },
+    }),
+    prisma.round.findMany({
+      where: {
+        beneficiaryId: userId,
+        dueDate: { gte: today },
+        OR: [{ payout: null }, { payout: { status: "READY", keptFcfa: null } }],
+        group: { state: "ACTIVE" },
+      },
+      include: { group: { include: { mfi: true, rulesVersions: { orderBy: { version: "desc" }, take: 1 } } } },
+      orderBy: { dueDate: "asc" },
+    }),
+  ]);
+  const choices = await prisma.potChoice.findMany({ where: { roundId: { in: rounds.map((r) => r.id) } } });
+  const termsByMfi = new Map<string, SavingsTerms | null>();
+  const termsFor = async (mfiId: string) => {
+    if (!termsByMfi.has(mfiId)) termsByMfi.set(mfiId, await savingsTerms(mfiId));
+    return termsByMfi.get(mfiId) ?? null;
+  };
+  const out: Open[] = [];
+  for (const seat of seats) {
+    const rules = seat.group.rulesVersions[0];
+    const terms = await termsFor(seat.group.mfiId);
+    if (!rules || !terms) continue;
+    out.push({
+      groupId: seat.groupId,
+      roundId: null,
+      roundNumber: null,
+      dueDate: null,
+      started: false,
+      group: seat.group,
+      potFcfa: potShare(rules.amountFcfa) * rules.size,
+      terms,
+      saved:
+        seat.potChoiceAt && seat.potKeepFcfa !== null
+          ? { keepFcfa: seat.potKeepFcfa, pocket: seat.potPocket ?? "FREE", lockMonths: seat.potLockMonths }
+          : null,
+    });
   }
-  return current;
+  for (const r of rounds) {
+    const rules = r.group.rulesVersions[0];
+    const terms = await termsFor(r.group.mfiId);
+    if (!rules || !terms) continue;
+    const c = choices.find((x) => x.roundId === r.id && x.userId === userId);
+    out.push({
+      groupId: r.groupId,
+      roundId: r.id,
+      roundNumber: r.number,
+      dueDate: r.dueDate,
+      started: true,
+      group: r.group,
+      potFcfa: potShare(rules.amountFcfa) * rules.size,
+      terms,
+      saved: c ? { keepFcfa: c.keepFcfa, pocket: c.pocket, lockMonths: c.lockMonths } : null,
+    });
+  }
+  return out;
 }
 
 export async function mySavings(userId: string, now = new Date()): Promise<MySavings> {
-  const [accounts, rounds] = await Promise.all([
+  const [accounts, open] = await Promise.all([
     prisma.savingsAccount.findMany({ where: { userId }, include: { mfi: true, entries: true } }),
     openChoices(userId, now),
   ]);
-  const choices = await prisma.potChoice.findMany({ where: { roundId: { in: rounds.map((r) => r.id) } } });
-  const pending: PotChoiceView[] = [];
-  for (const r of rounds) {
-    const rules = r.group.rulesVersions[0];
-    if (!rules) continue;
-    const policy = await savingsPolicy(r.group.mfiId);
-    const account = accounts.find((a) => a.mfiId === r.group.mfiId);
-    const choice = choices.find((c) => c.roundId === r.id);
-    pending.push({
-      roundId: r.id,
-      groupId: r.groupId,
-      groupName: r.group.name,
-      roundNumber: r.number,
-      dueDate: r.dueDate.toISOString().slice(0, 10),
-      potFcfa: rules.amountFcfa * rules.size,
-      mfiName: r.group.mfi.name,
+  const pending: PotChoiceView[] = open.map((o) => {
+    const account = accounts.find((a) => a.mfiId === o.group.mfiId);
+    const lock = (m: number) => o.terms.locks.find((l) => l.months === m)?.bp ?? null;
+    return {
+      roundId: o.roundId,
+      groupId: o.groupId,
+      groupName: o.group.name,
+      roundNumber: o.roundNumber,
+      dueDate: o.dueDate ? o.dueDate.toISOString().slice(0, 10) : null,
+      started: o.started,
+      potFcfa: o.potFcfa,
+      mfiName: o.group.mfi.name,
       accountStatus: (account?.status ?? null) as PotChoiceView["accountStatus"],
-      keepFcfa: choice?.keepFcfa ?? 0,
-      pocket: choice?.pocket ?? "FREE",
-      lockMonths: choice?.lockMonths ?? null,
-      rates: { freeBp: policy.freeBp, lock3Bp: policy.lock3Bp, lock6Bp: policy.lock6Bp, lock12Bp: policy.lock12Bp },
-    });
-  }
+      chosen: Boolean(o.saved),
+      keepFcfa: o.saved?.keepFcfa ?? 0,
+      pocket: o.saved?.pocket ?? "FREE",
+      lockMonths: o.saved?.lockMonths ?? null,
+      rates: { freeBp: o.terms.freeBp, lock3Bp: lock(3), lock6Bp: lock(6), lock12Bp: lock(12) },
+      terms: o.terms,
+    };
+  });
   return {
     accounts: accounts.map((a) => accountView(a, a.entries, now)),
     choices: pending,
   };
 }
 
-// Her choice for one pot. Keeping anything needs her agreement to share her
-// verified identity with the MFI, the first time.
+type ChoiceInput = { keepFcfa: number; pocket: SavingsPocket; lockMonths: number | null; consent: boolean };
+
+// Her choice for one pot, by its round (running group) or by its group (D147:
+// before the start, or her round in a running group). Keeping anything needs
+// her agreement to share her verified identity with the MFI, the first time;
+// the account is asked for at once, so the caisse can open it long before her
+// turn.
 export async function choosePot(
   userId: string,
-  input: { roundId: string; keepFcfa: number; pocket: SavingsPocket; lockMonths: number | null; consent: boolean },
+  input: ChoiceInput & ({ roundId: string } | { groupId: string }),
   now = new Date(),
 ): Promise<MySavings> {
-  const round = (await openChoices(userId, now)).find((r) => r.id === input.roundId);
-  if (!round) throw new AppError("NOT_ALLOWED_NOW", 409);
-  const rules = round.group.rulesVersions[0];
-  const pot = rules ? rules.amountFcfa * rules.size : 0;
-  if (!Number.isInteger(input.keepFcfa) || input.keepFcfa < 0 || input.keepFcfa > pot)
+  const open = (await openChoices(userId, now)).find((o) =>
+    "roundId" in input ? o.roundId === input.roundId : o.groupId === input.groupId,
+  );
+  if (!open) {
+    // A caisse without complete conditions offers no savings at all.
+    const groupId = "groupId" in input ? input.groupId : null;
+    if (groupId) {
+      const g = await prisma.group.findUnique({ where: { id: groupId } });
+      if (g && !(await savingsTerms(g.mfiId))) throw new AppError("SAVINGS_TERMS_MISSING", 409);
+    }
+    throw new AppError("NOT_ALLOWED_NOW", 409);
+  }
+  const { terms } = open;
+  if (!Number.isInteger(input.keepFcfa) || input.keepFcfa < 0 || input.keepFcfa > open.potFcfa)
     throw new AppError("VALIDATION_FAILED", 400);
-  // "All on my phone" needs no length; a placement needs 3, 6 or 12 months.
-  if (input.keepFcfa > 0 && input.pocket === "LOCKED" && !LOCK_MONTHS.includes(input.lockMonths as 3 | 6 | 12))
+  if (input.keepFcfa > 0 && input.keepFcfa < terms.minKeepFcfa) throw new AppError("VALIDATION_FAILED", 400);
+  // "All on my phone" needs no length; a placement needs a duration the caisse offers.
+  if (input.keepFcfa > 0 && input.pocket === "LOCKED" && !terms.locks.some((l) => l.months === input.lockMonths))
     throw new AppError("VALIDATION_FAILED", 400);
 
-  if (input.keepFcfa > 0) {
-    const existing = await prisma.savingsAccount.findUnique({
-      where: { userId_mfiId: { userId, mfiId: round.group.mfiId } },
-    });
-    if (!existing) {
-      if (!input.consent) throw new AppError("SAVINGS_CONSENT_REQUIRED", 400);
-      const count = await prisma.savingsAccount.count({ where: { mfiId: round.group.mfiId } });
-      await prisma.savingsAccount.create({
-        data: {
-          userId,
-          mfiId: round.group.mfiId,
-          ref: `EP-${round.group.mfi.code.slice(0, 3)}-${String(count + 1).padStart(4, "0")}`,
-          consentAt: now,
-        },
-      });
-      await prisma.auditEvent.create({
-        data: { userId, type: "SAVINGS_REQUESTED", details: { mfiId: round.group.mfiId } },
-      });
-    } else if (existing.status === "REFUSED") {
-      throw new AppError("SAVINGS_REFUSED", 409);
-    }
-  }
+  if (input.keepFcfa > 0) await requestAccount(userId, open.group, input.consent, now);
   const data = {
-    userId,
     keepFcfa: input.keepFcfa,
     pocket: input.pocket,
-    lockMonths: input.pocket === "LOCKED" ? input.lockMonths : null,
+    lockMonths: input.keepFcfa > 0 && input.pocket === "LOCKED" ? input.lockMonths : null,
   };
-  await prisma.potChoice.upsert({ where: { roundId: round.id }, create: { roundId: round.id, ...data }, update: data });
+  if (open.roundId) {
+    await prisma.potChoice.upsert({
+      where: { roundId: open.roundId },
+      create: { roundId: open.roundId, userId, ...data },
+      update: { userId, ...data },
+    });
+  } else {
+    await prisma.membership.updateMany({
+      where: { groupId: open.groupId, userId },
+      data: { potKeepFcfa: data.keepFcfa, potPocket: data.pocket, potLockMonths: data.lockMonths, potChoiceAt: now },
+    });
+  }
   return mySavings(userId, now);
+}
+
+async function requestAccount(
+  userId: string,
+  group: { mfiId: string; mfi: { code: string } },
+  consent: boolean,
+  now: Date,
+) {
+  const existing = await prisma.savingsAccount.findUnique({
+    where: { userId_mfiId: { userId, mfiId: group.mfiId } },
+  });
+  if (existing?.status === "REFUSED") throw new AppError("SAVINGS_REFUSED", 409);
+  if (existing) return;
+  if (!consent) throw new AppError("SAVINGS_CONSENT_REQUIRED", 400);
+  const count = await prisma.savingsAccount.count({ where: { mfiId: group.mfiId } });
+  await prisma.savingsAccount.create({
+    data: {
+      userId,
+      mfiId: group.mfiId,
+      ref: `EP-${group.mfi.code.slice(0, 3)}-${String(count + 1).padStart(4, "0")}`,
+      consentAt: now,
+    },
+  });
+  await prisma.auditEvent.create({
+    data: { userId, type: "SAVINGS_REQUESTED", details: { mfiId: group.mfiId } },
+  });
+}
+
+// D147: when the calendar is written, each choice made before the start
+// becomes the choice for that member's round.
+export async function carryChoices(tx: Prisma.TransactionClient, groupId: string): Promise<void> {
+  const seats = await tx.membership.findMany({
+    where: { groupId, potChoiceAt: { not: null }, potKeepFcfa: { not: null } },
+  });
+  for (const seat of seats) {
+    const round = await tx.round.findFirst({ where: { groupId, beneficiaryId: seat.userId } });
+    if (!round) continue;
+    await tx.potChoice.upsert({
+      where: { roundId: round.id },
+      create: {
+        roundId: round.id,
+        userId: seat.userId,
+        keepFcfa: seat.potKeepFcfa ?? 0,
+        pocket: seat.potPocket ?? "FREE",
+        lockMonths: seat.potLockMonths,
+      },
+      update: {},
+    });
+  }
 }
 
 // D141: she chose to keep part of this pot in savings and the MFI has not
@@ -337,12 +484,11 @@ export async function bookKept(
   const pocket = choice?.pocket ?? "FREE";
   const lockMonths = pocket === "LOCKED" ? (choice?.lockMonths ?? 3) : null;
   const row = await tx.savingsPolicy.findUnique({ where: { mfiId: payout.round.group.mfiId } });
-  const policy: Policy = {
+  const policy = {
     freeBp: row?.freeBp ?? null,
     lock3Bp: row?.lock3Bp ?? null,
     lock6Bp: row?.lock6Bp ?? null,
     lock12Bp: row?.lock12Bp ?? null,
-    requireForLoan: row?.requireForLoan ?? true,
   };
   await tx.savingsEntry.create({
     data: {
@@ -395,7 +541,14 @@ export async function breakPlacement(userId: string, input: { accountId: string;
   const out = await prisma.savingsEntry.create({
     data: { accountId: account.id, kind: "WITHDRAWAL", pocket: "LOCKED", amountFcfa: -lot.amountFcfa, status: "SENDING" },
   });
-  const ok = await sendWithdrawal(account, out.id, lot.amountFcfa, userId);
+  // D147: the caisse's early rule: without gains (the default), or less its
+  // penalty, which the caisse keeps.
+  const policy = await savingsPolicy(account.mfiId);
+  const penalty =
+    policy.earlyRule === "PENALTY" && policy.earlyPenaltyBp
+      ? Math.ceil((lot.amountFcfa * policy.earlyPenaltyBp) / 10_000)
+      : 0;
+  const ok = await sendWithdrawal(account, out.id, lot.amountFcfa - penalty, userId);
   if (!ok) {
     await prisma.savingsEntry.update({ where: { id: lot.id }, data: { brokenAt: null } });
     throw new AppError("SAVINGS_WITHDRAWAL_FAILED", 502);
@@ -513,7 +666,7 @@ export async function consoleSavings(mfiId: string, now = new Date()): Promise<C
         status: e.status as "DONE" | "SENDING" | "FAILED",
         at: e.createdAt.toISOString(),
       })),
-    policy: await savingsPolicy(mfiId),
+    policy: await consolePolicy(mfiId),
   };
 }
 
@@ -570,14 +723,32 @@ async function tellSavingsDecided(userId: string, mfiId: string, open: boolean, 
   }
 }
 
-export async function saveSavingsPolicy(mfiId: string, staffId: string, input: ConsoleSavingsPolicy): Promise<ConsoleSavings> {
+async function consolePolicy(mfiId: string): Promise<ConsoleSavingsPolicy> {
+  const p = await savingsPolicy(mfiId);
+  return { ...p, complete: termsOf(p) !== null };
+}
+
+export async function saveSavingsPolicy(
+  mfiId: string,
+  staffId: string,
+  input: Omit<ConsoleSavingsPolicy, "complete">,
+): Promise<ConsoleSavings> {
   const data = {
     freeBp: input.freeBp,
     lock3Bp: input.lock3Bp,
     lock6Bp: input.lock6Bp,
     lock12Bp: input.lock12Bp,
     requireForLoan: input.requireForLoan,
+    openingFeeFcfa: input.openingFeeFcfa,
+    monthlyFeeFcfa: input.monthlyFeeFcfa,
+    withdrawalFeeFcfa: input.withdrawalFeeFcfa,
+    minKeepFcfa: input.minKeepFcfa,
+    earlyRule: input.earlyRule,
+    earlyPenaltyBp: input.earlyRule === "PENALTY" ? input.earlyPenaltyBp : null,
   };
+  // D147: the date the conditions became complete, for the record.
+  const complete = termsOf({ ...data }) !== null;
+  Object.assign(data, { termsSetAt: complete ? new Date() : null });
   await prisma.savingsPolicy.upsert({ where: { mfiId }, create: { mfiId, ...data }, update: data });
   await prisma.auditEvent.create({ data: { type: "STAFF_SAVINGS_POLICY_CHANGED", details: { staffId, ...data } } });
   return consoleSavings(mfiId);

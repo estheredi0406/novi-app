@@ -2237,3 +2237,29 @@ a.primary {
   display: inline-block;
   text-decoration: none;
 }
+
+/* D144: the receiver's choice for her pot, on its own line under the row. */
+.q-meta.q-choice {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink);
+}
+
+/* D147: the caisse's savings conditions, a grid of label, switch and value. */
+.terms .terms-sub { margin: 4px 24px 8px; font-size: 15px; color: var(--ink); }
+.terms-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) 120px minmax(0, 240px);
+  align-items: center;
+  gap: 10px 16px;
+  padding: 0 24px 18px;
+}
+.terms-label { font-weight: 600; }
+.terms-grid .money-input { min-width: 0; width: 100%; }
+.money-input.pct input { width: 70px; text-align: right; }
+.terms-early { display: flex; flex-direction: column; gap: 12px; padding: 0 24px 18px; }
+.terms-early .money-input { height: 38px; min-width: 0; width: 120px; margin-left: 6px; }
+@media (max-width: 700px) {
+  .terms-grid { grid-template-columns: 1fr auto; }
+  .terms-grid > :nth-child(3n) { grid-column: 1 / -1; }
+}

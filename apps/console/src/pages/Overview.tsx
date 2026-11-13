@@ -153,6 +153,9 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
           <span className="q-meta">
             {meta} · {t.since(day(item.since))}
           </span>
+          {item.status === "READY" || item.status === "FAILED" ? (
+            <span className="q-meta q-choice">{t.herChoice(item.herKeepFcfa, item.amountFcfa, fcfa)}</span>
+          ) : null}
         </div>
         <span className="q-amount">{fcfa(item.amountFcfa)}</span>
         <div className="q-actions">
@@ -215,6 +218,21 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
           <span className="tile-hint">{t.todayAdvances(fcfa(today.advancesFcfa))}</span>
         </div>
       </section>
+
+      {/* D147: no group can be validated before the savings conditions exist. */}
+      {!data.overview.savingsTermsComplete ? (
+        <section className="queue choose-ceiling">
+          <div className="queue-head">
+            <h2>{t.termsBanner}</h2>
+            <a className="button-secondary" href="#/savings">
+              {t.termsBannerLink}
+            </a>
+          </div>
+          <p className="muted" style={{ padding: "0 24px 18px", margin: 0 }}>
+            {t.termsBannerBody}
+          </p>
+        </section>
+      ) : null}
 
       {/* D134: no ceiling until the institution chooses one. */}
       {!data.overview.autoReleaseChosen ? (

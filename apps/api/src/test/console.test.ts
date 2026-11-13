@@ -8,7 +8,7 @@ import { MockMfiAdapter } from "../providers/mfi/MockMfiAdapter.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
 import { releasePayout, runPayouts } from "../services/payoutService.js";
 import { createStaff } from "../services/staffService.js";
-import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
+import { ABLA, KOFFI, savingsTermsFor, signedUpMember } from "./helpers.js";
 
 if (
   !(mfi instanceof MockMfiAdapter) ||
@@ -336,6 +336,7 @@ describe("payouts that need a look (D53)", () => {
       reported: 0,
       autoReleaseFcfa: null,
       autoReleaseChosen: false, // D134: the MFI has not chosen its ceiling
+      savingsTermsComplete: false, // D147: nor its savings conditions
     });
     // D92: a held pot has not left, so the ring shows no pot paid out yet,
     // and the group is flagged for a look.
@@ -362,6 +363,11 @@ describe("validating a group before its account opens (D66)", () => {
       expect.objectContaining({ id: groupId, state: "STARTING" }),
     ]);
 
+    // D147: not before the caisse has set its savings conditions.
+    const refused = await desk.post(`/v1/console/groups/${groupId}/approve`);
+    expect(refused.status).toBe(409);
+    expect(refused.body.error.code).toBe("SAVINGS_TERMS_MISSING");
+    await savingsTermsFor();
     expect(
       (await desk.post(`/v1/console/groups/${groupId}/approve`)).status,
     ).toBe(200);

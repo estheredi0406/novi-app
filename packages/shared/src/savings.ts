@@ -9,6 +9,19 @@ export type SavingsRates = {
   lock12Bp: number | null;
 };
 
+// D147: the caisse's savings conditions, as the member reads them before she
+// places anything. Only durations the caisse offers are listed.
+export type SavingsTerms = {
+  freeBp: number | null; // free savings are not offered in the app (D123)
+  locks: { months: 3 | 6 | 12; bp: number }[];
+  openingFeeFcfa: number;
+  monthlyFeeFcfa: number;
+  withdrawalFeeFcfa: number;
+  minKeepFcfa: number;
+  // What she loses taking a placement back before its date.
+  early: { rule: "LOSE_GAINS" | "PENALTY"; penaltyBp: number | null };
+};
+
 export type SavingsEntryView = {
   id: string;
   kind: "POT_KEPT" | "WITHDRAWAL";
@@ -45,20 +58,27 @@ export type SavingsAccountView = {
   entries: SavingsEntryView[];
 };
 
-// A pot of hers that she can still direct (from 3 days before it).
+// A pot of hers that she can still direct. D147: from the day she joins the
+// group until the pot leaves; before the group starts there is no round yet
+// (roundId, roundNumber and dueDate are null).
 export type PotChoiceView = {
-  roundId: string;
+  roundId: string | null;
   groupId: string;
   groupName: string;
-  roundNumber: number;
-  dueDate: string;
+  roundNumber: number | null;
+  dueDate: string | null;
+  started: boolean; // false: the group has not started yet
   potFcfa: number;
   mfiName: string;
   accountStatus: "REQUESTED" | "OPEN" | "REFUSED" | null; // null: no account yet
+  // D144: false until she has answered; "all on my phone" is an answer
+  // (keepFcfa 0), not the same as no answer.
+  chosen: boolean;
   keepFcfa: number;
   pocket: SavingsPocketName;
   lockMonths: number | null;
   rates: SavingsRates;
+  terms: SavingsTerms; // D147: only pots at a caisse with complete conditions are listed
 };
 
 export type MySavings = {
@@ -66,7 +86,18 @@ export type MySavings = {
   choices: PotChoiceView[];
 };
 
-export type ConsoleSavingsPolicy = SavingsRates & { requireForLoan: boolean };
+// D147: every field is required before the caisse can validate a group; a
+// lock rate left null means the caisse does not offer that duration.
+export type ConsoleSavingsPolicy = SavingsRates & {
+  requireForLoan: boolean;
+  openingFeeFcfa: number | null;
+  monthlyFeeFcfa: number | null;
+  withdrawalFeeFcfa: number | null;
+  minKeepFcfa: number | null;
+  earlyRule: "LOSE_GAINS" | "PENALTY" | null;
+  earlyPenaltyBp: number | null;
+  complete: boolean; // read only: the conditions are complete
+};
 
 export type ConsoleSavings = {
   totalFcfa: number;

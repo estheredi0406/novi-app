@@ -139,6 +139,9 @@ export function HomeView({
   }
   const { width } = useAppWidth();
   const [page, setPage] = useState(0);
+  // D147: asked from the day she joins until the group starts; after that,
+  // an unanswered pot goes to her mobile money (the group card says so).
+  const toChoose = savings?.choices.filter((c) => !c.chosen && !c.started) ?? [];
 
   // Ewe screens still show French texts until a native speaker reviews them,
   // so the date follows the French.
@@ -215,7 +218,12 @@ export function HomeView({
               style={styles.cardsScroll}
             >
               {running.map((g) => (
-                <GroupCard key={g.id} group={g} width={cardWidth} />
+                <GroupCard
+                  key={g.id}
+                  group={g}
+                  width={cardWidth}
+                  choice={savings?.choices.find((c) => c.groupId === g.id) ?? null}
+                />
               ))}
             </ScrollView>
             {running.length > 1 ? (
@@ -296,34 +304,25 @@ export function HomeView({
         </View>
       ) : null}
 
-      {/* D123: three days before her pot, where it goes; then her savings. */}
-      {savings && (savings.choices.length > 0 || savings.accounts.length > 0) ? (
+      {/* D123: three days before her pot, where it goes; then her savings.
+          D144: once she has answered, the question leaves home: her choice
+          shows on the group card, with "Modifier" while it can change. */}
+      {savings && (toChoose.length > 0 || savings.accounts.length > 0) ? (
         <View style={styles.section}>
-          {savings.choices.map((c) => (
+          {toChoose.map((c) => (
             <Pressable
               key={c.roundId}
               accessibilityRole="button"
-              onPress={() => router.push({ pathname: "/savings-choice" as never, params: { round: c.roundId } })}
-              style={[styles.box, c.keepFcfa > 0 ? null : styles.invite]}
+              onPress={() => router.push({ pathname: "/savings-choice" as never, params: { group: c.groupId } })}
+              style={[styles.box, styles.invite]}
             >
               <View style={[styles.avatar, { backgroundColor: colors.turnSoft }]}>
                 <CowrieMark size={22} fill={colors.yourTurn} />
               </View>
               <View style={styles.boxText}>
                 {/* D125: the question first, then the amount and the day. */}
-                <Text style={styles.boxTitle}>
-                  {c.keepFcfa > 0
-                    ? t("savings.homeChoiceChosen", { date: shortDay(c.dueDate, i18n.language) })
-                    : t("savings.homeChoice")}
-                </Text>
-                <Text style={styles.boxSub}>
-                  {c.keepFcfa > 0
-                    ? t("savings.homeChoiceDone", { kept: formatFcfa(c.keepFcfa).replace(" FCFA", " F") })
-                    : t("savings.homeChoiceSub", {
-                        pot: formatFcfa(c.potFcfa).replace(" FCFA", " F"),
-                        date: shortDay(c.dueDate, i18n.language),
-                      })}
-                </Text>
+                <Text style={styles.boxTitle}>{t("savings.homeChoicePre")}</Text>
+                <Text style={styles.boxSub}>{t("savings.homeChoicePreSub", { group: c.groupName })}</Text>
               </View>
               <LineIcon name="chevron" color={colors.action} />
             </Pressable>

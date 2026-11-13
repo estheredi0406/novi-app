@@ -97,6 +97,7 @@ export const errors = {
   COMPLIANCE_ONLY: { messageKey: "staff.complianceOnly" }, // D117: the compliance view is for administrators and compliance officers
   READ_ONLY_ROLE: { messageKey: "staff.readOnlyRole" }, // D117: a compliance officer moves no money and decides nothing
   SECOND_OFFICER_NEEDED: { messageKey: "staff.secondOfficer" }, // D105: two officers for a large pot
+  SAVINGS_TERMS_MISSING: { messageKey: "staff.savingsTermsMissing" },
   SAVINGS_ACCOUNT_TO_OPEN: { messageKey: "staff.savingsToOpen" }, // D141: she keeps part in savings; open her account first
   STAFF_EMAIL_TAKEN: { messageKey: "staff.emailTaken" }, // D81
   WEAK_PASSWORD: { messageKey: "staff.weakPassword" }, // D81: at least 12 characters, not the temporary one
