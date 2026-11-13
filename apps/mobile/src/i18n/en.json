@@ -14,7 +14,10 @@
     "haveAccount": "I already have an account"
   },
   "language": {
-    "title": "Choose your language"
+    "title": "Choose your language",
+    "fr": "Français",
+    "en": "English",
+    "ee": "Eʋegbe"
   },
   "phone": {
     "step": "Step 1 · Your number",
