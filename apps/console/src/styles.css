@@ -1446,15 +1446,24 @@ table.members tr:last-child td {
 .kpis {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto auto auto;
+  margin-top: 24px;
   background: var(--card);
   border-radius: 18px;
   box-shadow: var(--shadow);
 }
+/* Each column shares the same three rows, so the figures line up even when
+   one label runs onto two lines. */
 .kpis > div {
   padding: 20px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  align-content: start;
+  row-gap: 2px;
+}
+.kpis .tile-label {
+  align-self: end;
 }
 .kpis > div + div {
   border-left: 1px solid var(--line);

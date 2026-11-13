@@ -293,7 +293,7 @@ export function Savings({ t, onExpired, isAdmin }: { t: Text; onExpired: () => v
         </div>
         <div>
           <span className="tile-label">{t.savingsKept}</span>
-          <span className="tile-number good">{fcfa(data.keptThisMonthFcfa)}</span>
+          <span className={data.keptThisMonthFcfa > 0 ? "tile-number good" : "tile-number"}>{fcfa(data.keptThisMonthFcfa)}</span>
         </div>
         <div>
           <span className="tile-label">{t.savingsWithdrawn}</span>
