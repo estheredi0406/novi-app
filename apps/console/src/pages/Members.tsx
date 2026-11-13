@@ -23,6 +23,8 @@ export function Members({ t, onExpired }: { t: Text; onExpired: () => void }) {
       return null;
     }
     const code = err instanceof ApiFailure ? err.code : "default";
+    // On this page the only thing typed is a phone number.
+    if (code === "VALIDATION_FAILED") return t.errors.phoneInvalid;
     return (t.errors as Record<string, string>)[code] ?? t.errors.default;
   };
 
@@ -51,7 +53,7 @@ export function Members({ t, onExpired }: { t: Text; onExpired: () => void }) {
     if (!m.nextOfKin) {
       const typed = window.prompt(t.deathAskPhone, "+228")?.replace(/\s/g, "");
       if (!typed) return;
-      if (!PHONE.test(typed)) return setMessage(t.errors.VALIDATION_FAILED);
+      if (!PHONE.test(typed)) return setMessage(t.errors.phoneInvalid);
       payoutPhone = typed;
     }
     const kin = m.nextOfKin ? `${m.nextOfKin.name} (${m.nextOfKin.phone})` : (payoutPhone as string);
@@ -78,7 +80,7 @@ export function Members({ t, onExpired }: { t: Text; onExpired: () => void }) {
   function changePhone(m: ConsoleMember) {
     const typed = window.prompt(t.phoneAsk, "+228")?.replace(/\s/g, "");
     if (!typed) return;
-    if (!PHONE.test(typed)) return setMessage(t.errors.VALIDATION_FAILED);
+    if (!PHONE.test(typed)) return setMessage(t.errors.phoneInvalid);
     if (!window.confirm(t.phoneConfirm(typed))) return;
     void run(async () => {
       const updated = await api<ConsoleMember>("POST", `/v1/console/members/${m.userId}/phone`, { phone: typed });
