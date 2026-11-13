@@ -57,6 +57,9 @@ export type GroupDetail = {
   name: string;
   state: GroupState;
   mfiName: string; // every money screen names the MFI holding the money
+  // D66: the MFI checks each group before opening its account; while it
+  // does, the organiser has nothing to retry.
+  mfiReviews: boolean;
   rules: GroupRules;
   seats: GroupSeat[];
   pendingInvites: PendingInvite[];

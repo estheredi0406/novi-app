@@ -1156,24 +1156,6 @@ table.members td {
 table.members tr:last-child td {
   border-bottom: 0;
 }
-.dots {
-  display: inline-flex;
-  gap: 3px;
-  flex-wrap: wrap;
-  max-width: 260px;
-}
-.rec-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.rec-dot-ok {
-  background: var(--paid);
-}
-.rec-dot-late {
-  background: var(--saffron);
-}
 .paid-text {
   color: var(--paid);
 }
@@ -2131,6 +2113,10 @@ a.ghost {
 
 /* D133: validate a group from the list or its page. */
 .validate-actions { display: inline-flex; gap: 10px; align-items: center; margin-top: 6px; }
+.must-do h2 .tag { vertical-align: middle; margin-left: 6px; }
+.primary.link-button { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; color: #fff; font-weight: 700; text-decoration: none; }
+.activity { list-style: none; margin: 0; padding: 0; font-size: 14px; line-height: 21px; }
+.activity li { white-space: nowrap; }
 .validate-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 18px 0 4px; padding: 12px 16px; background: var(--card); border-radius: 14px; box-shadow: var(--shadow); }
 
 /* D134: a colour and its count in the "À surveiller" filter. */

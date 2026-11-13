@@ -309,6 +309,15 @@ export const text = {
     colMember: "Membre",
     colRecord: "Historique Novi",
     colCaisse: "Avances du groupe",
+    colActivity: "Activité",
+    required: "Obligatoire",
+    sinceOn: (d: string) => `Sur Novi depuis le ${d}`,
+    lastPaid: (d: string) => `Dernier paiement le ${d}`,
+    noPaidYet: "Aucun paiement pour l'instant",
+    otherGroups: (n: number) =>
+      n === 0 ? "Aucune autre tontine en cours" : `${n} autre${n > 1 ? "s" : ""} tontine${n > 1 ? "s" : ""} en cours`,
+    covered: (n: number, missed: number) =>
+      `${n} tour${n > 1 ? "s" : ""} payé${n > 1 ? "s" : ""} par les avances${missed > 0 ? `, dont ${missed} remboursé${missed > 1 ? "s" : ""} en retard ou jamais` : ""}`,
     organiserTag: "organisatrice",
     noConsent: "N'a pas accepté de partager son historique",
     verifiedOn: (d: string) => `Identité vérifiée le ${d}`,
@@ -1097,6 +1106,15 @@ export const text = {
     colMember: "Member",
     colRecord: "Novi record",
     colCaisse: "Group's advances",
+    colActivity: "Activity",
+    required: "Required",
+    sinceOn: (d: string) => `On Novi since ${d}`,
+    lastPaid: (d: string) => `Last payment on ${d}`,
+    noPaidYet: "No payment yet",
+    otherGroups: (n: number) =>
+      n === 0 ? "No other tontine running" : `${n} other tontine${n > 1 ? "s" : ""} running`,
+    covered: (n: number, missed: number) =>
+      `${n} turn${n > 1 ? "s" : ""} paid by the advances${missed > 0 ? `, ${missed} repaid late or never` : ""}`,
     organiserTag: "organiser",
     noConsent: "Has not agreed to share her record",
     verifiedOn: (d: string) => `ID verified on ${d}`,

@@ -227,10 +227,12 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
 
       {/* D147: no group can be validated before the savings conditions exist. */}
       {!data.overview.savingsTermsComplete ? (
-        <section className="queue choose-ceiling">
+        <section className="queue choose-ceiling must-do">
           <div className="queue-head">
-            <h2>{t.termsBanner}</h2>
-            <a className="button-secondary" href="#/savings">
+            <h2>
+              {t.termsBanner} <span className="tag tag-red">{t.required}</span>
+            </h2>
+            <a className="primary link-button" href="#/savings">
               {t.termsBannerLink}
             </a>
           </div>

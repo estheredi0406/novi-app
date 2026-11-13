@@ -371,11 +371,13 @@ export default function GroupScreen() {
           <Text style={[type.body, styles.ink]}>
             {t("group.starting", { mfi: group.mfiName })}
           </Text>
-          <PrimaryButton
-            label={t("common.tryAgain")}
-            disabled={busy}
-            onPress={() => void run(() => startGroup(group.id))}
-          />
+          {group.mfiReviews ? null : (
+            <PrimaryButton
+              label={t("common.tryAgain")}
+              disabled={busy}
+              onPress={() => void run(() => startGroup(group.id))}
+            />
+          )}
         </View>
       ) : null}
 

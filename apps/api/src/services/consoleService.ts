@@ -344,6 +344,7 @@ async function memberCards(groupId: string): Promise<ConsoleMemberCard[]> {
           legalName: true,
           idVerifiedAt: true,
           createdAt: true,
+          phone: true,
         },
       },
     },
@@ -366,10 +367,15 @@ async function memberCards(groupId: string): Promise<ConsoleMemberCard[]> {
           paymentsMade: 0,
           paymentsOnTime: 0,
           owesCaisseFcfa: 0,
+          phone: null,
+          lastPaidAt: null,
+          otherActiveGroups: 0,
+          skipsUsed: 0,
+          missedTurns: 0,
         };
       }
       const userId = seat.user.id;
-      const [cyclesCompleted, payments, owes] = await Promise.all([
+      const [cyclesCompleted, payments, owes, otherActiveGroups, skipsUsed, missedTurns] = await Promise.all([
         prisma.membership.count({
           where: {
             userId,
@@ -383,7 +389,16 @@ async function memberCards(groupId: string): Promise<ConsoleMemberCard[]> {
           select: { paidAt: true, round: { select: { dueDate: true } } },
         }),
         owedCovers(userId),
+        prisma.membership.count({
+          where: { userId, state: "ACCEPTED", exitReason: null, groupId: { not: groupId }, group: { state: "ACTIVE" } },
+        }),
+        prisma.reserveCover.count({ where: { userId } }),
+        prisma.reserveCover.count({ where: { userId, missedAt: { not: null } } }),
       ]);
+      const lastPaid = payments.reduce<Date | null>(
+        (last, c) => (c.paidAt && (!last || c.paidAt > last) ? c.paidAt : last),
+        null,
+      );
       const onTime = payments.filter(
         (c) =>
           c.paidAt !== null &&
@@ -398,6 +413,11 @@ async function memberCards(groupId: string): Promise<ConsoleMemberCard[]> {
         paymentsMade: payments.length,
         paymentsOnTime: onTime,
         owesCaisseFcfa: owes,
+        phone: seat.user.phone,
+        lastPaidAt: lastPaid?.toISOString() ?? null,
+        otherActiveGroups,
+        skipsUsed,
+        missedTurns,
       };
     }),
   );

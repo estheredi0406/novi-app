@@ -102,6 +102,11 @@ export type ConsoleMemberCard = {
   paymentsMade: number;
   paymentsOnTime: number;
   owesCaisseFcfa: number; // rounds the caisse paid for her, not yet repaid
+  phone: string | null; // to call her before validating
+  lastPaidAt: string | null;
+  otherActiveGroups: number; // tontines she pays into elsewhere on Novi now
+  skipsUsed: number; // rounds the group's advances paid for her, ever
+  missedTurns: number; // of those, repaid after the deadline or never
 };
 
 export type ConsoleGroupDetail = ConsoleGroup & {

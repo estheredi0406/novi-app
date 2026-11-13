@@ -172,6 +172,7 @@ function toDetail(group: LoadedGroup, userId: string): GroupDetail {
     name: group.name,
     state: group.state,
     mfiName: group.mfi.name,
+    mfiReviews: mfiValidatesGroups(),
     rules: toRules(group),
     seats: group.memberships.filter(holdsSeat).map((seat) => ({
       memberId: seat.userId,

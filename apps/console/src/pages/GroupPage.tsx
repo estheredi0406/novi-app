@@ -428,6 +428,7 @@ export function GroupPage({
               <tr>
                 <th>{t.colMember}</th>
                 <th>{t.colRecord}</th>
+                <th>{t.colActivity}</th>
                 <th>{t.colCaisse}</th>
               </tr>
             </thead>
@@ -443,7 +444,7 @@ export function GroupPage({
                         ) : null}
                         <br />
                         <span className="small paid-text">
-                          ✓ {t.verifiedOn(day(m.verifiedAt ?? ""))}
+                          {t.verifiedOn(day(m.verifiedAt ?? ""))}
                         </span>
                       </>
                     ) : (
@@ -460,22 +461,6 @@ export function GroupPage({
                       <span className="muted">{t.newOnNovi}</span>
                     ) : (
                       <>
-                        <span className="dots" aria-hidden="true">
-                          {Array.from(
-                            { length: Math.min(m.paymentsMade, 24) },
-                            (_, k) => (
-                              <span
-                                key={k}
-                                className={
-                                  k < m.paymentsOnTime
-                                    ? "rec-dot rec-dot-ok"
-                                    : "rec-dot rec-dot-late"
-                                }
-                              />
-                            ),
-                          )}
-                        </span>
-                        <br />
                         <span className="small">
                           {t.record(
                             m.cyclesCompleted,
@@ -484,6 +469,23 @@ export function GroupPage({
                           )}
                         </span>
                       </>
+                    )}
+                  </td>
+                  <td>
+                    {!m.consent ? (
+                      "…"
+                    ) : (
+                      <ul className="activity">
+                        {m.phone ? <li>{spacedPhone(m.phone)}</li> : null}
+                        {m.memberSince ? <li>{t.sinceOn(day(m.memberSince))}</li> : null}
+                        <li>{m.lastPaidAt ? t.lastPaid(day(m.lastPaidAt)) : t.noPaidYet}</li>
+                        <li>{t.otherGroups(m.otherActiveGroups)}</li>
+                        {m.skipsUsed > 0 ? (
+                          <li className={m.missedTurns > 0 ? "problem-text" : undefined}>
+                            {t.covered(m.skipsUsed, m.missedTurns)}
+                          </li>
+                        ) : null}
+                      </ul>
                     )}
                   </td>
                   <td>
@@ -506,4 +508,10 @@ export function GroupPage({
 
     </>
   );
+}
+
+// +22890000095 reads as +228 90 00 00 95.
+function spacedPhone(phone: string): string {
+  const m = /^\+(228|229|250)(\d+)$/.exec(phone);
+  return m?.[2] ? `+${m[1]} ${m[2].replace(/(\d{2})(?=\d)/g, "$1 ")}` : phone;
 }
