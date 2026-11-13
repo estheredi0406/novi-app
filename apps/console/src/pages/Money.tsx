@@ -59,11 +59,26 @@ export function Money({ t, onExpired }: { t: Text; onExpired: () => void }) {
 
       <div className="kpis four">
         <div>
-          <span className="tile-label">{data.fedapay?.source === "demo" ? t.moneyFedapayDemo : t.moneyFedapay}</span>
+          <span className="tile-label">
+            {/* D150: a test account says so: its money is not real. */}
+            {data.fedapay?.source === "demo"
+              ? data.fedapay.live
+                ? t.moneyFedapayDemo
+                : t.moneyFedapayDemoTest
+              : data.fedapay && !data.fedapay.live
+                ? t.moneyFedapayTest
+                : t.moneyFedapay}
+          </span>
           <span className="tile-number">{fedapay === null ? "–" : fcfa(fedapay)}</span>
           <span className="tile-hint">
             {/* D130: say why there is no figure, instead of a bare dash. */}
-            {data.fedapay === null ? t.moneyFedapayNone : fedapay === null ? t.moneyFedapayUnread : t.moneyAtFedapay}
+            {data.fedapay === null
+              ? t.moneyFedapayNone
+              : fedapay === null
+                ? t.moneyFedapayUnread
+                : data.fedapay.live
+                  ? t.moneyAtFedapay
+                  : t.moneyTestMoney}
           </span>
         </div>
         <div>
@@ -166,6 +181,7 @@ export function Money({ t, onExpired }: { t: Text; onExpired: () => void }) {
                   </td>
                   <td>
                     <span className={TAG[m.where]}>{t.moneyWhere[m.where]}</span>
+                    {m.simulated ? <span className="q-meta simulated">{t.moneySimulated}</span> : null}
                   </td>
                   <td className="muted small">{m.ref ?? "–"}</td>
                 </tr>

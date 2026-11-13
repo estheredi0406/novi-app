@@ -48,11 +48,16 @@ export type GroupWatch = {
 export type ConsoleToday = {
   receivedFcfa: number;
   payments: number;
-  potsSent: number;
+  potsSent: number; // pots that reached their member today
   potsSentFcfa: number;
-  potsHeld: number;
-  savingsFcfa: number; // what every group's account should hold
+  potsDueLeft: number; // D150: pots due today not sent yet
+  // D150: the tontines running now, their members, and groups to validate.
+  activeGroups: number;
+  activeMembers: number;
+  toValidate: number;
+  tontinesFcfa: number; // D150: what the MFI holds for the groups (was "savings", which it is not)
   advancesFcfa: number; // of which the members' advances (D103)
+  booksGapFcfa: number; // D150: Novi's ledger minus the MFI's books; 0 when they agree
   // What Novi settled by itself today (D105, D114).
   auto: {
     lateConfirmed: number; // payments credited by an automatic check
@@ -387,7 +392,8 @@ export type ConsoleAccounts = {
   noviFcfa: number; // what the groups should hold, by Novi's ledger
   bankFcfa: number; // what the MFI's books hold for them
   bankAccounts: number;
-  fedapay: { source: "mfi" | "demo"; amountFcfa: number | null; checkedAt: string | null } | null;
+  // D150: live false = a FedaPay test (sandbox) account: its money is not real.
+  fedapay: { source: "mfi" | "demo"; live: boolean; amountFcfa: number | null; checkedAt: string | null } | null;
   inTransitFcfa: number; // pots sent, not yet confirmed
 };
 
@@ -408,6 +414,7 @@ export type ConsoleMoney = ConsoleAccounts & {
     keptFcfa?: number; // a pot: the part placed in savings (D123)
     ref: string | null; // FedaPay's reference
     where: ConsoleMoneyWhere;
+    simulated?: boolean; // D150: a pot sent by the stand-in, not by FedaPay
   }[];
   toCheck: {
     contributionId: string;
@@ -426,5 +433,6 @@ export type ConsoleMoney = ConsoleAccounts & {
 export type ConsoleGroupAccount = {
   ref: string;
   balanceFcfa: number;
-  entries: { bookedAt: string; label: string; amountFcfa: number; balanceAfterFcfa: number }[];
+  // D150: occurredAt is when the money moved; bookedAt, when the books wrote it.
+  entries: { occurredAt: string; bookedAt: string; label: string; amountFcfa: number; balanceAfterFcfa: number }[];
 };

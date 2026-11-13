@@ -405,10 +405,14 @@ export async function handlePaymentWebhook(
   signature: string | undefined,
   mfiCode?: string,
 ): Promise<void> {
+  const where = mfiCode ?? "demo";
   let account: PaymentAccount;
   if (mfiCode) {
     const owner = await prisma.mfi.findUnique({ where: { code: mfiCode }, select: { id: true, fedapaySecretKey: true } });
-    if (!owner?.fedapaySecretKey) throw new AppError("WEBHOOK_INVALID", 400);
+    if (!owner?.fedapaySecretKey) {
+      trace(where, null, "refused: no MFI with this code, or no FedaPay account connected");
+      throw new AppError("WEBHOOK_INVALID", 400);
+    }
     account = await accountForMfi(owner.id);
   } else {
     account = await accountForPayment(null);
@@ -418,6 +422,7 @@ export async function handlePaymentWebhook(
   try {
     ({ providerRef } = payments.verifyWebhook(rawBody, signature));
   } catch {
+    trace(where, null, `refused: ${signature ? "signature does not match this webhook's secret" : "no signature"}`);
     throw new AppError("WEBHOOK_INVALID", 400);
   }
 
@@ -427,14 +432,28 @@ export async function handlePaymentWebhook(
       data: { provider: payments.name, bodyHash, providerRef, body: JSON.parse(rawBody) as Prisma.InputJsonValue },
     });
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return; // already handled
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      trace(where, providerRef, "already received, ignored");
+      return;
+    }
     throw err;
   }
 
   const contribution = await prisma.contribution.findUnique({ where: { providerRef } });
   // Not a Novi payment, or one made through another account: acknowledged, nothing to do.
-  if (!contribution || contribution.paymentAccountMfiId !== account.mfiId) return;
-  await settle(contribution.id, await payments.getStatus(providerRef));
+  if (!contribution) return trace(where, providerRef, "ignored: no Novi payment has this transaction");
+  if (contribution.paymentAccountMfiId !== account.mfiId) {
+    return trace(where, providerRef, "ignored: this payment went through another account");
+  }
+  const answer = await payments.getStatus(providerRef);
+  await settle(contribution.id, answer);
+  const after = await prisma.contribution.findUnique({ where: { id: contribution.id }, select: { status: true } });
+  trace(
+    where,
+    providerRef,
+    `accepted: FedaPay says ${answer.status} ${answer.amountFcfa} FCFA; payment ${contribution.status} -> ${after?.status}, ` +
+      `${Math.round((Date.now() - contribution.requestedAt.getTime()) / 1000)} s after it was asked`,
+  );
   // D113: the dashboard shows the new balance and the booking at once.
   forgetBalance(account.mfiId);
   await syncCoreBanking().catch(() => undefined);
@@ -467,6 +486,13 @@ export async function reportDebited(contributionId: string, userId: string): Pro
   return view;
 }
 
+// D150: one line in the server log for each notification from FedaPay and
+// each payment Novi found by itself, so a slow payment can be explained.
+// Never the body, the signature or a key.
+function trace(where: string, providerRef: string | null, outcome: string): void {
+  console.info(`[payment ${where}] transaction ${providerRef ?? "?"}: ${outcome}`);
+}
+
 // D114: Novi asks the provider again about a payment not confirmed (the job
 // of automatic checks). True when this check found it paid.
 export async function recheckPayment(contributionId: string): Promise<boolean> {
@@ -479,6 +505,8 @@ export async function recheckPayment(contributionId: string): Promise<boolean> {
     include: { round: { include: { group: { include: { mfi: true } } } } },
   });
   if (after.status !== "PAID") return false;
+  // D150: a payment found by Novi's own check: its notification never came, or came refused.
+  trace("check", contribution.providerRef, `credited by Novi's own check, ${Math.round((Date.now() - contribution.requestedAt.getTime()) / 1000)} s after it was asked`);
   forgetBalance(contribution.paymentAccountMfiId);
   await syncCoreBanking().catch(() => undefined);
   // She had said the money left: she is told it is now confirmed.

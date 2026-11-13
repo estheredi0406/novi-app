@@ -1058,12 +1058,13 @@ model BankEntry {
   label            String
   source           String // CONTRIBUTION, PAYOUT, ADVANCE_RETURN
   sourceId         String
+  occurredAt       DateTime @default(now()) // D150: when the money moved (paid, sent, returned)
   bookedAt         DateTime @default(now())
 
   account BankAccount @relation(fields: [accountId], references: [id])
 
   @@unique([source, sourceId])
-  @@index([accountId, bookedAt])
+  @@index([accountId, occurredAt])
   @@map("bank_entries")
 }
 

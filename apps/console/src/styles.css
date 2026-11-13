@@ -2268,3 +2268,7 @@ a.primary {
 .num .q-meta { display: block; margin-top: 2px; font-variant-numeric: tabular-nums; }
 .q-meta.back-paid { color: var(--paid); }
 .q-meta.back-failed { color: var(--problem); font-weight: 700; }
+
+/* D150: the accounts' gap on the home page, and a simulated transfer. */
+.books-gap { margin: -4px 0 16px; }
+.q-meta.simulated { display: block; margin-top: 2px; font-style: italic; }

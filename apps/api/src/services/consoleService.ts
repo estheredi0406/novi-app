@@ -229,14 +229,28 @@ export async function listConsoleGroups(
 export async function getToday(mfiId: string, now = new Date()): Promise<ConsoleToday> {
   const start = new Date(`${isoDay(now)}T00:00:00Z`);
   const inMfi = { round: { group: { mfiId } } };
-  const [paid, sent, held, groups, late, alone, retried] = await Promise.all([
+  const end = new Date(start.getTime() + 24 * 3_600_000);
+  // D150: the MFI's books follow the ledger, so the gap below is a real one.
+  await syncCoreBanking(mfiId).catch(() => undefined);
+  const [paid, sent, dueLeft, members, books, groups, late, alone, retried] = await Promise.all([
     prisma.contribution.aggregate({
       where: { ...inMfi, status: "PAID", paidAt: { gte: start } },
       _sum: { amountFcfa: true },
       _count: true,
     }),
     prisma.payout.aggregate({ where: { ...inMfi, status: "PAID", paidAt: { gte: start } }, _sum: { amountFcfa: true }, _count: true }),
-    prisma.payout.count({ where: { ...inMfi, status: "HELD" } }),
+    // D150: pots due today that have not reached their member yet.
+    prisma.round.count({
+      where: {
+        group: { mfiId, state: "ACTIVE" },
+        dueDate: { gte: start, lt: end },
+        OR: [{ payout: null }, { payout: { status: { not: "PAID" } } }],
+      },
+    }),
+    prisma.membership.count({
+      where: { group: { mfiId, state: "ACTIVE" }, payoutPosition: { not: null }, exitedAt: null },
+    }),
+    mfiBankTotal(mfiId),
     listConsoleGroups(mfiId),
     // Credited by an automatic check: paid after Novi asked again (D114).
     prisma.contribution.findMany({
@@ -246,15 +260,20 @@ export async function getToday(mfiId: string, now = new Date()): Promise<Console
     prisma.payout.count({ where: { ...inMfi, releasedAt: { gte: start }, releasedById: null } }),
     prisma.payout.count({ where: { ...inMfi, status: "PAID", paidAt: { gte: start }, attempts: { gt: 1 } } }),
   ]);
+  const tontines = groups.reduce((n, g) => n + g.balanceFcfa, 0);
   const byCheck = late.filter((c) => c.paidAt && c.lastCheckedAt && c.paidAt >= c.lastCheckedAt && !c.reportCheckedById);
   return {
     receivedFcfa: paid._sum.amountFcfa ?? 0,
     payments: paid._count,
     potsSent: sent._count,
     potsSentFcfa: sent._sum.amountFcfa ?? 0,
-    potsHeld: held,
-    savingsFcfa: groups.reduce((n, g) => n + g.balanceFcfa, 0),
+    potsDueLeft: dueLeft,
+    activeGroups: groups.filter((g) => g.state === "ACTIVE").length,
+    activeMembers: members,
+    toValidate: groups.filter((g) => g.state === "STARTING").length,
+    tontinesFcfa: tontines,
     advancesFcfa: groups.reduce((n, g) => n + g.reserveFcfa, 0),
+    booksGapFcfa: books.accounts === 0 ? 0 : tontines - books.totalFcfa,
     auto: {
       lateConfirmed: byCheck.length,
       reportsCleared: byCheck.filter((c) => c.reportedAt).length,

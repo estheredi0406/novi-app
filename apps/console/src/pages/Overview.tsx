@@ -1,6 +1,5 @@
 import type { AttentionItem, ConsoleGroup, ConsoleLoan, ConsoleOverview, ConsoleReported, ConsoleToday } from "@novi/shared";
 import { useState } from "react";
-import { MoneyViews } from "../Accounts";
 import { api } from "../api";
 import { day, fcfa } from "../format";
 import { type Text, text } from "../text";
@@ -15,7 +14,7 @@ type Data = {
   overview: ConsoleOverview;
 };
 
-// "Aujourd'hui" (board 11, D116): today's figures, the accounts (D113), what
+// "Aujourd'hui" (board 11, D116, D150): today's figures, a gap in the accounts if any, what
 // Novi settled by itself (D114), what only a person can decide, and the
 // groups to keep an eye on. Everything that went normally stays out of the
 // way. Totals only, never who paid (D33), except a reported payment, which
@@ -202,22 +201,29 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
           <span className="tile-number">{fcfa(today.receivedFcfa)}</span>
           <span className="tile-hint">{t.todayPayments(today.payments)}</span>
         </div>
+        {/* D150: four figures that say what they are. Pots held are in "À décider" and "À surveiller". */}
+        <div>
+          <span className="tile-label">{t.todayActive}</span>
+          <span className="tile-number">{today.activeGroups}</span>
+          <span className="tile-hint">{t.todayActiveHint(today.activeMembers, today.toValidate)}</span>
+        </div>
         <div>
           <span className="tile-label">{t.todayPotsSent}</span>
           <span className="tile-number">{today.potsSent}</span>
-          <span className="tile-hint">{fcfa(today.potsSentFcfa)}</span>
+          <span className="tile-hint">{t.todayPotsHint(today.potsSent > 0 ? fcfa(today.potsSentFcfa) : null, today.potsDueLeft)}</span>
         </div>
         <div>
-          <span className="tile-label">{t.todayHeld}</span>
-          <span className={`tile-number ${today.potsHeld > 0 ? "warn-text" : ""}`}>{today.potsHeld}</span>
-          <span className="tile-hint">{t.todayHeldHint}</span>
-        </div>
-        <div>
-          <span className="tile-label">{t.todaySavings}</span>
-          <span className="tile-number">{fcfa(today.savingsFcfa)}</span>
-          <span className="tile-hint">{t.todayAdvances(fcfa(today.advancesFcfa))}</span>
+          <span className="tile-label">{t.todayTontines}</span>
+          <span className="tile-number">{fcfa(today.tontinesFcfa)}</span>
+          <span className="tile-hint">{t.todayTontinesHint(fcfa(today.advancesFcfa))}</span>
         </div>
       </section>
+      {/* D150: the accounts live on "Comptes"; here, only a gap that needs a look. */}
+      {today.booksGapFcfa !== 0 ? (
+        <p className="warn small books-gap">
+          {t.booksGap(fcfa(Math.abs(today.booksGapFcfa)))} <a href="#/money">{t.booksGapLink}</a>
+        </p>
+      ) : null}
 
       {/* D147: no group can be validated before the savings conditions exist. */}
       {!data.overview.savingsTermsComplete ? (
@@ -248,8 +254,6 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
           </p>
         </section>
       ) : null}
-
-      <MoneyViews t={t} onExpired={onExpired} />
 
       {autoTotal > 0 ? (
         <section className="queue">

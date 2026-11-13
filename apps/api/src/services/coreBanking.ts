@@ -69,7 +69,11 @@ async function pending(mfiId?: string): Promise<Movement[]> {
       mfiId: p.round.group.mfiId,
       accountRef: p.round.group.mfiAccountRef,
       amountFcfa: -p.amountFcfa,
-      label: `Cagnotte tour ${p.round.number}${p.mfiRef ? ` · réf. ${p.mfiRef.replace(/^fedapay:/, "P-")}` : ""}`,
+      // D150: a pot sent by the stand-in is said to be simulated.
+      label:
+        `Cagnotte tour ${p.round.number}` +
+        (p.sentVia === "fedapay" ? "" : " · envoi simulé") +
+        (p.mfiRef ? ` · réf. ${p.mfiRef.replace(/^fedapay:/, "P-")}` : ""),
       at: p.paidAt ?? p.createdAt,
     })),
     ...returns.map((r) => ({
@@ -79,8 +83,8 @@ async function pending(mfiId?: string): Promise<Movement[]> {
       mfiId: r.group.mfiId,
       accountRef: r.group.mfiAccountRef,
       amountFcfa: -r.amountFcfa,
-      label: "Avance de départ rendue en fin de cycle",
-      at: r.createdAt,
+      label: `Avance de départ rendue en fin de cycle${r.sentVia === "fedapay" ? "" : " · envoi simulé"}`,
+      at: r.paidAt ?? r.createdAt,
     })),
   ];
   if (all.length === 0) return [];
@@ -111,6 +115,7 @@ async function book(m: Movement) {
         accountId: account.id,
         amountFcfa: m.amountFcfa,
         balanceAfterFcfa: updated.balanceFcfa,
+        occurredAt: m.at,
         label: m.label,
         source: m.source,
         sourceId: m.sourceId,
@@ -140,13 +145,15 @@ export async function syncCoreBanking(mfiId?: string): Promise<number> {
 export async function groupAccount(groupId: string) {
   const account = await prisma.bankAccount.findUnique({
     where: { groupId },
-    include: { entries: { orderBy: { bookedAt: "desc" }, take: 50 } },
+    // D150: by when the money moved, not when the books caught up.
+    include: { entries: { orderBy: [{ occurredAt: "desc" }, { bookedAt: "desc" }], take: 50 } },
   });
   if (!account) return null;
   return {
     ref: account.ref,
     balanceFcfa: account.balanceFcfa,
     entries: account.entries.map((e) => ({
+      occurredAt: e.occurredAt.toISOString(),
       bookedAt: e.bookedAt.toISOString(),
       label: e.label,
       amountFcfa: e.amountFcfa,

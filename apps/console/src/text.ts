@@ -508,6 +508,11 @@ export const text = {
     moneyBankHint: (n: number) => `${n} compte${n > 1 ? "s" : ""} · système de l'IMF (simulé)`,
     moneyFedapay: "Compte FedaPay",
     moneyFedapayDemo: "Compte FedaPay (démo Novi)",
+    // D150: a test (sandbox) account holds test money, never real francs.
+    moneyFedapayTest: "Compte FedaPay (test)",
+    moneyFedapayDemoTest: "Compte FedaPay (démo Novi, test)",
+    moneyTestMoney: "argent de test : aucun vrai franc",
+    moneySimulated: "envoi simulé",
     moneyFedapayNone: "Aucun compte FedaPay relié : les paiements du pilote sont simulés",
     moneyFedapayUnread: "Solde pas encore lu chez FedaPay : réessayez dans quelques minutes",
     moneyInTransit: (amount: string) => `${amount} de cagnottes en cours d'envoi`,
@@ -588,7 +593,7 @@ export const text = {
     leftByOfficer: "libérée le",
     leftAloneShort: "seule",
     leftByOfficerShort: "par un agent",
-    viaMfi: "IMF",
+    viaMfi: "envoi simulé",
     potConfirmed: "confirmée",
     potUnanswered: "sans réponse",
     potExpected: (amount: string, paid: number, size: number) => `Cagnotte attendue ${amount} · ${paid} paiement${paid > 1 ? "s" : ""} sur ${size}`,
@@ -641,10 +646,19 @@ export const text = {
     turnShort: (n: number) => `tour ${n}`,
     todayReceived: "Reçu aujourd'hui",
     todayPayments: (n: number) => `${n} paiement${n > 1 ? "s" : ""}`,
-    todayPotsSent: "Cagnottes parties",
-    todayHeld: "Retenues",
-    todayHeldHint: "pas pleines",
-    todaySavings: "Épargne des groupes",
+    todayPotsSent: "Cagnottes du jour",
+    // D150: what each figure is, in a few words.
+    todayPotsHint: (sent: string | null, left: number) =>
+      [sent ? `${sent} reçus par les membres` : left === 0 ? "aucune prévue" : null, left > 0 ? `${left} encore prévue${left > 1 ? "s" : ""}` : null]
+        .filter(Boolean)
+        .join(" · "),
+    todayActive: "Tontines actives",
+    todayActiveHint: (members: number, toValidate: number) =>
+      `${members} membre${members > 1 ? "s" : ""}` + (toValidate > 0 ? ` · ${toValidate} à valider` : ""),
+    todayTontines: "Argent des tontines",
+    todayTontinesHint: (advances: string) => `gardé à la caisse, dont ${advances} d'avances`,
+    booksGap: (amount: string) => `Écart de ${amount} entre Novi et les comptes des groupes à la caisse.`,
+    booksGapLink: "Voir Comptes",
     todayAdvances: (amount: string) => `dont ${amount} d'avances`,
     settledTitle: "Réglé automatiquement",
     autoLate: (n: number): string => (n > 1 ? "paiements confirmés en retard" : "paiement confirmé en retard"),
@@ -663,12 +677,12 @@ export const text = {
     // D144: what the receiver chose for her pot, read before releasing it.
     herChoice: (keep: number | null, pot: number, f: (n: number) => string) =>
       keep === null
-        ? "Pas de choix fait : tout ira sur son téléphone"
+        ? "Pas de choix fait : tout ira sur son mobile money"
         : keep === 0
-          ? "Son choix : tout sur son téléphone"
+          ? "Son choix : tout sur son mobile money"
           : keep >= pot
             ? `Son choix : tout en épargne (${f(keep)})`
-            : `Son choix : ${f(pot - keep)} sur son téléphone, ${f(keep)} en épargne`,
+            : `Son choix : ${f(pot - keep)} sur son mobile money, ${f(keep)} en épargne`,
     loansWaiting: (n: number) => `${n} demande${n > 1 ? "s" : ""} de crédit`,
     ref: "réf.",
     open: "Ouvrir",
@@ -1339,6 +1353,10 @@ export const text = {
     moneyBank: "Group accounts",
     moneyBankHint: (n: number) => `${n} account${n > 1 ? "s" : ""} · MFI's system (simulated)`,
     moneyFedapay: "FedaPay account",
+    moneyFedapayTest: "FedaPay account (test)",
+    moneyFedapayDemoTest: "FedaPay account (Novi demo, test)",
+    moneyTestMoney: "test money: no real francs",
+    moneySimulated: "simulated transfer",
     moneyFedapayDemo: "FedaPay account (Novi demo)",
     moneyFedapayNone: "No FedaPay account connected: the pilot's payments are simulated",
     moneyFedapayUnread: "Balance not read from FedaPay yet: try again in a few minutes",
@@ -1417,7 +1435,7 @@ export const text = {
     leftByOfficer: "released on",
     leftAloneShort: "on its own",
     leftByOfficerShort: "by an officer",
-    viaMfi: "MFI",
+    viaMfi: "simulated transfer",
     potConfirmed: "confirmed",
     potUnanswered: "no answer",
     potExpected: (amount: string, paid: number, size: number) => `Expected pot ${amount} · ${paid} payment${paid > 1 ? "s" : ""} of ${size}`,
@@ -1470,10 +1488,18 @@ export const text = {
     turnShort: (n: number) => `turn ${n}`,
     todayReceived: "Received today",
     todayPayments: (n: number) => `${n} payment${n > 1 ? "s" : ""}`,
-    todayPotsSent: "Pots sent",
-    todayHeld: "Held",
-    todayHeldHint: "not full",
-    todaySavings: "Groups' savings",
+    todayPotsSent: "Today's pots",
+    todayPotsHint: (sent: string | null, left: number) =>
+      [sent ? `${sent} received by members` : left === 0 ? "none due" : null, left > 0 ? `${left} still due` : null]
+        .filter(Boolean)
+        .join(" · "),
+    todayActive: "Active tontines",
+    todayActiveHint: (members: number, toValidate: number) =>
+      `${members} member${members > 1 ? "s" : ""}` + (toValidate > 0 ? ` · ${toValidate} to validate` : ""),
+    todayTontines: "Tontine money",
+    todayTontinesHint: (advances: string) => `held at the MFI, of which ${advances} of advances`,
+    booksGap: (amount: string) => `Gap of ${amount} between Novi and the groups' accounts at the MFI.`,
+    booksGapLink: "See Accounts",
     todayAdvances: (amount: string) => `of which ${amount} of advances`,
     settledTitle: "Settled automatically",
     autoLate: (n: number): string => (n > 1 ? "payments confirmed late" : "payment confirmed late"),

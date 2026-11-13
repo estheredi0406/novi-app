@@ -88,6 +88,7 @@ const BALANCE_TTL_MS = 20_000;
 
 export type AccountBalance = {
   source: "mfi" | "demo";
+  live: boolean; // D150: false for a FedaPay test (sandbox) account
   amountFcfa: number | null; // null: FedaPay did not answer
   checkedAt: string | null;
 };
@@ -100,18 +101,19 @@ export async function accountBalance(mfiId: string): Promise<AccountBalance | nu
   if (!account || !(account.payments instanceof FedaPayProvider)) return null;
   const key = account.mfiId ?? "demo";
   const source = account.mfiId ? "mfi" : "demo";
+  const live = !account.payments.apiBase.includes("sandbox");
   const cached = balances.get(key);
   if (cached && Date.now() - cached.checkedAt.getTime() < BALANCE_TTL_MS) {
-    return { source, amountFcfa: cached.amountFcfa, checkedAt: cached.checkedAt.toISOString() };
+    return { source, live, amountFcfa: cached.amountFcfa, checkedAt: cached.checkedAt.toISOString() };
   }
   try {
     const amountFcfa = await account.payments.getBalance();
     const checkedAt = new Date();
     balances.set(key, { amountFcfa, checkedAt });
-    return { source, amountFcfa, checkedAt: checkedAt.toISOString() };
+    return { source, live, amountFcfa, checkedAt: checkedAt.toISOString() };
   } catch (err) {
     console.warn("FedaPay balance not read:", err instanceof Error ? err.message.slice(0, 200) : err);
-    return { source, amountFcfa: null, checkedAt: null };
+    return { source, live, amountFcfa: null, checkedAt: null };
   }
 }
 

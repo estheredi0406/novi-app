@@ -653,11 +653,30 @@ describe("how each group is doing, and today (D116)", () => {
       payments: 3,
       potsSent: 1,
       potsSentFcfa: 15000,
-      potsHeld: 0,
-      savingsFcfa: 7500,
+      potsDueLeft: 0,
+      activeGroups: 1,
+      activeMembers: 3,
+      toValidate: 0,
+      tontinesFcfa: 7500,
       advancesFcfa: 7500,
+      // D150: the MFI's books follow Novi's ledger.
+      booksGapFcfa: 0,
       auto: { potsAutoReleased: 1, lateConfirmed: 0 },
     });
+  });
+
+  it("dates each line of a group's account by when the money moved, and says a pot was simulated (D150)", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    await prisma.mfi.updateMany({ data: { autoReleaseFcfa: 50000 } });
+    await makeDue(groupId, 1);
+    await runPayouts();
+    const paidAt = (await prisma.contribution.findFirstOrThrow({ where: { round: { groupId } } })).paidAt as Date;
+    const account = (await (await officer()).get(`/v1/console/groups/${groupId}/account`)).body;
+    const pot = account.entries.find((e: { label: string }) => e.label.startsWith("Cagnotte"));
+    expect(pot.label).toContain("envoi simulé");
+    const line = account.entries.find((e: { label: string }) => e.label.startsWith("Cotisation"));
+    expect(Math.abs(new Date(line.occurredAt).getTime() - paidAt.getTime())).toBeLessThan(5000);
   });
 });
 

@@ -93,6 +93,8 @@ export async function getMoney(mfiId: string, now = new Date()): Promise<Console
       amountFcfa: -(p.amountFcfa - (p.keptFcfa ?? 0)),
       keptFcfa: p.keptFcfa ?? 0,
       ref: p.mfiRef,
+      // D150: a pot the stand-in "sent" never left FedaPay.
+      simulated: p.sentVia !== "fedapay",
       where:
         p.status === "PAID"
           ? ("SENT" as const)
