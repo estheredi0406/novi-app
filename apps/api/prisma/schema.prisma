@@ -562,6 +562,7 @@ model Payout {
   // 2 h); after that, an officer looks at it.
   attempts           Int       @default(0)
   failedAt           DateTime?
+  failReason         String?   // D154: ACCOUNT (the sender's account may not send), REFUSED (the transfer was refused), NO_ANSWER
   // D114: "not received": what the sender said when Novi asked it again.
   receiptCheck       String?   // PAID, SENT, FAILED, or UNKNOWN when it did not answer
   receiptCheckedAt   DateTime?

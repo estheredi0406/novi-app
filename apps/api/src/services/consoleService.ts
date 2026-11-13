@@ -257,7 +257,8 @@ export async function getToday(mfiId: string, now = new Date()): Promise<Console
       where: { ...inMfi, status: "PAID", paidAt: { gte: start }, lastCheckedAt: { not: null } },
       select: { paidAt: true, lastCheckedAt: true, reportedAt: true, reportCheckedById: true },
     }),
-    prisma.payout.count({ where: { ...inMfi, releasedAt: { gte: start }, releasedById: null } }),
+    // Released with no officer, and really arrived: a failed one is not "sent".
+    prisma.payout.count({ where: { ...inMfi, status: "PAID", releasedAt: { gte: start }, releasedById: null } }),
     prisma.payout.count({ where: { ...inMfi, status: "PAID", paidAt: { gte: start }, attempts: { gt: 1 } } }),
   ]);
   const tontines = groups.reduce((n, g) => n + g.balanceFcfa, 0);
@@ -506,6 +507,7 @@ export async function listAttention(mfiId: string, staffId?: string): Promise<At
       // D114: tries so far, and when Novi tries again by itself (null: it
       // will not; the officer decides).
       attempts: payout.attempts,
+      failReason: (payout.failReason ?? null) as AttentionItem["failReason"],
       nextRetryAt: nextRetryAt(payout)?.toISOString() ?? null,
       // D114: on a "not received", what the sender said when asked again.
       receiptCheck: (payout.receiptCheck as AttentionItem["receiptCheck"]) ?? null,

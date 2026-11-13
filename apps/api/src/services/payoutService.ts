@@ -437,7 +437,7 @@ async function sendToMfi(
       where: { id: payoutId },
       // D141: nothing left, so the part she keeps is worked out again on the
       // next try (her account may be open by then).
-      data: { status: "FAILED", failedAt: new Date(), keptFcfa: null },
+      data: { status: "FAILED", failedAt: new Date(), keptFcfa: null, failReason: failReasonOf(err) },
     });
     await alertIfLastTry(payoutId);
     return;
@@ -587,6 +587,18 @@ async function claimForSending(
   return claimed.count === 1 ? payout.id : null;
 }
 
+// D154: why a transfer could not even be asked. A 401 or 403 means the
+// sender's account is not allowed to send (for FedaPay: payouts not enabled
+// on the caisse's account); another 4xx, that the transfer itself was
+// refused (often the number); anything else, that nobody answered.
+function failReasonOf(err: unknown): "ACCOUNT" | "REFUSED" | "NO_ANSWER" {
+  const message = err instanceof Error ? err.message : String(err);
+  const status = /answered (\d{3})/.exec(message)?.[1];
+  if (status === "401" || status === "403") return "ACCOUNT";
+  if (status?.startsWith("4")) return "REFUSED";
+  return "NO_ANSWER";
+}
+
 async function applyAnswer(payoutId: string, answer: PayoutAnswer) {
   if (answer.status === "PAID") return settlePayout(payoutId, answer.mfiRef);
   const moved = await prisma.payout.updateMany({
@@ -594,7 +606,7 @@ async function applyAnswer(payoutId: string, answer: PayoutAnswer) {
     data: {
       status: answer.status,
       mfiRef: answer.mfiRef,
-      ...(answer.status === "FAILED" ? { failedAt: new Date(), keptFcfa: null } : {}),
+      ...(answer.status === "FAILED" ? { failedAt: new Date(), keptFcfa: null, failReason: "REFUSED" } : {}),
     },
   });
   if (moved.count > 0 && answer.status === "FAILED") await alertIfLastTry(payoutId);

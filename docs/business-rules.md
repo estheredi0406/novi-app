@@ -57,6 +57,7 @@ Each rule below is enforced in the API, which is the only place that decides. Th
 | Nothing leaves before the due date; a pot that is not full is held, never sent short (D48) | `lib/groupRules.ts` | `payouts` |
 | A full pot under the MFI's ceiling leaves alone; above it, two officers release it; with no ceiling chosen, an officer releases every pot (D105, D134) | `payoutService` | `payouts`, `console` |
 | A pot is sent once, even if two runs meet (D49) | `payoutService` | `payouts` |
+| A failed transfer keeps its cause (account not allowed, transfer refused, no answer), shown to the officers (D154) | `payoutService` | `console` |
 | A pot that would leave alone first waits for her answer (where it goes) until the end of its due day, when her caisse offers savings (D151) | `payoutService` | `savings` |
 | A refused transfer is tried again after 5 min, 30 min and 2 h, then the officers are told (D114) | `payoutService` | `payouts` |
 | Only the member who received it confirms or disputes it (D63) | `payoutService` | `payouts` |

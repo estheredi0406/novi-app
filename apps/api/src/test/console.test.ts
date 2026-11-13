@@ -250,6 +250,29 @@ describe("payouts that need a look (D53)", () => {
     ).toBe(1);
   });
 
+  it("says why a transfer failed: the account, the transfer itself, or no answer (D154)", async () => {
+    const { groupId, members } = await activeGroup();
+    for (const member of members) await pay(member, groupId, 1);
+    await makeDue(groupId, 1);
+    await runPayouts();
+    const desk = await officer();
+    const [ready] = (await desk.get("/v1/console/attention")).body;
+    const send = vi.spyOn(mockMfi, "sendPayout").mockRejectedValueOnce(
+      new Error('FedaPay POST /payouts answered 403: {"message":"Opération non autorisée"}'),
+    );
+    await desk.post(`/v1/console/payouts/${ready.payoutId}/release`);
+    expect((await desk.get("/v1/console/attention")).body[0]).toMatchObject({ status: "FAILED", failReason: "ACCOUNT" });
+
+    send.mockRejectedValueOnce(new Error("fetch failed"));
+    await desk.post(`/v1/console/payouts/${ready.payoutId}/retry`);
+    expect((await desk.get("/v1/console/attention")).body[0]).toMatchObject({ failReason: "NO_ANSWER" });
+
+    mockMfi.nextPayout = "FAILED";
+    await desk.post(`/v1/console/payouts/${ready.payoutId}/retry`);
+    expect((await desk.get("/v1/console/attention")).body[0]).toMatchObject({ failReason: "REFUSED" });
+    send.mockRestore();
+  });
+
   it("lists a full, due pot as ready, and sends it only when the officer releases it (D63)", async () => {
     const { groupId, members } = await activeGroup();
     for (const member of members) await pay(member, groupId, 1);

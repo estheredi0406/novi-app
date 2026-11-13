@@ -221,6 +221,7 @@ export type AttentionItem = {
   herKeepFcfa: number | null; // D144: what she chose to keep in savings from this pot; null: she has not chosen (all to her phone)
   savingsToOpenFcfa: number; // D141: she keeps this much in savings and her account is not open yet: the pot waits
   attempts: number; // D114: transfers tried so far
+  failReason: "ACCOUNT" | "REFUSED" | "NO_ANSWER" | null; // D154: why the last transfer failed
   nextRetryAt: string | null; // D114: Novi tries again by itself then; null: the officer decides
   receiptCheck: "PAID" | "SENT" | "FAILED" | "UNKNOWN" | null; // D114: the sender asked again after "not received"
   sentTo: string | null; // D114: the number the pot was sent to, for a "not received"

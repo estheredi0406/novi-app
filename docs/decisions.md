@@ -503,3 +503,7 @@ Before, only the organiser saw that the caisse was checking the group. Now, when
 
 With several groups, home showed one card at a time and small dots: testers did not see that they could swipe. The dots are replaced by a row of group names under the card; a tap shows that group's card (swiping still works), and an orange dot marks a group where she still has to pay.
 
+## D154: the console says why a pot's transfer failed (13 November 2026)
+
+From Esther's test: FedaPay refused every pot of a caisse with "403, Opération non autorisée" (payouts not enabled on its account), and the console still said "Numéro à corriger, vérifiez le numéro". Novi now keeps why the last transfer failed: the caisse's payment account may not send (a 401 or 403 from the sender), the transfer itself was refused (often the number), or nobody answered. The console shows "Compte de paiement" with what to do (enable payouts at FedaPay, or untick "Envoyer les cagnottes par FedaPay"), "Numéro à corriger", or "Sans réponse". "Réglé automatiquement" now counts only pots that left on their own and arrived, not those that failed.
+

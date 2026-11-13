@@ -130,7 +130,11 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
           : ["orange", t.ready]
         : item.status === "DISPUTED"
           ? ["red", t.disputed]
-          : ["red", t.tagFixNumber];
+          : item.failReason === "ACCOUNT"
+            ? ["red", t.tagAccount]
+            : item.failReason === "NO_ANSWER"
+              ? ["orange", t.tagNoAnswer]
+              : ["red", t.tagFixNumber];
     const meta = toOpen
       ? t.savingsToOpenHint(fcfa(item.savingsToOpenFcfa))
       : item.status === "READY"
@@ -141,7 +145,11 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
           ? item.receiptCheck
             ? `${t.disputedHint} · ${t.receiptCheck[item.receiptCheck](item.sentTo ?? "", item.transferRef ?? "")}`
             : t.disputedHint
-          : t.retriesUsed(item.attempts);
+          : item.failReason === "ACCOUNT"
+            ? t.accountRefused(item.attempts)
+            : item.failReason === "NO_ANSWER"
+              ? t.noAnswer(item.attempts)
+              : t.retriesUsed(item.attempts);
     return (
       <li key={item.payoutId} className="q">
         <span className={`tag tag-${tag[0]}`}>{tag[1]}</span>

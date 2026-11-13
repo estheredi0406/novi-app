@@ -622,6 +622,8 @@ export const text = {
     nothingToWatch: "Aucun groupe à surveiller.",
     tagSecond: "2e accord",
     tagFixNumber: "Numéro à corriger",
+    tagAccount: "Compte de paiement",
+    tagNoAnswer: "Sans réponse",
     tagSavingsToOpen: "Compte à ouvrir",
     savingsToOpenHint: (amount: string) => `elle garde ${amount} en épargne : ouvrez d'abord son compte`,
     savingsToOpenLink: "Ouvrir son compte",
@@ -697,6 +699,9 @@ export const text = {
     disputedHint: "la membre dit ne pas avoir reçu l'argent",
     // D114: what Novi already did by itself.
     retriesUsed: (n: number) => `refusé ${n} fois · vérifiez le numéro de la bénéficiaire`,
+    accountRefused: (n: number) =>
+      `refusé ${n} fois · votre compte FedaPay n'a pas le droit d'envoyer : activez les envois chez FedaPay, ou décochez « Envoyer les cagnottes par FedaPay » dans Réglages`,
+    noAnswer: (n: number) => `${n} essai${n > 1 ? "s" : ""} sans réponse du service de paiement · réessayez plus tard`,
     receiptCheck: {
       PAID: (phone: string, ref: string) => `l'envoi est confirmé au ${phone}${ref ? ` · réf. ${ref}` : ""}`,
       SENT: () => "le virement est encore en cours",
@@ -1410,6 +1415,8 @@ export const text = {
     nothingToWatch: "No group to watch.",
     tagSecond: "2nd approval",
     tagFixNumber: "Number to fix",
+    tagAccount: "Payment account",
+    tagNoAnswer: "No answer",
     tagSavingsToOpen: "Account to open",
     savingsToOpenHint: (amount: string) => `she keeps ${amount} in savings: open her account first`,
     savingsToOpenLink: "Open her account",
@@ -1483,6 +1490,9 @@ export const text = {
     disputed: "Not received",
     disputedHint: "the member says the money did not arrive",
     retriesUsed: (n: number) => `refused ${n} times · check the receiver's number`,
+    accountRefused: (n: number) =>
+      `refused ${n} times · your FedaPay account may not send: enable payouts at FedaPay, or untick "Send pots through FedaPay" in Settings`,
+    noAnswer: (n: number) => `${n} tr${n > 1 ? "ies" : "y"} with no answer from the payment service · retry later`,
     receiptCheck: {
       PAID: (phone: string, ref: string) => `sending confirmed to ${phone}${ref ? ` · ref. ${ref}` : ""}`,
       SENT: () => "the transfer is still in progress",
