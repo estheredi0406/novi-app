@@ -170,14 +170,11 @@ export function GroupCard({
             <>
               <Text style={[styles.status, styles.statusTurn]}>{t("hub.yourTurnNow")}</Text>
               <Text style={[styles.small, styles.turnDetail]}>{potState}</Text>
-              {toPhone > 0 ? (
-                <>
-                  <Text style={styles.small}>{mustChoose ? t("hub.yourPotLabel") : t("hub.toPhone")}</Text>
-                  <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
-                    {F(toPhone)}
-                  </Text>
-                </>
-              ) : null}
+              {/* D156: the whole pot here; where it goes, row by row, below. */}
+              <Text style={styles.small}>{t("hub.yourPotLabel")}</Text>
+              <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
+                {pot}
+              </Text>
             </>
           ) : (
             <>
@@ -224,6 +221,37 @@ export function GroupCard({
         >
           <Text style={styles.chooseText}>{t("hub.chooseWhere")}</Text>
         </Pressable>
+      ) : potNow && choice?.chosen ? (
+        <View style={styles.splitBox}>
+          {toPhone > 0 ? (
+            <View style={styles.splitLine}>
+              <LineIcon name="phone" color={colors.ink} size={18} />
+              <Text style={styles.splitLabel}>{t("hub.toMobileMoney")}</Text>
+              <Text style={styles.splitAmount}>{F(toPhone)}</Text>
+            </View>
+          ) : null}
+          {keep > 0 ? (
+            <View style={styles.splitLine}>
+              <LineIcon name="hand" color={colors.ink} size={18} />
+              <Text style={styles.splitLabel} numberOfLines={1}>
+                {t("hub.toSavingsAt", { mfi: group.mfiName })}
+              </Text>
+              <Text style={styles.splitAmount}>{F(keep)}</Text>
+            </View>
+          ) : null}
+          {canChange ? (
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={() =>
+                router.push({ pathname: "/savings-choice" as never, params: { group: choice!.groupId } })
+              }
+              style={styles.splitChange}
+            >
+              <Text style={styles.splitLink}>{t("hub.changeChoice")}</Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : split ? (
         <View style={styles.splitRow}>
           <Text style={styles.splitText}>{split}</Text>
@@ -380,6 +408,11 @@ const styles = StyleSheet.create({
   amountDue: { color: colors.accent },
   amountGreen: { color: colors.paid },
   splitRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  splitBox: { gap: 8, borderRadius: 16, backgroundColor: colors.mist, paddingHorizontal: 14, paddingVertical: 12 },
+  splitLine: { flexDirection: "row", alignItems: "center", gap: 10 },
+  splitLabel: { flex: 1, fontFamily: fonts.body, fontSize: 14, lineHeight: 19, color: colors.ink },
+  splitAmount: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.ink },
+  splitChange: { alignSelf: "flex-end" },
   splitText: { flex: 1, fontFamily: fonts.body, fontSize: 14, lineHeight: 19, color: colors.turnText },
   splitLink: { fontFamily: fonts.bodyBold, fontSize: 14, lineHeight: 19, color: colors.action },
   okRow: { flexDirection: "row", alignItems: "center", gap: 6 },

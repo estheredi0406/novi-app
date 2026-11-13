@@ -511,3 +511,7 @@ From Esther's test: FedaPay refused every pot of a caisse with "403, Opération 
 
 The console's open savings accounts showed only the account number ("names hidden"). A caisse must know the holder of an account it keeps, and the member agreed, when she asked for it, to share her name, her number and the date her identity was checked. The open accounts now show the holder's name, phone number, identity check date and the date the account was opened. Her NIU is still not stored, only its keyed hash, and an account is still opened only at her request, from the app, then by an officer. The consent text no longer mentions a date of birth: Novi never sends one to the MFI.
 
+## D156: on her turn, the card shows the whole pot, then where it goes (13 November 2026)
+
+From Esther's test: on her turn, the group card said "À recevoir sur votre mobile money 75 000 F" at the top and, below, "75 000 F sur votre mobile money, 75 000 F sur votre épargne à la caisse": the same figure twice, and the pot itself nowhere. Now the top shows "Votre cagnotte" with the whole pot, and below, a small box with one line per destination, each with its icon and amount (mobile money, savings at the named caisse), and "Modifier" while the pot has not left.
+

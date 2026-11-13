@@ -841,7 +841,6 @@
     "potFilling": "{{paid}} sur {{total}} ont payé",
     "potOnWay": "Votre cagnotte est en route",
     "potWaitsAccount": "Attend l'ouverture de votre compte d'épargne",
-    "toPhone": "À recevoir sur votre mobile money",
     "phoneGot": "Reçus sur votre mobile money le {{date}}",
     "savedGot": "Placée en épargne le {{date}}",
     "openGroup": "Ouvrir le groupe {{name}}",
@@ -854,7 +853,9 @@
     "potFailed": "Envoi retardé. La caisse s'en occupe.",
     "chooseWhere": "Choisir où la recevoir",
     "potAsk": "Tout le monde a payé. Dites où vous la voulez.",
-    "yourPotLabel": "Votre cagnotte"
+    "yourPotLabel": "Votre cagnotte",
+    "toMobileMoney": "Sur votre mobile money",
+    "toSavingsAt": "Épargne · {{mfi}}"
   },
   "news": {
     "title": "Nouvelles",

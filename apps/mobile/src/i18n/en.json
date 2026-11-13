@@ -841,7 +841,6 @@
     "potFilling": "{{paid}} of {{total}} have paid",
     "potOnWay": "Your pot is on its way",
     "potWaitsAccount": "Waiting for your savings account to open",
-    "toPhone": "To receive on your mobile money",
     "phoneGot": "Received on your mobile money on {{date}}",
     "savedGot": "Put in savings on {{date}}",
     "openGroup": "Open the group {{name}}",
@@ -854,7 +853,9 @@
     "potFailed": "Sending delayed. The caisse is on it.",
     "chooseWhere": "Choose where it goes",
     "potAsk": "Everyone has paid. Say where you want it.",
-    "yourPotLabel": "Your pot"
+    "yourPotLabel": "Your pot",
+    "toMobileMoney": "To your mobile money",
+    "toSavingsAt": "Savings · {{mfi}}"
   },
   "news": {
     "title": "News",
