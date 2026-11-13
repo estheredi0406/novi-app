@@ -314,6 +314,47 @@ describe("sending a pot with a part kept (D123)", () => {
   });
 });
 
+describe("a pot that leaves on its own asks her first (D151)", () => {
+  async function fullPotDueToday() {
+    const { groupId, members, round, receiver } = await activeGroup();
+    await prisma.mfi.updateMany({ data: { autoReleaseFcfa: 100_000 } });
+    for (const m of members) await pay(m, groupId, 1);
+    const today = new Date();
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: today } });
+    return { round, receiver, today };
+  }
+
+  it("waits for her answer on its due day, then leaves as soon as she answers", async () => {
+    const { round, receiver, today } = await fullPotDueToday();
+    await runPayouts(today);
+    expect((await prisma.payout.findFirstOrThrow({ where: { roundId: round.id } })).status).toBe("READY");
+
+    expect((await receiver.put(`/v1/me/savings/choices/${round.id}`, choice(0, false))).status).toBe(200);
+    await runPayouts(today);
+    expect((await prisma.payout.findFirstOrThrow({ where: { roundId: round.id } })).status).toBe("PAID");
+  });
+
+  it("leaves all to her phone once the due day is over without an answer", async () => {
+    const { round, today } = await fullPotDueToday();
+    await runPayouts(today);
+    const nextDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1, 0, 5));
+    await runPayouts(nextDay);
+    const payout = await prisma.payout.findFirstOrThrow({ where: { roundId: round.id } });
+    expect(payout.status).toBe("PAID");
+    expect(payout.keptFcfa ?? 0).toBe(0);
+  });
+
+  it("does not wait at a caisse that offers no savings", async () => {
+    const { groupId, members, round } = await activeGroup(false);
+    await prisma.mfi.updateMany({ data: { autoReleaseFcfa: 100_000 } });
+    for (const m of members) await pay(m, groupId, 1);
+    const today = new Date();
+    await prisma.round.update({ where: { id: round.id }, data: { dueDate: today } });
+    await runPayouts(today);
+    expect((await prisma.payout.findFirstOrThrow({ where: { roundId: round.id } })).status).toBe("PAID");
+  });
+});
+
 describe("withdrawing and the rules of the pockets (D123)", () => {
   async function saved(pocket: "FREE" | "LOCKED", lockMonths: 3 | 6 | 12 | null) {
     const g = await activeGroup();

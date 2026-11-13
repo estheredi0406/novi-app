@@ -8,7 +8,7 @@ import { BUSINESS_KINDS, BUSINESS_SINCE, getLoanPage, requestLoan, withdrawLoan 
 import { getStatement, listNews } from "../services/newsService.js";
 import { breakPlacement, choosePot, mySavings, withdraw } from "../services/savingsService.js";
 import { savePushToken } from "../services/notifyService.js";
-import { answerReceipt } from "../services/payoutService.js";
+import { answerReceipt, potAnswered } from "../services/payoutService.js";
 import {
   buildRecord,
   listLenders,
@@ -167,14 +167,19 @@ const potChoiceBody = z
 meRouter.put("/savings/choices/:roundId", async (req, res) => {
   const roundId = z.string().uuid().parse(req.params.roundId);
   const body = potChoiceBody.parse(req.body);
-  res.json(await choosePot(currentMember(res).userId, { roundId, ...body }));
+  const view = await choosePot(currentMember(res).userId, { roundId, ...body });
+  const round = await prisma.round.findUnique({ where: { id: roundId }, select: { groupId: true } });
+  if (round) void potAnswered(round.groupId); // D151
+  res.json(view);
 });
 
 // D147: her choice for her pot in a group, before it starts or while it runs.
 meRouter.put("/savings/groups/:groupId", async (req, res) => {
   const groupId = z.string().uuid().parse(req.params.groupId);
   const body = potChoiceBody.parse(req.body);
-  res.json(await choosePot(currentMember(res).userId, { groupId, ...body }));
+  const view = await choosePot(currentMember(res).userId, { groupId, ...body });
+  void potAnswered(groupId); // D151: her pot may only have been waiting for her
+  res.json(view);
 });
 
 // Takes a whole placement back before its date: it earns nothing.

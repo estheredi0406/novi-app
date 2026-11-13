@@ -41,6 +41,7 @@ import { inviteSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import { unreadCount } from "./chatService.js";
 import { alertStaff } from "./alertService.js";
+import { notifyGroupStatus } from "./notifyService.js";
 import { owedCovers } from "./memberService.js";
 import { reserveSummary } from "./reserveService.js";
 
@@ -986,6 +987,8 @@ export async function startGroup(
   // opened. Otherwise Novi asks the MFI straight away.
   if (!mfiValidatesGroups()) await openAccount(groupId, userId);
   else if (wasProposed) {
+    // D152: the other members learn it too, not only the organiser.
+    await notifyGroupStatus(groupId, "CHECKING", userId);
     // D90: the officers hear about it without watching the console.
     await alertStaff({
       mfiId: group.mfiId,
@@ -1089,6 +1092,7 @@ async function openAccount(groupId: string, userId: string | null) {
   }
 
   const startedAt = new Date();
+  let started = false;
   await prisma.$transaction(async (tx) => {
     const moved = await tx.group.updateMany({
       where: { id: groupId, state: "STARTING" },
@@ -1096,6 +1100,7 @@ async function openAccount(groupId: string, userId: string | null) {
     });
     // The calendar is written once, by the request that made the group ACTIVE.
     if (moved.count === 1) {
+      started = true;
       await createRounds(tx, groupId, startedAt, rules);
       await carryChoices(tx, groupId); // D147: choices made before the start
     }
@@ -1103,6 +1108,7 @@ async function openAccount(groupId: string, userId: string | null) {
       data: { userId, type: "GROUP_ACTIVE", details: { groupId } },
     });
   });
+  if (started) await notifyGroupStatus(groupId, "STARTED"); // D152
 }
 
 // Writes the group's calendar: one round per member, round N due

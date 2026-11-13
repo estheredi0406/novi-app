@@ -224,6 +224,36 @@ export async function notifyCycleDone(groupId: string): Promise<void> {
   );
 }
 
+// D152: the group's start, told to every member, not only the organiser:
+// the caisse is checking it, it has started, or the caisse declined it.
+export async function notifyGroupStatus(
+  groupId: string,
+  status: "CHECKING" | "STARTED" | "DECLINED",
+  exceptUserId: string | null = null,
+  reason = "",
+): Promise<void> {
+  const [group, seats] = await Promise.all([
+    prisma.group.findUnique({ where: { id: groupId }, select: { name: true, mfi: { select: { name: true } } } }),
+    othersIn(groupId, exceptUserId),
+  ]);
+  if (!group) return;
+  const mfi = group.mfi.name;
+  const why = reason.trim() ? `${reason.trim().replace(/[.\s]*$/, "")}. ` : "";
+  await send(seats.map((s) => s.userId), "money", groupUrl(groupId), (l) => {
+    if (status === "CHECKING")
+      return en(l)
+        ? { title: `${group.name}: started`, body: `${mfi} is checking the group. You will be told when the first round starts.` }
+        : { title: `${group.name} : démarré`, body: `${mfi} vérifie le groupe. Vous serez prévenue au premier tour.` };
+    if (status === "STARTED")
+      return en(l)
+        ? { title: `${group.name}: the first round has started`, body: "Tap to see when you pay." }
+        : { title: `${group.name} : le premier tour commence`, body: "Touchez pour voir quand payer." };
+    return en(l)
+      ? { title: `${group.name}: not accepted by ${mfi}`, body: `${why}No money has moved.` }
+      : { title: `${group.name} : refusé par ${mfi}`, body: `${why}Aucun argent n'a bougé.` };
+  });
+}
+
 // The phone tells Novi where to reach it, after login; null after logout.
 export async function savePushToken(
   sessionId: string,

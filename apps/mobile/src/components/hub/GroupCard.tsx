@@ -58,9 +58,16 @@ export function GroupCard({
   const potLater = Boolean(myPot) && myPot!.number > round.number;
   const waitsAccount =
     potNow && myPot!.payoutStatus === "READY" && keep > 0 && choice?.accountStatus === "REQUESTED";
+  // D151: her pot is this round and she has not said where it goes: ask her,
+  // plainly, instead of a line saying it all goes to her phone.
+  const mustChoose = potNow && Boolean(choice) && !choice!.chosen;
   const potState = !potNow
     ? null
-    : waitsAccount
+    : mustChoose && (myPot!.payoutStatus === "READY" || myPot!.payoutStatus === "NOT_DUE" || myPot!.payoutStatus === "HELD")
+      ? myPot!.payoutStatus === "READY"
+        ? t("hub.potAsk")
+        : t("hub.potFilling", { paid: round.paidCount, total: group.size })
+      : waitsAccount
       ? t("hub.potWaitsAccount")
       : myPot!.payoutStatus === "NOT_DUE" || myPot!.payoutStatus === "HELD"
         ? t("hub.potFilling", { paid: round.paidCount, total: group.size })
@@ -165,7 +172,7 @@ export function GroupCard({
               <Text style={[styles.small, styles.turnDetail]}>{potState}</Text>
               {toPhone > 0 ? (
                 <>
-                  <Text style={styles.small}>{t("hub.toPhone")}</Text>
+                  <Text style={styles.small}>{mustChoose ? t("hub.yourPotLabel") : t("hub.toPhone")}</Text>
                   <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
                     {F(toPhone)}
                   </Text>
@@ -209,7 +216,15 @@ export function GroupCard({
           </View>
         </View>
       ) : null}
-      {split ? (
+      {mustChoose ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push({ pathname: "/savings-choice" as never, params: { group: choice!.groupId } })}
+          style={styles.choose}
+        >
+          <Text style={styles.chooseText}>{t("hub.chooseWhere")}</Text>
+        </Pressable>
+      ) : split ? (
         <View style={styles.splitRow}>
           <Text style={styles.splitText}>{split}</Text>
           {canChange ? (
@@ -395,6 +410,15 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   payText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 18, color: colors.white },
+  choose: {
+    minHeight: 52,
+    borderRadius: 16,
+    backgroundColor: colors.action,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  chooseText: { textAlign: "center", fontFamily: fonts.bodyBold, fontSize: 17, color: colors.white },
   actions: {
     flexDirection: "row",
     marginHorizontal: -20,

@@ -490,3 +490,16 @@ From Esther's own test: her savings were only reachable from the savings card, w
 ## D143: she is told when her savings account is opened or refused (12 November 2026)
 
 From Esther's own test: since D141 a pot waits for the member's savings account, so she must know when the MFI decides. When an officer opens her account, she gets a notification ("Votre compte d'épargne est ouvert", with the account number: the part of her pot she chose will be placed there); when it is refused, she learns that her whole pot will go to her phone. Without the app, she gets the same by SMS (D111). The decision is never stopped by a notification that fails. "Pour vous" on home now shows its tiles two per row, icon beside the label, so "Partager mon relevé" no longer squeezes onto three lines.
+
+## D151: a pot that leaves on its own first asks her where it goes (13 November 2026)
+
+From Esther's test with a second caisse: her full pot left within minutes of the last payment (pilot rounds, D127, and the caisse's automatic release, D105), so she was never asked whether to keep part of it in savings. Now a full pot that would leave on its own waits for her answer when her caisse offers savings and she has not chosen: she gets a notification ("Votre cagnotte est prête : où voulez-vous la recevoir ?"), and her card on home shows "Choisir où la recevoir". As soon as she answers, the pot leaves. If she has not answered by the end of its due day (Lomé is on GMT), it leaves as before, all to her phone. The choice is per group: at a caisse where she has no savings account yet, keeping a part asks her consent and requests the account (D141); where she already has one, she only chooses the amount. The organiser is asked too, right after she starts the group.
+
+## D152: every member is told how the group's start goes (13 November 2026)
+
+Before, only the organiser saw that the caisse was checking the group. Now, when she starts it, the other members get a notification that the caisse is checking it, and their group page says so. When the account opens, everyone is told the first round has started; if the caisse declines the group, everyone gets its reason, and that no money has moved.
+
+## D153: her groups by name on home (13 November 2026)
+
+With several groups, home showed one card at a time and small dots: testers did not see that they could swipe. The dots are replaced by a row of group names under the card; a tap shows that group's card (swiping still works), and an orange dot marks a group where she still has to pay.
+

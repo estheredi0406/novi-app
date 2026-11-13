@@ -9,11 +9,11 @@ import { payoutSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import { accountForMfi } from "./paymentAccounts.js";
 import { syncCoreBanking } from "./coreBanking.js";
-import { bookKept, keptForPayout, savingsToOpen } from "./savingsService.js";
+import { bookKept, keptForPayout, savingsTerms, savingsToOpen } from "./savingsService.js";
 import type { PayoutAnswer } from "../providers/mfi/MfiAdapter.js";
 import { deleteGroupVoices, postEvent } from "./chatService.js";
 import { alertStaff } from "./alertService.js";
-import { notifyCycleDone, notifyPotPaid } from "./notifyService.js";
+import { notifyCycleDone, notifyMembers, notifyPotPaid } from "./notifyService.js";
 import { coverMissing, repayFromPot, returnReserve, runReturns } from "./reserveService.js";
 
 // Money out (D63). On a round's due date, a full pot becomes READY;
@@ -245,15 +245,24 @@ async function handleRound(round: DueRound, now: Date) {
   } else if (round.payout.status === "READY") {
     // Already waiting for the officers: it leaves by itself only if the
     // admin has since raised the limit above it, and nobody approved it yet.
-    if (leavesAlone(details.amountFcfa, limit) && !round.payout.firstApprovedById)
+    if (
+      leavesAlone(details.amountFcfa, limit) &&
+      !round.payout.firstApprovedById &&
+      !(await waitsForHerAnswer(round, now))
+    )
       await autoRelease(round.payout.id, limit);
     return;
   }
   if (readyId) {
-    // D141: a pot that cannot leave alone because her savings account is not
-    // open yet is shown to the officers like any pot waiting for them.
-    const left = leavesAlone(details.amountFcfa, limit) && (await autoRelease(readyId, limit));
-    if (!left) await alertPotReady(round, readyId, details.amountFcfa);
+    const alone = leavesAlone(details.amountFcfa, limit);
+    if (alone && (await waitsForHerAnswer(round, now))) {
+      await askWhereItGoes(round, details.amountFcfa);
+    } else {
+      // D141: a pot that cannot leave alone because her savings account is not
+      // open yet is shown to the officers like any pot waiting for them.
+      const left = alone && (await autoRelease(readyId, limit));
+      if (!left) await alertPotReady(round, readyId, details.amountFcfa);
+    }
   }
   if (!round.payout || round.payout.status === "HELD") return;
 
@@ -268,6 +277,49 @@ async function handleRound(round: DueRound, now: Date) {
 export async function autoReleaseLimit(mfiId: string): Promise<number | null> {
   const found = await prisma.mfi.findUnique({ where: { id: mfiId }, select: { autoReleaseFcfa: true } });
   return found?.autoReleaseFcfa ?? null;
+}
+
+// D151: a full pot that would leave on its own first waits for her to say
+// where it goes (all to her phone, or part kept at the caisse), when her
+// caisse offers savings and she has not answered. She has until the end of
+// its due day (Lomé is on GMT); then it leaves, all to her phone, as before.
+async function waitsForHerAnswer(
+  round: { id: string; groupId: string; beneficiaryId: string; dueDate: Date; group: { mfiId: string } },
+  now: Date,
+): Promise<boolean> {
+  const due = round.dueDate;
+  const endOfDueDay = new Date(Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate() + 1));
+  if (now >= endOfDueDay) return false;
+  const [choice, seat] = await Promise.all([
+    prisma.potChoice.findUnique({ where: { roundId: round.id } }),
+    prisma.membership.findFirst({
+      where: { groupId: round.groupId, userId: round.beneficiaryId },
+      select: { exitReason: true },
+    }),
+  ]);
+  if (choice || seat?.exitReason) return false;
+  return (await savingsTerms(round.group.mfiId)) !== null;
+}
+
+async function askWhereItGoes(
+  round: { groupId: string; beneficiaryId: string; group: { name: string } },
+  amountFcfa: number,
+) {
+  const amount = `${String(amountFcfa).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA`;
+  await notifyMembers(
+    [round.beneficiaryId],
+    "money",
+    `/savings-choice?group=${round.groupId}`,
+    { title: `Votre cagnotte de ${amount} est prête`, body: `${round.group.name} : où voulez-vous la recevoir ?` },
+    { title: `Your pot of ${amount} is ready`, body: `${round.group.name}: where do you want it?` },
+  );
+}
+
+// D151: she answered; her pot leaves now if it was only waiting for her.
+// Tests run the payouts themselves, with the date they need.
+export async function potAnswered(groupId: string): Promise<void> {
+  if (process.env.NODE_ENV === "test") return;
+  await runPayouts(new Date(), groupId).catch((err) => console.error("Payout after her answer failed:", err));
 }
 
 // D105: does this pot leave by itself, or does it need two officers?

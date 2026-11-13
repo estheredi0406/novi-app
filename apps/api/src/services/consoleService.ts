@@ -21,7 +21,7 @@ import { currentRoundNumber, isoDay } from "../lib/schedule.js";
 import { openApprovedGroup } from "./groupService.js";
 import { pilotMode } from "../lib/pilot.js";
 import { owedCovers } from "./memberService.js";
-import { notifyMembers } from "./notifyService.js";
+import { notifyGroupStatus, notifyMembers } from "./notifyService.js";
 import { groupAccount, mfiBankTotal, syncCoreBanking } from "./coreBanking.js";
 import { accountBalance } from "./paymentAccounts.js";
 import { creditFoundPayment, rejectReport } from "./moneyService.js";
@@ -730,6 +730,7 @@ export async function declineGroup(
       },
     }),
   ]);
+  await notifyGroupStatus(groupId, "DECLINED", null, reason); // D152
   return listConsoleGroups(mfiId);
 }
 

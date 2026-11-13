@@ -1,8 +1,8 @@
 import type { GroupSummary, Invitation, MySavings, NewsItem } from "@novi/shared";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View } from "react-native";
 import { errorKey } from "../../api/client";
 import { listMyGroups, listMyInvitations } from "../../api/groups";
 import { answerReceipt } from "../../api/money";
@@ -139,8 +139,10 @@ export function HomeView({
   }
   const { width } = useAppWidth();
   const [page, setPage] = useState(0);
+  const cardsRef = useRef<ScrollViewInstance>(null);
   // D147: asked from the day she joins until the group starts; after that,
   // an unanswered pot goes to her mobile money (the group card says so).
+  // Before the start; once the group runs, her card asks (D151).
   const toChoose = savings?.choices.filter((c) => !c.chosen && !c.started) ?? [];
 
   // Ewe screens still show French texts until a native speaker reviews them,
@@ -208,6 +210,7 @@ export function HomeView({
         {running.length > 0 ? (
           <>
             <ScrollView
+              ref={cardsRef}
               horizontal
               showsHorizontalScrollIndicator={false}
               snapToInterval={step}
@@ -225,17 +228,28 @@ export function HomeView({
                 />
               ))}
             </ScrollView>
+            {/* D153: her groups by name, under the card: a tap shows that
+                group's card (swiping still works). Orange dot: she owes there. */}
             {running.length > 1 ? (
-              <View style={[styles.pager, styles.pagerPad]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
                 {running.map((g, i) => (
-                  <CowrieMark
+                  <Pressable
                     key={g.id}
-                    size={16}
-                    rotate={90}
-                    fill={i === page ? colors.indigo : colors.seatEmpty}
-                  />
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: i === page }}
+                    onPress={() => {
+                      setPage(i);
+                      cardsRef.current?.scrollTo({ x: i * step, animated: true });
+                    }}
+                    style={[styles.tab, i === page && styles.tabOn]}
+                  >
+                    {owes(g) ? <View style={styles.tabDot} /> : null}
+                    <Text style={[styles.tabText, i === page && styles.tabTextOn]} numberOfLines={1}>
+                      {g.name}
+                    </Text>
+                  </Pressable>
                 ))}
-              </View>
+              </ScrollView>
             ) : null}
           </>
         ) : isNew ? (
@@ -310,7 +324,7 @@ export function HomeView({
         <View style={styles.section}>
           {toChoose.map((c) => (
             <Pressable
-              key={c.roundId}
+              key={c.roundId ?? c.groupId}
               accessibilityRole="button"
               onPress={() => router.push({ pathname: "/savings-choice" as never, params: { group: c.groupId } })}
               style={[styles.box, styles.invite]}
@@ -466,8 +480,23 @@ const styles = StyleSheet.create({
   lift: { marginTop: -20 - OVERLAP, marginHorizontal: -24 },
   cardsScroll: { overflow: "visible" },
   cards: { gap: CARD_GAP, paddingHorizontal: CARD_SIDE },
-  pager: { flexDirection: "row", justifyContent: "center", gap: 4, marginTop: 14 },
-  pagerPad: { paddingBottom: 4 },
+  tabs: { gap: 8, paddingHorizontal: CARD_SIDE, paddingTop: 14, paddingBottom: 4 },
+  tab: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minHeight: 40,
+    maxWidth: 200,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+  },
+  tabOn: { backgroundColor: colors.indigo, borderColor: colors.indigo },
+  tabText: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.ink },
+  tabTextOn: { color: colors.white },
+  tabDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
   first: {
     marginHorizontal: 24,
     marginTop: 20,

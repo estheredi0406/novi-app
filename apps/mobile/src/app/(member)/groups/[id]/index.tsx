@@ -21,7 +21,7 @@ import {
   startGroup,
 } from "../../../../api/groups";
 import { listRounds } from "../../../../api/money";
-import { AnswerPanel } from "../../../../components/AnswerPanel";
+import { AnswerPanel, askPot } from "../../../../components/AnswerPanel";
 import { BackHeader } from "../../../../components/BackHeader";
 import { CheckRow } from "../../../../components/CheckRow";
 import { ErrorMessage } from "../../../../components/ErrorMessage";
@@ -354,7 +354,11 @@ export default function GroupScreen() {
                   names: group.seats.map((seat) => seat.displayName).join(", "),
                 }),
                 t("group.start"),
-                () => startGroup(group.id),
+                async () => {
+                  const started = await startGroup(group.id);
+                  void askPot(group.id); // D151: the organiser says where her pot goes too
+                  return started;
+                },
               )
             }
           />
@@ -366,12 +370,13 @@ export default function GroupScreen() {
         </View>
       ) : null}
 
-      {isOrganiser && state === "STARTING" ? (
+      {/* D152: every member sees that the caisse is checking the group. */}
+      {state === "STARTING" ? (
         <View style={styles.section}>
           <Text style={[type.body, styles.ink]}>
             {t("group.starting", { mfi: group.mfiName })}
           </Text>
-          {group.mfiReviews ? null : (
+          {!isOrganiser || group.mfiReviews ? null : (
             <PrimaryButton
               label={t("common.tryAgain")}
               disabled={busy}

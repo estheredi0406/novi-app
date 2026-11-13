@@ -851,7 +851,10 @@
     "splitAllPhone": "All to your mobile money",
     "changeChoice": "Change",
     "potReady": "Everyone has paid. The caisse will send it.",
-    "potFailed": "Sending delayed. The caisse is on it."
+    "potFailed": "Sending delayed. The caisse is on it.",
+    "chooseWhere": "Choose where it goes",
+    "potAsk": "Everyone has paid. Say where you want it.",
+    "yourPotLabel": "Your pot"
   },
   "news": {
     "title": "News",

@@ -24,6 +24,7 @@ Each rule below is enforced in the API, which is the only place that decides. Th
 | A member accepts the exact version she read; a change asks her again (D29) | `lib/groupRules.ts` | `answers` |
 | Starts only when every seat is filled and every member accepted the current rules | `lib/groupRules.ts` | `groupRules` |
 | The MFI validates the group before its account opens (D66); refused while its savings conditions are incomplete (D147) | `consoleService` | `console` |
+| Every member is told when the caisse checks, opens or declines the group, with its reason (D152) | `notifyService` | |
 | A member with no Novi history cannot take turn 1 (D104) | `lib/groupRules.ts` | `advance` |
 | A member who owes the group's advances cannot join or create a group | `groupService` | `protection` |
 
@@ -56,6 +57,7 @@ Each rule below is enforced in the API, which is the only place that decides. Th
 | Nothing leaves before the due date; a pot that is not full is held, never sent short (D48) | `lib/groupRules.ts` | `payouts` |
 | A full pot under the MFI's ceiling leaves alone; above it, two officers release it; with no ceiling chosen, an officer releases every pot (D105, D134) | `payoutService` | `payouts`, `console` |
 | A pot is sent once, even if two runs meet (D49) | `payoutService` | `payouts` |
+| A pot that would leave alone first waits for her answer (where it goes) until the end of its due day, when her caisse offers savings (D151) | `payoutService` | `savings` |
 | A refused transfer is tried again after 5 min, 30 min and 2 h, then the officers are told (D114) | `payoutService` | `payouts` |
 | Only the member who received it confirms or disputes it (D63) | `payoutService` | `payouts` |
 | The group is completed once every round is paid out | `payoutService` | `payouts` |

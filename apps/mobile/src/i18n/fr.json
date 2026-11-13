@@ -851,7 +851,10 @@
     "splitAllPhone": "Tout sur votre mobile money",
     "changeChoice": "Modifier",
     "potReady": "Tout le monde a payé. La caisse va l'envoyer.",
-    "potFailed": "Envoi retardé. La caisse s'en occupe."
+    "potFailed": "Envoi retardé. La caisse s'en occupe.",
+    "chooseWhere": "Choisir où la recevoir",
+    "potAsk": "Tout le monde a payé. Dites où vous la voulez.",
+    "yourPotLabel": "Votre cagnotte"
   },
   "news": {
     "title": "Nouvelles",

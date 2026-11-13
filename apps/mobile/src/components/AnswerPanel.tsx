@@ -22,7 +22,7 @@ import { TextButton } from "./TextButton";
 // D147: right after she joins, where her pot goes, with the caisse's savings
 // conditions. Only when the caisse offers savings and she has not answered;
 // if she leaves the screen, a card on home asks again until the start.
-async function askPot(groupId: string) {
+export async function askPot(groupId: string) {
   try {
     const { choices } = await getSavings();
     const open = choices.find((c) => c.groupId === groupId && !c.started && !c.chosen);
