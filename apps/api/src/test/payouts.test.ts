@@ -7,6 +7,7 @@ import { MockMfiAdapter } from "../providers/mfi/MockMfiAdapter.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
 import { MockSmsProvider } from "../providers/sms/MockSmsProvider.js";
 import { releasePayout, runPayouts } from "../services/payoutService.js";
+import { retryReturns } from "../services/reserveService.js";
 import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
 
 if (
@@ -421,5 +422,78 @@ describe("the group's advances (D103, D104)", () => {
     const record = (await (members.at(stops) as Member).get("/v1/me/record")).body;
     // The fund protected the group, but her record still says she missed it.
     expect(record).toMatchObject({ coveredByReserve: 1, coversRepaid: 0, missed: 1 });
+  });
+
+  // D149: the advances given back are followed like a pot.
+  // Before the last pot leaves, `beforeLast` is told who received the first.
+  async function finishCycle(groupId: string, members: Member[], beforeLast?: (firstPhone: string) => Promise<void> | void) {
+    for (const number of [1, 2, 3]) {
+      for (const member of members) await pay(member, groupId, number);
+      await makeDue(groupId, number);
+      await runPayouts();
+      if (number === 3 && beforeLast) await beforeLast((await roundOne(groupId)).beneficiary.phone);
+      await release(groupId, number);
+    }
+  }
+
+  it("follows an advance the sender accepted until it arrives, then tells her by SMS (D149)", async () => {
+    const { groupId, members } = await activeGroup();
+    let phone = "";
+    await finishCycle(groupId, members, (first) => {
+      phone = first;
+      mockMfi.answerTo.set(first, "SENT");
+    });
+    mockMfi.answerTo.clear();
+    const abla = await prisma.reserveReturn.findFirstOrThrow({ where: { groupId, phone } });
+    expect(abla).toMatchObject({ status: "SENT", attempts: 1 });
+    const before = outbox.length;
+
+    mockMfi.settlePayout(abla.id, "PAID");
+    await runPayouts();
+    expect((await prisma.reserveReturn.findUniqueOrThrow({ where: { id: abla.id } })).status).toBe("PAID");
+    const told = outbox.slice(before).filter((m) => m.to === phone);
+    expect(told).toHaveLength(1);
+    expect(told[0]?.text).toContain("2 500 FCFA");
+    // Told once only.
+    await runPayouts();
+    expect(outbox.slice(before).filter((m) => m.to === phone)).toHaveLength(1);
+  });
+
+  it("tries a refused advance again, tells the officers, and lets them send it again (D149)", async () => {
+    const { groupId, members } = await activeGroup();
+    let phone = "";
+    await finishCycle(groupId, members, (first) => {
+      phone = first;
+      mockMfi.answerTo.set(first, "FAILED");
+    });
+    const koffi = await prisma.reserveReturn.findFirstOrThrow({ where: { groupId, phone } });
+    expect(koffi).toMatchObject({ status: "FAILED", attempts: 1 });
+    for (const minutes of [6, 37, 160]) await runPayouts(later(minutes));
+    expect(await prisma.reserveReturn.findUniqueOrThrow({ where: { id: koffi.id } })).toMatchObject({
+      status: "FAILED",
+      attempts: 4,
+    });
+    expect(await prisma.staffAlert.count({ where: { kind: "RETURN_FAILED", refId: koffi.id } })).toBe(1);
+
+    // The officer sends it again once the wallet works.
+    mockMfi.answerTo.clear();
+    const group = await prisma.group.findUniqueOrThrow({ where: { id: groupId } });
+    expect(await retryReturns(group.mfiId, "officer", groupId)).toBe(1);
+    expect((await prisma.reserveReturn.findUniqueOrThrow({ where: { id: koffi.id } })).status).toBe("PAID");
+    // The ledger still gave it back once.
+    expect(await prisma.ledgerEntry.count({ where: { groupId, type: "RESERVE_RETURN", userId: koffi.userId } })).toBe(1);
+  });
+
+  it("gives back the advances of a finished group that were never written (D149)", async () => {
+    const { groupId, members } = await activeGroup();
+    // A group whose cycle closed without its advances being written (the API
+    // stopped at that moment): its advances are still at the MFI.
+    for (const member of members) await pay(member, groupId, 1);
+    await prisma.group.update({ where: { id: groupId }, data: { state: "COMPLETED", completedAt: new Date() } });
+    expect(await prisma.reserveReturn.count({ where: { groupId } })).toBe(0);
+    await runPayouts();
+    const returns = await prisma.reserveReturn.findMany({ where: { groupId } });
+    expect(returns).toHaveLength(3);
+    expect(returns.every((r) => r.status === "PAID")).toBe(true);
   });
 });

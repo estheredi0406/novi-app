@@ -10,6 +10,8 @@ export class MockMfiAdapter implements MfiAdapter {
   failNext = false;
   // How the next transfer is answered: at once (PAID), later (SENT), or refused.
   nextPayout: "PAID" | "SENT" | "FAILED" = "PAID";
+  // Tests: how every transfer to one number is answered, until cleared.
+  readonly answerTo = new Map<string, "PAID" | "SENT" | "FAILED">();
 
   async openGroupAccount(request: GroupAccountRequest): Promise<{ accountRef: string }> {
     if (this.failNext) {
@@ -31,7 +33,7 @@ export class MockMfiAdapter implements MfiAdapter {
     const existing = this.payouts.get(request.payoutId);
     if (existing && existing.status !== "FAILED") return { mfiRef: existing.mfiRef, status: existing.status };
 
-    const status = this.nextPayout;
+    const status = this.answerTo.get(request.phone) ?? this.nextPayout;
     this.nextPayout = "PAID";
     const answer: PayoutAnswer = { mfiRef: `MOCKPAY-${randomUUID().slice(0, 8).toUpperCase()}`, status };
     this.payouts.set(request.payoutId, { ...request, ...answer });

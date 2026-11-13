@@ -2263,3 +2263,8 @@ a.primary {
   .terms-grid { grid-template-columns: 1fr auto; }
   .terms-grid > :nth-child(3n) { grid-column: 1 / -1; }
 }
+
+/* D149: under her advance, what came back to her at the end of the cycle. */
+.num .q-meta { display: block; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.q-meta.back-paid { color: var(--paid); }
+.q-meta.back-failed { color: var(--problem); font-weight: 700; }

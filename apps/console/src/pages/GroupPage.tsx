@@ -49,6 +49,18 @@ export function GroupPage({
     }
   }
 
+  // D149: one more try for the advances refused at the end of the cycle.
+  async function retryBacks() {
+    try {
+      const { retried } = await api<{ retried: number }>("POST", `/v1/console/groups/${groupId}/returns/retry`);
+      setNote(t.backsRetried(retried));
+      reload();
+    } catch (err) {
+      const key = err instanceof ApiFailure ? err.code : "default";
+      setNote(t.errors[key as keyof typeof t.errors] ?? t.errors.default);
+    }
+  }
+
   async function pickRound(number: number) {
     try {
       setPicked(await api<ConsoleRoundPayments>("GET", `/v1/console/groups/${groupId}/rounds/${number}`));
@@ -74,6 +86,16 @@ export function GroupPage({
           : s.status === "FAILED"
             ? ["red", t.status.FAILED]
             : ["orange", t.status[s.status]];
+
+  // D149: at the end of the cycle, what came back to her of the advances.
+  const backsFailed = data.seats.some((s) => s.advanceBack?.status === "FAILED");
+  const backLine = (s: ConsoleGroupDetail["seats"][number]) => {
+    const b = s.advanceBack;
+    if (!b) return <span className="q-meta">{t.backNone}</span>;
+    if (b.status === "PAID") return <span className="q-meta back-paid">{t.backPaid(fcfa(b.amountFcfa))}</span>;
+    if (b.status === "FAILED") return <span className="q-meta back-failed">{t.backFailed(fcfa(b.amountFcfa))}</span>;
+    return <span className="q-meta">{t.backSending(fcfa(b.amountFcfa))}</span>;
+  };
 
   function exportCsv() {
     const q = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
@@ -188,7 +210,14 @@ export function GroupPage({
         <section className="queue">
           <div className="queue-head">
             <h2>{t.members}</h2>
+            {backsFailed && role !== "COMPLIANCE" ? (
+              <button className="primary" onClick={() => void retryBacks()}>
+                {t.retryBacks}
+              </button>
+            ) : null}
           </div>
+          {backsFailed ? <p className="error small">{t.backsFailed}</p> : null}
+          {note && !pilot ? <p className="small">{note}</p> : null}
           <table className="members groups-table">
             <thead>
               <tr>
@@ -209,7 +238,10 @@ export function GroupPage({
                       {s.organiser ? ` · ${t.organiserTag}` : ""}
                       {s.left ? <span className="q-meta">{t.seatLeft}</span> : null}
                     </td>
-                    <td className="num">{fcfa(s.advanceFcfa)}</td>
+                    <td className="num">
+                      {fcfa(s.advanceFcfa)}
+                      {data.state === "COMPLETED" ? backLine(s) : null}
+                    </td>
                     <td>
                       {s.roundsDue === 0 ? "–" : t.onTimeOf(s.paidOnTime, s.roundsDue)}
                       {s.paid > s.paidOnTime ? <span className="q-meta">{t.lateCount(s.paid - s.paidOnTime)}</span> : null}

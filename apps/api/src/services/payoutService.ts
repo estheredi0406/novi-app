@@ -14,7 +14,7 @@ import type { PayoutAnswer } from "../providers/mfi/MfiAdapter.js";
 import { deleteGroupVoices, postEvent } from "./chatService.js";
 import { alertStaff } from "./alertService.js";
 import { notifyCycleDone, notifyPotPaid } from "./notifyService.js";
-import { coverMissing, repayFromPot, returnReserve } from "./reserveService.js";
+import { coverMissing, repayFromPot, returnReserve, runReturns } from "./reserveService.js";
 
 // Money out (Sprint 4, D63). On a round's due date, a full pot becomes READY;
 // the MFI officer then releases it from the console, and only then does Novi
@@ -76,6 +76,8 @@ export async function runPayouts(
       );
     }
   }
+  // D149: the advances given back at the end of a cycle, followed like pots.
+  if (!groupId) await runReturns(now).catch((err) => console.error("Advance returns failed:", err));
   // D113: the MFI's books follow every pot paid and every advance returned.
   await syncCoreBanking().catch((err) => console.error("Core banking booking failed:", err));
 }

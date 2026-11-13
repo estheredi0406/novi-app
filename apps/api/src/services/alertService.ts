@@ -20,7 +20,8 @@ export type AlertKind =
   | "POT_DISPUTED"
   | "LOAN_REQUEST"
   | "PAYMENT_REPORTED" // D105: a payment she says left her account
-  | "TRANSFER_FAILED"; // D114: a pot refused after its automatic retries
+  | "TRANSFER_FAILED" // D114: a pot refused after its automatic retries
+  | "RETURN_FAILED"; // D149: an advance given back, refused after its retries
 
 const WORK_START_H = 8;
 const WORK_END_H = 17;
@@ -140,6 +141,8 @@ async function stillWaiting(kind: string, refId: string): Promise<boolean> {
       );
     case "TRANSFER_FAILED":
       return (await prisma.payout.count({ where: { id: refId, status: "FAILED" } })) > 0;
+    case "RETURN_FAILED":
+      return (await prisma.reserveReturn.count({ where: { id: refId, status: "FAILED" } })) > 0;
     default:
       return false;
   }
@@ -173,6 +176,7 @@ const LABEL: Record<string, string> = {
   LOAN_REQUEST: "une demande de crédit",
   PAYMENT_REPORTED: "un paiement signalé à vérifier",
   TRANSFER_FAILED: "un virement refusé à corriger",
+  RETURN_FAILED: "une avance à rendre, refusée",
 };
 
 // The escalation and the morning summary. Runs every 15 minutes.

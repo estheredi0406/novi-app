@@ -3,7 +3,10 @@ import { prisma } from "../lib/db.js";
 import { advanceOf, repayDeadline, SKIPS_PER_CYCLE } from "../lib/groupRules.js";
 import { mfi, sms } from "../providers/index.js";
 import { accountForMfi } from "./paymentAccounts.js";
-import { coverSms } from "../lib/smsText.js";
+import { advanceBackSms, coverSms } from "../lib/smsText.js";
+import { AppError } from "../lib/errors.js";
+import { alertStaff } from "./alertService.js";
+import { MAX_ATTEMPTS, nextRetryAt } from "./payoutService.js";
 
 // The group's advances (D103, D104), which replaced the 2% solidarity reserve
 // of D68. Each member pays an advance of half a contribution with round 1;
@@ -255,8 +258,15 @@ export async function deadlineAfter(tx: Tx, roundId: string, now: Date): Promise
 // At the end of the cycle (D103): what the advances hold goes back, through
 // the MFI, to the members who owe nothing, in proportion to what each put in.
 // A member who still owes a covered round gets nothing back: her own advance
-// pays first. Run once: a second run finds the returns already written.
-export async function returnReserve(groupId: string): Promise<void> {
+// pays first. D149: every part is written at once, in one transaction, then
+// sent; the sending is followed like a pot (runReturns). Writing them runs
+// once: a second run finds the returns already there and only sends.
+export async function returnReserve(groupId: string, now = new Date()): Promise<void> {
+  await planReturns(groupId);
+  await sendDueReturns(now, groupId);
+}
+
+async function planReturns(groupId: string): Promise<void> {
   const group = await prisma.group.findUniqueOrThrow({
     where: { id: groupId },
   });
@@ -293,74 +303,233 @@ export async function returnReserve(groupId: string): Promise<void> {
   const rest = balance - parts.reduce((sum, p) => sum + p.amount, 0);
   if (parts[0]) parts[0].amount += rest;
 
+  const rows: { userId: string; amount: number; phone: string; operator: "MOOV_TG" | "TOGOCEL" }[] = [];
   for (const part of parts.filter((p) => p.amount > 0)) {
-    // After she left or died, her part goes where the officer recorded (D69).
-    const seat = await prisma.membership.findFirst({
-      where: { groupId, userId: part.userId },
-      select: { exitPayoutPhone: true, user: { select: { phone: true } } },
-    });
-    const user = { phone: seat?.exitPayoutPhone ?? seat?.user.phone ?? "" };
-    if (!user.phone) continue;
-    const last = await prisma.contribution.findFirst({
-      where: { userId: part.userId, status: "PAID", round: { groupId } },
-      orderBy: { paidAt: "desc" },
-    });
-    const operator = last?.operator ?? "MOOV_TG";
-    const created = await prisma.$transaction(async (tx) => {
-      const row = await tx.reserveReturn.create({
+    const where = await payeeOf(groupId, part.userId);
+    if (where) rows.push({ ...part, ...where });
+  }
+  if (rows.length === 0) return;
+  await prisma.$transaction(async (tx) => {
+    for (const row of rows) {
+      const created = await tx.reserveReturn.create({
         data: {
           groupId,
-          userId: part.userId,
-          amountFcfa: part.amount,
-          phone: user.phone,
-          operator,
+          userId: row.userId,
+          amountFcfa: row.amount,
+          phone: row.phone,
+          operator: row.operator,
           status: "SENDING",
         },
       });
       await tx.ledgerEntry.create({
         data: {
           groupId,
-          userId: part.userId,
+          userId: row.userId,
           type: "RESERVE_RETURN",
-          amountFcfa: part.amount,
-          note: `return ${row.id}`,
+          amountFcfa: row.amount,
+          note: `return ${created.id}`,
         },
-      });
-      return row;
-    });
-    try {
-      // D102: from the MFI's own FedaPay balance, like the pots.
-      const account = await accountForMfi(group.mfiId).catch(() => null);
-      const sender = account?.sentVia === "fedapay" ? account.payouts : mfi;
-      const answer = await sender.sendPayout({
-        payoutId: created.id,
-        accountRef: group.mfiAccountRef,
-        amountFcfa: part.amount,
-        phone: user.phone,
-        operator,
-      });
-      await prisma.reserveReturn.update({
-        where: { id: created.id },
-        data: {
-          status: answer.status,
-          mfiRef: answer.mfiRef,
-          paidAt: answer.status === "PAID" ? new Date() : null,
-        },
-      });
-    } catch (err) {
-      console.error(`MFI did not accept reserve return ${created.id}:`, err);
-      await prisma.reserveReturn.update({
-        where: { id: created.id },
-        data: { status: "FAILED" },
       });
     }
+    await tx.auditEvent.create({
+      data: {
+        type: "RESERVE_RETURNED",
+        details: { groupId, amountFcfa: rows.reduce((n, r) => n + r.amount, 0) },
+      },
+    });
+  });
+}
+
+// Where her part goes: her own number, or after she left or died, the number
+// the officer recorded (D69). Read again before each try, so a number an
+// officer corrected is the one used.
+async function payeeOf(groupId: string, userId: string) {
+  const seat = await prisma.membership.findFirst({
+    where: { groupId, userId },
+    select: { exitPayoutPhone: true, user: { select: { phone: true } } },
+  });
+  const phone = seat?.exitPayoutPhone ?? seat?.user.phone ?? "";
+  if (!phone) return null;
+  const last = await prisma.contribution.findFirst({
+    where: { userId, status: "PAID", round: { groupId } },
+    orderBy: { paidAt: "desc" },
+  });
+  return { phone, operator: last?.operator ?? ("MOOV_TG" as const) };
+}
+
+// D149: a part not yet asked for, asked but never answered, or refused and
+// whose wait is over, is (re)sent; one the sender accepted is asked how it
+// went. Also writes the parts of any finished group whose advances were never
+// given back (the API stopped at the wrong moment, for example).
+export async function runReturns(now = new Date()): Promise<void> {
+  const forgotten = await prisma.group.findMany({
+    where: { state: "COMPLETED", mfiAccountRef: { not: null }, reserveReturns: { none: {} } },
+    select: { id: true },
+    take: 50,
+  });
+  for (const g of forgotten) {
+    await planReturns(g.id).catch((err: unknown) => console.error(`Advances of group ${g.id} not written:`, err));
   }
-  await prisma.auditEvent.create({
+  await sendDueReturns(now);
+  const accepted = await prisma.reserveReturn.findMany({
+    where: { status: "SENT", mfiRef: { not: null } },
+    include: { group: { select: { mfiId: true } } },
+    take: 200,
+  });
+  for (const row of accepted) {
+    try {
+      const sender = await senderFor(row.group.mfiId, row.sentVia);
+      await applyReturnAnswer(row.id, await sender.getPayoutStatus(row.mfiRef as string), now);
+    } catch (err) {
+      console.error(`Status of advance return ${row.id} not read:`, err);
+    }
+  }
+}
+
+const RETURN_STUCK_MS = 10 * 60 * 1000;
+
+async function sendDueReturns(now: Date, groupId?: string): Promise<void> {
+  const rows = await prisma.reserveReturn.findMany({
+    where: {
+      ...(groupId ? { groupId } : {}),
+      OR: [
+        { status: "SENDING", requestedAt: null },
+        { status: "SENDING", requestedAt: { lt: new Date(now.getTime() - RETURN_STUCK_MS) } },
+        { status: "FAILED", attempts: { lt: MAX_ATTEMPTS } },
+      ],
+    },
+    orderBy: { createdAt: "asc" },
+    take: 200,
+  });
+  for (const row of rows) {
+    if (row.status === "FAILED") {
+      const at = nextRetryAt(row);
+      if (!at || at > now) continue;
+    }
+    try {
+      await sendReturn(row, now);
+    } catch (err) {
+      console.error(`Advance return ${row.id} not sent:`, err);
+    }
+  }
+}
+
+async function senderFor(mfiId: string, sentVia: string | null) {
+  if (sentVia === "mfi") return mfi;
+  // D102: from the MFI's own FedaPay balance, like the pots.
+  const account = await accountForMfi(mfiId).catch(() => null);
+  if (sentVia === "fedapay" && !account) throw new Error("FedaPay account not reachable");
+  return account?.sentVia === "fedapay" ? account.payouts : mfi;
+}
+
+async function sendReturn(
+  row: { id: string; groupId: string; userId: string; status: string; attempts: number; requestedAt: Date | null },
+  now: Date,
+): Promise<void> {
+  const group = await prisma.group.findUniqueOrThrow({ where: { id: row.groupId } });
+  if (!group.mfiAccountRef) return;
+  const payee = await payeeOf(row.groupId, row.userId);
+  if (!payee) return;
+  const account = await accountForMfi(group.mfiId).catch(() => null);
+  const sentVia = account?.sentVia === "fedapay" ? "fedapay" : "mfi";
+  // Claimed once: two runs never send the same part at the same moment.
+  const claimed = await prisma.reserveReturn.updateMany({
+    where: { id: row.id, status: row.status as "SENDING" | "FAILED", attempts: row.attempts, requestedAt: row.requestedAt },
+    data: { status: "SENDING", requestedAt: now, attempts: { increment: 1 }, sentVia, ...payee },
+  });
+  if (claimed.count === 0) return;
+  let answer: { status: "PAID" | "SENT" | "FAILED"; mfiRef: string | null };
+  try {
+    const sender = sentVia === "fedapay" && account ? account.payouts : mfi;
+    answer = await sender.sendPayout({
+      payoutId: row.id,
+      accountRef: group.mfiAccountRef,
+      amountFcfa: (await prisma.reserveReturn.findUniqueOrThrow({ where: { id: row.id } })).amountFcfa,
+      phone: payee.phone,
+      operator: payee.operator,
+    });
+  } catch (err) {
+    console.error(`MFI did not accept advance return ${row.id}:`, err);
+    answer = { status: "FAILED", mfiRef: null };
+  }
+  await applyReturnAnswer(row.id, answer, now);
+}
+
+async function applyReturnAnswer(
+  id: string,
+  answer: { status: "PAID" | "SENT" | "FAILED"; mfiRef: string | null },
+  now: Date,
+): Promise<void> {
+  if (answer.status === "PAID") {
+    const moved = await prisma.reserveReturn.updateMany({
+      where: { id, status: { not: "PAID" } },
+      data: { status: "PAID", paidAt: now, ...(answer.mfiRef ? { mfiRef: answer.mfiRef } : {}) },
+    });
+    if (moved.count > 0) await tellReturned(id, now);
+    return;
+  }
+  const moved = await prisma.reserveReturn.updateMany({
+    where: { id, status: { not: "PAID" } },
     data: {
-      type: "RESERVE_RETURNED",
-      details: { groupId, amountFcfa: balance },
+      status: answer.status,
+      ...(answer.mfiRef ? { mfiRef: answer.mfiRef } : {}),
+      ...(answer.status === "FAILED" ? { failedAt: now } : {}),
     },
   });
+  if (moved.count > 0 && answer.status === "FAILED") await alertIfReturnStuck(id);
+}
+
+// D149: she is told once, by SMS, when her part reached her.
+async function tellReturned(id: string, now: Date): Promise<void> {
+  const told = await prisma.reserveReturn.updateMany({ where: { id, toldAt: null }, data: { toldAt: now } });
+  if (told.count === 0) return;
+  const row = await prisma.reserveReturn.findUniqueOrThrow({
+    where: { id },
+    include: { group: { select: { name: true } }, user: { select: { language: true } } },
+  });
+  await sms
+    .send(row.phone, advanceBackSms(row.user.language, { amountFcfa: row.amountFcfa, groupName: row.group.name }))
+    .catch((err: unknown) => console.error("Advance return SMS failed:", err));
+}
+
+// D149: the automatic tries are used up: the officers are told once, like a pot.
+async function alertIfReturnStuck(id: string): Promise<void> {
+  const row = await prisma.reserveReturn.findUnique({
+    where: { id },
+    include: { group: { select: { id: true, name: true, mfiId: true } } },
+  });
+  if (!row || row.status !== "FAILED" || row.attempts < MAX_ATTEMPTS) return;
+  await alertStaff({
+    mfiId: row.group.mfiId,
+    kind: "RETURN_FAILED",
+    refId: id,
+    groupId: row.group.id,
+    subject: `Avance non rendue : ${row.group.name}`,
+    lines: [
+      `Le groupe « ${row.group.name} » est terminé, mais l'avance à rendre à une membre (${row.amountFcfa} FCFA) a été refusée ${row.attempts} fois.`,
+      "Vérifiez son numéro et son compte mobile money, puis relancez l'envoi depuis la page du groupe.",
+    ],
+  });
+}
+
+// D149: the officer's retry, from the group page: one more try for every part
+// of this group that was refused, now, even after the automatic tries.
+export async function retryReturns(mfiId: string, staffId: string, groupId: string, now = new Date()): Promise<number> {
+  const group = await prisma.group.findFirst({ where: { id: groupId, mfiId } });
+  if (!group) throw new AppError("NOT_FOUND", 404);
+  const failed = await prisma.reserveReturn.findMany({ where: { groupId, status: "FAILED" } });
+  if (failed.length === 0) throw new AppError("NOT_ALLOWED_NOW", 409);
+  await prisma.auditEvent.create({
+    data: { type: "STAFF_RETURN_RETRY", details: { staffId, groupId, returns: failed.length } },
+  });
+  for (const row of failed) {
+    await prisma.reserveReturn.updateMany({
+      where: { id: row.id, status: "FAILED" },
+      data: { failedAt: new Date(0), attempts: Math.min(row.attempts, MAX_ATTEMPTS - 1) },
+    });
+  }
+  await sendDueReturns(now, groupId);
+  return failed.length;
 }
 
 // What a member or an officer sees of the group's advances (D103). With a

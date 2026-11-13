@@ -39,6 +39,7 @@ import {
 } from "../services/loanService.js";
 import { AppError } from "../lib/errors.js";
 import { consoleSavings, decideAccount, saveSavingsPolicy } from "../services/savingsService.js";
+import { retryReturns } from "../services/reserveService.js";
 import { getMoney, resolveMismatch } from "../services/moneyCheckService.js";
 import {
   changeOrganiser,
@@ -327,6 +328,13 @@ consoleRouter.post("/payouts/:payoutId/release", async (req, res) => {
         id.parse(req.params.payoutId),
       ),
     );
+});
+
+// D149: send again the advances refused at the end of a cycle.
+consoleRouter.post("/groups/:groupId/returns/retry", async (req, res) => {
+  const staff = currentStaff(res);
+  const groupId = z.string().uuid().parse(req.params.groupId);
+  res.json({ retried: await retryReturns(staff.mfiId, staff.staffId, groupId) });
 });
 
 consoleRouter.post("/payouts/:payoutId/retry", async (req, res) => {

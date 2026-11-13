@@ -179,3 +179,15 @@ export function coverSms(
       return `Novi : les avances du groupe ont payé vos ${amount} FCFA pour le tour ${cover.roundNumber} de « ${cover.groupName} ». À rembourser avant le ${day}/${month}/${year}.`;
   }
 }
+
+// D149: what was left of the group's advances reached her at the end of the cycle.
+export function advanceBackSms(language: Language, back: { amountFcfa: number; groupName: string }): string {
+  const amount = formatFcfa(back.amountFcfa);
+  switch (language) {
+    case "EN":
+      return `Novi: "${back.groupName}" is over. Your share of the group's advances, ${amount} FCFA, was sent to your mobile money.`;
+    case "FR":
+    case "EE":
+      return `Novi : « ${back.groupName} » est terminé. Votre part des avances du groupe, ${amount} FCFA, a été envoyée sur votre mobile money.`;
+  }
+}

@@ -126,6 +126,9 @@ export type ConsoleSeat = {
   defaulted: boolean;
   left: boolean; // she left the group (D69)
   pot: { status: PayoutStatus | "NOT_DUE"; date: string; receipt: "CONFIRMED" | "DISPUTED" | null };
+  // D149: at the end of the cycle, her part of the advances given back; null
+  // before the end, or when nothing comes back to her (she still owed).
+  advanceBack: { amountFcfa: number; status: PayoutStatus } | null;
 };
 
 // D117: the payments of one round, without names (D33).

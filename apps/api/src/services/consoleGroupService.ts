@@ -19,6 +19,7 @@ async function loadGroup(mfiId: string, groupId: string) {
     include: {
       rulesVersions: true,
       memberships: { where: { payoutPosition: { not: null } } },
+      reserveReturns: true,
       rounds: {
         orderBy: { number: "asc" },
         include: { contributions: true, payout: true, reserveCovers: true },
@@ -77,6 +78,10 @@ function seatsOf({ group }: Loaded, now: Date): ConsoleSeat[] {
           date: isoDay(round?.payout?.paidAt ?? round?.dueDate ?? now),
           receipt: receiptOf(round?.payout ?? null),
         },
+        advanceBack: (() => {
+          const back = group.reserveReturns.find((r) => r.userId === seat.userId);
+          return back ? { amountFcfa: back.amountFcfa, status: back.status } : null;
+        })(),
       };
     });
 }

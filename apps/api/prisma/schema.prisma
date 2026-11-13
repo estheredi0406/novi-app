@@ -741,6 +741,13 @@ model ReserveReturn {
   mfiRef     String?
   paidAt     DateTime?
   createdAt  DateTime       @default(now())
+  // D149: followed like a pot: asked again when stuck, its status checked
+  // while the sender has not confirmed, tried again when refused.
+  requestedAt DateTime?     // when Novi last asked the sender; null: not asked yet
+  attempts    Int           @default(0)
+  failedAt    DateTime?
+  sentVia     String?       // "fedapay" or "mfi", the account that sent it
+  toldAt      DateTime?     // the SMS telling her it reached her
 
   group Group @relation(fields: [groupId], references: [id])
   user  User  @relation(fields: [userId], references: [id])
@@ -928,7 +935,7 @@ model LoanRequest {
 model StaffAlert {
   id          String    @id @default(uuid())
   mfiId       String
-  kind        String    // GROUP_TO_VALIDATE, POT_READY, POT_DISPUTED, LOAN_REQUEST, ADVANCE_TO_SEND, PAYMENT_REPORTED, TRANSFER_FAILED
+  kind        String    // GROUP_TO_VALIDATE, POT_READY, POT_DISPUTED, LOAN_REQUEST, ADVANCE_TO_SEND, PAYMENT_REPORTED, TRANSFER_FAILED, RETURN_FAILED
   refId       String    // the group, payout, loan request or advance
   createdAt   DateTime  @default(now())
   escalatedAt DateTime?
