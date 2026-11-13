@@ -3,8 +3,7 @@ import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { getAccounts } from "./consoleService.js";
 
-// D124: where the MFI's money is, and what does not match (canvas boards 40
-// and 42, simplified). One page answers three questions for the officer:
+// D124: where the MFI's money is, and what does not match. One page answers three questions for the officer:
 // 1. How much is there? Novi's ledger for the groups, the group accounts in
 //    the MFI's books (D113), the members' placed savings (D123), and the real
 //    balance FedaPay reports for the MFI's account. FedaPay's balance should be

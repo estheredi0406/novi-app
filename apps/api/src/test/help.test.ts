@@ -228,13 +228,9 @@ describe("no advance from the group's money (D115)", () => {
 });
 
 describe("microloan requests (D89, D91)", () => {
+  const BUSINESS = { kind: "FABRICS", since: "OVER_3Y", weeklySalesFcfa: 60000, place: "Assigamé, Bè" };
   const ask = (client: Client, body: object) =>
-    client.post("/v1/me/loans", body);
-  // A small JPEG-like payload is enough: the server checks type and size.
-  const photo = {
-    mime: "image/jpeg",
-    base64: Buffer.from("fake jpeg bytes for a test").toString("base64"),
-  };
+    client.post("/v1/me/loans", { business: BUSINESS, ...body });
   const put = (token: string, path: string, body: object) =>
     request(app).put(path).set("Authorization", `Bearer ${token}`).send(body);
 
@@ -267,56 +263,29 @@ describe("microloan requests (D89, D91)", () => {
     const { abla } = await activeGroup();
     const page = (await abla.get("/v1/me/loans")).body;
     expect(page.eligible).toBe(false);
-    expect(
-      page.checks.find((c: { key: string }) => c.key === "CYCLE_OR_STREAK"),
-    ).toMatchObject({
+    expect(page.checks.find((c: { key: string }) => c.key === "CYCLE_OR_STREAK")).toMatchObject({
       ok: false,
       figures: { cycles: 0, minCycles: 1, streak: 0, minStreak: 8 },
     });
-    expect(
-      (await ask(abla, { amountFcfa: 20000, purpose: "STOCK", months: 6 }))
-        .status,
-    ).toBe(409);
+    expect((await ask(abla, { amountFcfa: 20000, purpose: "STOCK" })).status).toBe(409);
   });
 
   it("follows the MFI's own conditions, set by its administrator", async () => {
     const { abla } = await qualified();
     const admin = await officer("ADMIN");
     const policy = (await admin.get("/v1/console/credit-policy")).body;
-    expect(policy).toMatchObject({
-      minOnTimePct: 90,
-      ceilingTimesPot: 3,
-      months: [3, 6, 12],
-    });
+    expect(policy).toMatchObject({ minOnTimePct: 90, ceilingTimesPot: 3 });
     expect(policy.documents.length).toBeGreaterThan(0);
 
-    const stricter = {
-      ...policy,
-      minCycles: 2,
-      minStreak: 20,
-      ceilingTimesPot: 2,
-      months: [6, 12],
-    };
+    const stricter = { ...policy, minCycles: 2, minStreak: 20, ceilingTimesPot: 2 };
     delete stricter.updatedAt;
     delete stricter.updatedByName;
-    expect(
-      (await admin.post("/v1/console/credit-policy/preview", stricter)).body,
-    ).toEqual({ eligible: 0, members: 3 });
-    expect(
-      (await put(admin.token, "/v1/console/credit-policy", stricter)).status,
-    ).toBe(200);
+    expect((await admin.post("/v1/console/credit-policy/preview", stricter)).body).toEqual({ eligible: 0, members: 3 });
+    expect((await put(admin.token, "/v1/console/credit-policy", stricter)).status).toBe(200);
 
     const page = (await abla.get("/v1/me/loans")).body;
-    expect(page).toMatchObject({
-      eligible: false,
-      ceilingFcfa: 30000,
-      months: [6, 12],
-    });
-    expect(
-      await prisma.auditEvent.count({
-        where: { type: "STAFF_CREDIT_POLICY_CHANGED" },
-      }),
-    ).toBe(1);
+    expect(page).toMatchObject({ eligible: false, ceilingFcfa: 30000 });
+    expect(await prisma.auditEvent.count({ where: { type: "STAFF_CREDIT_POLICY_CHANGED" } })).toBe(1);
   });
 
   it("lets only an administrator change the conditions", async () => {
@@ -325,199 +294,58 @@ describe("microloan requests (D89, D91)", () => {
     const policy = (await desk.get("/v1/console/credit-policy")).body;
     delete policy.updatedAt;
     delete policy.updatedByName;
-    expect(
-      (await put(desk.token, "/v1/console/credit-policy", policy)).status,
-    ).toBe(403);
+    expect((await put(desk.token, "/v1/console/credit-policy", policy)).status).toBe(403);
   });
 
-  it("goes from request to preselection, documents, the agency and the outcome", async () => {
-    const { abla, ablaToken } = await qualified();
-    expect(
-      (await ask(abla, { amountFcfa: 50000, purpose: "STOCK", months: 6 }))
-        .status,
-    ).toBe(400);
-    expect(
-      (await ask(abla, { amountFcfa: 40000, purpose: "STOCK", months: 6 }))
-        .status,
-    ).toBe(201);
-    expect((await abla.get("/v1/me/loans")).body.eligible).toBe(false); // one open request at a time
-
-    const desk = await officer();
-    const [loan] = (await desk.get("/v1/console/loans")).body;
-    expect(loan).toMatchObject({
-      memberName: ABLA.legalName,
-      amountFcfa: 40000,
-      status: "PENDING",
-    });
-    const detail = (await desk.get(`/v1/console/loans/${loan.id}`)).body;
-    expect(detail).toMatchObject({
-      cyclesCompleted: 1,
-      paymentsMade: 1,
-      paymentsOnTime: 1,
-      owesFcfa: 0,
-    });
-    expect(detail.checks.every((c: { ok: boolean }) => c.ok)).toBe(true);
-    expect(detail.checks.map((c: { key: string }) => c.key)).toContain(
-      "CEILING",
-    );
-
-    // Preselection, not a loan: she is asked for her documents.
-    await desk.post(`/v1/console/loans/${loan.id}/decide`, {
-      action: "preselect",
-    });
-    let mine = (await abla.get("/v1/me/loans")).body.requests[0];
-    expect(mine).toMatchObject({
-      status: "PRESELECTED",
-      documentsConsented: false,
-      documentsComplete: false,
-    });
-    const keys = mine.documents.map((d: { key: string }) => d.key);
-    expect(
-      mine.documents.every((d: { status: string }) => d.status === "MISSING"),
-    ).toBe(true);
-
-    // Photos only after her consent, and only images of a sensible size.
-    expect(
-      (
-        await put(
-          ablaToken,
-          `/v1/me/loans/${loan.id}/documents/${keys[0]}`,
-          photo,
-        )
-      ).status,
-    ).toBe(409);
-    await abla.post(`/v1/me/loans/${loan.id}/documents-consent`);
-    expect(
-      (
-        await put(ablaToken, `/v1/me/loans/${loan.id}/documents/${keys[0]}`, {
-          mime: "application/pdf",
-          base64: photo.base64,
-        })
-      ).status,
-    ).toBe(400);
-    for (const key of keys) {
-      expect(
-        (
-          await put(
-            ablaToken,
-            `/v1/me/loans/${loan.id}/documents/${key}`,
-            photo,
-          )
-        ).status,
-      ).toBe(200);
-    }
-
-    // The officer opens each photo (logged), asks for one again, accepts the rest.
-    const docs = (await desk.get(`/v1/console/loans/${loan.id}`)).body
-      .documents;
-    const opened = await desk.get(
-      `/v1/console/loans/${loan.id}/documents/${docs[0].id}`,
-    );
-    expect(opened.status).toBe(200);
-    expect(opened.headers["content-type"]).toContain("image/jpeg");
-    expect(
-      await prisma.auditEvent.count({
-        where: { type: "STAFF_LOAN_DOCUMENT_VIEWED" },
-      }),
-    ).toBe(1);
-    await desk.post(
-      `/v1/console/loans/${loan.id}/documents/${docs[0].id}/review`,
-      { accepted: false, note: "Photo floue" },
-    );
-    mine = (await abla.get("/v1/me/loans")).body.requests[0];
-    expect(mine.documents[0]).toMatchObject({
-      status: "REDO",
-      note: "Photo floue",
-    });
-    await put(ablaToken, `/v1/me/loans/${loan.id}/documents/${keys[0]}`, photo);
-    const again = (await desk.get(`/v1/console/loans/${loan.id}`)).body
-      .documents;
-    for (const d of again)
-      await desk.post(`/v1/console/loans/${loan.id}/documents/${d.id}/review`, {
-        accepted: true,
-      });
-    expect(
-      (await abla.get("/v1/me/loans")).body.requests[0].documentsComplete,
-    ).toBe(true);
-
-    // After the meeting at the agency: the outcome.
-    expect(
-      (
-        await desk.post(`/v1/console/loans/${loan.id}/decide`, {
-          action: "grant",
-          grantedFcfa: 45000,
-        })
-      ).status,
-    ).toBe(400);
-    const granted = (
-      await desk.post(`/v1/console/loans/${loan.id}/decide`, {
-        action: "grant",
-        grantedFcfa: 35000,
-      })
-    ).body;
-    expect(granted).toMatchObject({ status: "GRANTED", grantedFcfa: 35000 });
-
-    // 30 days after the file was complete, the photos are gone.
-    const { purgeLoanDocuments } = await import("../services/loanService.js");
-    expect(
-      await purgeLoanDocuments(new Date(Date.now() + 31 * 86_400_000)),
-    ).toBe(keys.length);
-    const after = (await desk.get(`/v1/console/loans/${loan.id}`)).body
-      .documents;
-    expect(
-      after.every(
-        (d: { id: string | null; deleted: boolean }) =>
-          d.id === null && d.deleted,
-      ),
-    ).toBe(true);
-  });
-
-  it("makes her wait after a refusal", async () => {
+  it("asks for her business with the request", async () => {
     const { abla } = await qualified();
-    await ask(abla, { amountFcfa: 20000, purpose: "EQUIPMENT", months: 3 });
+    expect((await abla.post("/v1/me/loans", { amountFcfa: 20000, purpose: "STOCK" })).status).toBe(400);
+    expect((await ask(abla, { amountFcfa: 20000, purpose: "STOCK", business: { ...BUSINESS, weeklySalesFcfa: 0 } })).status).toBe(400);
+    const page = (await abla.get("/v1/me/loans")).body;
+    expect(page.business).toBeNull();
+    expect(page.place).toBeTruthy();
+  });
+
+  it("goes from request to preselection, then to signing at the agency", async () => {
+    const { abla } = await qualified();
+    expect((await ask(abla, { amountFcfa: 50000, purpose: "STOCK" })).status).toBe(400);
+    expect((await ask(abla, { amountFcfa: 40000, purpose: "STOCK" })).status).toBe(201);
+    const page = (await abla.get("/v1/me/loans")).body;
+    expect(page.eligible).toBe(false); // one open request at a time
+    expect(page.business).toEqual(BUSINESS); // her answers, to start from next time
+
     const desk = await officer();
     const [loan] = (await desk.get("/v1/console/loans")).body;
-    await desk.post(`/v1/console/loans/${loan.id}/decide`, {
-      action: "decline",
-      reason: "Revenez avec un devis du congélateur",
-    });
+    expect(loan).toMatchObject({ memberName: ABLA.legalName, amountFcfa: 40000, status: "PENDING", business: BUSINESS });
+    const detail = (await desk.get(`/v1/console/loans/${loan.id}`)).body;
+    expect(detail).toMatchObject({ cyclesCompleted: 1, paymentsMade: 1, paymentsOnTime: 1, owesFcfa: 0, toBring: [] });
+    expect(detail.checks.every((c: { ok: boolean }) => c.ok)).toBe(true);
+    expect(detail.checks.map((c: { key: string }) => c.key)).toContain("CEILING");
+
+    // Preselected: she is told what to bring to sign at the agency.
+    await desk.post(`/v1/console/loans/${loan.id}/decide`, { action: "preselect" });
+    const mine = (await abla.get("/v1/me/loans")).body.requests[0];
+    expect(mine.status).toBe("PRESELECTED");
+    expect(mine.toBring.length).toBeGreaterThan(0);
+
+    // At the agency, once she has signed.
+    expect((await desk.post(`/v1/console/loans/${loan.id}/decide`, { action: "grant", grantedFcfa: 45000 })).status).toBe(400);
+    const granted = (await desk.post(`/v1/console/loans/${loan.id}/decide`, { action: "grant", grantedFcfa: 35000 })).body;
+    expect(granted).toMatchObject({ status: "GRANTED", grantedFcfa: 35000, toBring: [] });
+  });
+
+  it("makes her wait after a refusal, at the first look or at the agency", async () => {
+    const { abla } = await qualified();
+    await ask(abla, { amountFcfa: 20000, purpose: "EQUIPMENT" });
+    const desk = await officer();
+    const [loan] = (await desk.get("/v1/console/loans")).body;
+    await desk.post(`/v1/console/loans/${loan.id}/decide`, { action: "preselect" });
+    await desk.post(`/v1/console/loans/${loan.id}/decide`, { action: "notGranted", reason: "Revenez avec un devis du congélateur" });
     const page = (await abla.get("/v1/me/loans")).body;
-    expect(page.requests[0]).toMatchObject({
-      status: "DECLINED",
-      decisionNote: "Revenez avec un devis du congélateur",
-    });
-    expect(
-      page.checks.find((c: { key: string }) => c.key === "WAIT_AFTER_REFUSAL"),
-    ).toMatchObject({
+    expect(page.requests[0]).toMatchObject({ status: "NOT_GRANTED", decisionNote: "Revenez avec un devis du congélateur" });
+    expect(page.checks.find((c: { key: string }) => c.key === "WAIT_AFTER_REFUSAL")).toMatchObject({
       ok: false,
       figures: { days: 0, wait: 30 },
     });
-  });
-
-  it("asks no length, lists the documents first, and lets a document come on paper (D118)", async () => {
-    const { abla, ablaToken } = await qualified();
-    const page = (await abla.get("/v1/me/loans")).body;
-    expect(page.eligible).toBe(true);
-    expect(page.documents.length).toBeGreaterThan(0);
-
-    expect((await ask(abla, { amountFcfa: 30000, purpose: "STOCK" })).status).toBe(201);
-    const desk = await officer();
-    const [loan] = (await desk.get("/v1/console/loans")).body;
-    expect(loan.months).toBeNull();
-    await desk.post(`/v1/console/loans/${loan.id}/decide`, { action: "preselect" });
-    await abla.post(`/v1/me/loans/${loan.id}/documents-consent`);
-
-    // Every document but one by photo, the last one on paper.
-    const keys = (await abla.get("/v1/me/loans")).body.requests[0].documents.map((d: { key: string }) => d.key);
-    for (const key of keys.slice(0, -1)) await put(ablaToken, `/v1/me/loans/${loan.id}/documents/${key}`, photo);
-    const paper = await abla.post(`/v1/me/loans/${loan.id}/documents/${keys.at(-1)}/paper`);
-    expect(paper.status).toBe(200);
-    const detail = (await desk.get(`/v1/console/loans/${loan.id}`)).body;
-    expect(detail.documents.at(-1)).toMatchObject({ status: "PAPER", id: null });
-
-    // Once the photos are accepted, the file is complete: she goes to the agency.
-    for (const d of detail.documents.filter((x: { status: string }) => x.status === "SENT"))
-      await desk.post(`/v1/console/loans/${loan.id}/documents/${d.id}/review`, { accepted: true });
-    expect((await abla.get("/v1/me/loans")).body.requests[0].documentsComplete).toBe(true);
   });
 });

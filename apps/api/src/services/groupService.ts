@@ -1104,7 +1104,7 @@ async function openAccount(groupId: string, userId: string | null) {
   });
 }
 
-// Writes the group's calendar (Sprint 3): one round per member, round N due
+// Writes the group's calendar: one round per member, round N due
 // on the Nth due day after the start (D44), and paid out to the member whose
 // payout position is N.
 async function createRounds(

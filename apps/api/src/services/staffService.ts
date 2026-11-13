@@ -9,7 +9,7 @@ import { createStaffToken } from "../lib/tokens.js";
 import { isSealed, open, seal } from "../lib/secretBox.js";
 import { checkTotp, newTotpSecret, otpauthUri } from "../lib/totp.js";
 
-// MFI staff accounts and console login (Sprint 5, D52).
+// MFI staff accounts and console login (D52).
 
 const SESSION_HOURS = 8; // a working day at the agency
 const MAX_ATTEMPTS = 5;

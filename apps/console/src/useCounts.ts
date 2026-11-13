@@ -21,7 +21,7 @@ export function useCounts(active: boolean, routeKey: string) {
         if (!live) return;
         // The same count as "À traiter" on the overview.
         const openLoans = loans.filter(
-          (l) => l.status === "PENDING" || (l.status === "PRESELECTED" && l.documentsSent > 0),
+          (l) => l.status === "PENDING",
         ).length;
         setCounts({
           toDo:

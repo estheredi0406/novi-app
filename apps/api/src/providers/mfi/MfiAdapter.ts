@@ -10,7 +10,7 @@ export type GroupAccountRequest = {
 };
 
 // An instruction to send one round's pot from the group's account to the
-// mobile money wallet of the member whose turn it is (Sprint 4).
+// mobile money wallet of the member whose turn it is.
 export type PayoutRequest = {
   payoutId: string; // Novi's reference; sent again on a retry, so a pot is never sent twice
   accountRef: string; // the group's account at the MFI

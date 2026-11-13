@@ -890,40 +890,51 @@ enum LoanPurpose {
 
 enum LoanStatus {
   PENDING
-  APPROVED    // D89, before D91: an approval that sent her to the agency (no longer given)
-  PRESELECTED // D91: her record convinces the MFI; it asks for her documents
-  GRANTED     // D91: decided at the agency: the MFI lends (grantedFcfa)
-  NOT_GRANTED // D91: decided at the agency: no loan
+  PRESELECTED // her record and business convince the MFI: she comes to sign
+  GRANTED     // signed at the agency: the MFI lends grantedFcfa
+  NOT_GRANTED // no loan after the meeting at the agency
   DECLINED    // refused at the first look, with a reason she reads
   WITHDRAWN
 }
 
-// D89: a microloan request to the MFI, carried by Novi with her record.
-// The MFI decides and lends; Novi neither lends nor sends the money.
-model LoanRequest {
-  id            String      @id @default(uuid())
-  userId        String
-  mfiId         String
-  amountFcfa    Int
-  purpose       LoanPurpose
-  months        Int? // D118: no longer asked; agreed with the officer at the agency
-  status        LoanStatus  @default(PENDING)
-  grantedFcfa   Int?
-  decisionNote  String?     // the reason for a refusal, or the officer's note
-  decidedById   String?
-  decidedAt     DateTime?
-  // D91: the documents the MFI asked for when it preselected her, kept as
-  // they were then; her consent to send photos; when they were all checked;
-  // and the outcome at the agency.
-  requiredDocs       Json?
-  documentsConsentAt DateTime?
-  documentsCheckedAt DateTime?
-  closedAt           DateTime?
-  createdAt     DateTime    @default(now())
+enum BusinessKind {
+  FABRICS
+  FOOD
+  RESTAURANT
+  BEAUTY
+  OTHER
+}
 
-  user      User           @relation(fields: [userId], references: [id])
-  mfi       Mfi            @relation(fields: [mfiId], references: [id])
-  documents LoanDocument[]
+enum BusinessSince {
+  UNDER_1Y
+  Y1_TO_3
+  OVER_3Y
+}
+
+// A microloan request to the MFI, carried by Novi with her record. The MFI
+// decides and lends; Novi neither lends nor sends the money (D89).
+model LoanRequest {
+  id              String         @id @default(uuid())
+  userId          String
+  mfiId           String
+  amountFcfa      Int
+  purpose         LoanPurpose
+  // Her business, as she declares it: not verified by Novi.
+  businessKind    BusinessKind?
+  businessSince   BusinessSince?
+  weeklySalesFcfa Int?
+  businessPlace   String?
+  status          LoanStatus     @default(PENDING)
+  grantedFcfa     Int?
+  decisionNote    String?
+  decidedById     String?
+  decidedAt       DateTime?
+  requiredDocs    Json? // what she brings to the agency, as asked when preselected
+  closedAt        DateTime?
+  createdAt       DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  mfi  Mfi  @relation(fields: [mfiId], references: [id])
 
   @@index([mfiId, status])
   @@index([userId, createdAt])
@@ -956,44 +967,13 @@ model CreditPolicy {
   minOnTimePct    Int      @default(90)
   ceilingTimesPot Int      @default(3)
   waitDays        Int      @default(30) // after a refusal
-  months          Int[]    @default([3, 6, 12])
-  documents       Json     // [{ key, label }]: what she sends once preselected
+  documents       Json     // [{ key, label }]: what she brings to the agency
   updatedById     String?
   updatedAt       DateTime @updatedAt
 
   mfi Mfi @relation(fields: [mfiId], references: [id])
 
   @@map("credit_policies")
-}
-
-enum DocumentStatus {
-  SENT     // the officer has not looked yet
-  ACCEPTED
-  REDO     // the officer asks for a new photo, with a note
-  PAPER    // D118: she brings it on paper to the agency, no photo
-}
-
-// D91: a photo of one document for a preselected loan request. Seen only by
-// that MFI's staff, each view logged; the photo itself is deleted 30 days
-// after the file is complete or closed (data stays null, deletedAt set).
-model LoanDocument {
-  id           String         @id @default(uuid())
-  loanId       String
-  key          String         // which required document
-  mime         String
-  data         Bytes?
-  status       DocumentStatus @default(SENT)
-  note         String?
-  reviewedById String?
-  reviewedAt   DateTime?
-  deletedAt    DateTime?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-
-  loan LoanRequest @relation(fields: [loanId], references: [id], onDelete: Cascade)
-
-  @@unique([loanId, key])
-  @@map("loan_documents")
 }
 
 // Every SMS Novi sends (D109, D111): real ones count toward the monthly cost

@@ -70,7 +70,7 @@ export async function verifyStepToken(token: string, purpose: StepPurpose): Prom
     return null;
   }
 }
-// ---------- MFI staff (Sprint 5) ----------
+// ---------- MFI staff ----------
 
 const STAFF_AUDIENCE = "novi-staff";
 

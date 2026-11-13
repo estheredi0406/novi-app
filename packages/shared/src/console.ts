@@ -1,6 +1,6 @@
 import type { PayoutStatus } from "./money.js";
 
-// What an MFI officer sees in the console (Sprint 5). Totals only: never which
+// What an MFI officer sees in the console. Totals only: never which
 // member paid what, nor members' names (D33). A pot's receiver is shown by
 // her turn in the order, not by name.
 
@@ -107,7 +107,7 @@ export type ConsoleMemberCard = {
 export type ConsoleGroupDetail = ConsoleGroup & {
   roundList: ConsoleRound[];
   members: ConsoleMemberCard[];
-  // D117: the group page (board 12). Members appear by their turn, never by
+  // D117: the group page. Members appear by their turn, never by
   // name (D33); names are only in the compliance view.
   payoutOrder: string; // DRAWN or FIXED
   advancesInFcfa: number; // of collectedFcfa, the members' advances (D103)
@@ -161,7 +161,7 @@ export type ConsoleRoundPayments = {
   expectedFcfa: number; // the full pot this round should reach
 };
 
-// D117: the compliance view (board 15): names, for anti-money-laundering
+// D117: the compliance view: names, for anti-money-laundering
 // checks, opened by an administrator or a compliance officer with a reason,
 // logged, and closed after 15 minutes.
 export type ConsoleCompliance = {

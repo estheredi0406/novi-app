@@ -4,20 +4,19 @@ import type {
   CreditPolicyInput,
   CreditPolicyPreview,
   CreditPolicyView,
+  LoanBusiness,
   LoanCheck,
-  LoanDocumentView,
 } from "@novi/shared";
 import { useEffect, useState } from "react";
-import { ApiFailure, api, apiImage } from "../api";
+import { ApiFailure, api } from "../api";
 import { day, fcfa } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
-// D89, D91: microloan requests from members. The MFI's own conditions are
-// checked one by one with her figures. The officer's first answer is a
-// preselection (her documents are asked for) or a refusal; he checks each
-// photo; once the file is complete she goes to the agency, and the outcome
-// (granted or not) is recorded here. Novi neither lends nor moves the money.
+// Microloan requests (D89, D91). The MFI's conditions are checked one by one
+// with her figures, beside her declared business. The officer shortlists or
+// declines; she comes to sign at the agency, and the outcome is recorded here.
+// Novi neither lends nor moves the money.
 
 function Tabs({ t, on }: { t: Text; on: "requests" | "policy" }) {
   return (
@@ -46,11 +45,7 @@ export function Loans({ t, onExpired }: { t: Text; onExpired: () => void }) {
 
   const status = (l: ConsoleLoan) =>
     l.status === "PRESELECTED"
-      ? l.documentsComplete
-        ? t.loanFileComplete
-        : l.documentsSent > 0
-          ? t.loanDocsToCheck(l.documentsSent)
-          : t.loanWaitingDocs
+      ? t.loanToSign
       : l.status === "GRANTED" && l.grantedFcfa
         ? t.loanGranted(fcfa(l.grantedFcfa))
         : t.loanStatus[l.status];
@@ -67,7 +62,7 @@ export function Loans({ t, onExpired }: { t: Text; onExpired: () => void }) {
         <strong>{fcfa(l.amountFcfa)}</strong>
       </td>
       <td>{t.loanPurpose[l.purpose]}</td>
-      <td>{t.loanMonths(l.months)}</td>
+      <td>{l.business ? t.bizKind[l.business.kind] : "–"}</td>
       <td className="muted">{day(l.createdAt)}</td>
       <td className={`status-${l.status.toLowerCase()}`}>{status(l)}</td>
     </tr>
@@ -88,7 +83,7 @@ export function Loans({ t, onExpired }: { t: Text; onExpired: () => void }) {
               <th>{t.colMember}</th>
               <th>{t.loanColAmount}</th>
               <th>{t.loanColPurpose}</th>
-              <th>{t.loanColMonths}</th>
+              <th>{t.loanColBusiness}</th>
               <th>{t.loanColDate}</th>
               <th>{t.loanColStatus}</th>
             </tr>
@@ -139,81 +134,37 @@ export function checkLine(t: Text, c: LoanCheck): [string, string] {
   }
 }
 
-function DocumentRow({
-  t,
-  loanId,
-  doc,
-  canReview,
-  onReviewed,
-}: {
-  t: Text;
-  loanId: string;
-  doc: LoanDocumentView;
-  canReview: boolean;
-  onReviewed: () => void;
-}) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  useEffect(() => () => (src ? URL.revokeObjectURL(src) : undefined), [src]);
-
-  async function open() {
-    if (!doc.id) return;
-    setSrc(await apiImage(`/v1/console/loans/${loanId}/documents/${doc.id}`));
-  }
-  async function review(accepted: boolean) {
-    let note: string | undefined;
-    if (!accepted) {
-      note = window.prompt(t.docRedoAsk)?.trim();
-      if (!note) return;
-    }
-    setBusy(true);
-    try {
-      await api(
-        "POST",
-        `/v1/console/loans/${loanId}/documents/${doc.id}/review`,
-        { accepted, note },
-      );
-      onReviewed();
-    } finally {
-      setBusy(false);
-    }
-  }
-
+// Her business as she declared it with the request.
+function Business({ t, b }: { t: Text; b: LoanBusiness | null }) {
   return (
-    <div className="doc-row">
-      <div className="doc-text">
-        <strong>{doc.label}</strong>
-        <span className={`small doc-${doc.status.toLowerCase()}`}>
-          {t.docStatus[doc.status]}
-          {doc.note ? ` : « ${doc.note} »` : ""}
-          {doc.deleted ? ` · ${t.docDeleted}` : ""}
-        </span>
+    <section className="cond-box">
+      <div className="cond-head">
+        <h2>{t.bizTitle}</h2>
+        <span className="muted small">{t.bizDeclared}</span>
       </div>
-      {doc.id && !src ? (
-        <button className="link" onClick={() => void open()}>
-          {t.docOpen}
-        </button>
-      ) : null}
-      {canReview && doc.id && doc.status === "SENT" ? (
-        <>
-          <button
-            className="primary small"
-            disabled={busy}
-            onClick={() => void review(true)}
-          >
-            {t.docAccept}
-          </button>
-          <button
-            className="link"
-            disabled={busy}
-            onClick={() => void review(false)}
-          >
-            {t.docRedo}
-          </button>
-        </>
-      ) : null}
-      {src ? <img className="doc-photo" src={src} alt={doc.label} /> : null}
-    </div>
+      {b ? (
+        <dl className="sums biz">
+          <div>
+            <dt>{t.bizKindLabel}</dt>
+            <dd>{t.bizKind[b.kind]}</dd>
+          </div>
+          <div>
+            <dt>{t.bizSinceLabel}</dt>
+            <dd>{t.bizSince[b.since]}</dd>
+          </div>
+          <div>
+            <dt>{t.bizSalesLabel}</dt>
+            <dd>{t.bizSales(fcfa(b.weeklySalesFcfa))}</dd>
+          </div>
+          <div>
+            <dt>{t.bizPlaceLabel}</dt>
+            <dd>{b.place}</dd>
+          </div>
+        </dl>
+      ) : (
+        <p className="muted small">{t.bizNone}</p>
+      )}
+    </section>
   );
 }
 
@@ -284,7 +235,6 @@ export function LoanPage({
     }
   }
 
-  const accepted = data.documents.filter((d) => d.status === "ACCEPTED").length;
   const rate =
     data.paymentsMade > 0
       ? Math.round((data.paymentsOnTime / data.paymentsMade) * 100)
@@ -338,30 +288,7 @@ export function LoanPage({
             </p>
           </section>
 
-          {data.status !== "PENDING" && data.documents.length > 0 ? (
-            <section className="cond-box">
-              <div className="cond-head">
-                <h2>{t.docTitle}</h2>
-                <span className="muted small">
-                  {t.docCount(accepted, data.documents.length)}
-                </span>
-              </div>
-              {!data.documentsConsented ? (
-                <p className="muted small">{t.docNoConsent}</p>
-              ) : null}
-              {data.documents.map((d) => (
-                <DocumentRow
-                  key={d.key}
-                  t={t}
-                  loanId={loanId}
-                  doc={d}
-                  canReview={data.status === "PRESELECTED"}
-                  onReviewed={reload}
-                />
-              ))}
-              <p className="muted small">{t.docPrivacy}</p>
-            </section>
-          ) : null}
+          <Business t={t} b={data.business} />
 
           <h2>{t.recordTitleOne}</h2>
           <dl className="sums">
@@ -417,7 +344,7 @@ export function LoanPage({
           <span className="muted">{t.loanAsks}</span>
           <span className="loan-amount">{fcfa(data.amountFcfa)}</span>
           <span>
-            {t.loanPurpose[data.purpose]} · {t.loanMonths(data.months)}
+            {t.loanPurpose[data.purpose]}
           </span>
           <span className="muted small">
             {t.loanCeiling(fcfa(data.ceilingFcfa))} ·{" "}
@@ -451,16 +378,14 @@ export function LoanPage({
               </button>
               <span className="muted small">{t.loanPreselectHint}</span>
             </>
-          ) : data.status === "PRESELECTED" && !data.documentsComplete ? (
-            <>
-              <p className="status-pending">
-                {t.loanWaitingDocsLong(accepted, data.documents.length)}
-              </p>
-              <span className="muted small">{t.loanPreselectedHint}</span>
-            </>
           ) : data.status === "PRESELECTED" ? (
             <>
-              <p className="status-approved">{t.loanFileCompleteLong}</p>
+              <p className="status-approved">{t.loanToSignLong}</p>
+              <ul className="to-bring small">
+                {data.toBring.map((d) => (
+                  <li key={d}>{d}</li>
+                ))}
+              </ul>
               <span className="small">{t.loanOutcomeTitle}</span>
               <label className="small">
                 {t.loanGrantLabel}
@@ -506,7 +431,7 @@ export function LoanPage({
   );
 }
 
-// D91: the MFI's own credit conditions. Officers read them; administrators
+// The MFI's credit conditions (D91). Officers read them; administrators
 // change them, with a preview of how many members would qualify.
 export function LoanPolicy({
   t,
@@ -522,7 +447,6 @@ export function LoanPolicy({
     onExpired,
   );
   const [form, setForm] = useState<CreditPolicyInput | null>(null);
-  const [months, setMonths] = useState("");
   const [preview, setPreview] = useState<CreditPolicyPreview | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -531,7 +455,6 @@ export function LoanPolicy({
     if (!data) return;
     const { updatedAt: _u, updatedByName: _n, ...input } = data;
     setForm(input);
-    setMonths(input.months.join(", "));
   }, [data]);
 
   if (failed) return <p className="error">{t.errors.default}</p>;
@@ -542,11 +465,7 @@ export function LoanPolicy({
     setPreview(null);
     setMessage(null);
   };
-  const parsedMonths = months
-    .split(/[,\s]+/)
-    .map((m) => Number(m))
-    .filter((m) => Number.isInteger(m) && m > 0);
-  const input: CreditPolicyInput = { ...form, months: parsedMonths };
+  const input: CreditPolicyInput = form;
 
   async function run(save: boolean) {
     setBusy(true);
@@ -636,19 +555,6 @@ export function LoanPolicy({
             t.policyCeilingUnit,
           )}
           {num("waitDays", t.policyWait, t.policyWaitHint, t.policyDays)}
-          <div className="policy-row">
-            <div>
-              <strong>{t.policyMonths}</strong>
-              <p className="muted small">{t.policyMonthsHint}</p>
-            </div>
-            <input
-              disabled={!isAdmin}
-              value={months}
-              onChange={(e) => setMonths(e.target.value)}
-            />
-            <span className="muted">{t.policyMonthsUnit}</span>
-          </div>
-
           <h3>{t.policyDocs}</h3>
           <p className="muted small">{t.policyDocsHint}</p>
           {form.documents.map((d, i) => (
@@ -718,7 +624,7 @@ export function LoanPolicy({
             {isAdmin ? t.policyAdminNote : t.policyReadOnly}
             {data.updatedAt
               ? ` ${t.policyLast(day(data.updatedAt), data.updatedByName ?? "")}`
-              : ` ${t.condDefaults}.`}
+              : ` ${t.condDefaults.charAt(0).toUpperCase()}${t.condDefaults.slice(1)}.`}
           </p>
         </section>
         <aside className="loan-side">

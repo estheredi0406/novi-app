@@ -1,18 +1,18 @@
-#Installed packages : rebuilt by npm install
+# Installed packages: rebuilt by npm install
 node_modules/
 
-#cOmpiled output 
+# Compiled output
 dist/
 
-#Expo's local cache
+# Expo's local cache
 .expo/
 
-#Secrets: 
+# Secrets
 .env
 .env*
 !.env.example
 
-#Logs ans system files
+# Logs and system files
 *.log
 Thumbs.db
 .DS_Store

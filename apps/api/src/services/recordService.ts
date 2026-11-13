@@ -15,7 +15,7 @@ import { recordOpenedSms } from "../lib/smsText.js";
 import { sms } from "../providers/index.js";
 import { hasApp, notifyMembers } from "./notifyService.js";
 
-// Her savings record, the ACEV (Sprint 6). It turns years of tontine saving,
+// Her savings record, the ACEV. It turns years of tontine saving,
 // which banks cannot see today, into facts a lender can rely on: how often
 // she paid, on time or late, how much she saved and received. Facts only,
 // never a score (brief). It is hers: nobody sees it until she shares it

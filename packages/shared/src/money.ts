@@ -4,7 +4,7 @@
 export type MobileOperator = "MOOV_TG" | "TOGOCEL";
 export type ContributionStatus = "PENDING" | "PAID" | "FAILED";
 
-// Where a round's pot is (Sprint 4). NOT_DUE: its day has not come yet.
+// Where a round's pot is. NOT_DUE: its day has not come yet.
 // HELD: the day has passed but someone has not paid; nothing is sent short.
 // READY: due and full, waiting for the MFI officer to release it (D63).
 export type PayoutStatus =

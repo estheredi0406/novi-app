@@ -32,16 +32,24 @@ export type GroupHelp = {
 export type LoanPurpose = "STOCK" | "EQUIPMENT" | "OTHER";
 export type LoanStatus =
   | "PENDING"
-  | "APPROVED"
   | "PRESELECTED"
   | "GRANTED"
   | "NOT_GRANTED"
   | "DECLINED"
   | "WITHDRAWN";
 
-// D91: one of the MFI's conditions, with her own figures so both she and the
-// officer see why it is met or not. The app and the console write the
-// sentence from the key and the figures.
+// Her business, as she declares it with a request: the MFI looks at it first.
+export type BusinessKind = "FABRICS" | "FOOD" | "RESTAURANT" | "BEAUTY" | "OTHER";
+export type BusinessSince = "UNDER_1Y" | "Y1_TO_3" | "OVER_3Y";
+export type LoanBusiness = {
+  kind: BusinessKind;
+  since: BusinessSince;
+  weeklySalesFcfa: number;
+  place: string;
+};
+
+// One of the MFI's conditions with her own figures, so she and the officer
+// see why it is met or not.
 export type LoanCheck = {
   key:
     | "CYCLE_OR_STREAK"
@@ -50,12 +58,12 @@ export type LoanCheck = {
     | "NO_OPEN_REQUEST"
     | "WAIT_AFTER_REFUSAL"
     | "CEILING"
-    | "SAVINGS"; // D123: the MFI asks that she has started saving with it
+    | "SAVINGS";
   ok: boolean;
   figures: Record<string, number>;
 };
 
-// D91: the MFI's own credit conditions (set by its administrator).
+// The MFI's credit conditions, and the documents she brings to the agency.
 export type LoanDocumentSpec = { key: string; label: string };
 export type CreditPolicyView = {
   enabled: boolean;
@@ -64,7 +72,6 @@ export type CreditPolicyView = {
   minOnTimePct: number;
   ceilingTimesPot: number;
   waitDays: number;
-  months: number[];
   documents: LoanDocumentSpec[];
   updatedAt: string | null;
   updatedByName: string | null;
@@ -75,61 +82,46 @@ export type CreditPolicyInput = Omit<
 >;
 export type CreditPolicyPreview = { eligible: number; members: number };
 
-export type LoanDocumentView = {
-  key: string;
-  label: string;
-  status: "MISSING" | "SENT" | "ACCEPTED" | "REDO" | "PAPER"; // PAPER: she brings it to the agency (D118)
-  note: string | null;
-  id: string | null; // the photo, for the officer to open
-  sentAt: string | null;
-  deleted: boolean; // the photo was deleted after the file closed
-};
-
 export type LoanRequestView = {
   id: string;
   amountFcfa: number;
   purpose: LoanPurpose;
-  months: number | null; // D118: null, the length is agreed at the agency
+  business: LoanBusiness | null; // null on requests made before it was asked
   status: LoanStatus;
   grantedFcfa: number | null;
   decisionNote: string | null;
   mfiName: string;
   createdAt: string;
   decidedAt: string | null;
-  documents: LoanDocumentView[]; // once preselected
-  documentsConsented: boolean;
-  documentsComplete: boolean; // every document accepted: she goes to the agency
+  toBring: string[]; // once preselected: what she brings to sign at the agency
 };
 
-// D89, D91: what the app shows on "Crédit".
 export type LoanPage = {
-  enabled: boolean; // the MFI receives requests
+  enabled: boolean;
   eligible: boolean;
   checks: LoanCheck[];
   ceilingFcfa: number;
-  months: number[];
-  documents: LoanDocumentSpec[]; // D118: what she will need, shown before she asks
+  documents: LoanDocumentSpec[];
+  business: LoanBusiness | null; // her last answers, to start from
+  place: string; // where she trades, from sign-up
   mfiName: string | null;
   onTimePercent: number | null;
-  onTimeNeeded: number | null; // payments on time still needed to reach the MFI's minimum
+  onTimeNeeded: number | null;
   requests: LoanRequestView[];
 };
 
-// The officer's list and detail (console).
 export type ConsoleLoan = {
   id: string;
   memberName: string;
   groupNames: string[];
   amountFcfa: number;
   purpose: LoanPurpose;
-  months: number | null; // D118: null, the length is agreed at the agency
+  business: LoanBusiness | null;
   status: LoanStatus;
   grantedFcfa: number | null;
   createdAt: string;
   decidedAt: string | null;
   ceilingFcfa: number;
-  documentsSent: number; // photos waiting for the officer's look
-  documentsComplete: boolean;
 };
 
 export type ConsoleLoanDetail = ConsoleLoan & {
@@ -151,8 +143,7 @@ export type ConsoleLoanDetail = ConsoleLoan & {
     onTime: number;
     rounds: number;
   }[];
-  checks: LoanCheck[]; // the MFI's conditions, as they stand today
+  checks: LoanCheck[];
   policyUpdatedAt: string | null;
-  documents: LoanDocumentView[];
-  documentsConsented: boolean;
+  toBring: string[];
 };

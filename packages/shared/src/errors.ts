@@ -61,10 +61,8 @@ export const errors = {
   SAVINGS_NOT_ENOUGH: { messageKey: "savings.notEnough" },
   SAVINGS_WITHDRAWAL_FAILED: { messageKey: "savings.withdrawFailed" },
   LOAN_TOO_LARGE: { messageKey: "loan.tooLarge" },
-  DOCUMENT_INVALID: { messageKey: "loan.documentInvalid" }, // D91: not a photo, or too large
-  DOCUMENTS_CONSENT_REQUIRED: { messageKey: "loan.documentsConsentRequired" },
 
-  // Money in (Sprint 3)
+  // Money in
   ROUND_NOT_OPEN: { messageKey: "money.roundNotOpen" },
   ALREADY_PAID: { messageKey: "money.alreadyPaid" },
   // D104: "Je ne peux pas payer ce tour"
@@ -87,7 +85,7 @@ export const errors = {
   ALREADY_INVITED: { messageKey: "groups.alreadyInvited" },
   CANNOT_REMOVE_ORGANISER: { messageKey: "groups.cannotRemoveOrganiser" },
 
-  // MFI console (Sprint 5). One code for any wrong email, password or
+  // MFI console. One code for any wrong email, password or
   // authenticator code, so a failed login never says which part was wrong.
   STAFF_LOGIN_FAILED: { messageKey: "staff.loginFailed" },
   STAFF_LOCKED: { messageKey: "staff.locked" },

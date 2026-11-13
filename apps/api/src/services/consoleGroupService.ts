@@ -5,7 +5,7 @@ import { potShare } from "../lib/groupRules.js";
 import { isoDay } from "../lib/schedule.js";
 import { hasApp } from "./notifyService.js";
 
-// D117: what the group page (board 12) adds to the group's totals: each seat
+// D117: what the group page adds to the group's totals: each seat
 // by its turn, the payments of one round, and the group's history. Never a
 // member's name (D33): names are in the compliance view only, below.
 

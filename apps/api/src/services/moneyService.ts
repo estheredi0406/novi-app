@@ -19,7 +19,7 @@ import { postEvent } from "./chatService.js";
 import { alertStaff } from "./alertService.js";
 import type { CollectionStatus } from "../providers/payment/PaymentProvider.js";
 
-// Money in (Sprint 3). A payment goes through three stages:
+// Money in. A payment goes through three stages:
 // 1. She asks to pay; Novi asks the provider to send the request to her
 //    phone, and the contribution is PENDING.
 // 2. She confirms on her phone with her mobile money PIN (Novi never sees it).

@@ -9,7 +9,7 @@ import { useLoad } from "../useLoad";
 type Category = ConsoleActivity["category"];
 const CATEGORIES: Category[] = ["MONEY", "GROUPS", "CREDIT", "MEMBERS", "TEAM"];
 
-// Who did what, to which group or member, and when (D67, board K4): every
+// Who did what, to which group or member, and when (D67): every
 // validation, release, advance, credit step and opened ACEV by this MFI's
 // officers, with filters and a search. The kind of trail an auditor asks for.
 export function Activity({ t, onExpired }: { t: Text; onExpired: () => void }) {

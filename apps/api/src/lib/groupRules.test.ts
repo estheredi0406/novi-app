@@ -171,7 +171,7 @@ describe("a fixed payout order (D41)", () => {
   });
 });
 
-describe("paying a round (Sprint 3)", () => {
+describe("paying a round", () => {
   const now = new Date("2026-10-23T09:00:00Z");
   const minutesAgo = (m: number) => new Date(now.getTime() - m * 60 * 1000);
 
@@ -209,7 +209,7 @@ describe("paying a round (Sprint 3)", () => {
   });
 });
 
-describe("paying out a round (Sprint 4, D48)", () => {
+describe("paying out a round (D48)", () => {
   const friday = new Date("2026-10-23T00:00:00Z");
 
   it("waits until the due date, even when the pot is already full", () => {

@@ -5,7 +5,7 @@ import { AppError } from "../lib/errors.js";
 import { currentStaff, requireStaff } from "../middleware/requireStaff.js";
 import { changePassword, getStaffProfile, staffLogin, staffLogout } from "../services/staffService.js";
 
-// The MFI console's login (Sprint 5, D52).
+// The MFI console's login (D52).
 export const staffRouter = Router();
 
 // Per-address limit on login attempts, on top of the per-account lockout.

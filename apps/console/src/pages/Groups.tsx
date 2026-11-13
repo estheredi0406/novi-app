@@ -18,7 +18,7 @@ const keep: Record<Filter, (g: ConsoleGroup) => boolean> = {
 // Red first, then amber, then the rest by name.
 const order = (g: ConsoleGroup) => (g.health === "RED" ? 0 : g.health === "AMBER" ? 1 : g.state === "STARTING" ? 2 : 3);
 
-// "Groupes" (board 14, D116): every group at this MFI with its colour and the
+// "Groupes" (D116): every group at this MFI with its colour and the
 // reason for it, filtered and searched, and exported for the MFI's own files.
 // Totals only, never who paid (D33).
 export function Groups({ t, onExpired }: { t: Text; onExpired: () => void }) {

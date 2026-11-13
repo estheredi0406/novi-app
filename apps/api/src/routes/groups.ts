@@ -194,7 +194,7 @@ groupsRouter.post("/:id/start", async (req, res) => {
   res.json(await startGroup(id, currentMember(res).userId));
 });
 
-// ---------- Money in (Sprint 3) ----------
+// ---------- Money in ----------
 
 groupsRouter.get("/:id/rounds", async (req, res) => {
   const { id } = groupId.parse(req.params);

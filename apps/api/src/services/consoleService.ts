@@ -31,7 +31,7 @@ import { fundBalance, reserveBalance } from "./reserveService.js";
 import { savingsTerms, savingsToOpen } from "./savingsService.js";
 import { mfi } from "../providers/index.js";
 
-// What an MFI officer sees and does in the console (Sprint 5.2). Every query
+// What an MFI officer sees and does in the console. Every query
 // is limited to the officer's own MFI: another MFI's group is answered with
 // 404, as if it did not exist. Only totals leave this file, never which
 // member paid what (D33, D53). The one exception is D84: the name and the

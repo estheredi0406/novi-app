@@ -5,7 +5,7 @@ import { day, fcfa } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
-// D123, canvas board 48: members' savings at the MFI. D147: first, the
+// D123: members' savings at the MFI. D147: first, the
 // caisse's conditions (rates, fees, minimum, early-withdrawal rule), which
 // members read before they place anything; until they are complete the caisse
 // cannot validate a group and Novi offers no savings. Then the accounts

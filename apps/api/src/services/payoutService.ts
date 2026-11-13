@@ -16,7 +16,7 @@ import { alertStaff } from "./alertService.js";
 import { notifyCycleDone, notifyPotPaid } from "./notifyService.js";
 import { coverMissing, repayFromPot, returnReserve, runReturns } from "./reserveService.js";
 
-// Money out (Sprint 4, D63). On a round's due date, a full pot becomes READY;
+// Money out (D63). On a round's due date, a full pot becomes READY;
 // the MFI officer then releases it from the console, and only then does Novi
 // instruct the MFI to send it to the member whose turn it is. Novi never holds the money: the MFI
 // does, and sends it (D2, D34). This runs as a job every minute, and also

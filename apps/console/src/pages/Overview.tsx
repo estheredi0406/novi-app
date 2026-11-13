@@ -14,7 +14,7 @@ type Data = {
   overview: ConsoleOverview;
 };
 
-// "Aujourd'hui" (board 11, D116, D150): today's figures, a gap in the accounts if any, what
+// "Aujourd'hui" (D116, D150): today's figures, a gap in the accounts if any, what
 // Novi settled by itself (D114), what only a person can decide, and the
 // groups to keep an eye on. Everything that went normally stays out of the
 // way. Totals only, never who paid (D33), except a reported payment, which
@@ -97,7 +97,7 @@ export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
   const { today, attention, groups, loans, reported } = data;
   const toValidate = groups.filter((g) => g.state === "STARTING");
   const openLoans = loans.filter(
-    (l) => l.status === "PENDING" || (l.status === "PRESELECTED" && l.documentsSent > 0),
+    (l) => l.status === "PENDING",
   );
   // D114: a refused pot Novi will try again by itself, and a pot not yet
   // full, are only watched; everything else here needs a person.

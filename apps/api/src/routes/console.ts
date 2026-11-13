@@ -32,9 +32,7 @@ import {
   getCreditPolicy,
   getLoan,
   listLoans,
-  openDocument,
   previewPolicy,
-  reviewDocument,
   saveCreditPolicy,
 } from "../services/loanService.js";
 import { AppError } from "../lib/errors.js";
@@ -61,7 +59,7 @@ import {
 import { documentFor } from "./verify.js";
 import { closeCompliance, groupRound, openCompliance } from "../services/consoleGroupService.js";
 
-// The MFI console's data (Sprint 5.2). Staff only; every answer is limited
+// The MFI console's data. Staff only; every answer is limited
 // to the officer's own MFI (D52).
 export const consoleRouter = Router();
 consoleRouter.use(requireStaff);
@@ -431,8 +429,8 @@ consoleRouter.get("/loans/:loanId", async (req, res) => {
     .json(await getLoan(currentStaff(res).mfiId, id.parse(req.params.loanId)));
 });
 
-// D91: preselect (ask for her documents) or decline; after the meeting at
-// the agency, record the outcome: granted (with the amount) or not.
+// First look: preselect (she comes to sign) or decline. At the agency:
+// granted, with the amount, or not granted.
 const loanDecision = z.discriminatedUnion("action", [
   z
     .object({
@@ -476,46 +474,6 @@ consoleRouter.post("/loans/:loanId/decide", async (req, res) => {
     );
 });
 
-// D91: one photo of a document, for the officer; each view is logged.
-consoleRouter.get("/loans/:loanId/documents/:documentId", async (req, res) => {
-  const staff = currentStaff(res);
-  const file = await openDocument(
-    staff.mfiId,
-    staff.staffId,
-    id.parse(req.params.loanId),
-    id.parse(req.params.documentId),
-  );
-  res
-    .set("Content-Type", file.mime)
-    .set("Cache-Control", "no-store")
-    .send(file.data);
-});
-
-consoleRouter.post(
-  "/loans/:loanId/documents/:documentId/review",
-  async (req, res) => {
-    const staff = currentStaff(res);
-    const review = z
-      .object({
-        accepted: z.boolean(),
-        note: z.string().trim().max(200).optional(),
-      })
-      .strict()
-      .parse(req.body);
-    res
-      .status(200)
-      .json(
-        await reviewDocument(
-          staff.mfiId,
-          staff.staffId,
-          id.parse(req.params.loanId),
-          id.parse(req.params.documentId),
-          review,
-        ),
-      );
-  },
-);
-
 // D91: the MFI's own credit conditions. Every officer reads them; only an
 // administrator changes them, and each change is logged.
 const policyBody = z
@@ -526,7 +484,6 @@ const policyBody = z
     minOnTimePct: z.number().int().min(50).max(100),
     ceilingTimesPot: z.number().int().min(1).max(10),
     waitDays: z.number().int().min(0).max(365),
-    months: z.array(z.number().int().min(1).max(36)).min(1).max(6),
     documents: z
       .array(
         z

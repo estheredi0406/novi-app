@@ -2,7 +2,7 @@ import type { Frequency, GroupState, SeatState } from "../generated/prisma/enums
 
 // Novi's group rules, written as plain functions: no database, no network.
 // Each one receives the facts it needs and answers "allowed" or "refused,
-// and why". The services in Sprint 2 fetch the facts and act on the answer;
+// and why". The services fetch the facts and act on the answer;
 // keeping the rules here means they can be tested on their own, and read as
 // one list.
 
@@ -53,7 +53,7 @@ export type GroupAction =
   | "SET_ORDER" // choose a fixed payout order (D41)
   | "START"
   | "CANCEL"
-  | "PAY"; // pay her contribution for a round (Sprint 3)
+  | "PAY"; // pay her contribution for a round
 
 type Who = "ORGANISER" | "MEMBER" | "ANYONE";
 
@@ -171,7 +171,7 @@ export function checkFixedOrder(order: readonly string[], seatHolders: readonly 
   return sameLength && everyoneOnce ? allowed : refused("ORDER_INVALID");
 }
 
-// ---------- Paying (Sprint 3) ----------
+// ---------- Paying ----------
 
 // A payment request waits this long for her confirmation on her phone before
 // she may ask again. Mobile money prompts expire after a few minutes.
@@ -297,7 +297,7 @@ export function guardTurnOne(order: string[], withHistory: Set<string>, organise
   return next;
 }
 
-// ---------- Paying out (Sprint 4) ----------
+// ---------- Paying out ----------
 
 export type PayoutDecision = "WAIT" | "HOLD" | "SEND";
 

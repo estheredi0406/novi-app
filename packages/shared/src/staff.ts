@@ -1,4 +1,4 @@
-// The MFI console (Sprint 5): shapes shared by the API and the console app.
+// The MFI console: shapes shared by the API and the console app.
 
 // D117: COMPLIANCE sees everything and opens the compliance view, but moves
 // no money and decides nothing.

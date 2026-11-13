@@ -27,7 +27,7 @@ More screens: [MFI console](docs/screenshots/console.jpg) · [statement, credit 
 - Pay her contribution by mobile money (Flooz or Mixx by Yas, through FedaPay's sandbox), inside the app, and see the round fill up as a ring of members.
 - Receive the pot at her turn, released by the MFI officer, and confirm she received it.
 - Chat, send voice notes, call the group or hold a meeting inside the app.
-- Swap her turn, say she cannot pay a round (the group's advances cover her share), and request a microloan under the MFI's own conditions, with her documents sent as photos.
+- Swap her turn, say she cannot pay a round (the group's advances cover her share), and request a microloan under the MFI's own conditions, with her declared business; she signs at the agency.
 - See her statement and share a signed savings record (ACEV) with a lender.
 - Reach the essentials by **USSD** on any phone, without internet.
 
@@ -93,7 +93,7 @@ npm install
    ```bash
    npm run dev:mobile
    ```
-   Scan the QR code with Expo Go (iPhone) or install the Android build (`eas build --platform android --profile preview`). In-app calls, in-app payment and document photos need the installed build.
+   Scan the QR code with Expo Go (iPhone) or install the Android build (`eas build --platform android --profile preview`). In-app calls and in-app payment need the installed build.
 7. **First MFI administrator** (once):
    ```bash
    cd apps/api && npm run staff:create -- MAWULI admin@example.org "Full Name" ADMIN
@@ -142,7 +142,7 @@ novi-app/
 │   │       ├── app/          screens (Expo Router): sign-up, home, groups, payment, loan, record…
 │   │       ├── components/   reusable UI (cards, ring of members, bottom bar, sheets)
 │   │       ├── api/          typed calls to the API
-│   │       ├── lib/          formatting, rules text, notifications, calls, photos
+│   │       ├── lib/          formatting, rules text, notifications, calls
 │   │       ├── i18n/         en, fr, ee
 │   │       └── theme/        colours and type
 │   └── console/              React + Vite MFI console (pages, texts in French and English)
@@ -155,7 +155,7 @@ novi-app/
 
 ## Status and scope
 
-Built: F1 to F11, F14, F16 and F17 of the original plan, plus the features added after the supervisor's reviews (MFI validation with consent, released pots and receipts, group advances (D103), turn swaps, loan requests with documents, calls and payment inside the app, officer emails, daily groups). Deferred, with reasons and replacements: the carnet, three-way reconciliation, offline sync, the AI assistant and the agency map ([D94](docs/decisions.md)). Still mocked: SMS, the ANID check and the MFI's own systems (no public APIs); payments use FedaPay's sandbox.
+Built: F1 to F11, F14, F16 and F17 of the original plan, plus the features added after the supervisor's reviews (MFI validation with consent, released pots and receipts, group advances (D103), turn swaps, loan requests with the member's declared business and signing at the agency, calls and payment inside the app, officer emails, daily groups). Deferred, with reasons and replacements: the carnet, three-way reconciliation, offline sync, the AI assistant and the agency map ([D94](docs/decisions.md)). Still mocked: SMS, the ANID check and the MFI's own systems (no public APIs); payments use FedaPay's sandbox.
 
 ## Author
 

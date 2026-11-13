@@ -9,7 +9,7 @@ import { ValidateGroup } from "../ValidateGroup";
 
 const time = (iso: string) => `${day(iso).slice(0, 5)} ${iso.slice(11, 16)}`;
 
-// One group (board 12, D117): who is where by turn, never by name (D33);
+// One group (D117): who is where by turn, never by name (D33);
 // one round's payments with their references, so an officer can match them
 // with the operator's statement; every pot; the group's account at the MFI
 // (D113); its history. Names are only in the compliance view, for an

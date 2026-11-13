@@ -1,6 +1,5 @@
 import { prisma } from "../lib/db.js";
 import { email } from "../providers/index.js";
-import { purgeLoanDocuments } from "./loanService.js";
 
 // D90: the MFI's staff hear about what waits for them without watching the
 // console, so a member is never kept waiting because nobody looked.
@@ -181,9 +180,6 @@ const LABEL: Record<string, string> = {
 
 // The escalation and the morning summary. Runs every 15 minutes.
 export async function runAlerts(now = new Date()): Promise<void> {
-  // D91: photos of documents are kept only as long as the file needs them.
-  await purgeLoanDocuments(now).catch((err: unknown) => console.error("Document purge failed:", err));
-
   // 1. Escalation to the administrators.
   const open = await prisma.staffAlert.findMany({
     where: { resolvedAt: null, escalatedAt: null },

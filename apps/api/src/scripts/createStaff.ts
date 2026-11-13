@@ -3,7 +3,7 @@ import { prisma } from "../lib/db.js";
 import { PILOT_MFIS } from "../services/groupService.js";
 import { createStaff } from "../services/staffService.js";
 
-// Opens a console account for an MFI officer (Sprint 5, D52):
+// Opens a console account for an MFI officer (D52):
 //
 //   npm run staff:create -w @novi/api -- MAWULI mawuli@mawuli.example "Mawuli Adzo"
 //

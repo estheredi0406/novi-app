@@ -15,7 +15,7 @@ const server = app.listen(port, () => {
 // D112: the group calls' signalling (WebSocket at /v1/call-signal).
 attachCallSignal(server);
 
-// Sends the pots that are due (Sprint 4). Only the running server does this;
+// Sends the pots that are due. Only the running server does this;
 // tests call runPayouts themselves, with the date they need.
 startPayoutJob();
 // Reminds members the day before and on the morning of a due date (F16).

@@ -5,7 +5,7 @@ import { day, fcfa } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
-// D124, canvas boards 40 and 42 (simplified): "Comptes". Where the money is,
+// D124: "Comptes". Where the money is,
 // what moved today with where each franc is now, and what needs a person.
 // FedaPay's own dashboard is one click away: Novi reads the balance, the MFI
 // moves money to its bank there.

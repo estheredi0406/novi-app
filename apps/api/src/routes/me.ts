@@ -4,14 +4,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
 import { getProfile, updateProfile } from "../services/memberService.js";
-import {
-  consentToDocuments,
-  getLoanPage,
-  requestLoan,
-  bringOnPaper,
-  sendDocument,
-  withdrawLoan,
-} from "../services/loanService.js";
+import { BUSINESS_KINDS, BUSINESS_SINCE, getLoanPage, requestLoan, withdrawLoan } from "../services/loanService.js";
 import { getStatement, listNews } from "../services/newsService.js";
 import { breakPlacement, choosePot, mySavings, withdraw } from "../services/savingsService.js";
 import { savePushToken } from "../services/notifyService.js";
@@ -108,7 +101,7 @@ meRouter.put("/push-token", async (req, res) => {
   res.status(204).end();
 });
 
-// ---------- Her savings record, the ACEV (Sprint 6) ----------
+// ---------- Her savings record, the ACEV ----------
 
 // Only she sees her own record (D33).
 meRouter.get("/record", async (_req, res) => {
@@ -197,57 +190,33 @@ meRouter.post("/savings/:accountId/withdraw", async (req, res) => {
   res.json(await withdraw(currentMember(res).userId, { accountId, ...body }));
 });
 
-// ---------- D89: microloan requests to the MFI ----------
+// ---------- Microloan requests to the MFI (D89) ----------
 
 meRouter.get("/loans", async (_req, res) => {
   res.json(await getLoanPage(currentMember(res).userId));
 });
 
+const loanRequest = z
+  .object({
+    amountFcfa: z.number().int().min(5000).max(5_000_000),
+    purpose: z.enum(["STOCK", "EQUIPMENT", "OTHER"]),
+    business: z
+      .object({
+        kind: z.enum(BUSINESS_KINDS as [string, ...string[]]),
+        since: z.enum(BUSINESS_SINCE as [string, ...string[]]),
+        weeklySalesFcfa: z.number().int().min(100).max(100_000_000),
+        place: z.string().trim().min(2).max(80),
+      })
+      .strict(),
+  })
+  .strict();
+
 meRouter.post("/loans", async (req, res) => {
-  const body = z
-    .object({
-      amountFcfa: z.number().int().min(5000).max(5_000_000),
-      purpose: z.enum(["STOCK", "EQUIPMENT", "OTHER"]),
-      months: z.number().int().min(1).max(36).optional(), // D118: no longer asked by the app
-    })
-    .strict()
-    .parse(req.body);
+  const body = loanRequest.parse(req.body) as Parameters<typeof requestLoan>[1];
   res.status(201).json(await requestLoan(currentMember(res).userId, body));
 });
 
 meRouter.post("/loans/:loanId/withdraw", async (req, res) => {
   const loanId = z.string().uuid().parse(req.params.loanId);
   res.json(await withdrawLoan(currentMember(res).userId, loanId));
-});
-
-// D91: once preselected, she agrees to send photos, then sends one per document.
-meRouter.post("/loans/:loanId/documents-consent", async (req, res) => {
-  const loanId = z.string().uuid().parse(req.params.loanId);
-  res.json(await consentToDocuments(currentMember(res).userId, loanId));
-});
-
-// D118: a document not ready as a photo: she brings it to the agency.
-meRouter.post("/loans/:loanId/documents/:key/paper", async (req, res) => {
-  const loanId = z.string().uuid().parse(req.params.loanId);
-  const key = z
-    .string()
-    .regex(/^[A-Z0-9_]{2,30}$/)
-    .parse(req.params.key);
-  res.json(await bringOnPaper(currentMember(res).userId, loanId, key));
-});
-
-meRouter.put("/loans/:loanId/documents/:key", async (req, res) => {
-  const loanId = z.string().uuid().parse(req.params.loanId);
-  const key = z
-    .string()
-    .regex(/^[A-Z0-9_]{2,30}$/)
-    .parse(req.params.key);
-  const file = z
-    .object({
-      mime: z.string().max(40),
-      base64: z.string().min(10).max(3_500_000),
-    })
-    .strict()
-    .parse(req.body);
-  res.json(await sendDocument(currentMember(res).userId, loanId, key, file));
 });

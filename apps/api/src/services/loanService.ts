@@ -1,22 +1,19 @@
 import type {
+  BusinessKind,
+  BusinessSince,
   ConsoleLoan,
   ConsoleLoanDetail,
   CreditPolicyInput,
   CreditPolicyPreview,
   CreditPolicyView,
+  LoanBusiness,
   LoanCheck,
   LoanDocumentSpec,
-  LoanDocumentView,
   LoanPage,
   LoanPurpose,
   LoanRequestView,
 } from "@novi/shared";
-import type {
-  CreditPolicy,
-  LoanDocument,
-  LoanRequest,
-  Mfi,
-} from "../generated/prisma/client.js";
+import type { CreditPolicy, LoanRequest, Mfi } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { hasSaved, savingsPolicy } from "./savingsService.js";
 import { AppError } from "../lib/errors.js";
@@ -25,34 +22,18 @@ import { alertStaff } from "./alertService.js";
 import { owedCovers } from "./memberService.js";
 import { notifyMembers } from "./notifyService.js";
 
-// D89: microloan requests to the MFI. Novi carries the request and her
-// record; the MFI decides, lends and is repaid at its agency. Novi neither
-// lends nor moves this money.
-//
-// D91: the conditions are the MFI's own (CreditPolicy, set by its
-// administrator in the console); without a policy, Novi's defaults: a
-// finished tontine or 8 payments in a row on time, 90 % or more on time,
-// nothing owed to the fund, no other request open, 30 days since a refusal,
-// a ceiling of 3 times her largest pot. Sending the request is her consent
-// that the MFI sees her Novi record for it (D37).
-//
-// D91: the officer's first answer is not a loan. "Preselected" means her
-// record convinces the MFI, which asks for her documents; she sends photos;
-// the officer checks each one; once all are accepted she goes to the agency
-// with the originals, and the MFI decides there. The officer then records
-// the outcome (granted, with the amount, or not). Photos are deleted 30 days
-// after the file is complete or closed.
+// Microloan requests to the MFI (D89, D91). Novi carries her request, her
+// record and her declared business; the MFI decides, lends and is repaid at
+// its agency. Sending the request is her consent that the MFI sees them (D37).
+// Steps: sent; preselected (she comes to sign, with the documents listed);
+// then granted or not at the agency. Novi keeps no document of hers.
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const DEFAULT_DOCUMENTS: LoanDocumentSpec[] = [
-  { key: "ID_CARD", label: "Carte d'identité, recto et verso" },
+  { key: "ID_CARD", label: "Carte d'identité" },
   { key: "PHOTO", label: "Photo d'identité récente" },
   { key: "ADDRESS", label: "Justificatif de domicile (facture CEET ou TdE)" },
-  {
-    key: "ACTIVITY",
-    label:
-      "Preuve d'activité (carte de commerçante, ticket de marché ou facture d'un fournisseur)",
-  },
+  { key: "ACTIVITY", label: "Preuve d'activité (reçu, facture ou ticket de marché)" },
 ];
 const DEFAULT_POLICY = {
   enabled: true,
@@ -61,11 +42,7 @@ const DEFAULT_POLICY = {
   minOnTimePct: 90,
   ceilingTimesPot: 3,
   waitDays: 30,
-  months: [3, 6, 12],
 };
-const DOCUMENT_MAX_BYTES = 2_500_000;
-const DOCUMENT_MIMES = ["image/jpeg", "image/png", "image/webp"];
-const KEEP_PHOTOS_DAYS = 30;
 
 // Her record, from her payments: totals only.
 export async function memberStats(userId: string) {
@@ -148,7 +125,6 @@ export async function memberStats(userId: string) {
   };
 }
 
-// ---------- D91: the MFI's credit policy ----------
 
 type Policy = typeof DEFAULT_POLICY & { documents: LoanDocumentSpec[] };
 
@@ -173,7 +149,6 @@ function toPolicy(row: CreditPolicy | null): Policy {
     minOnTimePct: row.minOnTimePct,
     ceilingTimesPot: row.ceilingTimesPot,
     waitDays: row.waitDays,
-    months: row.months.length > 0 ? row.months : DEFAULT_POLICY.months,
     documents: asDocuments(row.documents),
   };
 }
@@ -232,10 +207,14 @@ function checksFor(
     stats.paymentsMade > 0
       ? Math.round((stats.paymentsOnTime / stats.paymentsMade) * 100)
       : 0;
-  const refusal = requests.find((r) => r.status === "DECLINED" && r.decidedAt);
-  const daysSince = refusal?.decidedAt
-    ? Math.floor((now.getTime() - refusal.decidedAt.getTime()) / DAY_MS)
-    : -1;
+  // The latest refusal, at the first look or at the agency.
+  const refusedAt = Math.max(
+    -1,
+    ...requests
+      .filter((r) => (r.status === "DECLINED" || r.status === "NOT_GRANTED") && r.decidedAt)
+      .map((r) => (r.decidedAt as Date).getTime()),
+  );
+  const daysSince = refusedAt < 0 ? -1 : Math.floor((now.getTime() - refusedAt) / DAY_MS);
   const open = requests.some(
     (r) => r.status === "PENDING" || r.status === "PRESELECTED",
   );
@@ -287,83 +266,61 @@ function onTimeNeeded(stats: Stats, minPct: number): number | null {
   return Math.max(1, Math.ceil((minPct * made - 100 * on) / (100 - minPct)));
 }
 
-// What the member sees on the documents, and the officer too.
-function documentsView(
-  loan: LoanRequest & { documents: Omit<LoanDocument, "data">[] },
-): LoanDocumentView[] {
-  return asDocuments(loan.requiredDocs).map((spec) => {
-    const doc = loan.documents.find((d) => d.key === spec.key);
-    return {
-      key: spec.key,
-      label: spec.label,
-      status: doc ? doc.status : "MISSING",
-      note: doc?.note ?? null,
-      id: doc && !doc.deletedAt && doc.status !== "PAPER" ? doc.id : null,
-      sentAt: doc?.createdAt.toISOString() ?? null,
-      deleted: Boolean(doc?.deletedAt),
-    };
-  });
+
+function asBusiness(r: LoanRequest): LoanBusiness | null {
+  if (!r.businessKind || !r.businessSince || r.weeklySalesFcfa === null || !r.businessPlace) return null;
+  return { kind: r.businessKind, since: r.businessSince, weeklySalesFcfa: r.weeklySalesFcfa, place: r.businessPlace };
 }
 
-type FullLoan = LoanRequest & {
-  mfi: Mfi;
-  documents: Omit<LoanDocument, "data">[];
-};
+function toBring(r: LoanRequest): string[] {
+  return r.status === "PRESELECTED" ? asDocuments(r.requiredDocs).map((d) => d.label) : [];
+}
+
+type FullLoan = LoanRequest & { mfi: Mfi };
 
 function view(r: FullLoan): LoanRequestView {
-  const documents = documentsView(r);
   return {
     id: r.id,
     amountFcfa: r.amountFcfa,
     purpose: r.purpose,
-    months: r.months,
+    business: asBusiness(r),
     status: r.status,
     grantedFcfa: r.grantedFcfa,
     decisionNote: r.decisionNote,
     mfiName: r.mfi.name,
     createdAt: r.createdAt.toISOString(),
     decidedAt: r.decidedAt?.toISOString() ?? null,
-    documents,
-    documentsConsented: r.documentsConsentAt !== null,
-    documentsComplete: r.documentsCheckedAt !== null,
+    toBring: toBring(r),
   };
 }
 
-async function loadLoans(userId: string): Promise<FullLoan[]> {
-  const loans = await prisma.loanRequest.findMany({
-    where: { userId },
-    include: { mfi: true, documents: { omit: { data: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-  });
-  return loans;
-}
-
-export async function getLoanPage(
-  userId: string,
-  now = new Date(),
-): Promise<LoanPage> {
-  const [stats, requests] = await Promise.all([
+export async function getLoanPage(userId: string, now = new Date()): Promise<LoanPage> {
+  const [stats, requests, user] = await Promise.all([
     memberStats(userId),
-    loadLoans(userId),
+    prisma.loanRequest.findMany({
+      where: { userId },
+      include: { mfi: true },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+    prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { area: true, market: true } }),
   ]);
-  const policy = stats.mfi
-    ? await policyOf(stats.mfi.id)
-    : { ...DEFAULT_POLICY, documents: DEFAULT_DOCUMENTS };
+  const policy = stats.mfi ? await policyOf(stats.mfi.id) : { ...DEFAULT_POLICY, documents: DEFAULT_DOCUMENTS };
   const checks = checksFor(stats, policy, requests, now);
   // D123: the MFI may ask that she has started saving with it first.
   if (stats.mfi && (await savingsPolicy(stats.mfi.id)).requireForLoan) {
     checks.push({ key: "SAVINGS", ok: await hasSaved(userId, stats.mfi.id), figures: {} });
   }
-  const rate =
-    stats.paymentsMade > 0 ? stats.paymentsOnTime / stats.paymentsMade : null;
+  const rate = stats.paymentsMade > 0 ? stats.paymentsOnTime / stats.paymentsMade : null;
+  const last = requests.map(asBusiness).find((b) => b !== null) ?? null;
   return {
     enabled: policy.enabled,
     eligible: stats.mfi !== null && policy.enabled && checks.every((c) => c.ok),
     checks,
     ceilingFcfa: policy.ceilingTimesPot * stats.largestPotFcfa,
-    months: policy.months,
     documents: policy.documents,
+    business: last,
+    place: [user.market, user.area].filter(Boolean).join(", "),
     mfiName: stats.mfi?.name ?? null,
     onTimePercent: rate === null ? null : Math.round(rate * 100),
     onTimeNeeded: onTimeNeeded(stats, policy.minOnTimePct),
@@ -373,51 +330,44 @@ export async function getLoanPage(
 
 export async function requestLoan(
   userId: string,
-  input: { amountFcfa: number; purpose: LoanPurpose; months?: number },
+  input: { amountFcfa: number; purpose: LoanPurpose; business: LoanBusiness },
   now = new Date(),
 ): Promise<LoanPage> {
   const page = await getLoanPage(userId, now);
   if (!page.eligible) throw new AppError("LOAN_NOT_ELIGIBLE", 409);
-  if (input.amountFcfa > page.ceilingFcfa)
-    throw new AppError("LOAN_TOO_LARGE", 400);
-  if (input.months !== undefined && !page.months.includes(input.months))
-    throw new AppError("VALIDATION_FAILED", 400);
+  if (input.amountFcfa > page.ceilingFcfa) throw new AppError("LOAN_TOO_LARGE", 400);
   const { mfi } = await memberStats(userId);
   if (!mfi) throw new AppError("LOAN_NOT_ELIGIBLE", 409);
+  const b = input.business;
   const created = await prisma.loanRequest.create({
-    data: { userId, mfiId: mfi.id, ...input },
-  });
-  await prisma.auditEvent.create({
     data: {
       userId,
-      type: "LOAN_REQUESTED",
-      details: {
-        loanId: created.id,
-        mfiId: mfi.id,
-        amountFcfa: input.amountFcfa,
-      },
+      mfiId: mfi.id,
+      amountFcfa: input.amountFcfa,
+      purpose: input.purpose,
+      businessKind: b.kind,
+      businessSince: b.since,
+      weeklySalesFcfa: b.weeklySalesFcfa,
+      businessPlace: b.place.trim(),
     },
   });
-  // D90: the officers hear about it at once.
+  await prisma.auditEvent.create({
+    data: { userId, type: "LOAN_REQUESTED", details: { loanId: created.id, mfiId: mfi.id, amountFcfa: input.amountFcfa } },
+  });
   await alertStaff({
     mfiId: mfi.id,
     kind: "LOAN_REQUEST",
     refId: created.id,
     subject: `Demande de crédit : ${fcfa(input.amountFcfa)}`,
     lines: [
-      input.months
-        ? `Une membre demande ${fcfa(input.amountFcfa)} sur ${input.months} mois.`
-        : `Une membre demande ${fcfa(input.amountFcfa)}. La durée se décide avec elle à l'agence.`,
-      "Son historique Novi et vos conditions, vérifiées une à une, sont dans la console.",
+      `Une membre demande ${fcfa(input.amountFcfa)}.`,
+      "Son historique Novi, son commerce et vos conditions sont dans la console.",
     ],
   });
   return getLoanPage(userId, now);
 }
 
-export async function withdrawLoan(
-  userId: string,
-  loanId: string,
-): Promise<LoanPage> {
+export async function withdrawLoan(userId: string, loanId: string): Promise<LoanPage> {
   const moved = await prisma.loanRequest.updateMany({
     where: { id: loanId, userId, status: { in: ["PENDING", "PRESELECTED"] } },
     data: { status: "WITHDRAWN", closedAt: new Date() },
@@ -426,177 +376,41 @@ export async function withdrawLoan(
   return getLoanPage(userId);
 }
 
-// ---------- D91: her documents ----------
-
-async function myPreselected(userId: string, loanId: string) {
-  const loan = await prisma.loanRequest.findFirst({
-    where: { id: loanId, userId },
-  });
-  if (!loan) throw new AppError("NOT_FOUND", 404);
-  if (loan.status !== "PRESELECTED") throw new AppError("NOT_ALLOWED_NOW", 409);
-  return loan;
-}
-
-export async function consentToDocuments(
-  userId: string,
-  loanId: string,
-): Promise<LoanPage> {
-  const loan = await myPreselected(userId, loanId);
-  if (!loan.documentsConsentAt) {
-    await prisma.loanRequest.update({
-      where: { id: loan.id },
-      data: { documentsConsentAt: new Date() },
-    });
-    await prisma.auditEvent.create({
-      data: { userId, type: "LOAN_DOCUMENTS_CONSENT", details: { loanId } },
-    });
-  }
-  return getLoanPage(userId);
-}
-
-export async function sendDocument(
-  userId: string,
-  loanId: string,
-  key: string,
-  file: { mime: string; base64: string },
-): Promise<LoanPage> {
-  const loan = await myPreselected(userId, loanId);
-  if (!loan.documentsConsentAt)
-    throw new AppError("DOCUMENTS_CONSENT_REQUIRED", 409);
-  if (!asDocuments(loan.requiredDocs).some((d) => d.key === key))
-    throw new AppError("NOT_FOUND", 404);
-  const data = Buffer.from(file.base64, "base64");
-  if (
-    !DOCUMENT_MIMES.includes(file.mime) ||
-    data.length === 0 ||
-    data.length > DOCUMENT_MAX_BYTES
-  ) {
-    throw new AppError("DOCUMENT_INVALID", 400);
-  }
-  const existing = await prisma.loanDocument.findUnique({
-    where: { loanId_key: { loanId, key } },
-    select: { status: true },
-  });
-  if (existing?.status === "ACCEPTED")
-    throw new AppError("NOT_ALLOWED_NOW", 409);
-  await prisma.loanDocument.upsert({
-    where: { loanId_key: { loanId, key } },
-    create: { loanId, key, mime: file.mime, data },
-    update: {
-      mime: file.mime,
-      data,
-      status: "SENT",
-      note: null,
-      reviewedAt: null,
-      reviewedById: null,
-      deletedAt: null,
-    },
-  });
-  await prisma.auditEvent.create({
-    data: { userId, type: "LOAN_DOCUMENT_SENT", details: { loanId, key } },
-  });
-  const required = asDocuments(loan.requiredDocs).length;
-  const sent = await prisma.loanDocument.count({
-    where: { loanId, status: { in: ["SENT", "ACCEPTED", "PAPER"] } },
-  });
-  if (sent === required) {
-    await alertStaff({
-      mfiId: loan.mfiId,
-      kind: "LOAN_REQUEST",
-      refId: `${loan.id}:documents`,
-      subject: "Pièces reçues pour une demande de crédit",
-      lines: [
-        "Une membre présélectionnée a envoyé toutes ses pièces.",
-        "Vérifiez-les dans la console.",
-      ],
-    });
-  }
-  return getLoanPage(userId);
-}
-
-// Deletes the photos 30 days after a file is complete or closed, and those
-// of a file left unfinished for 60 days. Runs with the alert job.
-export async function purgeLoanDocuments(now = new Date()): Promise<number> {
-  const keep = new Date(now.getTime() - KEEP_PHOTOS_DAYS * DAY_MS);
-  const stale = new Date(now.getTime() - 2 * KEEP_PHOTOS_DAYS * DAY_MS);
-  const purged = await prisma.loanDocument.updateMany({
-    where: {
-      data: { not: null },
-      OR: [
-        { loan: { documentsCheckedAt: { lt: keep } } },
-        { loan: { closedAt: { lt: keep } } },
-        { loan: { decidedAt: { lt: stale } } },
-      ],
-    },
-    data: { data: null, deletedAt: now },
-  });
-  return purged.count;
-}
-
 // ---------- The officer's side (console) ----------
 
-async function toConsole(
-  r: LoanRequest & {
-    user: { displayName: string; legalName: string };
-    documents: { status: string }[];
-  },
-): Promise<ConsoleLoan> {
-  const [stats, policy] = await Promise.all([
-    memberStats(r.userId),
-    policyOf(r.mfiId),
-  ]);
+async function toConsole(r: LoanRequest & { user: { legalName: string } }): Promise<ConsoleLoan> {
+  const [stats, policy] = await Promise.all([memberStats(r.userId), policyOf(r.mfiId)]);
   return {
     id: r.id,
     memberName: r.user.legalName,
     groupNames: stats.groups.map((g) => g.name),
     amountFcfa: r.amountFcfa,
     purpose: r.purpose,
-    months: r.months,
+    business: asBusiness(r),
     status: r.status,
     grantedFcfa: r.grantedFcfa,
     createdAt: r.createdAt.toISOString(),
     decidedAt: r.decidedAt?.toISOString() ?? null,
     ceilingFcfa: policy.ceilingTimesPot * stats.largestPotFcfa,
-    documentsSent: r.documents.filter((d) => d.status === "SENT").length,
-    documentsComplete: r.documentsCheckedAt !== null,
   };
 }
-
-const forList = {
-  user: { select: { displayName: true, legalName: true } },
-  documents: { select: { status: true } },
-} as const;
 
 export async function listLoans(mfiId: string): Promise<ConsoleLoan[]> {
   const loans = await prisma.loanRequest.findMany({
     where: { mfiId, status: { not: "WITHDRAWN" } },
-    include: forList,
+    include: { user: { select: { legalName: true } } },
     orderBy: { createdAt: "desc" },
     take: 200,
   });
   return Promise.all(loans.map(toConsole));
 }
 
-export async function getLoan(
-  mfiId: string,
-  loanId: string,
-  now = new Date(),
-): Promise<ConsoleLoanDetail> {
+export async function getLoan(mfiId: string, loanId: string): Promise<ConsoleLoanDetail> {
   const loan = await prisma.loanRequest.findFirst({
     where: { id: loanId, mfiId },
     include: {
-      mfi: true,
-      documents: { omit: { data: true } },
       user: {
-        select: {
-          displayName: true,
-          legalName: true,
-          phone: true,
-          area: true,
-          market: true,
-          idVerifiedAt: true,
-          createdAt: true,
-        },
+        select: { legalName: true, phone: true, area: true, market: true, idVerifiedAt: true, createdAt: true },
       },
     },
   });
@@ -604,24 +418,15 @@ export async function getLoan(
   const [stats, policyRow, others] = await Promise.all([
     memberStats(loan.userId),
     prisma.creditPolicy.findUnique({ where: { mfiId } }),
-    prisma.loanRequest.findMany({
-      where: { userId: loan.userId, id: { not: loan.id } },
-      orderBy: { createdAt: "desc" },
-    }),
+    prisma.loanRequest.findMany({ where: { userId: loan.userId, id: { not: loan.id } } }),
   ]);
   const policy = toPolicy(policyRow);
   const ceiling = policy.ceilingTimesPot * stats.largestPotFcfa;
-  const checks = checksFor(stats, policy, others, loan.createdAt).filter(
-    (c) => c.key !== "NO_OPEN_REQUEST",
-  );
+  const checks = checksFor(stats, policy, others, loan.createdAt).filter((c) => c.key !== "NO_OPEN_REQUEST");
   checks.push({
     key: "CEILING",
     ok: loan.amountFcfa <= ceiling,
-    figures: {
-      amount: loan.amountFcfa,
-      ceiling,
-      times: policy.ceilingTimesPot,
-    },
+    figures: { amount: loan.amountFcfa, ceiling, times: policy.ceilingTimesPot },
   });
   return {
     ...(await toConsole(loan)),
@@ -645,13 +450,11 @@ export async function getLoan(
     })),
     checks,
     policyUpdatedAt: policyRow?.updatedAt.toISOString() ?? null,
-    documents: documentsView(loan),
-    documentsConsented: loan.documentsConsentAt !== null,
+    toBring: toBring(loan),
   };
 }
 
-const fcfa = (n: number) =>
-  `${String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA`;
+const fcfa = (n: number) => `${String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} FCFA`;
 
 export type LoanDecision =
   | { action: "preselect"; note?: string }
@@ -659,8 +462,8 @@ export type LoanDecision =
   | { action: "grant"; grantedFcfa: number; note?: string }
   | { action: "notGranted"; reason: string };
 
-// The officer's steps: preselect (ask for documents) or decline; then, after
-// the meeting at the agency, the outcome: granted (with the amount) or not.
+// First look: preselect (she comes to sign) or decline. At the agency, after
+// she signed or not: granted, with the amount, or not granted.
 export async function decideLoan(
   mfiId: string,
   staffId: string,
@@ -668,89 +471,47 @@ export async function decideLoan(
   decision: LoanDecision,
   now = new Date(),
 ): Promise<ConsoleLoanDetail> {
-  const loan = await prisma.loanRequest.findFirst({
-    where: { id: loanId, mfiId },
-    include: { mfi: true },
-  });
+  const loan = await prisma.loanRequest.findFirst({ where: { id: loanId, mfiId }, include: { mfi: true } });
   if (!loan) throw new AppError("NOT_FOUND", 404);
   const mfiName = loan.mfi.name;
   const by = { decidedById: staffId, decidedAt: now };
 
   let moved: { count: number };
-  let message: {
-    fr: { title: string; body: string };
-    en: { title: string; body: string };
-  };
+  let message: { fr: { title: string; body: string }; en: { title: string; body: string } };
   if (decision.action === "preselect") {
     const policy = await policyOf(mfiId);
     moved = await prisma.loanRequest.updateMany({
       where: { id: loan.id, status: "PENDING" },
-      data: {
-        status: "PRESELECTED",
-        decisionNote: decision.note ?? null,
-        requiredDocs: policy.documents,
-        ...by,
-      },
+      data: { status: "PRESELECTED", decisionNote: decision.note ?? null, requiredDocs: policy.documents, ...by },
     });
     message = {
-      fr: {
-        title: "Votre demande est retenue",
-        body: `${mfiName} vous invite à envoyer vos pièces dans Novi.`,
-      },
-      en: {
-        title: "Your request is shortlisted",
-        body: `${mfiName} asks you to send your documents in Novi.`,
-      },
+      fr: { title: "Votre demande est retenue", body: `Passez signer à l'agence ${mfiName} avec vos pièces.` },
+      en: { title: "Your request is shortlisted", body: `Come and sign at your ${mfiName} branch with your documents.` },
     };
   } else if (decision.action === "decline") {
     moved = await prisma.loanRequest.updateMany({
       where: { id: loan.id, status: "PENDING" },
-      data: {
-        status: "DECLINED",
-        decisionNote: decision.reason,
-        closedAt: now,
-        ...by,
-      },
+      data: { status: "DECLINED", decisionNote: decision.reason, closedAt: now, ...by },
     });
     message = {
       fr: { title: "Demande de crédit refusée", body: decision.reason },
       en: { title: "Loan request declined", body: decision.reason },
     };
   } else {
-    if (
-      decision.action === "grant" &&
-      (decision.grantedFcfa <= 0 || decision.grantedFcfa > loan.amountFcfa)
-    ) {
+    if (decision.action === "grant" && (decision.grantedFcfa <= 0 || decision.grantedFcfa > loan.amountFcfa)) {
       throw new AppError("VALIDATION_FAILED", 400);
     }
     const granted = decision.action === "grant";
     moved = await prisma.loanRequest.updateMany({
       where: { id: loan.id, status: "PRESELECTED" },
       data: granted
-        ? {
-            status: "GRANTED",
-            grantedFcfa: decision.grantedFcfa,
-            decisionNote: decision.note ?? null,
-            closedAt: now,
-            ...by,
-          }
-        : {
-            status: "NOT_GRANTED",
-            decisionNote: decision.reason,
-            closedAt: now,
-            ...by,
-          },
+        ? { status: "GRANTED", grantedFcfa: decision.grantedFcfa, decisionNote: decision.note ?? null, closedAt: now, ...by }
+        : { status: "NOT_GRANTED", decisionNote: decision.reason, closedAt: now, ...by },
     });
     message = granted
       ? {
-          fr: {
-            title: `Crédit accordé : ${fcfa(decision.grantedFcfa)}`,
-            body: `Par ${mfiName}. Bon commerce !`,
-          },
-          en: {
-            title: `Loan granted: ${fcfa(decision.grantedFcfa)}`,
-            body: `By ${mfiName}. Good trading!`,
-          },
+          fr: { title: `Crédit accordé : ${fcfa(decision.grantedFcfa)}`, body: `Par ${mfiName}. Bon commerce !` },
+          en: { title: `Loan granted: ${fcfa(decision.grantedFcfa)}`, body: `By ${mfiName}. Good trading!` },
         }
       : {
           fr: { title: "Crédit non accordé", body: decision.reason },
@@ -759,147 +520,21 @@ export async function decideLoan(
   }
   if (moved.count === 0) throw new AppError("NOT_ALLOWED_NOW", 409);
   await prisma.auditEvent.create({
-    data: {
-      type: `STAFF_LOAN_${decision.action.toUpperCase()}`,
-      details: { staffId, loanId },
-    },
+    data: { type: `STAFF_LOAN_${decision.action.toUpperCase()}`, details: { staffId, loanId } },
   });
   await notifyMembers([loan.userId], "money", "/loan", message.fr, message.en);
   return getLoan(mfiId, loanId);
 }
 
-// The officer opens one photo. Every view is logged with his id.
-export async function openDocument(
-  mfiId: string,
-  staffId: string,
-  loanId: string,
-  documentId: string,
-) {
-  const doc = await prisma.loanDocument.findFirst({
-    where: { id: documentId, loanId, loan: { mfiId } },
-  });
-  if (!doc || !doc.data) throw new AppError("NOT_FOUND", 404);
-  await prisma.auditEvent.create({
-    data: {
-      type: "STAFF_LOAN_DOCUMENT_VIEWED",
-      details: { staffId, loanId, key: doc.key },
-    },
-  });
-  return { mime: doc.mime, data: Buffer.from(doc.data) };
-}
-
-// The officer accepts a photo or asks for a new one. When every document is
-// accepted, the file is complete: she is told to go to the agency.
-export async function reviewDocument(
-  mfiId: string,
-  staffId: string,
-  loanId: string,
-  documentId: string,
-  review: { accepted: boolean; note?: string },
-  now = new Date(),
-): Promise<ConsoleLoanDetail> {
-  const doc = await prisma.loanDocument.findFirst({
-    where: { id: documentId, loanId, loan: { mfiId, status: "PRESELECTED" } },
-    include: { loan: { include: { mfi: true } } },
-  });
-  if (!doc || !doc.data) throw new AppError("NOT_FOUND", 404);
-  await prisma.loanDocument.update({
-    where: { id: doc.id },
-    data: {
-      status: review.accepted ? "ACCEPTED" : "REDO",
-      note: review.note ?? null,
-      reviewedById: staffId,
-      reviewedAt: now,
-    },
-  });
-  const mfiName = doc.loan.mfi.name;
-  const label =
-    asDocuments(doc.loan.requiredDocs).find((d) => d.key === doc.key)?.label ??
-    doc.key;
-  if (!review.accepted) {
-    await notifyMembers(
-      [doc.loan.userId],
-      "money",
-      "/loan",
-      {
-        title: "Une pièce est à refaire",
-        body: `${label}${review.note ? ` : ${review.note}` : ""}`,
-      },
-      {
-        title: "A document needs a new photo",
-        body: `${label}${review.note ? `: ${review.note}` : ""}`,
-      },
-    );
-  } else {
-    await completeIfReady(loanId, now);
-  }
-  await prisma.auditEvent.create({
-    data: {
-      type: "STAFF_LOAN_DOCUMENT_REVIEWED",
-      details: { staffId, loanId, key: doc.key, accepted: review.accepted },
-    },
-  });
-  return getLoan(mfiId, loanId);
-}
-
-// D91, D118: every document accepted, or coming on paper: she goes to the
-// agency with the originals, where the MFI decides.
-async function completeIfReady(loanId: string, now: Date) {
-  const loan = await prisma.loanRequest.findUnique({ where: { id: loanId }, include: { mfi: true } });
-  if (!loan || loan.documentsCheckedAt) return;
-  const required = asDocuments(loan.requiredDocs).length;
-  const ready = await prisma.loanDocument.count({
-    where: { loanId, status: { in: ["ACCEPTED", "PAPER"] } },
-  });
-  if (ready !== required) return;
-  await prisma.loanRequest.update({ where: { id: loanId }, data: { documentsCheckedAt: now } });
-  const mfiName = loan.mfi.name;
-  await notifyMembers(
-    [loan.userId],
-    "money",
-    "/loan",
-    {
-      title: "Dossier complet",
-      body: `Venez à votre agence ${mfiName} avec les originaux : ${mfiName} décide sur place.`,
-    },
-    {
-      title: "Your file is complete",
-      body: `Come to your ${mfiName} branch with the originals: ${mfiName} decides there.`,
-    },
-  );
-}
-
-// D118: a document she cannot photograph now (the CEET bill is at her
-// landlord's): she brings it on paper to the agency, and the file goes on.
-export async function bringOnPaper(userId: string, loanId: string, key: string, now = new Date()): Promise<LoanPage> {
-  const loan = await myPreselected(userId, loanId);
-  if (!asDocuments(loan.requiredDocs).some((d) => d.key === key)) throw new AppError("NOT_FOUND", 404);
-  const existing = await prisma.loanDocument.findUnique({ where: { loanId_key: { loanId, key } }, select: { status: true } });
-  if (existing?.status === "ACCEPTED") throw new AppError("NOT_ALLOWED_NOW", 409);
-  await prisma.loanDocument.upsert({
-    where: { loanId_key: { loanId, key } },
-    create: { loanId, key, mime: "", data: null, status: "PAPER" },
-    update: { mime: "", data: null, status: "PAPER", note: null, reviewedAt: null, reviewedById: null },
-  });
-  await prisma.auditEvent.create({ data: { userId, type: "LOAN_DOCUMENT_ON_PAPER", details: { loanId, key } } });
-  await completeIfReady(loanId, now);
-  return getLoanPage(userId, now);
-}
-
-// D91: how many of the MFI's members would qualify with these conditions,
-// before the administrator saves them.
+// How many of the MFI's members would qualify with these conditions, before
+// the administrator saves them.
 export async function previewPolicy(
   mfiId: string,
   input: CreditPolicyInput,
   now = new Date(),
 ): Promise<CreditPolicyPreview> {
   const seats = await prisma.membership.findMany({
-    where: {
-      state: "ACCEPTED",
-      exitReason: null,
-      payoutPosition: { not: null },
-      group: { mfiId },
-    },
+    where: { state: "ACCEPTED", exitReason: null, payoutPosition: { not: null }, group: { mfiId } },
     select: { userId: true },
     distinct: ["userId"],
   });
@@ -908,16 +543,12 @@ export async function previewPolicy(
   for (const { userId } of seats) {
     const [stats, requests] = await Promise.all([
       memberStats(userId),
-      prisma.loanRequest.findMany({
-        where: { userId },
-        select: { status: true, decidedAt: true },
-      }),
+      prisma.loanRequest.findMany({ where: { userId }, select: { status: true, decidedAt: true } }),
     ]);
-    if (
-      input.enabled &&
-      checksFor(stats, policy, requests, now).every((c) => c.ok)
-    )
-      eligible += 1;
+    if (input.enabled && checksFor(stats, policy, requests, now).every((c) => c.ok)) eligible += 1;
   }
   return { eligible, members: seats.length };
 }
+
+export const BUSINESS_KINDS: BusinessKind[] = ["FABRICS", "FOOD", "RESTAURANT", "BEAUTY", "OTHER"];
+export const BUSINESS_SINCE: BusinessSince[] = ["UNDER_1Y", "Y1_TO_3", "OVER_3Y"];
