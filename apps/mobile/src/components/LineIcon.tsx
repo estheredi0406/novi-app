@@ -23,7 +23,8 @@ export type LineIconName =
   | "chevron"
   | "check"
   | "bag"
-  | "tools";
+  | "tools"
+  | "pin";
 
 export function LineIcon({
   name,
@@ -39,6 +40,8 @@ export function LineIcon({
     <Svg width={size} height={size} viewBox="0 0 24 24">
       {name === "check" ? (
         <Path {...p} strokeWidth={2.6} d="M5 12l5 5 9-10" />
+      ) : name === "pin" ? (
+        <Path {...p} d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21zM12 7.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z" />
       ) : name === "bag" ? (
         <Path {...p} d="M4 8h16l-1.5 11h-13zM8 8V6a4 4 0 0 1 8 0v2" />
       ) : name === "tools" ? (

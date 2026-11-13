@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// Who has paid this round, as faces in turn order (D92, board E5): the same
+// Who has paid this round, as faces in turn order (D92): the same
 // order as the ring on home, so seat 6 there is the sixth face here. Green
 // with a tick when paid, turquoise when the caisse paid her share (D68), a
 // blue ring while a payment is being confirmed, her own face in dashed orange

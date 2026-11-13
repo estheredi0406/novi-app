@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import Svg, { Circle, Ellipse, Path } from "react-native-svg";
 import { colors } from "../../theme/colors";
 
-// Her cycle on home (D122, canvas board 33): one arc per round, starting at
+// Her cycle on home (D122): one arc per round, starting at
 // the top. Rounds before this one are green (paid), this round is orange while
 // she owes, blue while her payment is being confirmed, green once paid, and
 // the rounds to come are pale. A saffron cowrie sits on the round where she

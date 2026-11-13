@@ -13,7 +13,7 @@ import { formatFcfa, pct, shortDay } from "../../lib/format";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// D123, canvas board 46: "Mon épargne". Her savings at the MFI: what she can
+// D123: "Mon épargne". Her savings at the MFI: what she can
 // withdraw now, what is locked and until when, the interest so far (an
 // estimate; the MFI credits it by its own rules), and every movement.
 const F = (n: number) => formatFcfa(n).replace(" FCFA", " F");

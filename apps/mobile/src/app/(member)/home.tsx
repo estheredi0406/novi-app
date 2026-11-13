@@ -33,7 +33,7 @@ import { useAppWidth } from "../../components/WebFrame";
 // on it, then "Pour vous" (things about her, never about one group), then the
 // latest news from all her groups. Invitations and groups still being set up
 // sit under the cards. A new member sees how a tontine works and one button.
-// The rounded group card rides over the band's lower edge (D122, board 33a).
+// The rounded group card rides over the band's lower edge (D122).
 const OVERLAP = 28;
 const CARD_SIDE = 16;
 const CARD_GAP = 12;
@@ -174,7 +174,6 @@ export function HomeView({
     // D142: her savings at the caisse, always one touch away.
     { icon: "hand", label: t("hub.tileSavings"), onPress: () => router.push("/savings" as never) },
     { icon: "plus", label: t("hub.tileNew"), onPress: () => router.push("/groups/new") },
-    ...(isNew ? [] : [{ icon: "qr" as const, label: t("hub.tileShare"), onPress: () => router.push("/loan" as never) }]),
   ];
 
   return (
@@ -463,7 +462,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: colors.accent,
   },
-  // The group card is rounded and rides over the band (D122, board 33a).
+  // The group card is rounded and rides over the band (D122).
   lift: { marginTop: -20 - OVERLAP, marginHorizontal: -24 },
   cardsScroll: { overflow: "visible" },
   cards: { gap: CARD_GAP, paddingHorizontal: CARD_SIDE },

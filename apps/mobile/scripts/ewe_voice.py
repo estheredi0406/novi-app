@@ -19,7 +19,7 @@ First time only (about 1 GB to download):
     py -m pip install torch transformers scipy
 Then, from apps/mobile:
     py scripts/ewe_voice.py
-To try Claude's drafts before they are checked (on your laptop only):
+To try the drafts before they are checked (on your laptop only):
     py scripts/ewe_voice.py --brouillon
 """
 
@@ -57,7 +57,7 @@ def sentences(use_drafts):
             continue
         text = lookup(ee, key) or (row.get("eʋegbe") or "").strip()
         if not text and use_drafts:
-            text = (row.get("brouillon_claude") or "").strip()
+            text = (row.get("brouillon") or "").strip()
         if text:
             found.append((key, text))
     return found
@@ -68,7 +68,7 @@ def main():
     todo = sentences(use_drafts)
     if not todo:
         print("No Ewe sentence yet. Fill the eʋegbe column, run node scripts/importEwe.mjs, then try again.")
-        print("(Or add --brouillon to hear Claude's drafts.)")
+        print("(Or add --brouillon to hear the drafts.)")
         return 1
 
     try:

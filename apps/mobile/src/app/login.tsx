@@ -158,7 +158,7 @@ export default function LoginScreen() {
     );
   }
 
-  // ---------- PIN (approved design, 27 Oct) ----------
+  // ---------- PIN ----------
   // On her own phone: her account in a card, so she sees why the number is
   // there, with "Changer" to use another. On a new phone: a classic form.
   const returning = knownPhone !== null;

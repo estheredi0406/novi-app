@@ -1,6 +1,7 @@
 import type {
+  BusinessKind,
+  BusinessSince,
   LoanCheck,
-  LoanDocumentView,
   LoanPage,
   LoanPurpose,
   LoanRequestView,
@@ -9,19 +10,12 @@ import { useFocusEffect } from "expo-router";
 import type { TFunction } from "i18next";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Alert } from "../../lib/alert";
 import { errorKey } from "../../api/client";
-import {
-  bringOnPaper,
-  consentToDocuments,
-  getLoans,
-  requestLoan,
-  sendDocument,
-  withdrawLoan,
-} from "../../api/help";
+import { getLoans, requestLoan, withdrawLoan } from "../../api/help";
 import { BackHeader } from "../../components/BackHeader";
-import { CheckRow } from "../../components/CheckRow";
+import { Chip } from "../../components/Chip";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { LineIcon } from "../../components/LineIcon";
 import { RecordShare } from "../../components/RecordShare";
@@ -29,11 +23,12 @@ import { PrimaryButton } from "../../components/PrimaryButton";
 import { Screen } from "../../components/Screen";
 import { TextButton } from "../../components/TextButton";
 import { formatDay, formatFcfa } from "../../lib/format";
-import { canPickPhotos, pickPhoto } from "../../lib/pickPhoto";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
 
 const PURPOSES: LoanPurpose[] = ["STOCK", "EQUIPMENT", "OTHER"];
+const KINDS: BusinessKind[] = ["FABRICS", "FOOD", "RESTAURANT", "BEAUTY", "OTHER"];
+const SINCE: BusinessSince[] = ["UNDER_1Y", "Y1_TO_3", "OVER_3Y"];
 
 // One of the MFI's conditions, in words, with her own figure (D91).
 function checkText(t: TFunction, c: LoanCheck): [string, string] {
@@ -72,29 +67,31 @@ function checkText(t: TFunction, c: LoanCheck): [string, string] {
   }
 }
 
-// D89, D91, redrawn in D122 from canvas boards 19 to 21: "Crédit". Not yet:
-// what is missing, what is already fine, her ceiling (19). She can ask: the
-// amount with − and +, what for, the documents to prepare (20). Her request,
-// step by step, with her documents inside step 3 (21). Then, once preselected, her documents: she agrees,
-// photographs each one, and sees the officer's answer. When all are accepted
-// she goes to the agency with the originals; the MFI decides there.
+// "Crédit" (D89, D91). Not yet: what is missing and what is already fine.
+// She can ask: the amount, what for, and her business, which she declares.
+// Her request then follows four steps: sent, kept by the MFI, signing at the
+// agency with the documents listed, money paid. Novi keeps no document.
 export default function LoanScreen() {
   const { t } = useTranslation();
   const [page, setPage] = useState<LoanPage | null>(null);
   const [amount, setAmount] = useState<number | null>(null);
   const [purpose, setPurpose] = useState<LoanPurpose>("STOCK");
+  const [kind, setKind] = useState<BusinessKind | null>(null);
+  const [since, setSince] = useState<BusinessSince | null>(null);
+  const [sales, setSales] = useState<string | null>(null);
+  const [place, setPlace] = useState<string | null>(null);
+  const [editPlace, setEditPlace] = useState(false);
   const [showChecks, setShowChecks] = useState(false);
-  const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     getLoans().then(setPage, (err: unknown) => setError(errorKey(err)));
   }, []);
   useFocusEffect(load);
 
-  async function run(key: string, action: () => Promise<LoanPage>) {
-    setBusy(key);
+  async function run(action: () => Promise<LoanPage>) {
+    setBusy(true);
     setError(null);
     try {
       setPage(await action());
@@ -102,7 +99,7 @@ export default function LoanScreen() {
     } catch (err) {
       setError(errorKey(err));
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   }
 
@@ -117,335 +114,52 @@ export default function LoanScreen() {
 
   const mfi = page.mfiName ?? t("loan.yourMfi");
   const latest = page.requests.find((r) => r.status !== "WITHDRAWN");
-  const latestOpen =
-    latest?.status === "PENDING" || latest?.status === "PRESELECTED";
-  // D122, board 20: the amount with − and +, from 5 000 F to her ceiling.
+  const latestOpen = latest?.status === "PENDING" || latest?.status === "PRESELECTED";
   const stepF = page.ceilingFcfa > 100_000 ? 10_000 : 5_000;
   const top = Math.max(5_000, Math.floor(page.ceilingFcfa / 5_000) * 5_000);
-  const value =
-    amount ??
-    Math.min(
-      top,
-      Math.max(5_000, Math.round(page.ceilingFcfa / 2 / 5_000) * 5_000),
-    );
-  const valid = value >= 5000 && value <= page.ceilingFcfa;
+  const value = amount ?? Math.min(top, Math.max(5_000, Math.round(page.ceilingFcfa / 2 / 5_000) * 5_000));
   const okChecks = page.checks.filter((c) => c.ok);
   const missing = page.checks.filter((c) => !c.ok);
 
+  // Her last answers are the starting point; the place comes from sign-up.
+  const b = page.business;
+  const kindNow = kind ?? b?.kind ?? null;
+  const sinceNow = since ?? b?.since ?? null;
+  const salesText = sales ?? (b ? String(b.weeklySalesFcfa) : "");
+  const salesFcfa = Number(salesText.replace(/\D/g, ""));
+  const placeNow = (place ?? b?.place ?? page.place).trim();
+  const valid =
+    value >= 5000 && value <= page.ceilingFcfa && kindNow !== null && sinceNow !== null && salesFcfa >= 100 && placeNow.length >= 2;
+
   function send() {
-    Alert.alert(
-      t("loan.confirmTitle"),
-      t("loan.confirm", { amount: formatFcfa(value), mfi }),
-      [
-        { text: t("common.back"), style: "cancel" },
-        {
-          text: t("loan.send"),
-          onPress: () => void run("send", () => requestLoan(value, purpose)),
-        },
-      ],
-    );
-  }
-
-  async function photo(loan: LoanRequestView, doc: LoanDocumentView) {
-    const take = async (source: "camera" | "library") => {
-      const picked = await pickPhoto(source);
-      if (picked === "cancelled") return;
-      if (picked === "denied") return setError("loan.photoDenied");
-      if (picked === "tooLarge") return setError("loan.documentInvalid");
-      await run(doc.key, () => sendDocument(loan.id, doc.key, picked));
-    };
-    Alert.alert(doc.label, t("loan.photoHow"), [
-      { text: t("loan.photoCamera"), onPress: () => void take("camera") },
-      { text: t("loan.photoLibrary"), onPress: () => void take("library") },
+    if (!kindNow || !sinceNow) return;
+    const business = { kind: kindNow, since: sinceNow, weeklySalesFcfa: salesFcfa, place: placeNow };
+    Alert.alert(t("loan.confirmTitle"), t("loan.confirm", { amount: formatFcfa(value), mfi }), [
       { text: t("common.back"), style: "cancel" },
+      { text: t("loan.send"), onPress: () => void run(() => requestLoan(value, purpose, business)) },
     ]);
-  }
-
-  // Her documents, inside step 3 of her request (D89; D122).
-  const docsBlock = latest ? (
-    <>
-      {!latest.documentsConsented ? (
-        <>
-          <Text style={[type.small, styles.ink]}>
-            {t("loan.docsConsentText", { mfi })}
-          </Text>
-          <CheckRow checked={consent} onToggle={() => setConsent(!consent)}>
-            {t("loan.docsConsent", { mfi })}
-          </CheckRow>
-          <PrimaryButton
-            label={t("loan.docsStart")}
-            disabled={!consent || busy !== null}
-            onPress={() =>
-              void run("consent", () => consentToDocuments(latest.id))
-            }
-          />
-        </>
-      ) : (
-        <>
-          {!canPickPhotos() ? (
-            <Text style={[type.small, styles.muted]}>
-              {t("loan.photoUpdateApp")}
-            </Text>
-          ) : null}
-          {latest.documents.map((d) => (
-            <View key={d.key} style={styles.doc}>
-              <View style={styles.docText}>
-                <Text style={styles.docLabel}>{d.label}</Text>
-                <Text
-                  style={[
-                    styles.docStatus,
-                    d.status === "ACCEPTED" && styles.ok,
-                    d.status === "REDO" && styles.problem,
-                  ]}
-                >
-                  {t(`loan.docStatus.${d.status}`, { mfi })}
-                  {d.note ? ` : « ${d.note} »` : ""}
-                </Text>
-              </View>
-              <View style={styles.docActions}>
-                {d.status === "MISSING" || d.status === "REDO" ? (
-                  <TextButton
-                    label={t("loan.onPaper")}
-                    disabled={busy !== null}
-                    onPress={() =>
-                      void run(d.key, () => bringOnPaper(latest.id, d.key))
-                    }
-                  />
-                ) : null}
-                {d.status !== "ACCEPTED" && canPickPhotos() ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={busy !== null}
-                    onPress={() => void photo(latest, d)}
-                    style={styles.docButton}
-                  >
-                    <Text style={styles.docButtonText}>
-                      {busy === d.key
-                        ? "…"
-                        : d.status === "MISSING"
-                          ? t("loan.photoSend")
-                          : t("loan.photoRedo")}
-                    </Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            </View>
-          ))}
-          <Text style={[type.small, styles.muted]}>
-            {t("loan.docsPrivacy", { mfi })}
-          </Text>
-        </>
-      )}
-    </>
-  ) : null;
-
-  function steps(loan: LoanRequestView) {
-    type Step = {
-      key: string;
-      title: string;
-      sub?: string;
-      state: "done" | "now" | "todo" | "failed";
-    };
-    const s = loan.status;
-    const day = (iso: string | null) =>
-      iso ? formatDay(iso.slice(0, 10)) : undefined;
-    const preDone =
-      s === "PRESELECTED" ||
-      s === "APPROVED" ||
-      s === "GRANTED" ||
-      s === "NOT_GRANTED";
-    const docsDone =
-      (s === "PRESELECTED" && loan.documentsComplete) ||
-      s === "APPROVED" ||
-      s === "GRANTED" ||
-      s === "NOT_GRANTED";
-    const accepted = loan.documents.filter(
-      (d) => d.status === "ACCEPTED",
-    ).length;
-    const out: Step[] = [
-      {
-        key: "sent",
-        title: t("loan.stepSent"),
-        sub: day(loan.createdAt),
-        state: "done",
-      },
-      s === "DECLINED"
-        ? {
-            key: "kept",
-            title: t("loan.declined"),
-            sub: loan.decisionNote
-              ? `« ${loan.decisionNote} »`
-              : day(loan.decidedAt),
-            state: "failed",
-          }
-        : {
-            key: "kept",
-            title: t("loan.stepKept", { mfi }),
-            sub: preDone ? undefined : t("loan.stepKeptNow", { mfi }),
-            state: preDone ? "done" : "now",
-          },
-    ];
-    if (s === "DECLINED") return out;
-    out.push({
-      key: "docs",
-      title: loan.documents.length
-        ? t("loan.stepDocs", { done: accepted, count: loan.documents.length })
-        : t("loan.docsTitle"),
-      state: docsDone ? "done" : s === "PRESELECTED" ? "now" : "todo",
-    });
-    out.push({
-      key: "agency",
-      title: t("loan.stepAgency"),
-      sub:
-        s === "PRESELECTED" && loan.documentsComplete
-          ? t("loan.fileCompleteSub", { mfi })
-          : undefined,
-      state:
-        s === "APPROVED" || s === "GRANTED" || s === "NOT_GRANTED"
-          ? "done"
-          : docsDone
-            ? "now"
-            : "todo",
-    });
-    out.push(
-      s === "APPROVED" || s === "GRANTED"
-        ? {
-            key: "answer",
-            title: t("loan.approved", {
-              amount: formatFcfa(loan.grantedFcfa ?? loan.amountFcfa),
-            }),
-            sub:
-              s === "APPROVED"
-                ? t("loan.goToAgency", { mfi })
-                : t("loan.grantedSub"),
-            state: "done",
-          }
-        : s === "NOT_GRANTED"
-          ? {
-              key: "answer",
-              title: t("loan.notGranted"),
-              sub: loan.decisionNote ? `« ${loan.decisionNote} »` : undefined,
-              state: "failed",
-            }
-          : {
-              key: "answer",
-              title: t("loan.stepAnswer", { mfi }),
-              state: "todo",
-            },
-    );
-    return out;
   }
 
   return (
     <Screen>
-      <BackHeader
-        listenText={`${t("loan.title", { mfi })}. ${t("loan.intro", { mfi })}`}
-      />
-      <View style={styles.intro}>
-        <Text style={[type.title, styles.indigo]}>
-          {t("loan.title", { mfi })}
-        </Text>
-        <Text style={[type.body, styles.muted]}>
-          {t("loan.intro", { mfi })}
-        </Text>
-      </View>
+      <BackHeader listenText={t("loan.title", { mfi })} />
+      <Text style={[type.title, styles.indigo]}>{t("loan.title", { mfi })}</Text>
 
-      {/* D122, board 21: where her request stands, step by step. */}
-      {latest ? (
-        <View style={styles.follow}>
-          <View>
-            <Text style={styles.followTitle}>{t("loan.myRequest")}</Text>
-            <Text style={[type.small, styles.muted]}>
-              {t("loan.requestShort", {
-                amount: formatFcfa(latest.amountFcfa),
-                purpose: t(`loan.purpose.${latest.purpose}`),
-              })}
-            </Text>
-          </View>
-          <View style={styles.steps}>
-            {steps(latest).map((st, i, all) => (
-              <View key={st.key} style={styles.step}>
-                <View style={styles.rail}>
-                  <View style={[styles.dot, styles[`dot_${st.state}`]]}>
-                    {st.state === "done" ? (
-                      <LineIcon name="check" size={14} color={colors.white} />
-                    ) : (
-                      <Text
-                        style={[
-                          styles.dotText,
-                          st.state === "todo" && styles.dotTextTodo,
-                        ]}
-                      >
-                        {st.state === "failed" ? "×" : i + 1}
-                      </Text>
-                    )}
-                  </View>
-                  {i < all.length - 1 ? (
-                    <View
-                      style={[
-                        styles.railLine,
-                        st.state === "done" && styles.railLineDone,
-                      ]}
-                    />
-                  ) : null}
-                </View>
-                <View style={styles.stepBody}>
-                  <Text
-                    style={[
-                      styles.stepTitle,
-                      st.state === "todo" && styles.muted,
-                      st.state === "failed" && styles.problem,
-                    ]}
-                  >
-                    {st.title}
-                  </Text>
-                  {st.sub ? <Text style={styles.stepSub}>{st.sub}</Text> : null}
-                  {st.key === "docs" && st.state === "now" ? (
-                    <View style={styles.docsInStep}>{docsBlock}</View>
-                  ) : null}
-                </View>
-              </View>
-            ))}
-          </View>
-          {latestOpen ? (
-            <TextButton
-              label={t("loan.withdraw")}
-              disabled={busy !== null}
-              onPress={() =>
-                void run("withdraw", () => withdrawLoan(latest.id))
-              }
-            />
-          ) : null}
-        </View>
+      {latest ? <Follow loan={latest} mfi={mfi} /> : null}
+      {latestOpen && latest ? (
+        <TextButton label={t("loan.withdraw")} disabled={busy} onPress={() => void run(() => withdrawLoan(latest.id))} />
       ) : null}
 
-      {!page.enabled ? (
-        <Text style={[type.body, styles.muted]}>
-          {t("loan.closed", { mfi })}
-        </Text>
-      ) : null}
+      {!page.enabled ? <Text style={[type.body, styles.muted]}>{t("loan.closed", { mfi })}</Text> : null}
 
-      {/* D122, board 20: she can ask. */}
       {page.enabled && page.eligible && !latestOpen ? (
         <>
-          <View style={styles.hero}>
-            <View style={styles.heroOkRow}>
-              <LineIcon name="check" size={16} color="#8FD3AE" />
-              <Text style={styles.heroOk}>{t("loan.allMetShort")}</Text>
-            </View>
-            <Text style={styles.heroTitle}>
-              {t("loan.canAsk", { amount: formatFcfa(page.ceilingFcfa), mfi })}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setShowChecks(!showChecks)}
-              style={styles.heroLink}
-            >
-              <Text style={styles.heroLinkText}>
-                {showChecks
-                  ? t("loan.hideConditions")
-                  : t("loan.seeConditions")}
-              </Text>
+          <View style={styles.card}>
+            <Text style={[type.small, styles.muted]}>{t("loan.canAskLabel")}</Text>
+            <Text style={styles.big}>{formatFcfa(page.ceilingFcfa).replace(" FCFA", " F")}</Text>
+            <Text style={[type.small, styles.muted]}>{t("loan.canAskLine")}</Text>
+            <Pressable accessibilityRole="button" onPress={() => setShowChecks(!showChecks)} style={styles.link}>
+              <Text style={styles.linkText}>{showChecks ? t("loan.hideConditions") : t("loan.seeConditions")}</Text>
             </Pressable>
           </View>
           {showChecks ? <Checks checks={page.checks} mfi={mfi} /> : null}
@@ -461,11 +175,7 @@ export default function LoanScreen() {
             >
               <Text style={styles.roundText}>−</Text>
             </Pressable>
-            <Text
-              style={styles.stepAmount}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
+            <Text style={styles.stepAmount} numberOfLines={1} adjustsFontSizeToFit>
               {formatFcfa(value).replace(" FCFA", " F")}
             </Text>
             <Pressable
@@ -473,10 +183,7 @@ export default function LoanScreen() {
               accessibilityLabel={t("loan.more", { amount: formatFcfa(stepF) })}
               disabled={value + stepF > page.ceilingFcfa}
               onPress={() => setAmount(Math.min(top, value + stepF))}
-              style={[
-                styles.round,
-                value + stepF > page.ceilingFcfa && styles.roundOff,
-              ]}
+              style={[styles.round, value + stepF > page.ceilingFcfa && styles.roundOff]}
             >
               <Text style={styles.roundText}>+</Text>
             </Pressable>
@@ -487,54 +194,67 @@ export default function LoanScreen() {
             {PURPOSES.map((p) => (
               <Pressable
                 key={p}
-                accessibilityRole="button"
-                accessibilityState={{ selected: purpose === p }}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: purpose === p }}
                 onPress={() => setPurpose(p)}
                 style={[styles.purpose, purpose === p && styles.purposeOn]}
               >
-                <LineIcon
-                  name={
-                    p === "STOCK" ? "bag" : p === "EQUIPMENT" ? "tools" : "more"
-                  }
-                  color={purpose === p ? colors.action : colors.ink}
-                />
-                <Text
-                  style={[
-                    styles.purposeText,
-                    purpose === p && styles.purposeTextOn,
-                  ]}
-                >
-                  {t(`loan.purpose.${p}`)}
-                </Text>
+                <Text style={[styles.purposeText, purpose === p && styles.purposeTextOn]}>{t(`loan.purpose.${p}`)}</Text>
               </Pressable>
             ))}
           </View>
 
-          <View style={styles.box}>
-            <Text style={styles.boxTitle}>
-              {t("loan.docsToPrepare", { count: page.documents.length })}
-            </Text>
-            {page.documents.map((d) => (
-              <View key={d.key} style={styles.bulletRow}>
-                <View style={styles.bullet} />
-                <Text style={[type.small, styles.ink, styles.flex]}>
-                  {d.label}
-                </Text>
-              </View>
-            ))}
+          <View style={styles.card}>
+            <Text style={styles.q}>{t("loan.business")}</Text>
+            <Text style={styles.label}>{t("loan.kindLabel")}</Text>
+            <View style={styles.chips}>
+              {KINDS.map((k) => (
+                <Chip key={k} label={t(`loan.kind.${k}`)} selected={kindNow === k} onPress={() => setKind(k)} />
+              ))}
+            </View>
+            <Text style={styles.label}>{t("loan.sinceLabel")}</Text>
+            <View style={styles.chips}>
+              {SINCE.map((k) => (
+                <Chip key={k} label={t(`loan.since.${k}`)} selected={sinceNow === k} onPress={() => setSince(k)} />
+              ))}
+            </View>
+            <Text style={styles.label}>{t("loan.salesLabel")}</Text>
+            <View style={styles.field}>
+              <TextInput
+                accessibilityLabel={t("loan.salesLabel")}
+                value={salesText ? formatFcfa(salesFcfa).replace(" FCFA", "") : ""}
+                onChangeText={(v) => setSales(v.replace(/\D/g, "").slice(0, 9))}
+                keyboardType="number-pad"
+                style={styles.input}
+              />
+              <Text style={[type.small, styles.muted]}>F</Text>
+            </View>
+            <View style={styles.place}>
+              <LineIcon name="pin" size={20} color={colors.muted} />
+              {editPlace ? (
+                <TextInput
+                  accessibilityLabel={t("loan.placeLabel")}
+                  value={place ?? placeNow}
+                  onChangeText={setPlace}
+                  maxLength={80}
+                  autoFocus
+                  style={[styles.input, styles.flex]}
+                />
+              ) : (
+                <Text style={[type.body, styles.ink, styles.flex]}>{placeNow || t("loan.placeLabel")}</Text>
+              )}
+              <TextButton
+                label={editPlace ? t("loan.placeDone") : t("loan.placeEdit")}
+                onPress={() => setEditPlace(!editPlace)}
+              />
+            </View>
           </View>
-          <Text style={[type.small, styles.muted, styles.center]}>
-            {t("loan.atAgency", { mfi })} {t("loan.shareNote", { mfi })}
-          </Text>
-          <PrimaryButton
-            label={t("loan.sendTo", { mfi })}
-            disabled={busy !== null || !valid}
-            onPress={send}
-          />
+
+          <Text style={[type.small, styles.muted, styles.center]}>{t("loan.shareNote", { mfi })}</Text>
+          <PrimaryButton label={t("loan.sendTo", { mfi })} disabled={busy || !valid} onPress={send} />
         </>
       ) : null}
 
-      {/* D122, board 19: not yet. What is already fine, what is missing, the ceiling. */}
       {page.enabled && !page.eligible && !latestOpen ? (
         <>
           <View style={styles.hero}>
@@ -575,10 +295,68 @@ export default function LoanScreen() {
         </>
       ) : null}
       <ErrorMessage messageKey={error} />
-
-      {/* D121: sharing her record sits here, with the lender's conditions. */}
       <RecordShare />
     </Screen>
+  );
+}
+
+// Where her request stands: a bar of four steps, one sentence, and what to
+// bring once the MFI has kept it.
+function Follow({ loan, mfi }: { loan: LoanRequestView; mfi: string }) {
+  const { t } = useTranslation();
+  const amount = formatFcfa(loan.grantedFcfa ?? loan.amountFcfa);
+  const s = loan.status;
+  const step = s === "PENDING" ? 2 : s === "PRESELECTED" ? 3 : 4;
+  const failed = s === "DECLINED" || s === "NOT_GRANTED";
+  const [title, sub] =
+    s === "PENDING"
+      ? [t("loan.statusPending"), t("loan.statusPendingSub")]
+      : s === "PRESELECTED"
+        ? [t("loan.statusToSign"), t("loan.statusToSignSub", { mfi, amount })]
+        : s === "GRANTED"
+          ? [t("loan.granted", { amount }), t("loan.grantedSub")]
+          : [t(s === "DECLINED" ? "loan.declined" : "loan.notGranted"), loan.decisionNote ? `« ${loan.decisionNote} »` : ""];
+  const shown = s === "DECLINED" ? 2 : step;
+  return (
+    <>
+      <View style={styles.card}>
+        <View style={styles.bar} accessibilityLabel={t("loan.stepOf", { n: shown })}>
+          {[1, 2, 3, 4].map((n) => (
+            <View
+              key={n}
+              style={[
+                styles.seg,
+                n < shown && styles.segDone,
+                n === shown && (failed ? styles.segFailed : s === "GRANTED" ? styles.segDone : styles.segNow),
+              ]}
+            />
+          ))}
+        </View>
+        <Text style={[type.small, styles.muted]}>
+          {t("loan.requestLine", {
+            amount: formatFcfa(loan.amountFcfa),
+            purpose: t(`loan.purpose.${loan.purpose}`),
+            day: formatDay(loan.createdAt.slice(0, 10)),
+          })}
+        </Text>
+        <Text style={[styles.status, failed && styles.problem]}>{title}</Text>
+        {sub ? <Text style={[type.small, styles.muted]}>{sub}</Text> : null}
+      </View>
+      {s === "PRESELECTED" && loan.toBring.length > 0 ? (
+        <>
+          <View style={styles.card}>
+            <Text style={styles.q}>{t("loan.toBring")}</Text>
+            {loan.toBring.map((d) => (
+              <View key={d} style={styles.bringRow}>
+                <LineIcon name="check" size={16} color={colors.action} />
+                <Text style={[type.body, styles.ink, styles.flex]}>{d}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={[type.small, styles.muted, styles.center]}>{t("loan.paidAfterSign")}</Text>
+        </>
+      ) : null}
+    </>
   );
 }
 
@@ -633,271 +411,90 @@ function Checks({
 }
 
 const styles = StyleSheet.create({
-  intro: { gap: 8 },
   indigo: { color: colors.indigo },
   muted: { color: colors.muted },
   ink: { color: colors.ink },
-  box: {
-    gap: 10,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.card,
-  },
-  boxTitle: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.indigo },
-  doc: {
-    gap: 6,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-  },
-  docActions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 10,
-  },
-  docText: { flex: 1, gap: 2 },
-  docLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 15,
-    lineHeight: 20,
-    color: colors.ink,
-  },
-  docStatus: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
-  docButton: {
-    minHeight: 40,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: colors.action,
-    justifyContent: "center",
-  },
-  docButtonText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.white,
-  },
   ok: { color: colors.paid },
   problem: { color: colors.problem },
-  checks: {
-    gap: 4,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: colors.mist,
-  },
-  check: { flexDirection: "row", gap: 10, paddingVertical: 6 },
-  mark: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  markOk: { backgroundColor: colors.paid },
-  markNo: { backgroundColor: colors.card },
-  checkText: { flex: 1, gap: 2 },
-  checkLine: {
-    fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 21,
-    color: colors.ink,
-  },
-  have: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.muted },
   flex: { flex: 1 },
   center: { textAlign: "center" },
-  follow: {
-    gap: 12,
-    padding: 16,
-    borderRadius: 20,
+  card: { gap: 10, padding: 16, borderRadius: 16, backgroundColor: colors.card },
+  big: { fontFamily: fonts.display, fontSize: 30, lineHeight: 38, color: colors.indigo },
+  link: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
+  linkText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.action, textDecorationLine: "underline" },
+  q: { fontFamily: fonts.bodyBold, fontSize: 17, color: colors.indigo },
+  label: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.ink, marginTop: 4 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  field: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minHeight: 52,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.card,
   },
-  followTitle: {
-    fontFamily: fonts.display,
-    fontSize: 22,
-    lineHeight: 30,
-    color: colors.indigo,
-  },
-  steps: { gap: 0 },
-  step: { flexDirection: "row", gap: 12 },
-  rail: { width: 28, alignItems: "center" },
-  dot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  input: { flex: 1, minWidth: 0, fontFamily: fonts.bodySemiBold, fontSize: 17, color: colors.indigo, paddingVertical: 8 },
+  place: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-  },
-  dot_done: { backgroundColor: colors.paid },
-  dot_now: { backgroundColor: colors.yourTurn },
-  dot_todo: { backgroundColor: colors.seatEmpty },
-  dot_failed: { backgroundColor: colors.problem },
-  dotText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.white },
-  dotTextTodo: { color: colors.muted },
-  railLine: {
-    width: 3,
-    flex: 1,
-    minHeight: 16,
-    backgroundColor: colors.seatEmpty,
-  },
-  railLineDone: { backgroundColor: colors.paid },
-  stepBody: { flex: 1, minWidth: 0, paddingBottom: 16, gap: 2 },
-  stepTitle: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    lineHeight: 22,
-    color: colors.ink,
-  },
-  stepSub: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.muted,
-  },
-  docsInStep: { gap: 10, marginTop: 8 },
-  hero: {
-    backgroundColor: colors.indigo,
-    borderRadius: 22,
-    padding: 18,
-    gap: 6,
-  },
-  heroOkRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  heroOk: { fontFamily: fonts.bodyBold, fontSize: 14, color: "#8FD3AE" },
-  heroKicker: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 15,
-    color: colors.yourTurn,
-  },
-  heroTitle: {
-    fontFamily: fonts.display,
-    fontSize: 22,
-    lineHeight: 30,
-    color: colors.white,
-  },
-  heroText: {
-    fontFamily: fonts.body,
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.onDark,
-  },
-  heroLink: {
-    minHeight: 44,
-    justifyContent: "center",
-    alignSelf: "flex-start",
-  },
-  heroLinkText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 15,
-    color: colors.white,
-    textDecorationLine: "underline",
-  },
-  q: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 16,
-    color: colors.indigo,
-    marginBottom: -4,
+    gap: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
   },
   stepper: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
-    padding: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.line,
+    padding: 10,
+    borderRadius: 16,
     backgroundColor: colors.card,
   },
-  round: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 2,
-    borderColor: colors.action,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  roundOff: { borderColor: colors.line },
-  roundText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 26,
-    lineHeight: 30,
-    color: colors.action,
-  },
-  stepAmount: {
-    flex: 1,
-    textAlign: "center",
-    fontFamily: fonts.display,
-    fontSize: 30,
-    lineHeight: 38,
-    color: colors.indigo,
-  },
+  round: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.mist, alignItems: "center", justifyContent: "center" },
+  roundOff: { opacity: 0.4 },
+  roundText: { fontFamily: fonts.bodyBold, fontSize: 26, lineHeight: 30, color: colors.action },
+  stepAmount: { flex: 1, textAlign: "center", fontFamily: fonts.display, fontSize: 28, lineHeight: 36, color: colors.indigo },
   purposes: { flexDirection: "row", gap: 8 },
   purpose: {
     flex: 1,
-    minHeight: 82,
+    minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    padding: 8,
-    borderRadius: 14,
+    paddingHorizontal: 6,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.card,
   },
-  purposeOn: {
-    borderWidth: 2,
-    borderColor: colors.action,
-    backgroundColor: colors.mist,
-  },
-  purposeText: {
-    textAlign: "center",
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.ink,
-  },
-  purposeTextOn: { color: colors.action },
-  bulletRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  bullet: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 7,
-    backgroundColor: colors.action,
-  },
-  checksHead: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  markNoText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 13,
-    color: colors.indigo,
-  },
-  ceiling: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: colors.turnSoft,
-  },
-  ceilingAmount: {
-    fontFamily: fonts.display,
-    fontSize: 22,
-    lineHeight: 30,
-    color: colors.turnText,
-  },
-  ceilingText: {
-    flex: 1,
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 19,
-    color: colors.turnText,
-  },
+  purposeOn: { borderWidth: 2, borderColor: colors.action },
+  purposeText: { textAlign: "center", fontFamily: fonts.body, fontSize: 15, color: colors.ink },
+  purposeTextOn: { fontFamily: fonts.bodySemiBold, color: colors.action },
+  bar: { flexDirection: "row", gap: 6 },
+  seg: { flex: 1, height: 6, borderRadius: 3, backgroundColor: colors.seatEmpty },
+  segDone: { backgroundColor: colors.paid },
+  segNow: { backgroundColor: colors.action },
+  segFailed: { backgroundColor: colors.problem },
+  status: { fontFamily: fonts.bodyBold, fontSize: 22, lineHeight: 28, color: colors.indigo },
+  bringRow: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 40 },
+  checks: { gap: 4, padding: 16, borderRadius: 16, backgroundColor: colors.mist },
+  checksHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
+  boxTitle: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.indigo },
+  check: { flexDirection: "row", gap: 10, paddingVertical: 6 },
+  mark: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  markOk: { backgroundColor: colors.paid },
+  markNo: { backgroundColor: colors.card },
+  markNoText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.indigo },
+  checkText: { flex: 1, gap: 2 },
+  checkLine: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.ink },
+  have: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.muted },
+  hero: { backgroundColor: colors.indigo, borderRadius: 22, padding: 18, gap: 6 },
+  heroKicker: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.yourTurn },
+  heroTitle: { fontFamily: fonts.display, fontSize: 22, lineHeight: 30, color: colors.white },
+  heroText: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.onDark },
+  ceiling: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 16, backgroundColor: colors.turnSoft },
+  ceilingAmount: { fontFamily: fonts.display, fontSize: 22, lineHeight: 30, color: colors.turnText },
+  ceilingText: { flex: 1, fontFamily: fonts.body, fontSize: 14, lineHeight: 19, color: colors.turnText },
 });

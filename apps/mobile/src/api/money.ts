@@ -1,7 +1,7 @@
 import type { ContributionView, LedgerLine, MobileOperator, RoundDetail, RoundSummary } from "@novi/shared";
 import { memberRequest } from "./client";
 
-// The money endpoints (Sprint 3), typed with the shapes from @novi/shared.
+// The money endpoints, typed with the shapes from @novi/shared.
 
 export const listRounds = (groupId: string) => memberRequest<RoundSummary[]>("GET", `/v1/groups/${groupId}/rounds`);
 export const getRound = (groupId: string, number: number) =>

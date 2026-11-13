@@ -8,7 +8,7 @@ import { fonts } from "../theme/typography";
 export const dayKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-// A month at a glance (approved design F5): meeting days in navy, payment
+// A month at a glance: meeting days in navy, payment
 // days with an orange dot, today ringed. Weeks start on Monday, as in Togo.
 export function MonthCalendar({ meetings, payments }: { meetings: Set<string>; payments: Set<string> }) {
   const { t, i18n } = useTranslation();

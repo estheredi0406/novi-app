@@ -7,7 +7,7 @@ import { PotJar } from "./art/PotJar";
 import { fonts, type } from "../theme/typography";
 
 // One round of the cycle: when it is due, whose turn it is, how much is in,
-// and where the pot is once its day has come (Sprint 4). Saffron marks the member whose turn it is, and only that (colors.ts);
+// and where the pot is once its day has come. Saffron marks the member whose turn it is, and only that (colors.ts);
 // green marks only a payment that went through.
 export function RoundCard({ round, onPress }: { round: RoundSummary; onPress: () => void }) {
   const { t } = useTranslation();

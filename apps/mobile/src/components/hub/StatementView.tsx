@@ -10,8 +10,7 @@ import { fonts } from "../../theme/typography";
 import { CowrieMark } from "../BottomBar";
 import { LineIcon } from "../LineIcon";
 
-// Her transactions in Historique (D92; redrawn in D122 from canvas boards 38
-// and 39). What still needs her eye sits apart at the top, "En cours": a
+// Her transactions in Historique (D92, D122). What still needs her eye sits apart at the top, "En cours": a
 // payment not confirmed yet or that failed, and a share the group's advances
 // covered that she has not repaid. Below, month by month, the money that
 // moved. "Payé" shows only money that left and was confirmed, "Reçu" only

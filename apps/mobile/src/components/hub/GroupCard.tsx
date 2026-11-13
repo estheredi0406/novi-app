@@ -16,8 +16,7 @@ import { LineIcon, type LineIconName } from "../LineIcon";
 import { CycleRing } from "../art/CycleRing";
 import { sheetColumn } from "../WebFrame";
 
-// One running group on home (D92; D121; redrawn in D122 from canvas boards
-// 33 to 35, 33a): a rounded white card riding over the pagne band, about her
+// One running group on home (D92, D121, D122): a rounded white card riding over the pagne band, about her
 // only. On the left, her cycle as a ring (CycleRing), the round in the
 // middle. On the right, one figure in large type: what she must pay (orange,
 // with the Payer button and, below, when her pot comes), else her pot to

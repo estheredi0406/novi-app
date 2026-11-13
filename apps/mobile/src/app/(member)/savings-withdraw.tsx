@@ -16,7 +16,7 @@ import { useSession } from "../../session/SessionProvider";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// D123, canvas board 47: a withdrawal from her free savings, sent only to her
+// D123: a withdrawal from her free savings, sent only to her
 // own Novi number, from the MFI's account, like a pot.
 const F = (n: number) => formatFcfa(n).replace(" FCFA", " F");
 

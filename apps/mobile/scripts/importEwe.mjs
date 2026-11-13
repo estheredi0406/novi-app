@@ -4,7 +4,7 @@
 //   node scripts/importEwe.mjs
 //
 // Only the "eʋegbe" column is copied: the sentences a speaker wrote or
-// checked. "brouillon_claude" is a draft to correct, never shipped as is.
+// checked. "brouillon" is a draft to correct, never shipped as is.
 // To try the drafts on your own phone only, add --brouillon: an empty
 // "eʋegbe" cell then takes the draft. Do not publish an update made that way.
 //
@@ -44,7 +44,7 @@ const col = (name) => header.findIndex((h) => h.trim().toLowerCase() === name);
 const KEY = col("key");
 const FR = col("francais");
 const EWE = col("eʋegbe");
-const DRAFT = col("brouillon_claude");
+const DRAFT = col("brouillon");
 const useDrafts = process.argv.includes("--brouillon");
 if (KEY < 0 || FR < 0 || EWE < 0) throw new Error("The sheet needs the columns key, francais and eʋegbe.");
 const ee = JSON.parse(readFileSync(eePath, "utf8"));

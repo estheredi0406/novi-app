@@ -64,7 +64,7 @@ export default function GroupScreen() {
   const [busy, setBusy] = useState(false);
   const [consent, setConsent] = useState(false); // D84
 
-  // The group, and once it is running, its rounds (Sprint 3).
+  // The group, and once it is running, its rounds.
   const load = useCallback(() => {
     getGroup(id).then(
       (loaded) => {
@@ -121,7 +121,7 @@ export default function GroupScreen() {
     );
   }
 
-  // Once it runs, the group lives in three tabs (approved design F1 to F3).
+  // Once it runs, the group lives in three tabs.
   if (
     (group.state === "ACTIVE" || group.state === "COMPLETED") &&
     rounds.length > 0

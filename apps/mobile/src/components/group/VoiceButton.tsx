@@ -38,7 +38,7 @@ const VOICE: RecordingOptions = {
 };
 
 // Hold to record, let go to send, slide left to cancel: the way voice notes
-// work in the messaging apps the members already use (approved design V4).
+// work in the messaging apps the members already use.
 // While she holds, the bar shows a red dot, the time, and how to cancel.
 export function VoiceButton({
   disabled,

@@ -6,7 +6,7 @@ import { PotJar } from "./PotJar";
 
 // Shown once, when her payment has just gone through: three coins drop into
 // the pot. A small moment of reward for saving, never a comparison with
-// anyone else (UX direction, 23 Oct).
+// anyone else.
 function Coin() {
   return (
     <Svg width={22} height={22} viewBox="0 0 22 22">

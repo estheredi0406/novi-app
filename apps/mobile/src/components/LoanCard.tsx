@@ -9,11 +9,8 @@ import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
 import { Glyph } from "./art/Glyph";
 
-// D89: where she meets the loan request. On home it appears only when it
-// matters: her record now opens a request, or the MFI has answered or is
-// studying hers. On her record ("always"), it is always there, since her
-// record is what opens the door: the button when she qualifies, otherwise
-// a link to the conditions.
+// The loan request on home (D89), shown only when it matters: she can ask,
+// or the MFI is studying, has kept or has answered her request.
 export function LoanCard({ always = false }: { always?: boolean }) {
   const { t } = useTranslation();
   const [page, setPage] = useState<LoanPage | null>(null);
@@ -42,43 +39,22 @@ export function LoanCard({ always = false }: { always?: boolean }) {
   let title: string;
   let sub: string;
   let tone: "offer" | "ok" | "plain" = "plain";
-  if (
-    (latest?.status === "APPROVED" || latest?.status === "GRANTED") &&
-    recentDays <= 30
-  ) {
-    title = t("loan.approved", {
-      amount: formatFcfa(latest.grantedFcfa ?? latest.amountFcfa),
-    });
-    sub =
-      latest.status === "APPROVED"
-        ? t("loan.goToAgency", { mfi })
-        : t("loan.grantedSub");
+  if (latest?.status === "GRANTED" && recentDays <= 30) {
+    title = t("loan.granted", { amount: formatFcfa(latest.grantedFcfa ?? latest.amountFcfa) });
+    sub = t("loan.grantedSub");
     tone = "ok";
   } else if (latest?.status === "PRESELECTED") {
-    const toDo = latest.documents.filter(
-      (d) => d.status === "MISSING" || d.status === "REDO",
-    ).length;
-    title = latest.documentsComplete
-      ? t("loan.fileComplete")
-      : t("loan.preselected");
-    sub = latest.documentsComplete
-      ? t("loan.fileCompleteSub", { mfi })
-      : toDo > 0
-        ? t("loan.cardDocsToSend", { count: toDo })
-        : t("loan.docStatus.SENT", { mfi });
-    tone = latest.documentsComplete ? "ok" : "offer";
+    title = t("loan.cardToSign");
+    sub = t("loan.cardToSignSub", { mfi });
+    tone = "offer";
   } else if (latest?.status === "PENDING") {
-    title = t("loan.pending", { mfi });
+    title = t("loan.cardPending", { mfi });
     sub = t("loan.cardPendingSub");
-  } else if (
-    (latest?.status === "DECLINED" || latest?.status === "NOT_GRANTED") &&
-    recentDays <= 7
-  ) {
-    title =
-      latest.status === "DECLINED" ? t("loan.declined") : t("loan.notGranted");
+  } else if ((latest?.status === "DECLINED" || latest?.status === "NOT_GRANTED") && recentDays <= 7) {
+    title = latest.status === "DECLINED" ? t("loan.declined") : t("loan.notGranted");
     sub = latest.decisionNote ?? t("loan.cardSee");
   } else if (page.eligible) {
-    title = t("loan.cardOffer", { mfi, amount: formatFcfa(page.ceilingFcfa) });
+    title = t("loan.cardOffer", { amount: formatFcfa(page.ceilingFcfa) });
     sub = t("loan.cardOfferSub");
     tone = "offer";
   } else if (always) {

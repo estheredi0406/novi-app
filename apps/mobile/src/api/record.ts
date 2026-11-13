@@ -2,7 +2,7 @@ import type { Lender, RecordShareView, SavingsRecord } from "@novi/shared";
 import { memberRequest } from "./client";
 import { API_URL } from "../lib/apiUrl";
 
-// Her savings record, the ACEV (Sprint 6), typed with the shapes from @novi/shared.
+// Her savings record, the ACEV, typed with the shapes from @novi/shared.
 
 export const getRecord = () => memberRequest<SavingsRecord>("GET", "/v1/me/record");
 export const listShares = () => memberRequest<RecordShareView[]>("GET", "/v1/me/record/shares");

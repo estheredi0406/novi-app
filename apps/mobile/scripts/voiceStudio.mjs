@@ -78,7 +78,7 @@ function sentences() {
     .map((r) => {
       const key = r[col("key")];
       const checked = get(ee, key) ?? (r[col("eʋegbe")] || "").trim();
-      const draft = (r[col("brouillon_claude")] || "").trim();
+      const draft = (r[col("brouillon")] || "").trim();
       const text = checked || (useDrafts ? draft : "");
       const kept = review[key];
       return {
@@ -207,7 +207,7 @@ createServer(async (req, res) => {
 }).listen(PORT, "127.0.0.1", () => {
   const clips = writeClips();
   console.log(`Novi voice studio: open http://localhost:${PORT}  (${clips} clips in the app)`);
-  if (useDrafts) console.log("Showing Claude's drafts where no checked Ewe sentence exists yet.");
+  if (useDrafts) console.log("Showing the drafts where no checked Ewe sentence exists yet.");
   console.log("Stop with Ctrl+C.");
 });
 
@@ -243,7 +243,7 @@ button:disabled{opacity:.4;cursor:default}
 <script>
 let all=[],filter="todo",rec=null;
 const $=s=>document.querySelector(s);
-async function load(){const r=await (await fetch("/api/sentences")).json();all=r.sentences;$("#mode").textContent=r.drafts?"Brouillons de Claude affichés":"";render();}
+async function load(){const r=await (await fetch("/api/sentences")).json();all=r.sentences;$("#mode").textContent=r.drafts?"Brouillons affichés":"";render();}
 function done(s){return s.kept&&s.kept.current}
 function render(){
   const voiced=all.filter(s=>!s.dynamic);const ok=voiced.filter(done).length;
@@ -256,7 +256,7 @@ function render(){
     const el=document.createElement("div");el.className="card";
     el.innerHTML=\`<div class="fr">\${esc(s.fr)}</div>
       <textarea>\${esc(s.text)}</textarea>
-      \${!s.checked&&s.text?'<span class="draft">Brouillon de Claude : corrigez si besoin</span>':""}
+      \${!s.checked&&s.text?'<span class="draft">Brouillon : corrigez si besoin</span>':""}
       \${s.dynamic?'<span class="note">Contient un prénom ou un montant : il reste écrit à l’écran, la voix ne le dit pas.</span>':""}
       <div class="row">
         <button data-a="save">Enregistrer le texte</button>

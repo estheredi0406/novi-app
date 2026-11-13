@@ -1,4 +1,4 @@
-// Novi's palette, direction "Lagune" (1 Nov, D92): the deep blues of a bank
+// Novi's palette, direction "Lagune" (D92): the deep blues of a bank
 // app people already trust, with Novi's own pagne motif and cowries on top.
 // One meaning per colour, on every screen (D121):
 // - indigo: structure (bands, titles, what is selected, "you" in a group);

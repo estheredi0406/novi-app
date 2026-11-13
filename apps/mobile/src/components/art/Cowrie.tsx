@@ -2,7 +2,7 @@ import { G, Path } from "react-native-svg";
 import { colors } from "../../theme/colors";
 
 // A cowrie shell: for centuries the money of West Africa, so it is Novi's
-// motif for savings (25 Oct, replacing the decorative leaves). Drawn upright
+// motif for savings. Drawn upright
 // around (cx, cy), then turned by `rotate` degrees: an oval shell, a toothed
 // slit down the middle, a fine navy outline.
 export function Cowrie({

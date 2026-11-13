@@ -25,7 +25,7 @@ import { ErrorMessage } from "../ErrorMessage";
 import { useVoicePlayer } from "./useVoicePlayer";
 import { VoiceButton } from "./VoiceButton";
 
-// The "Discussion" tab (D70, approved design F2): the next meeting and the
+// The "Discussion" tab (D70): the next meeting and the
 // calendar one tap away, "Appeler le groupe", then the chat itself, with
 // voice notes for members who would rather speak than type (D76). New lines
 // are fetched every few seconds while the tab is open.

@@ -15,7 +15,7 @@ import { rulesSummary, stateLabel } from "../../../lib/rulesText";
 import { colors } from "../../../theme/colors";
 import { fonts } from "../../../theme/typography";
 
-// Mes groupes (D92, board E4): each tontine shown like an account in a bank
+// Mes groupes (D92): each tontine shown like an account in a bank
 // app, with its rules and where it stands for her (no ring, D121). On top, what she
 // paid this month (from her statement) and her next pot.
 const MAX_GROUPS = 3; // D26
@@ -60,7 +60,7 @@ export default function MyGroupsScreen() {
   // Her next pot: the soonest turn not yet received, across her groups.
   const next = groups
     .flatMap((g) =>
-      g.currentRound?.myTurn && g.currentRound.myTurn.payoutStatus !== "PAID"
+      g.state === "ACTIVE" && g.currentRound?.myTurn && g.currentRound.myTurn.payoutStatus !== "PAID"
         ? [{ date: g.currentRound.myTurn.dueDate, pot: g.currentRound.potFcfa }]
         : [],
     )
