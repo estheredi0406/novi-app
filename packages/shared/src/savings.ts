@@ -119,6 +119,12 @@ export type ConsoleSavings = {
   accounts: {
     id: string;
     ref: string;
+    // D155: her account at this MFI: the MFI knows its holder, with what she
+    // agreed to share when she asked for it (D33).
+    legalName: string;
+    phone: string;
+    idVerifiedAt: string;
+    openedAt: string | null;
     totalFcfa: number;
     lockedFcfa: number;
     interestToDateFcfa: number;

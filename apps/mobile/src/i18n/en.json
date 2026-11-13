@@ -961,7 +961,7 @@
     "months_other": "{{count}} months",
     "perYear": "a year",
     "rateMfi": "the caisse's rate",
-    "consentText": "{{mfi}} opens an account for you. Novi sends it your name, date of birth, number and the ANID check. Nothing else.",
+    "consentText": "{{mfi}} opens an account for you. Novi sends it your name, your number and the date ANID checked your identity. Nothing else.",
     "consent": "I agree that Novi sends this to {{mfi}}",
     "opening": "{{mfi}} is opening your account. Your pot leaves as soon as it is open.",
     "confirm": "Confirm",

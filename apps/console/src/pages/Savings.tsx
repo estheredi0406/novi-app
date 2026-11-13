@@ -1,7 +1,7 @@
 import type { ConsoleSavings, ConsoleSavingsPolicy } from "@novi/shared";
 import { Fragment, useEffect, useState } from "react";
 import { api, ApiFailure } from "../api";
-import { day, fcfa } from "../format";
+import { day, fcfa, spacedPhone } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
@@ -367,7 +367,7 @@ export function Savings({ t, onExpired, isAdmin }: { t: Text; onExpired: () => v
       <section className="queue">
         <div className="queue-head">
           <h2>{t.savingsOpenTitle}</h2>
-          <span className="muted small">{t.savingsNamesHidden}</span>
+          <span className="muted small">{t.savingsHolderNote}</span>
         </div>
         {data.accounts.length === 0 ? (
           <p className="calm">{t.savingsNoAccounts}</p>
@@ -376,6 +376,7 @@ export function Savings({ t, onExpired, isAdmin }: { t: Text; onExpired: () => v
             <thead>
               <tr>
                 <th>{t.savingsColAccount}</th>
+                <th>{t.savingsColHolder}</th>
                 <th className="num">{t.savingsColBalance}</th>
                 <th className="num">{t.savingsColLocked}</th>
                 <th className="num">{t.savingsColInterest}</th>
@@ -387,6 +388,19 @@ export function Savings({ t, onExpired, isAdmin }: { t: Text; onExpired: () => v
                 <tr key={a.id}>
                   <td>
                     <strong>{a.ref}</strong>
+                    {a.openedAt ? (
+                      <>
+                        <br />
+                        <span className="muted small">{t.savingsOpenedOn(day(a.openedAt))}</span>
+                      </>
+                    ) : null}
+                  </td>
+                  <td>
+                    <strong>{a.legalName}</strong>
+                    <br />
+                    <span className="small">{spacedPhone(a.phone)}</span>
+                    <br />
+                    <span className="small paid-text">{t.verifiedOn(day(a.idVerifiedAt))}</span>
                   </td>
                   <td className="num">{fcfa(a.totalFcfa)}</td>
                   <td className="num">{fcfa(a.lockedFcfa)}</td>

@@ -961,7 +961,7 @@
     "months_other": "{{count}} mois",
     "perYear": "par an",
     "rateMfi": "taux de la caisse",
-    "consentText": "La {{mfi}} vous ouvre un compte. Novi lui envoie votre nom, votre date de naissance, votre numéro et la vérification ANID. Rien d'autre.",
+    "consentText": "La {{mfi}} vous ouvre un compte. Novi lui envoie votre nom, votre numéro et la date à laquelle l'ANID a vérifié votre identité. Rien d'autre.",
     "consent": "J'accepte que Novi envoie ces informations à la {{mfi}}",
     "opening": "La {{mfi}} ouvre votre compte. Votre cagnotte part dès qu'il est ouvert.",
     "confirm": "Confirmer",

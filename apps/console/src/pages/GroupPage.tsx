@@ -2,7 +2,7 @@ import type { ConsoleGroupDetail, ConsoleRoundPayments, StaffRole } from "@novi/
 import { useState } from "react";
 import { GroupStatement } from "../Accounts";
 import { ApiFailure, api } from "../api";
-import { day, fcfa } from "../format";
+import { day, fcfa, spacedPhone } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 import { ValidateGroup } from "../ValidateGroup";
@@ -510,8 +510,3 @@ export function GroupPage({
   );
 }
 
-// +22890000095 reads as +228 90 00 00 95.
-function spacedPhone(phone: string): string {
-  const m = /^\+(228|229|250)(\d+)$/.exec(phone);
-  return m?.[2] ? `+${m[1]} ${m[2].replace(/(\d{2})(?=\d)/g, "$1 ")}` : phone;
-}

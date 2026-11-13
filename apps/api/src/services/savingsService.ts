@@ -646,6 +646,10 @@ export async function consoleSavings(mfiId: string, now = new Date()): Promise<C
         return {
           id: a.id,
           ref: a.ref,
+          legalName: a.user.legalName,
+          phone: a.user.phone,
+          idVerifiedAt: a.user.idVerifiedAt.toISOString(),
+          openedAt: a.openedAt?.toISOString() ?? null,
           totalFcfa: b.totalFcfa,
           lockedFcfa: b.lockedFcfa,
           interestToDateFcfa: b.interestToDateFcfa,

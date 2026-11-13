@@ -507,3 +507,7 @@ With several groups, home showed one card at a time and small dots: testers did 
 
 From Esther's test: FedaPay refused every pot of a caisse with "403, Opération non autorisée" (payouts not enabled on its account), and the console still said "Numéro à corriger, vérifiez le numéro". Novi now keeps why the last transfer failed: the caisse's payment account may not send (a 401 or 403 from the sender), the transfer itself was refused (often the number), or nobody answered. The console shows "Compte de paiement" with what to do (enable payouts at FedaPay, or untick "Envoyer les cagnottes par FedaPay"), "Numéro à corriger", or "Sans réponse". "Réglé automatiquement" now counts only pots that left on their own and arrived, not those that failed.
 
+## D155: the MFI sees who holds each savings account (13 November 2026)
+
+The console's open savings accounts showed only the account number ("names hidden"). A caisse must know the holder of an account it keeps, and the member agreed, when she asked for it, to share her name, her number and the date her identity was checked. The open accounts now show the holder's name, phone number, identity check date and the date the account was opened. Her NIU is still not stored, only its keyed hash, and an account is still opened only at her request, from the app, then by an officer. The consent text no longer mentions a date of birth: Novi never sends one to the MFI.
+
