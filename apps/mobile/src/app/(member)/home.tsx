@@ -233,28 +233,44 @@ export function HomeView({
                 />
               ))}
             </ScrollView>
-            {/* D153: her groups by name, under the card: a tap shows that
-                group's card (swiping still works). Orange dot: she owes there. */}
+            {/* D153: under the card, which group she sees out of how many,
+                with an arrow each side (swiping still works). The card itself
+                shows the group's name. An orange dot on an arrow: she still has
+                to pay in a group that way. */}
             {running.length > 1 ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
-                {running.map((g, i) => (
-                  <Pressable
-                    key={g.id}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: i === page }}
-                    onPress={() => {
-                      setPage(i);
-                      cardsRef.current?.scrollTo({ x: i * step, animated: true });
-                    }}
-                    style={[styles.tab, i === page && styles.tabOn]}
-                  >
-                    {owes(g) ? <View style={styles.tabDot} /> : null}
-                    <Text style={[styles.tabText, i === page && styles.tabTextOn]} numberOfLines={1}>
-                      {g.name}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
+              <View style={styles.switcher}>
+                {([-1, 1] as const).map((dir) => {
+                  const target = page + dir;
+                  const can = target >= 0 && target < running.length;
+                  const owesThatWay = running.some((g, i) => (dir < 0 ? i < page : i > page) && owes(g));
+                  const arrow = (
+                    <Pressable
+                      key={dir}
+                      accessibilityRole="button"
+                      accessibilityLabel={dir < 0 ? t("hub.prevGroup") : t("hub.nextGroup")}
+                      disabled={!can}
+                      onPress={() => {
+                        setPage(target);
+                        cardsRef.current?.scrollTo({ x: target * step, animated: true });
+                      }}
+                      style={[styles.arrow, !can && styles.arrowOff]}
+                    >
+                      <View style={dir < 0 ? styles.flip : undefined}>
+                        <LineIcon name="chevron" color={can ? colors.indigo : colors.line} />
+                      </View>
+                      {can && owesThatWay ? <View style={styles.arrowDot} /> : null}
+                    </Pressable>
+                  );
+                  return dir < 0 ? (
+                    <View key={dir} style={styles.switchSide}>
+                      {arrow}
+                      <Text style={styles.switchText}>{t("hub.groupOf", { n: page + 1, total: running.length })}</Text>
+                    </View>
+                  ) : (
+                    arrow
+                  );
+                })}
+              </View>
             ) : null}
           </>
         ) : isNew ? (
@@ -485,23 +501,28 @@ const styles = StyleSheet.create({
   lift: { marginTop: -20 - OVERLAP, marginHorizontal: -24 },
   cardsScroll: { overflow: "visible" },
   cards: { gap: CARD_GAP, paddingHorizontal: CARD_SIDE },
-  tabs: { gap: 8, paddingHorizontal: CARD_SIDE, paddingTop: 14, paddingBottom: 4 },
-  tab: {
+  switcher: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    minHeight: 40,
-    maxWidth: 200,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: colors.line,
-    backgroundColor: colors.card,
+    justifyContent: "space-between",
+    paddingHorizontal: CARD_SIDE,
+    paddingTop: 12,
   },
-  tabOn: { backgroundColor: colors.indigo, borderColor: colors.indigo },
-  tabText: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.ink },
-  tabTextOn: { color: colors.white },
-  tabDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
+  switchSide: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
+  switchText: { flex: 1, textAlign: "center", fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },
+  arrow: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  arrowOff: { backgroundColor: "transparent" },
+  arrowDot: { position: "absolute", top: 6, right: 6, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent },
+  flip: { transform: [{ rotate: "180deg" }] },
   first: {
     marginHorizontal: 24,
     marginTop: 20,

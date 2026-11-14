@@ -523,3 +523,7 @@ From Esther's test: a member on the web version (an iPhone) got no push at all, 
 
 The final cleanup had removed home's fourth tile, "Partager mon relevé", because it opened the credit screen like "Crédit". Esther preferred four tiles. It is back as "Mon relevé" (short enough for two lines on a small phone), and it now opens the credit screen at its last part, sharing her record with a lender, signed and with its QR code, instead of its top.
 
+## D159: the group card, plainer (14 November 2026)
+
+From Esther's test on her phone. On her turn, the card now says "C'est votre tour, vous recevez", then the whole pot, then where it stands ("2 sur 3 ont payé"); the box with one line per destination shows on every turn of hers, from the amount she keeps, even when the round is late. When she has paid, it says "Vous avez payé le tour 1" instead of "Payé pour ce tour". The small ticks before these lines are gone (the words say it), and the unread count of the chat takes the place of its icon, so "Discussion" keeps its room on a small phone and nothing overlaps. The group's name takes two lines instead of being cut. The row of group names under the card (D153) did not hold long names or several groups on a small phone: it is replaced by two round arrows and "Groupe 1 sur 2" (an orange dot on an arrow when she still has to pay in a group that way); the card itself names the group.
+

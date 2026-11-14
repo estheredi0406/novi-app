@@ -120,7 +120,7 @@ export function GroupCard({
         onPress={() => open()}
         style={styles.head}
       >
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={styles.name} numberOfLines={2}>
           {group.name}
         </Text>
         {/* D145: a clear round button to open the group, not a small arrow. */}
@@ -154,7 +154,6 @@ export function GroupCard({
           ) : potReceived ? (
             <>
               <View style={styles.okRow}>
-                <LineIcon name="check" color={colors.paid} size={17} />
                 <Text style={[styles.status, styles.statusPaid]}>{t("hub.gotPotShort")}</Text>
               </View>
               <Text style={styles.small}>
@@ -168,19 +167,18 @@ export function GroupCard({
             </>
           ) : potNow ? (
             <>
-              <Text style={[styles.status, styles.statusTurn]}>{t("hub.yourTurnNow")}</Text>
-              <Text style={[styles.small, styles.turnDetail]}>{potState}</Text>
-              {/* D156: the whole pot here; where it goes, row by row, below. */}
-              <Text style={styles.small}>{t("hub.yourPotLabel")}</Text>
+              {/* D156: what the figure is, the whole pot, then where it stands;
+                  where it goes, row by row, below. */}
+              <Text style={[styles.status, styles.statusTurn]}>{t("hub.youReceive")}</Text>
               <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit>
                 {pot}
               </Text>
+              <Text style={[styles.small, styles.turnDetail]}>{potState}</Text>
             </>
           ) : (
             <>
               <View style={styles.okRow}>
-                <LineIcon name="check" color={colors.paid} size={17} />
-                <Text style={[styles.status, styles.statusPaid]}>{t("hub.paidThisRound")}</Text>
+                <Text style={[styles.status, styles.statusPaid]}>{t("hub.paidThisRound", { n: round.number })}</Text>
               </View>
               {round.nextDueDate ? (
                 <>
@@ -221,7 +219,7 @@ export function GroupCard({
         >
           <Text style={styles.chooseText}>{t("hub.chooseWhere")}</Text>
         </Pressable>
-      ) : potNow && choice?.chosen ? (
+      ) : potNow ? (
         <View style={styles.splitBox}>
           {toPhone > 0 ? (
             <View style={styles.splitLine}>
@@ -233,7 +231,7 @@ export function GroupCard({
           {keep > 0 ? (
             <View style={styles.splitLine}>
               <LineIcon name="hand" color={colors.ink} size={18} />
-              <Text style={styles.splitLabel} numberOfLines={1}>
+              <Text style={styles.splitLabel}>
                 {t("hub.toSavingsAt", { mfi: group.mfiName })}
               </Text>
               <Text style={styles.splitAmount}>{F(keep)}</Text>
@@ -270,7 +268,6 @@ export function GroupCard({
       ) : null}
       {owes && potReceived ? (
         <View style={styles.okRow}>
-          <LineIcon name="check" color={colors.paid} size={17} />
           <Text style={[styles.small, styles.statusPaid]}>{t("hub.gotPotOn", { date: day(myPot!.dueDate) })}</Text>
         </View>
       ) : null}
@@ -280,6 +277,7 @@ export function GroupCard({
         <Action icon="phone" label={t("hub.call")} onPress={() => void call()} busy={calling} />
         <Action
           divider
+          wide
           icon="chat"
           label={t("hub.chat")}
           onPress={() => open("discussion")}
@@ -335,6 +333,7 @@ function Action({
   badge = 0,
   badgeLabel,
   divider = false,
+  wide = false,
 }: {
   icon: LineIconName;
   label: string;
@@ -343,6 +342,7 @@ function Action({
   badge?: number;
   badgeLabel?: string;
   divider?: boolean;
+  wide?: boolean; // its label is longer ("Discussion"): a little more room
 }) {
   return (
     <Pressable
@@ -350,15 +350,20 @@ function Action({
       accessibilityLabel={badge > 0 && badgeLabel ? `${label}, ${badgeLabel}` : label}
       onPress={onPress}
       disabled={busy}
-      style={[styles.action, divider && styles.actionDivider, busy && styles.busy]}
+      style={[styles.action, wide && styles.actionWide, divider && styles.actionDivider, busy && styles.busy]}
     >
-      <LineIcon name={icon} size={18} color={colors.action} />
-      <Text style={styles.actionText}>{label}</Text>
+      {/* Unread messages: the count takes the icon's place, so the label
+          keeps its room and nothing overlaps. */}
       {badge > 0 ? (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{badge > 99 ? "99+" : badge}</Text>
         </View>
-      ) : null}
+      ) : (
+        <LineIcon name={icon} size={18} color={colors.action} />
+      )}
+      <Text style={styles.actionText} numberOfLines={1}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -420,7 +425,8 @@ const styles = StyleSheet.create({
   statusPaid: { color: colors.paid },
   statusPending: { color: colors.action },
   statusTurn: { color: colors.turnText },
-  turnDetail: { color: colors.turnText, marginBottom: 4 },
+  turnDetail: { color: colors.turnText },
+
   potRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -467,6 +473,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
   },
+  actionWide: { flex: 1.35 },
   actionDivider: { borderLeftWidth: 1, borderLeftColor: colors.line },
   busy: { opacity: 0.5 },
   actionText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.action },
@@ -474,7 +481,7 @@ const styles = StyleSheet.create({
     minWidth: 20,
     height: 20,
     borderRadius: 10,
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
     backgroundColor: colors.accent,
     alignItems: "center",
     justifyContent: "center",

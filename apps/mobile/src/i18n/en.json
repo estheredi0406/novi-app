@@ -775,7 +775,7 @@
   },
   "hub": {
     "toPayBefore": "To pay before {{date}}",
-    "paidThisRound": "Paid for this round",
+    "paidThisRound": "You paid round {{n}}",
     "gotPot": "You received your pot",
     "gotPotOn": "You received your pot on {{date}}",
     "keepPaying": "You keep paying until the end of the cycle.",
@@ -790,7 +790,7 @@
     "paying": "Pending",
     "payingText": "Your payment is being confirmed",
     "yourTurn": "Your turn: {{date}}",
-    "youReceive": "You receive {{pot}}",
+    "youReceive": "Your turn: you receive",
     "pay": "Pay {{amount}}",
     "call": "Call",
     "chat": "Chat",
@@ -853,10 +853,12 @@
     "potFailed": "Sending delayed. The caisse is on it.",
     "chooseWhere": "Choose where it goes",
     "potAsk": "Everyone has paid. Say where you want it.",
-    "yourPotLabel": "Your pot",
     "toMobileMoney": "To your mobile money",
     "toSavingsAt": "Savings · {{mfi}}",
-    "tileShare": "My record"
+    "tileShare": "My record",
+    "groupOf": "Group {{n}} of {{total}}",
+    "prevGroup": "Previous group",
+    "nextGroup": "Next group"
   },
   "news": {
     "title": "News",

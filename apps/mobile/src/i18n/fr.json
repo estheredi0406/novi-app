@@ -775,7 +775,7 @@
   },
   "hub": {
     "toPayBefore": "À payer avant {{date}}",
-    "paidThisRound": "Payé pour ce tour",
+    "paidThisRound": "Vous avez payé le tour {{n}}",
     "gotPot": "Vous avez reçu votre cagnotte",
     "gotPotOn": "Vous avez reçu votre cagnotte le {{date}}",
     "keepPaying": "Vous continuez à payer jusqu'à la fin du cycle.",
@@ -790,7 +790,7 @@
     "paying": "En cours",
     "payingText": "Votre paiement est en cours de confirmation",
     "yourTurn": "Votre tour : {{date}}",
-    "youReceive": "Vous recevez {{pot}}",
+    "youReceive": "C'est votre tour, vous recevez",
     "pay": "Payer {{amount}}",
     "call": "Appeler",
     "chat": "Discussion",
@@ -853,10 +853,12 @@
     "potFailed": "Envoi retardé. La caisse s'en occupe.",
     "chooseWhere": "Choisir où la recevoir",
     "potAsk": "Tout le monde a payé. Dites où vous la voulez.",
-    "yourPotLabel": "Votre cagnotte",
     "toMobileMoney": "Sur votre mobile money",
     "toSavingsAt": "Épargne · {{mfi}}",
-    "tileShare": "Mon relevé"
+    "tileShare": "Mon relevé",
+    "groupOf": "Groupe {{n}} sur {{total}}",
+    "prevGroup": "Groupe précédent",
+    "nextGroup": "Groupe suivant"
   },
   "news": {
     "title": "Nouvelles",
