@@ -9,7 +9,7 @@ import { enforce } from "../../lib/enforce.js";
 import { AppError } from "../../lib/errors.js";
 import { checkAction, type GroupAction, holdsSeat, type Seat } from "../../lib/groupRules.js";
 import { mfi } from "../../providers/index.js";
-import { notifyMembers } from "../notifyService.js";
+import { notifyOrSms } from "../notifyService.js";
 import { owedCovers } from "../memberService.js";
 
 // D69: a member who still owes the solidarity fund a covered share settles it
@@ -198,9 +198,8 @@ export async function saveNextVersion(
   });
   // D162: they hear it, instead of finding their "A accepté" gone.
   const order = audit === "GROUP_ORDER_SET";
-  await notifyMembers(
+  await notifyOrSms(
     answered,
-    "money",
     `/groups/${groupId}`,
     {
       title: `${group.name} : nouvelle version des règles`,
@@ -214,5 +213,6 @@ export async function saveNextVersion(
         ? "The order of turns is set. Read it and accept so the group can start."
         : "The rules have changed. Read them and answer.",
     },
+    4, // D165: on USSD she answers in menu 4
   );
 }

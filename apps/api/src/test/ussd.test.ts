@@ -3,10 +3,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { app } from "../app.js";
 import { prisma } from "../lib/db.js";
 import { inviteSms } from "../lib/smsText.js";
+import { payments, sms } from "../providers/index.js";
+import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
+import { MockSmsProvider } from "../providers/sms/MockSmsProvider.js";
 import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
 
 // Novi by USSD, through Africa's Talking's gateway (D73). The gateway posts
 // a form at each key press and shows the plain-text answer.
+
+if (!(sms instanceof MockSmsProvider) || !(payments instanceof MockPaymentProvider)) {
+  throw new Error("Tests require the mock SMS and payment providers.");
+}
+const outbox = sms.sent;
+const mockPayments = payments;
 
 const TOKEN = "test-ussd-token-0123456789";
 const SMALL_GROUP = {
@@ -117,7 +126,26 @@ describe("the USSD gateway's callback", () => {
     expect(groups).toContain("Pagnes Assigamé : tour 1 à payer");
     const record = (await dial("+22890000002", "4829*3")).text;
     expect(record).toContain("Votre relevé Novi");
+    expect(record).toContain("1. Derniers mouvements");
     for (const screen of [groups, record]) expect(screen.replace(/^(CON|END) /, "").length).toBeLessThanOrEqual(160);
+  });
+
+  it("lists her latest movements, as the caisse holds them (D165)", async () => {
+    await startedGroup();
+    expect((await dial("+22890000002", "4829*3*1")).text).toBe("END Aucun mouvement pour l'instant.");
+    await dial("+22890000002", "4829*1*1");
+    await dial("+22890000002", "4829*1*1*2");
+    const abla = await prisma.user.findUniqueOrThrow({ where: { phone: "+22890000002" } });
+    const contribution = await prisma.contribution.findFirstOrThrow({ where: { userId: abla.id } });
+    const delivery = mockPayments.settle(contribution.providerRef as string, "PAID");
+    await request(app)
+      .post("/v1/webhooks/payments")
+      .set("X-FEDAPAY-SIGNATURE", delivery.signature)
+      .set("Content-Type", "application/json")
+      .send(delivery.body);
+    const moves = await dial("+22890000002", "4829*3*1");
+    expect(moves.text).toMatch(/^END Derniers mouvements :\n\d\d\/\d\d payé 7 500 F Pagnes Assig/);
+    expect(screen(moves).length).toBeLessThanOrEqual(160);
   });
 });
 
@@ -235,6 +263,7 @@ describe("menu 4, what waits for her answer (D106)", () => {
 
   it("accepts it, with sharing her record as her own choice (D98)", async () => {
     const { groupId } = await invited();
+    await dial("+22890000002", "4829*4*1");
     expect((await dial("+22890000002", "4829*4*1*1")).text).toMatch(/^CON Pendant qu'elle vérifie le groupe/);
     expect((await dial("+22890000002", "4829*4*1*1*2")).text).toMatch(/^END C'est noté : vous avez accepté/);
     const abla = await prisma.user.findUniqueOrThrow({ where: { phone: "+22890000002" } });
@@ -245,18 +274,62 @@ describe("menu 4, what waits for her answer (D106)", () => {
 
   it("declines it", async () => {
     await invited();
+    await dial("+22890000002", "4829*4*1");
     expect((await dial("+22890000002", "4829*4*1*2")).text).toMatch(/^END C'est noté : vous avez refusé/);
   });
 
   it("asks her again when the organiser changes the rules after her yes", async () => {
     const { groupId, akossiwa } = await invited();
+    await dial("+22890000002", "4829*4*1");
     await dial("+22890000002", "4829*4*1*1*1");
     const { name: _name, ...rules } = SMALL_GROUP;
     const revised = await akossiwa.post(`/v1/groups/${groupId}/rules`, { ...rules, amountFcfa: 6000 });
     expect(revised.status).toBe(200);
+    // D165: she has no app, so she hears it by SMS.
+    expect(outbox.some((m) => m.to === "+22890000002" && m.text.includes("nouvelle version des règles"))).toBe(true);
     const menu = (await dial("+22890000002", "4829*4")).text;
     expect(menu).toBe("CON À répondre :\n1. Règles changées : Pagnes Assigamé");
     expect((await dial("+22890000002", "4829*4*1")).text).toContain("6 000 F par semaine");
+  });
+});
+
+describe("she answers only what the screen showed (D164)", () => {
+  async function invitedToRevise() {
+    const akossiwa = as((await signedUpMember()).tokens.accessToken);
+    await signedUpMember("+22890000002", undefined, ABLA, "Abla");
+    const groupId = (await akossiwa.post("/v1/groups", SMALL_GROUP)).body.id as string;
+    await akossiwa.post(`/v1/groups/${groupId}/invites`, { phone: "+22890000002" });
+    await akossiwa.post(`/v1/groups/${groupId}/propose`);
+    return { groupId, akossiwa };
+  }
+
+  it("accepts nothing when the rules change while she reads them", async () => {
+    const { groupId, akossiwa } = await invitedToRevise();
+    expect((await dial("+22890000002", "4829*4*1")).text).toContain("5 000 F par semaine");
+    const { name: _name, ...rules } = SMALL_GROUP;
+    expect((await akossiwa.post(`/v1/groups/${groupId}/rules`, { ...rules, amountFcfa: 6000 })).status).toBe(200);
+    // Her "1. Accepter" was for 5 000 F: it must not accept the 6 000 F version.
+    expect((await dial("+22890000002", "4829*4*1*1")).text).toMatch(/^END Ce n'est plus possible/);
+    expect((await dial("+22890000002", "4829*4*1*1*2")).text).toMatch(/^END Ce n'est plus possible/);
+    const abla = await prisma.user.findUniqueOrThrow({ where: { phone: "+22890000002" } });
+    const seats = await prisma.membership.findMany({ where: { groupId, userId: abla.id, state: "ACCEPTED" } });
+    expect(seats).toHaveLength(0);
+  });
+
+  it("acts on nothing typed straight to the end, without the screens in this call", async () => {
+    const { groupId } = await invitedToRevise();
+    expect((await call("+22890000002", "4829*4*1*2", "ATUid_other")).text).toMatch(/^END Ce n'est plus possible/);
+    const abla = await prisma.user.findUniqueOrThrow({ where: { phone: "+22890000002" } });
+    expect(await prisma.membership.count({ where: { groupId, userId: abla.id } })).toBe(0);
+  });
+
+  it("pays nothing when the confirmation was shown in another call", async () => {
+    const groupId = await startedGroup();
+    await call("+22890000002", "4829*1*1", "ATUid_first");
+    const paid = await call("+22890000002", "4829*1*1*2", "ATUid_second");
+    expect(paid.text).toMatch(/^END Ce paiement a changé entre-temps/);
+    const abla = await prisma.user.findUniqueOrThrow({ where: { phone: "+22890000002" } });
+    expect(await prisma.contribution.count({ where: { userId: abla.id, round: { groupId } } })).toBe(0);
   });
 });
 
@@ -265,10 +338,20 @@ describe("menu 5, her data (D106)", () => {
     await signedUpMember("+22890000002", undefined, ABLA, "Abla");
     await prisma.mfi.upsert({ where: { code: "MAWULI" }, create: { code: "MAWULI", name: "Caisse Mawuli" }, update: {} });
     const data = await dial("+22890000002", "4829*5");
-    expect(data.text).toContain("Nom vu par le groupe : Abla");
+    expect(data.text).toContain("Dans le groupe : Abla");
+    expect(screen(data).length).toBeLessThanOrEqual(160);
     expect((await dial("+22890000002", "4829*5*1")).text).toContain("1. Caisse Mawuli");
-    const shared = await dial("+22890000002", "4829*5*1*1");
+    // D165: one more screen before anything is shared.
+    expect((await dial("+22890000002", "4829*5*1*1")).text).toMatch(/^CON Caisse Mawuli pourra voir votre relevé Novi pendant 30 jours/);
+    expect((await dial("+22890000002", "4829*5*1*1*0")).text).toBe("END Merci d'utiliser Novi.");
+    expect(await prisma.recordShare.count()).toBe(0);
+    const shared = await dial("+22890000002", "4829*5*1*1*1");
     expect(shared.text).toMatch(/^END Relevé partagé avec Caisse Mawuli jusqu'au/);
     expect((await dial("+22890000002", "4829*5*2")).text).toBe("END Personne n'a encore ouvert votre relevé.");
+    // D165: and she withdraws it from the same phone.
+    expect((await dial("+22890000002", "4829*5*3")).text).toMatch(/^CON Retirer le partage avec :\n1\. Caisse Mawuli/);
+    expect((await dial("+22890000002", "4829*5*3*1")).text).toBe("END Partage retiré : Caisse Mawuli ne voit plus votre relevé.");
+    expect(await prisma.recordShare.count({ where: { revokedAt: null } })).toBe(0);
+    expect((await dial("+22890000002", "4829*5*3")).text).toBe("END Aucun partage en cours.");
   });
 });

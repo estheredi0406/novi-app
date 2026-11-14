@@ -8,6 +8,8 @@ import { MockMfiAdapter } from "../providers/mfi/MockMfiAdapter.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
 import { releasePayout, runPayouts } from "../services/payoutService.js";
 import { createStaff } from "../services/staffService.js";
+import { handleUssd } from "../services/ussdService.js";
+import { sms } from "../providers/index.js";
 import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
 
 // Help inside the group (D87 swaps) and microloans (D89).
@@ -304,6 +306,33 @@ describe("microloan requests (D89, D91)", () => {
     const page = (await abla.get("/v1/me/loans")).body;
     expect(page.business).toBeNull();
     expect(page.place).toBeTruthy();
+  });
+
+  it("lets a basic-phone member ask by USSD; her business is seen at the agency (D165)", async () => {
+    await qualified();
+    const ussd = async (text: string) => {
+      const r = await handleUssd({ phone: "+22890000002", text, sessionId: "loan-call" });
+      return `${r.end ? "END" : "CON"} ${r.text}`;
+    };
+    expect(await ussd("4829")).toContain("6. Crédit");
+    expect(await ussd("4829*6")).toMatch(/^CON Crédit chez Caisse Mawuli\nJusqu'à/);
+    expect(await ussd("4829*6*999999999")).toMatch(/^END Montant non valable/);
+    expect(await ussd("4829*6*40000")).toMatch(/^CON Pour quoi \?/);
+    expect(await ussd("4829*6*40000*1")).toMatch(/^CON Demander 40 000 F à Caisse Mawuli \(marchandises\)/);
+    expect(await ussd("4829*6*40000*1*1")).toBe("END Demande envoyée à Caisse Mawuli. Réponse par SMS. Pour signer, ce sera à l'agence.");
+
+    const request_ = await prisma.loanRequest.findFirstOrThrow();
+    expect(request_).toMatchObject({ amountFcfa: 40000, purpose: "STOCK", businessKind: null, status: "PENDING" });
+    expect(await ussd("4829*6")).toMatch(/^END Votre demande de 40 000 F est à l'étude/);
+
+    const desk = await officer();
+    const [loan] = (await desk.get("/v1/console/loans")).body;
+    expect(loan).toMatchObject({ amountFcfa: 40000, business: null });
+    await desk.post(`/v1/console/loans/${loan.id}/decide`, { action: "preselect" });
+    // She has no app: the answer reaches her by SMS, and menu 6 says what to bring.
+    const outbox = (sms as unknown as { sent: { to: string; text: string }[] }).sent;
+    expect(outbox.some((m) => m.to === "+22890000002" && m.text.includes("Votre demande est retenue"))).toBe(true);
+    expect(await ussd("4829*6")).toMatch(/^END Demande retenue/);
   });
 
   it("goes from request to preselection, then to signing at the agency", async () => {

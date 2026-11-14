@@ -20,7 +20,7 @@ import { AppError } from "../lib/errors.js";
 import { potShare } from "../lib/groupRules.js";
 import { alertStaff } from "./alertService.js";
 import { owedCovers } from "./memberService.js";
-import { notifyMembers } from "./notifyService.js";
+import { notifyOrSms } from "./notifyService.js";
 
 // Loan requests to the MFI (D89, D91). Novi carries the request, her record and
 // her declared business; the MFI decides and lends at its agency. Novi keeps
@@ -328,7 +328,8 @@ export async function getLoanPage(userId: string, now = new Date()): Promise<Loa
 
 export async function requestLoan(
   userId: string,
-  input: { amountFcfa: number; purpose: LoanPurpose; business: LoanBusiness },
+  // D165: by USSD her business is left for the agency, so it may be missing.
+  input: { amountFcfa: number; purpose: LoanPurpose; business?: LoanBusiness },
   now = new Date(),
 ): Promise<LoanPage> {
   const page = await getLoanPage(userId, now);
@@ -343,10 +344,10 @@ export async function requestLoan(
       mfiId: mfi.id,
       amountFcfa: input.amountFcfa,
       purpose: input.purpose,
-      businessKind: b.kind,
-      businessSince: b.since,
-      weeklySalesFcfa: b.weeklySalesFcfa,
-      businessPlace: b.place.trim(),
+      businessKind: b?.kind ?? null,
+      businessSince: b?.since ?? null,
+      weeklySalesFcfa: b?.weeklySalesFcfa ?? null,
+      businessPlace: b?.place.trim() ?? null,
     },
   });
   await prisma.auditEvent.create({
@@ -520,7 +521,8 @@ export async function decideLoan(
   await prisma.auditEvent.create({
     data: { type: `STAFF_LOAN_${decision.action.toUpperCase()}`, details: { staffId, loanId } },
   });
-  await notifyMembers([loan.userId], "money", "/loan", message.fr, message.en);
+  // D165: by SMS too when she has no app (a request made by USSD).
+  await notifyOrSms([loan.userId], "/loan", message.fr, message.en, 6);
   return getLoan(mfiId, loanId);
 }
 

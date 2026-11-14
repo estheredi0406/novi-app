@@ -131,7 +131,8 @@ novi-app/
 │   │   ├── prisma/           schema.prisma and migrations
 │   │   └── src/
 │   │       ├── routes/       HTTP endpoints: auth, me, groups, contributions, console, staff, ussd, webhooks, verify
-│   │       ├── services/     business rules, one file per area (groups, money, payouts, reserve, loans, alerts…)
+│   │       ├── services/     business rules, one file per area (money, payouts, reserve, loans, alerts…);
+│   │       │                 group/ and console/ are folders, one file per step or page
 │   │       ├── providers/    interfaces and their real and mock implementations
 │   │       ├── lib/          pure logic: rules engine, calendar, streak, hashing, tokens, TOTP, signing
 │   │       ├── middleware/   authentication of members and staff, error handling

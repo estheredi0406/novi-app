@@ -5,7 +5,7 @@ import { AppError } from "../lib/errors.js";
 import { holdsSeat } from "../lib/groupRules.js";
 import { isoDay } from "../lib/schedule.js";
 import { postEvent } from "./chatService.js";
-import { notifyMembers } from "./notifyService.js";
+import { notifyMembers, notifyOrSms } from "./notifyService.js";
 
 // Help inside the group. D87, échange de tour: two members swap turns, the
 // organiser confirms. Only turns not paid yet and not due today can move.
@@ -173,9 +173,8 @@ export async function askSwap(
     data: { userId, type: "SWAP_ASKED", details: { groupId, partnerId } },
   });
   const who = nameOf(loaded, userId);
-  await notifyMembers(
+  await notifyOrSms(
     [partnerId],
-    "money",
     groupUrl(groupId),
     {
       title: `${who} vous propose d'échanger vos tours`,
@@ -185,6 +184,7 @@ export async function askSwap(
       title: `${who} asks to swap turns with you`,
       body: `Turn ${myRound} for your turn ${theirRound}.`,
     },
+    4, // D165: on USSD she answers in menu 4
   );
   return getGroupHelp(groupId, userId, now);
 }

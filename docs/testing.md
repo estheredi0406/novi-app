@@ -40,6 +40,9 @@ cd apps/mobile && npm test
 | Pot short because someone did not pay | Held, never sent short (D48) | "holds the pot instead of sending it short, and everyone sees it held" |
 | Anything trying to edit a ledger line | Refused by the database trigger | "is refused by the database itself if anything tries to change or delete a line" |
 | Wrong PIN on USSD | Session ended, counts towards lockout | `ussd.test.ts` "ends the session on a wrong PIN, and counts it towards the lockout" |
+| Rules changed while she reads them on USSD | Nothing accepted, she is told to look again (D164) | `ussd.test.ts` "accepts nothing when the rules change while she reads them" |
+| Sharing her record on USSD | A confirmation screen first; she can withdraw it in menu 5 (D165) | `ussd.test.ts` "shows her names, shares her record with an MFI, and lists who opened it" |
+| Loan asked on USSD with an amount above her ceiling | Refused on screen; a valid one reaches the console without business details (D165) | `help.test.ts` "lets a basic-phone member ask by USSD; her business is seen at the agency (D165)" |
 | Easy PIN such as 1234 | Refused | `auth.pin.test.ts` "refuses an easy new PIN" |
 | Someone outside the group asks for it | `NOT_FOUND`, as if it did not exist | "answers NOT_FOUND to someone with no seat in the group" |
 

@@ -1,6 +1,6 @@
 import type { Language } from "../generated/prisma/enums.js";
 import { prisma } from "../lib/db.js";
-import { push } from "../providers/index.js";
+import { push, sms } from "../providers/index.js";
 import type { PushMessage } from "../providers/push/PushProvider.js";
 
 // Phone notifications (D79): a call starting, new chat messages (at most one
@@ -298,6 +298,35 @@ export async function notifyMembers(
   keep = true,
 ): Promise<void> {
   await send(userIds, channel, url, (l) => (en(l) ? english : fr), keep);
+}
+
+// D165: the same news, and by SMS for a member without the app (D111), when
+// she has something to do: a basic-phone member must not be left waiting for
+// a notification she cannot receive. With the USSD code, the SMS names the
+// menu where she answers.
+export async function notifyOrSms(
+  userIds: string[],
+  url: string,
+  fr: Text,
+  english: Text,
+  ussdMenu?: number,
+): Promise<void> {
+  await notifyMembers(userIds, "money", url, fr, english);
+  const code = process.env.USSD_CODE?.trim();
+  for (const userId of userIds) {
+    try {
+      if (await hasApp(userId)) continue;
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { phone: true, language: true, closedAt: true } });
+      if (!user || user.closedAt) continue;
+      const english_ = en(user.language);
+      const t = english_ ? english : fr;
+      const where =
+        code && ussdMenu ? (english_ ? ` Dial ${code}, menu ${ussdMenu}.` : ` Composez ${code}, menu ${ussdMenu}.`) : "";
+      await sms.send(user.phone, `Novi${english_ ? ":" : " :"} ${t.title}. ${t.body}${where}`);
+    } catch (err) {
+      console.error("SMS not sent:", err);
+    }
+  }
 }
 
 // D111: does she use the app? A trusted phone with a notification address,
