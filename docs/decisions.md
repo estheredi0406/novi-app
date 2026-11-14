@@ -531,3 +531,7 @@ From Esther's test on her phone. On her turn, the card now says "C'est votre tou
 
 From Esther's test: on Android, the keyboard covered the field being typed in (sign-up details, PIN, the group chat). Expo apps are now edge-to-edge on Android, so the window no longer shrinks for the keyboard by itself, and the screens only avoided the keyboard on iOS. Every screen frame and the group chat now push their content up on both platforms (KeyboardAvoidingView with behavior "padding", as Expo's keyboard guide recommends).
 
+## D161: typing in the group chat keeps room for the messages (14 November 2026)
+
+Once the keyboard pushed the chat up (D160), the group's header, the tabs, the meetings strip and "Appeler le groupe" left only a sliver for the messages. While the keyboard is open on the chat, the meetings strip and the call button fold away, and the header keeps only the group's name; everything comes back when the keyboard closes.
+

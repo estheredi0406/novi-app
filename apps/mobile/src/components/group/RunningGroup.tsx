@@ -11,6 +11,7 @@ import { fonts } from "../../theme/typography";
 import { errorKey } from "../../api/client";
 import { callGroup } from "../../api/groups";
 import { openCall } from "../../lib/openCall";
+import { useKeyboardOpen } from "../../lib/keyboard";
 import { stopSpeaking } from "../../lib/speak";
 import { ErrorMessage } from "../ErrorMessage";
 import { LaguneBand } from "../LaguneBand";
@@ -56,6 +57,8 @@ export function RunningGroup({
 
   // A reading about one tab stops when she opens another (D99).
   useEffect(() => stopSpeaking, [tab]);
+  // D161: typing in the chat folds the header to the group's name.
+  const folded = useKeyboardOpen() && tab === "discussion";
 
   // Listen reads what the open tab is about, in a few words.
   const listen =
@@ -120,8 +123,8 @@ export function RunningGroup({
         <Text style={styles.name} numberOfLines={2}>
           {group.name}
         </Text>
-        <Text style={styles.sub}>{sub}</Text>
-        {organiser ? (
+        {folded ? null : <Text style={styles.sub}>{sub}</Text>}
+        {organiser && !folded ? (
           <Text style={styles.sub}>
             {t("groupView.organisedBy", { name: organiser })} · {t("groupView.heldBy", { mfi: group.mfiName })}
           </Text>

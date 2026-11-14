@@ -17,6 +17,7 @@ import {
 } from "../../api/groups";
 import { formatSeconds } from "../../lib/format";
 import { meetingWhen } from "../../lib/meetingTime";
+import { useKeyboardOpen } from "../../lib/keyboard";
 import { speak, stopSpeaking } from "../../lib/speak";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
@@ -403,50 +404,55 @@ export function GroupChat({
   const startsAt = nextMeeting ? new Date(nextMeeting.startsAt) : null;
   const locale = i18n.language === "en" ? "en-GB" : "fr-FR";
   const typing = draft.trim().length > 0;
+  // D161: while she types, the meetings strip and the call button fold away,
+  // so the messages keep the room above the keyboard.
+  const keyboardOpen = useKeyboardOpen();
 
   return (
     // Android too: edge-to-edge, the window does not shrink for the keyboard.
     <KeyboardAvoidingView style={styles.fill} behavior="padding">
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push(`/groups/${groupId}/meetings` as Href)}
-        style={styles.strip}
-      >
-        {startsAt && nextMeeting ? (
-          <>
-            <View style={styles.cal}>
-              <Text style={styles.calTop}>
-                {startsAt
-                  .toLocaleDateString(locale, { weekday: "short" })
-                  .toUpperCase()}
-              </Text>
-              <Text style={styles.calDay}>{startsAt.getDate()}</Text>
-            </View>
-            <View style={styles.stripText}>
-              <Text style={styles.stripTitle}>
-                {nextMeeting.state === "OPEN"
-                  ? t("meetings.openNow")
-                  : t("chat.meetingAt", {
-                      time: startsAt.toLocaleTimeString(locale, {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }),
-                    })}
-              </Text>
-              <Text style={styles.stripSub} numberOfLines={1}>
-                {nextMeeting.title}
-              </Text>
-            </View>
-          </>
-        ) : (
-          <Text style={[styles.stripSub, styles.stripText]}>
-            {t("meetings.none")}
-          </Text>
-        )}
-        <Text style={styles.stripLink}>{t("chat.meetingsLink")} ›</Text>
-      </Pressable>
+      {keyboardOpen ? null : (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push(`/groups/${groupId}/meetings` as Href)}
+          style={styles.strip}
+        >
+          {startsAt && nextMeeting ? (
+            <>
+              <View style={styles.cal}>
+                <Text style={styles.calTop}>
+                  {startsAt
+                    .toLocaleDateString(locale, { weekday: "short" })
+                    .toUpperCase()}
+                </Text>
+                <Text style={styles.calDay}>{startsAt.getDate()}</Text>
+              </View>
+              <View style={styles.stripText}>
+                <Text style={styles.stripTitle}>
+                  {nextMeeting.state === "OPEN"
+                    ? t("meetings.openNow")
+                    : t("chat.meetingAt", {
+                        time: startsAt.toLocaleTimeString(locale, {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }),
+                      })}
+                </Text>
+                <Text style={styles.stripSub} numberOfLines={1}>
+                  {nextMeeting.title}
+                </Text>
+              </View>
+            </>
+          ) : (
+            <Text style={[styles.stripSub, styles.stripText]}>
+              {t("meetings.none")}
+            </Text>
+          )}
+          <Text style={styles.stripLink}>{t("chat.meetingsLink")} ›</Text>
+        </Pressable>
+      )}
 
-      {canWrite ? (
+      {canWrite && !keyboardOpen ? (
         <View style={styles.callBar}>
           <Pressable
             accessibilityRole="button"
