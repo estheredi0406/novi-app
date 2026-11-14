@@ -7,7 +7,7 @@ import { acceptedPhone } from "../lib/phone.js";
 import { isWeakPin } from "../lib/pinRules.js";
 import { sms } from "../providers/index.js";
 import { checkPin, registerByUssd } from "./authService.js";
-import { acceptRules, declineGroup, listMyGroups, listMyInvitations } from "./groupService.js";
+import { acceptRules, declineGroup, listMyGroups, listMyInvitations } from "./group/index.js";
 import { answerSwap } from "./helpService.js";
 import { confirmUssdIdentity, dateFromKeypad, niuFromKeypad, startUssdIdentity } from "./identityService.js";
 import { payRound } from "./moneyService.js";

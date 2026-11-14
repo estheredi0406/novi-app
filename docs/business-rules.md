@@ -20,15 +20,15 @@ Each rule below is enforced in the API, which is the only place that decides. Th
 | 3 to 15 members; 100 to 1 000 000 FCFA, whole francs (D28, D31) | `lib/groupRules.ts` | `groups`, `groupRules` |
 | Daily, weekly or monthly; a monthly due day stops at 28 (D30, D92) | `lib/groupRules.ts` | `news`, `groupRules` |
 | At most 3 live groups per member (D26); 2 starts before a completed cycle (D27) | `lib/groupRules.ts` | `answers`, `groups` |
-| The group chooses its MFI; changing it asks every member again (D95) | `groupService` | `mfiChoice` |
+| The group chooses its MFI; changing it asks every member again (D95) | `services/group/rules` | `mfiChoice` |
 | A member accepts the exact version she read; a change asks her again (D29) | `lib/groupRules.ts` | `answers` |
 | Starts only when every seat is filled and every member accepted the current rules | `lib/groupRules.ts` | `groupRules` |
-| The MFI validates the group before its account opens (D66); refused while its savings conditions are incomplete (D147) | `consoleService` | `console` |
+| The MFI validates the group before its account opens (D66); refused while its savings conditions are incomplete (D147) | `services/console` | `console` |
 | Every member is told when the caisse checks, opens or declines the group, with its reason (D152) | `notifyService` | |
-| The organiser is told when the last member accepts; members are told when a new version of the rules (or the order of turns) needs their answer (D162) | `groupService` | `news` |
+| The organiser is told when the last member accepts; members are told when a new version of the rules (or the order of turns) needs their answer (D162) | `services/group/answers`, `services/group/shared` | `news` |
 | Every money notification is also kept in the app, unread first in her news and on the bell, until she opens it (D157) | `notifyService`, `newsService` | `news` |
 | A member with no Novi history cannot take turn 1 (D104) | `lib/groupRules.ts` | `advance` |
-| A member who owes the group's advances cannot join or create a group | `groupService` | `protection` |
+| A member who owes the group's advances cannot join or create a group | `services/group/shared` | `protection` |
 
 ## 3. Paying
 
@@ -89,6 +89,6 @@ Each rule below is enforced in the API, which is the only place that decides. Th
 
 | Rule | Where | Test |
 |---|---|---|
-| The MFI sees group totals and seats by turn, never who paid (D33, D117) | `consoleService` | `console` |
-| Names only in the compliance view, opened with a reason and logged (D117) | `consoleService` | `console` |
+| The MFI sees group totals and seats by turn, never who paid (D33, D117) | `services/console` | `console` |
+| Names only in the compliance view, opened with a reason and logged (D117) | `services/console` | `console` |
 | Her record reaches the MFI only with her consent: when it validates her group, or with a loan request (D37, D84, D98) | `recordService`, `loanService` | `mfiChoice`, `record` |

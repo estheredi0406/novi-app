@@ -26,7 +26,7 @@ import {
   resolveReported,
   setAutoRelease,
   retryPayout,
-} from "../services/consoleService.js";
+} from "../services/console/index.js";
 import {
   decideLoan,
   getCreditPolicy,

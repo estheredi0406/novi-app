@@ -6,7 +6,7 @@ import { mfi, payments, sms } from "../providers/index.js";
 import { MockSmsProvider } from "../providers/sms/MockSmsProvider.js";
 import { MockMfiAdapter } from "../providers/mfi/MockMfiAdapter.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
-import { listAttention, releaseRoundPayout } from "../services/consoleService.js";
+import { listAttention, releaseRoundPayout } from "../services/console/index.js";
 import { getLoanPage } from "../services/loanService.js";
 import { releasePayout, runPayouts } from "../services/payoutService.js";
 import { balances, decideAccount, saveSavingsPolicy } from "../services/savingsService.js";

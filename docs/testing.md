@@ -75,7 +75,7 @@ One request at a time (median of 40): `/health` 2.2 ms, `/v1/me` 2.8 ms, `/v1/me
 
 **Analysis.** Throughput stays flat from 50 to 100 users and only the waiting time grows, which means the server's two CPUs are the limit, not the database or a lock. No request failed. The slowest screen is home (`/v1/groups`), because for each group it computes the current round, who has paid and the unread count.
 
-**Improvement tried.** In `groupService.listMyGroups` the current round and the unread count were computed one after the other; they now run in parallel (`Promise.all`). A second run gave 188 requests/s at 50 users and 195 at 100: no measurable gain under load, which confirms the limit is CPU, not waiting on the database. The change was kept because it lowers the time of a single request on a real network, where each database call waits longer. The next step, if the pilot grows, is to cache each group's round summary for a few seconds or add a second instance.
+**Improvement tried.** In `listMyGroups` (`services/group/reading.ts`) the current round and the unread count were computed one after the other; they now run in parallel (`Promise.all`). A second run gave 188 requests/s at 50 users and 195 at 100: no measurable gain under load, which confirms the limit is CPU, not waiting on the database. The change was kept because it lowers the time of a single request on a real network, where each database call waits longer. The next step, if the pilot grows, is to cache each group's round summary for a few seconds or add a second instance.
 
 ## 3. Console compatibility (browsers and screen sizes)
 

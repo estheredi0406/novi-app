@@ -20,7 +20,7 @@ import {
   startGroup,
   answerContinue,
   startNextCycle,
-} from "../services/groupService.js";
+} from "../services/group/index.js";
 import {
   getVoice,
   hideMessage,

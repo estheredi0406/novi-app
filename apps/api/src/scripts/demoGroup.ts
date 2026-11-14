@@ -1,6 +1,6 @@
 import { hashSecret, niuKeyedHash } from "../lib/hashing.js";
 import { prisma } from "../lib/db.js";
-import { acceptRules, createGroup, inviteToGroup, proposeGroup, startGroup } from "../services/groupService.js";
+import { acceptRules, createGroup, inviteToGroup, proposeGroup, startGroup } from "../services/group/index.js";
 
 // Development only: creates a running group of 3 in one go, with two test
 // members (PIN 4829), using the same services as the app.

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
-import { listMyInvitations } from "../services/groupService.js";
+import { listMyInvitations } from "../services/group/index.js";
 
 // Invitations addressed to the logged-in member's phone number.
 export const invitationsRouter = Router();

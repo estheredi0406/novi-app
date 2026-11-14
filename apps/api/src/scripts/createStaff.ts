@@ -1,6 +1,6 @@
 import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
-import { PILOT_MFIS } from "../services/groupService.js";
+import { PILOT_MFIS } from "../services/group/index.js";
 import { createStaff } from "../services/staffService.js";
 
 // Opens a console account for an officer (D52):

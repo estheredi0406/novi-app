@@ -296,7 +296,7 @@ describe("the ceiling is the institution's choice (D134)", () => {
     await activeGroup(); // the pilot institutions exist once a group starts
     const mfiRow = await prisma.mfi.findFirstOrThrow({ where: { code: "MAWULI" } });
     expect(mfiRow).toMatchObject({ autoReleaseFcfa: null, autoReleaseChosenAt: null });
-    const { setAutoRelease } = await import("../services/consoleService.js");
+    const { setAutoRelease } = await import("../services/console/index.js");
     const staff = await prisma.staffUser.findFirst({ where: { mfiId: mfiRow.id } });
     await setAutoRelease(mfiRow.id, staff?.id ?? "staff", null);
     const after = await prisma.mfi.findUniqueOrThrow({ where: { id: mfiRow.id } });

@@ -2,7 +2,7 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { app } from "../app.js";
 import { runPayouts } from "../services/payoutService.js";
-import { listMyGroups } from "../services/groupService.js";
+import { listMyGroups } from "../services/group/index.js";
 import { prisma } from "../lib/db.js";
 import { firstDueDate, isoDay } from "../lib/schedule.js";
 import { payments, sms } from "../providers/index.js";

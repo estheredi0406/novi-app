@@ -1,7 +1,7 @@
 import type { ConsoleMoney } from "@novi/shared";
 import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
-import { getAccounts } from "./consoleService.js";
+import { getAccounts } from "./console/index.js";
 
 // D124: where the MFI's money is, and what does not match. Shows the totals
 // (our ledger, the MFI's books, savings, FedaPay's balance), today's movements,
