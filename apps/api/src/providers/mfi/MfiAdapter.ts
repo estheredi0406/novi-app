@@ -1,7 +1,5 @@
-// What Novi asks of the MFI that holds a group's money (D34). The MFI is told
-// what it needs to hold and pay out the money, and nothing about who pays
-// what: group totals only, no names or phone numbers (D33). The one personal
-// detail it receives is the number a pot is sent to, because it must send it.
+// What Novi asks of the MFI that holds the money (D34). Group totals only, no
+// names (D33). The only personal detail is the number a pot is sent to.
 export type GroupAccountRequest = {
   groupId: string; // Novi's reference; sent again on a retry, so one group never gets two accounts
   contributionFcfa: number; // what each member pays each time

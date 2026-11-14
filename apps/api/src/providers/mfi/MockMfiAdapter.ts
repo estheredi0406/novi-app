@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { GroupAccountRequest, MfiAdapter, PayoutAnswer, PayoutRequest } from "./MfiAdapter.js";
 
-// Stands in for the partner MFI until it offers an API (brief: Caisse Mawuli has
+// Stands in for the partner MFI until it offers an API (Caisse Mawuli has
 // none today). Keeps accounts and transfers in memory so tests can read what
 // the MFI was told, and can be made to fail once, as a real MFI sometimes will.
 export class MockMfiAdapter implements MfiAdapter {

@@ -14,11 +14,9 @@ import { Cowrie } from "./art/Cowrie";
 import { LineIcon, type LineIconName } from "./LineIcon";
 import { sheetColumn } from "./WebFrame";
 
-// The bar at the bottom of every main screen (D92), as in the bank and mobile
-// money apps people already use: four places and, raised in the middle, an
-// orange Payer with a cowrie, West Africa's old money. Payer goes straight to
-// the one round she owes; if she owes in several groups it asks which one,
-// and if she owes nothing it says so.
+// The bottom bar (D92), like the mobile money apps people know, with an orange
+// "Payer" in the middle. Payer goes straight to the round she owes, asks which
+// one if several, or says she owes nothing.
 export type Tab = "home" | "groups" | "record" | "me";
 const ROUTES: Record<Tab, string> = { home: "/home", groups: "/groups", record: "/record", me: "/me" };
 const ICONS: Record<Tab, LineIconName> = { home: "home", groups: "groups", record: "clock", me: "user" };

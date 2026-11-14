@@ -17,15 +17,9 @@ import { formatFcfa, pct, shortDay } from "../../lib/format";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// D123, revised; D147: from the day she joins the group until her pot leaves,
-// what she does with it, one question per screen (no long scroll on a small
-// phone), with the caisse's conditions on the first and last screen:
-//   1. receive it all on her phone, place a part, or place it all;
-//   2. how much to place (only for "a part");
-//   3. for how long: the durations the caisse offers, each with what it earns;
-//   4. the summary, and the first time her agreement to share her identity.
-// Placed money stays at the MFI until its date, at the MFI's rate: there is
-// no free savings pocket, so the MFI keeps one simple product.
+// D123, D147: what she does with her pot, one question per screen: all to her
+// phone or placed, how much, for how long, then a summary (and her consent the
+// first time). The money stays at the MFI at the MFI's rate.
 type Mode = "WALLET" | "PART" | "ALL";
 type Step = "what" | "amount" | "months" | "summary";
 const F = (n: number) => formatFcfa(n).replace(" FCFA", " F");

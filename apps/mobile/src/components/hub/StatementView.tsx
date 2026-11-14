@@ -10,12 +10,8 @@ import { fonts } from "../../theme/typography";
 import { CowrieMark } from "../BottomBar";
 import { LineIcon } from "../LineIcon";
 
-// Her transactions in Historique (D92, D122). What still needs her eye sits apart at the top, "En cours": a
-// payment not confirmed yet or that failed, and a share the group's advances
-// covered that she has not repaid. Below, month by month, the money that
-// moved. "Payé" shows only money that left and was confirmed, "Reçu" only
-// money that came in; when nothing came in yet, it says when her pot comes.
-// Every line opens its round, where the details are.
+// Her transactions in Historique (D92, D122). What still needs her attention is
+// at the top ("En cours"); below, month by month, the money that moved.
 type Filter = "ALL" | "PAID" | "RECEIVED";
 
 const OUT = new Set<StatementLine["kind"]>(["PAID", "ADVANCE"]);

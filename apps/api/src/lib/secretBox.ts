@@ -1,14 +1,9 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
-// D101: secrets Novi must read back (an officer's authenticator key) are kept
-// encrypted in the database, not as plain text. A copy of the database alone
-// then gives nobody the keys to log in as an MFI officer: the key to open them
-// lives only in the server's settings. AES-256-GCM, which also detects any
-// change to the stored value.
-//
-// The key comes from SECRET_BOX_KEY, or, if it is not set, from JWT_SECRET
-// (hashed, so the two are never the same value). Changing it makes the stored
-// authenticator keys unreadable: officers would then need new ones.
+// D101: secrets we must read back (an officer's authenticator key) are stored
+// encrypted with AES-256-GCM, so a copy of the database is not enough to log in.
+// The key comes from SECRET_BOX_KEY (or a hash of JWT_SECRET). Changing it means
+// officers need new authenticator keys.
 const PREFIX = "v1:";
 
 function key(): Buffer {

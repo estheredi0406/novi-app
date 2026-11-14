@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { type StyleProp, StyleSheet, View, type ViewStyle } from "react-native";
 import { colors } from "../theme/colors";
 
-// A card (direction "Lagune", D92): white, a soft blue shadow, no outline,
+// A card (D92): white, a soft blue shadow, no outline,
 // like the cards of a bank app. The name stays from the wax-print direction
 // so every screen that used it follows.
 export function WaxCard({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {

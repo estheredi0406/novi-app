@@ -7,15 +7,9 @@ import { isoDay } from "../lib/schedule.js";
 import { postEvent } from "./chatService.js";
 import { notifyMembers } from "./notifyService.js";
 
-// Help inside the group: what traders already do for each other in a
-// tontine, with the group's agreement written down.
-//
-// D87, échange de tour: two members swap their turns to receive the pot, as
-// traders do by hand when one needs money sooner. The member asked says yes,
-// then the organiser confirms (unless she is one of the two). Only turns not
-// yet paid out, and not due today, can move. No money is lent.
-//
-// D88 (an advance from the group's money) was removed by D115.
+// Help inside the group. D87, échange de tour: two members swap turns, the
+// organiser confirms. Only turns not paid yet and not due today can move.
+// (D88, the group advance, was removed by D115.)
 
 const RECENT_MS = 30 * 24 * 60 * 60 * 1000;
 const OPEN_SWAP = ["ASKED", "AGREED"] as const;

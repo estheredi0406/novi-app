@@ -8,15 +8,10 @@ import { AppError } from "../lib/errors.js";
 import { alertStaff } from "./alertService.js";
 import { MAX_ATTEMPTS, nextRetryAt } from "./payoutService.js";
 
-// The group's advances (D103, D104), which replaced the 2% solidarity reserve
-// of D68. Each member pays an advance of half a contribution with round 1;
-// the advances stay at the MFI, in this group only (no pooling across groups).
-// When a share is missing, the advances pay it so the pot leaves full, and the
-// member owes it until she repays (her late payment, or her own pot first).
-// At the end of the cycle, what the advances hold goes back to the members who
-// owe nothing, in proportion to what each put in: so a member who owes loses
-// her own advance first, and only a larger loss is shared by the others.
-// Every movement is a ledger line; the line types keep their D68 names.
+// The group's advances (D103, D104), which replaced the 2% reserve (D68). Each
+// member pays half a contribution with round 1. If a share is missing, the
+// advances pay it and she owes it back. At the end, what is left goes back to
+// the members who owe nothing. The line types keep their D68 names.
 
 type Tx = Prisma.TransactionClient;
 
@@ -122,11 +117,9 @@ export function fundBalance(mfiId: string, db: Db = prisma): Promise<number> {
   return sumReserve({ group: { mfiId } }, db);
 }
 
-// On or after a round's due date, with payments missing: if the group's
-// advances can pay every missing share, they do, in one transaction, and the
-// round is treated as full. Returns false (nothing written) when they cannot,
-// and the pot is held (D48). Round 1 is never covered: it carries the advances
-// themselves, so the group only really starts once everyone has paid it.
+// After the due date with shares missing: if the advances can pay them all,
+// they do and the round counts as full; otherwise the pot is held (D48).
+// Round 1 is never covered, since it carries the advances themselves.
 export async function coverMissing(
   round: { id: string; groupId: string; number?: number },
   amountFcfa: number,
@@ -255,12 +248,9 @@ export async function deadlineAfter(tx: Tx, roundId: string, now: Date): Promise
   return repayDeadline(now, next?.dueDate ?? null);
 }
 
-// At the end of the cycle (D103): what the advances hold goes back, through
-// the MFI, to the members who owe nothing, in proportion to what each put in.
-// A member who still owes a covered round gets nothing back: her own advance
-// pays first. D149: every part is written at once, in one transaction, then
-// sent; the sending is followed like a pot (runReturns). Writing them runs
-// once: a second run finds the returns already there and only sends.
+// End of cycle (D103): the advances go back to the members who owe nothing.
+// D149: all parts are written at once, then sent and followed like pots.
+// Running it twice only sends what is left.
 export async function returnReserve(groupId: string, now = new Date()): Promise<void> {
   await planReturns(groupId);
   await sendDueReturns(now, groupId);
@@ -357,10 +347,9 @@ async function payeeOf(groupId: string, userId: string) {
   return { phone, operator: last?.operator ?? ("MOOV_TG" as const) };
 }
 
-// D149: a part not yet asked for, asked but never answered, or refused and
-// whose wait is over, is (re)sent; one the sender accepted is asked how it
-// went. Also writes the parts of any finished group whose advances were never
-// given back (the API stopped at the wrong moment, for example).
+// D149: resends parts that were never asked, never answered, or refused, and
+// checks the ones that were accepted. Also catches finished groups whose
+// advances were never given back.
 export async function runReturns(now = new Date()): Promise<void> {
   const forgotten = await prisma.group.findMany({
     where: { state: "COMPLETED", mfiAccountRef: { not: null }, reserveReturns: { none: {} } },
@@ -578,10 +567,8 @@ export async function reserveSummary(groupId: string, _mfiId: string, userId?: s
   };
 }
 
-// D69: before her pot leaves, what the fund paid for her in this group and
-// she has not paid back is taken from it first, so a member cannot collect
-// the pot and leave her debt behind. Runs inside the release transaction;
-// returns what was repaid.
+// D69: before her pot leaves, what she owes the fund in this group is taken from
+// it, so nobody leaves with the pot and a debt.
 export async function repayFromPot(
   tx: Tx,
   groupId: string,

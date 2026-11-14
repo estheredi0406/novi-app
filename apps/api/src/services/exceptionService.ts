@@ -2,11 +2,8 @@ import { prisma } from "../lib/db.js";
 import { CHECK_AFTER_MS, nextCheckAt } from "../lib/autoChecks.js";
 import { escalateReport, recheckPayment } from "./moneyService.js";
 
-// D114: exceptions handled before anyone looks. A payment the operator has
-// not confirmed is usually only late: a webhook lost in a network cut, an
-// operator slow at the end of the month. So Novi asks the operator again by
-// itself, on a schedule, and an officer sees only what is still unexplained.
-// (Transfers refused are retried by the payout job itself: payoutService.)
+// D114: a payment not confirmed is usually just late, so Novi asks the operator
+// again on a schedule and only shows officers what is still unexplained.
 
 const MIN = 60_000;
 export { CHECK_AFTER_MS, nextCheckAt };

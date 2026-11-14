@@ -5,11 +5,9 @@ import { day, fcfa, spacedPhone } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
-// D123: members' savings at the MFI. D147: first, the
-// caisse's conditions (rates, fees, minimum, early-withdrawal rule), which
-// members read before they place anything; until they are complete the caisse
-// cannot validate a group and Novi offers no savings. Then the accounts
-// members asked for, the open accounts and the withdrawals.
+// D123: members' savings. D147: first the caisse's conditions (members read them
+// before placing anything; without them, no group can be validated), then
+// account requests, open accounts and withdrawals.
 const pct = (bp: number | null) => (bp === null ? "" : String(bp / 100).replace(".", ","));
 const toBp = (s: string) => (s.trim() === "" ? null : Math.round(Number(s.replace(",", ".")) * 100));
 const num = (n: number | null) => (n === null ? "" : String(n));

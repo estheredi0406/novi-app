@@ -1,9 +1,7 @@
 import { z } from "zod";
 
-// Novi is for Togo: a member's number is +228 and 8 digits. The pilot is run
-// from Kigali, so PILOT_RWANDA=true on the pilot server also accepts Rwandan
-// numbers, +250 and 9 digits, for testers who want real SMS (D111). Off by
-// default, and never for the product.
+// Novi is for Togo (+228, 8 digits). PILOT_RWANDA=true also accepts Rwandan
+// numbers on the pilot server (D111), for testers in Kigali. Off by default.
 const TOGO = /^\+228\d{8}$/;
 const RWANDA = /^\+250\d{9}$/;
 

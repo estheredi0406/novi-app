@@ -1,13 +1,9 @@
 import "dotenv/config";
 
-// Sandbox diagnosis only: finds which FedaPay "send now" call this sandbox
-// account accepts for its published test numbers (Benin, MTN 66000001 and
-// Moov 64000001). It creates one small transaction per attempt and prints
-// FedaPay's answer, never the key. Run from apps/api:
+// Sandbox only: tries the FedaPay "send now" calls with its test numbers and
+// prints the answers (never the key).
 //
 //   npm run fedapay:probe
-//
-// It reads FEDAPAY_SECRET_KEY from .env, like the API.
 
 const BASE = "https://sandbox-api.fedapay.com/v1";
 const key = process.env.FEDAPAY_SECRET_KEY;

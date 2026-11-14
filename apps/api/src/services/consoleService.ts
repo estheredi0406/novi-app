@@ -31,11 +31,9 @@ import { fundBalance, reserveBalance } from "./reserveService.js";
 import { savingsTerms, savingsToOpen } from "./savingsService.js";
 import { mfi } from "../providers/index.js";
 
-// What an MFI officer sees and does in the console. Every query
-// is limited to the officer's own MFI: another MFI's group is answered with
-// 404, as if it did not exist. Only totals leave this file, never which
-// member paid what (D33, D53). The one exception is D84: the name and the
-// summary record of a member who agreed to share it when joining.
+// Everything the MFI console reads and does. Each query is limited to the
+// officer's MFI. Only totals leave this file (D33, D53), except a member's
+// record when she agreed to share it (D84).
 
 // Groups appear once they have reached the MFI: from STARTING, when Novi
 // asks it to open the account. Drafts and cancelled groups are not its business.
@@ -1071,14 +1069,8 @@ export async function listActivity(
 
 // ---------- Demo only (D82) ----------
 
-// In the pilot, a round falls due a week or a month after the start (D44), so
-// a test or a demonstration could not show a release on the day. This brings
-// the next unpaid round's due date forward to today, then runs the payout job
-// for the group at once: a full pot becomes "À libérer". Rounds before it
-// that were also due today move to yesterday, so the brought-forward round is
-// the one open for payment, and a whole cycle can be shown in one session.
-// Only in pilot mode, only for this MFI's running groups, and written to the
-// Journal.
+// Pilot only: brings the next unpaid round to today and runs the payout job,
+// so a whole cycle can be shown in one session. Written to the journal.
 export async function advanceDueDateForDemo(
   mfiId: string,
   staffId: string,
@@ -1123,10 +1115,9 @@ export async function advanceDueDateForDemo(
 
 // ---------- D113: the three views of the money, side by side ----------
 
-// Novi's ledger (what each group should hold), the MFI's books (simulated
-// core banking) and the real FedaPay balance. They differ only for a reason:
-// a pot sent but not yet confirmed, FedaPay's fees, or money that is not
-// Novi's in the same FedaPay account.
+// Novi's ledger, the MFI's books and the real FedaPay balance. They only differ
+// for a reason: a pot not confirmed yet, FedaPay's fees, or other money in the
+// same account.
 export async function getAccounts(mfiId: string): Promise<ConsoleAccounts> {
   await syncCoreBanking(mfiId);
   const [overview, bank, fedapay, inTransit] = await Promise.all([

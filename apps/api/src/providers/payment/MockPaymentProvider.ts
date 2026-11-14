@@ -6,13 +6,9 @@ export const MOCK_WEBHOOK_SECRET = "mock-webhook-secret";
 
 type MockTransaction = CollectionRequest & CollectionStatus & { providerRef: string };
 
-// Stands in for FedaPay in tests and on a laptop. It keeps transactions in
-// memory and, like FedaPay, tells the API about a change by webhook, signed
-// the same way, so the API's real webhook route is used.
-// - In tests, a test decides the outcome with settle(), then sends the webhook.
-// - In development, set MOCK_PAYMENTS_CONFIRM_MS (e.g. 4000): each payment
-//   then "succeeds" after that delay and the webhook is posted to the local
-//   API, as if she had confirmed on her phone.
+// Fake FedaPay for tests and local work. It signs its webhooks like FedaPay,
+// so the real webhook route is used. In tests, settle() decides the outcome;
+// locally, MOCK_PAYMENTS_CONFIRM_MS confirms each payment after a delay.
 export class MockPaymentProvider implements PaymentProvider {
   readonly name = "mock";
   readonly transactions = new Map<string, MockTransaction>();

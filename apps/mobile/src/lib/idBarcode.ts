@@ -1,7 +1,5 @@
-// Describes the shape of what an ID card's barcode holds, without keeping or
-// showing any of it (development only, D35). The result says how the data is
-// laid out, so the sign-up can later read it, while the card holder's NIU,
-// name and date of birth never leave the phone, and are not even displayed.
+// Development only (D35): describes the layout of an ID card barcode without
+// keeping or showing the data.
 
 export type BarcodeShape = {
   length: number; // characters read

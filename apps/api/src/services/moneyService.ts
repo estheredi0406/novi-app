@@ -19,14 +19,10 @@ import { postEvent } from "./chatService.js";
 import { alertStaff } from "./alertService.js";
 import type { CollectionStatus } from "../providers/payment/PaymentProvider.js";
 
-// Money in. A payment goes through three stages:
-// 1. She asks to pay; Novi asks the provider to send the request to her
-//    phone, and the contribution is PENDING.
-// 2. She confirms on her phone with her mobile money PIN (Novi never sees it).
-// 3. The provider tells Novi by webhook; Novi asks the provider for the true
-//    status and, if the money moved, marks the contribution PAID and adds one
-//    line to the ledger. This step is safe to repeat: a payment is credited
-//    once, however many times the webhook arrives (D45).
+// Money in, in three steps: Novi sends the request to her phone (PENDING),
+// she confirms with her mobile money PIN (Novi never sees it), then the
+// provider tells us by webhook and we mark it PAID. A payment is only
+// credited once, even if the webhook comes twice (D45).
 
 // ---------- Reading ----------
 
@@ -113,8 +109,8 @@ export async function listRounds(groupId: string, userId: string): Promise<Round
   return loaded.group.rounds.map((round) => toSummary(loaded, round, userId, skip && round.number === loaded.current));
 }
 
-// One round with every member's payment. Every member sees every payment
-// (F8); the MFI, by contrast, is told totals only (D33).
+// One round with every member's payment. Members see each other's payments;
+// the MFI only gets totals (D33).
 export async function getRound(groupId: string, userId: string, number: number): Promise<RoundDetail> {
   const loaded = await loadForMember(groupId, userId);
   const round = loaded.group.rounds.find((r) => r.number === number);
@@ -225,11 +221,8 @@ export async function payRound(
     escalatedAt: null,
   };
 
-  // Claims the payment slot for this round. Two taps at the same moment
-  // cannot both send a request: the unique (round, member) row, or the
-  // condition on the update, lets only one through.
-  // D105: while the MFI checks a payment she says left her account, she
-  // must not pay a second time.
+  // Only one request per round, even with two quick taps (unique row + condition
+  // on the update). D105: no second payment while the MFI checks the first one.
   if (existing?.reportedAt && existing.status !== "PAID") throw new AppError("PAYMENT_REPORTED", 409);
 
   let contributionId: string;
@@ -289,10 +282,8 @@ export async function payRound(
 
 // ---------- Settling ----------
 
-// Applies what the provider says about a payment. Safe to call any number of
-// times with the same answer: the PAID update only matches a contribution
-// that is not PAID yet, and the ledger accepts one line per contribution, so
-// a payment is credited exactly once (D45).
+// Applies the provider's answer. Safe to call many times: the payment is
+// credited once (D45).
 async function settle(contributionId: string, answer: CollectionStatus): Promise<void> {
   const contribution = await prisma.contribution.findUniqueOrThrow({
     where: { id: contributionId },
@@ -394,12 +385,9 @@ async function settle(contributionId: string, answer: CollectionStatus): Promise
   }
 }
 
-// A webhook from the payment provider. Its signature is checked first; the
-// same delivery received twice is recognised by its body and ignored. The
-// webhook's own content is not trusted for the outcome: the provider is
-// asked directly (FedaPay's own advice).
-// D102: each MFI's account has its own address (/payments/<MFI code>) and
-// its own secret; the plain address is Novi's demo account.
+// A webhook from the provider. We check the signature, ignore duplicates, and
+// ask the provider for the real status instead of trusting the webhook
+// (FedaPay's own advice). D102: each MFI has its own webhook address and secret.
 export async function handlePaymentWebhook(
   rawBody: string,
   signature: string | undefined,
@@ -459,14 +447,9 @@ export async function handlePaymentWebhook(
   await syncCoreBanking().catch(() => undefined);
 }
 
-// She taps "check my payment": Novi asks the provider directly. Covers a
-// webhook that never arrived, for example during a network cut.
-// "The money left my account": a payment the operator did not confirm, which
-// she says was debited. The provider is asked again first. D114: if it still
-// is not paid, Novi keeps asking by itself (15 min, 1 h, 6 h, 24 h after her
-// report); only if the 1 h check still finds nothing does it reach the MFI
-// officer, to check against the operator's statement ("À traiter", D105).
-// She does not pay again meanwhile.
+// "Vérifier mon paiement": asks the provider again, in case the webhook got lost.
+// "L'argent est parti de mon compte": D114, Novi checks again by itself (15 min,
+// 1 h, 6 h, 24 h) and only after 1 h does the officer see it (D105).
 export async function reportDebited(contributionId: string, userId: string): Promise<ContributionView> {
   const view = await checkContribution(contributionId, userId);
   if (view.status === "PAID") return view;

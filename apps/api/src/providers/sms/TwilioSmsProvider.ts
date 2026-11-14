@@ -1,9 +1,7 @@
 import type { SmsProvider } from "./SmsProvider.js";
 
-// Sends real SMS through Twilio's Messages API, to Togo (and to Rwanda for the
-// pilot run from Kigali). Chosen when SMS_PROVIDER=twilio and its keys are set;
-// otherwise the mock is used (D3). Prices checked on Twilio's site: about
-// 0.49 USD per SMS to Togo, 0.33 USD to Rwanda.
+// Real SMS through Twilio, to Togo (and Rwanda for the pilot). About 0.49 USD
+// per SMS to Togo and 0.33 USD to Rwanda, from Twilio's price page.
 export class TwilioSmsProvider implements SmsProvider {
   constructor(
     private readonly accountSid: string,

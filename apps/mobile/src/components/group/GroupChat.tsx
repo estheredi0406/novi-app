@@ -26,10 +26,8 @@ import { ErrorMessage } from "../ErrorMessage";
 import { useVoicePlayer } from "./useVoicePlayer";
 import { VoiceButton } from "./VoiceButton";
 
-// The "Discussion" tab (D70): the next meeting and the
-// calendar one tap away, "Appeler le groupe", then the chat itself, with
-// voice notes for members who would rather speak than type (D76). New lines
-// are fetched every few seconds while the tab is open.
+// The "Discussion" tab (D70): the next meeting, "Appeler le groupe", then the
+// chat with voice notes (D76). New messages are fetched every few seconds.
 const EVERY_MS = 5000;
 const MAX_LENGTH = 500;
 

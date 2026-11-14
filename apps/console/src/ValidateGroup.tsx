@@ -2,10 +2,8 @@ import { useState } from "react";
 import { api } from "./api";
 import type { Text } from "./text";
 
-// D133: a group waiting for the MFI can be validated wherever the officer
-// meets it: in "Aujourd'hui", in the "À valider" tab of "Groupes" and on the
-// group's own page. Same rules as before (D66): a confirmation to validate, a
-// reason to refuse, read by the organiser.
+// D133: a waiting group can be validated from Aujourd'hui, the "À valider" tab
+// or its own page (D66). Refusing needs a reason, which the organiser reads.
 export function ValidateGroup({
   t,
   group,

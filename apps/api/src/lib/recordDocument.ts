@@ -1,9 +1,7 @@
 import type { RecordVerification } from "@novi/shared";
 
-// The ACEV as a document (D65): an attestation a loan officer can read,
-// print or save as PDF (the browser's "Print", then "Save as PDF"), laid out
-// on one A4 page. The same document is shown to a lender who scans the QR
-// code and to an MFI officer in the console. Facts only, no score.
+// The ACEV as a one-page A4 document (D65) a loan officer can print or save as
+// PDF. Facts only, no score.
 
 const escape = (value: string | number) =>
   String(value).replace(

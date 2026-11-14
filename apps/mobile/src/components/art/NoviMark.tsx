@@ -2,10 +2,8 @@ import Svg from "react-native-svg";
 import { colors } from "../../theme/colors";
 import { Cowrie } from "./Cowrie";
 
-// Novi's mark: three cowries fanned out, orange, ivory and teal, as a small
-// hand of shells, the old money of West Africa. Used on the splash screen
-// and at the top of sign-up and login. On the orange splash, the orange
-// shell becomes gold, the colour of the coins in the pot.
+// Novi's mark: three cowries, orange, ivory and teal. On the orange splash the
+// orange one turns gold.
 export function NoviMark({ size = 96, onOrange = false }: { size?: number; onOrange?: boolean }) {
   return (
     <Svg width={size} height={size * 0.72} viewBox="0 0 120 86" accessibilityElementsHidden>

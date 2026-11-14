@@ -471,10 +471,8 @@ export default function GroupScreen() {
     return [...queue, ...typed.filter((p) => !queue.includes(p))];
   }
 
-  // Shows every whole number before the SMS go out: once sent, the group sees
-  // only part of each, and a typo would invite someone else (D43). D133: the
-  // numbers are sent one after the other; one refused (already invited, not a
-  // valid number) does not stop the others, and the error says which.
+  // Shows the full numbers before sending, since the group later only sees part
+  // of them (D43). D133: one refused number does not stop the others.
   function confirmInvites(groupId: string, phones: string[]) {
     const list = phones.map(formatPhone).join(", ");
     Alert.alert(

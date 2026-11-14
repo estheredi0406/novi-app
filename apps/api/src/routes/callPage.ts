@@ -1,9 +1,7 @@
 import { Router } from "express";
 
-// D112: the call page, served by Novi's API and opened inside Novi (D85).
-// Plain HTML and browser WebRTC, no outside script: the voice goes from phone
-// to phone, the server only introduces them (services/callSignal.ts). The
-// page reads the member's pass from its address; nothing else is needed.
+// D112: the call page, served by the API and opened inside Novi (D85). Plain
+// HTML and WebRTC, no outside script; the voice goes phone to phone.
 export const callPageRouter = Router();
 
 callPageRouter.get("/:room", (_req, res) => {

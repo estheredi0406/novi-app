@@ -1,17 +1,10 @@
 import { prisma } from "../lib/db.js";
 import { runPayouts } from "../services/payoutService.js";
 
-// Demonstration only (D62): treats a group's next round as due today, so a
-// payout can be shown during a test or the defence without waiting for the
-// due day. A full pot then waits in the console for the officer's release
-// (D63), exactly as it would on the real day.
+// Demo only (D62): makes a group's next round due today, so a payout can be
+// shown without waiting. Same payout service as the real job.
 //
 //   npm run demo:payout -- "Pagnes Assigamé"
-//
-// Run it from the server's shell (Render › novi-api › Shell). It goes
-// through the same payout service as the every-minute job, so the same
-// rules apply: the pot leaves only if every member has paid (otherwise it is
-// held), it goes to the member whose turn it is, to her own number, once.
 
 async function main() {
   const name = process.argv.slice(2).join(" ").trim();

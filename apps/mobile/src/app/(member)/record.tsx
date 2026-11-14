@@ -11,10 +11,8 @@ import { Screen } from "../../components/Screen";
 import { colors } from "../../theme/colors";
 import { type } from "../../theme/typography";
 
-// Historique (D92, simplified in D121 and D122): her money, month by month,
-// across all her groups; her on-time record is on the credit screen. Nothing else: the badges are
-// gone (nobody could tell what they meant), and sharing her record with a
-// lender moved to the credit screen, where it is used.
+// Historique (D92, D121, D122): her money month by month across her groups.
+// Her on-time record and record sharing are on the credit screen.
 export default function RecordScreen() {
   const { t } = useTranslation();
   const [nextPot, setNextPot] = useState<{ pot: number; date: string; group: string } | null>(null);

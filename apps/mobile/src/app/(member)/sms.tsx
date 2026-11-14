@@ -10,10 +10,8 @@ import { Screen } from "../../components/Screen";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// "Mes SMS (pilote)" (D111): on the pilot server, the SMS her phone would
-// receive, written as they are sent, newest first. Real ones (Pindo, to a
-// Rwandan number) and simulated ones are marked, so testers and the jury see
-// exactly what a member without the app is told.
+// "Mes SMS (pilote)" (D111): the SMS a member would receive, newest first, real
+// or simulated, so testers see what a member without the app is told.
 export default function SmsScreen() {
   const { t, i18n } = useTranslation();
   const [messages, setMessages] = useState<PilotSms[] | null>(null);

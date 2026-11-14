@@ -6,10 +6,8 @@ import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
 import { NoviMark } from "./art/NoviMark";
 
-// The opening screen: on the orange of Novi's icon, its three cowries and
-// its name in white, as on the
-// phone's own splash, then a short line about what Novi is. It plays once per
-// launch, about a second and a half, then fades into the app behind it.
+// The opening screen: Novi's cowries and name on orange, then a short line
+// about Novi. About a second and a half, once per launch.
 export function SplashIntro({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation();
   const mark = useRef(new Animated.Value(0)).current;

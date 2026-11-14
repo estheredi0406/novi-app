@@ -1,9 +1,7 @@
 import type { PushMessage, PushProvider } from "./PushProvider.js";
 
-// Expo's push service: free, and it forwards to Google's (FCM) and Apple's
-// services, so Novi keeps one list of tokens for both kinds of phone. An
-// access token (EXPO_ACCESS_TOKEN) is optional; with it, only Novi's server
-// can send to Novi's phones.
+// Expo's push service: free, and it covers both Android and iPhone with one
+// list of tokens.
 const URL = "https://exp.host/--/api/v2/push/send";
 const BATCH = 100; // Expo takes at most 100 messages per request
 

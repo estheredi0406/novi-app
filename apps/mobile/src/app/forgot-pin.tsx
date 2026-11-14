@@ -19,11 +19,8 @@ import { fonts, type } from "../theme/typography";
 import { PilotCode } from "../components/PilotCode";
 import { usePhoneCountry } from "../lib/phoneCountry";
 
-// The steps of a PIN reset (D20):
-// - phone: which number to reset
-// - code: the SMS code proves she holds the SIM
-// - pin: the new PIN, typed twice
-// - done: the PIN is changed and every phone is logged out
+// The PIN reset steps (D20): phone number, SMS code, new PIN twice, done (every
+// phone is logged out).
 type Step =
   | { kind: "phone" }
   | { kind: "code"; challengeId: string }

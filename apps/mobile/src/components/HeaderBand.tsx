@@ -2,10 +2,8 @@ import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { colors } from "../theme/colors";
 
-// The soft sky band at the top of the secondary screens (Mon compte, the
-// meetings, a group still being set up), direction "Lagune" (D92): flat,
-// no outline, rounded at the bottom, so the blue pagne band stays for the
-// main screens.
+// The light band at the top of secondary screens (D92), so the blue pagne band
+// stays for the main screens.
 export function HeaderBand({ children }: { children: ReactNode }) {
   return (
     <View style={styles.band}>

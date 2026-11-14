@@ -4,10 +4,8 @@ import { formatFcfa } from "../../lib/format";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// An amount chosen with − and +, or typed (D122, D123, D125). Touching the
-// amount opens the number pad; the parent decides if the amount is allowed
-// and keeps "Continuer" off until it is. Out of bounds, the box turns red and
-// the hint says between what and what.
+// An amount chosen with − and + or typed (D122, D123, D125). The parent decides
+// what is allowed; out of range, the box turns red and the hint gives the range.
 const digits = (s: string) => s.replace(/\D/g, "").slice(0, 8);
 const spaced = (n: number) => formatFcfa(n).replace(" FCFA", "");
 

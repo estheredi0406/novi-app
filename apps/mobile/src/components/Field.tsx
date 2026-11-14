@@ -66,9 +66,7 @@ const styles = StyleSheet.create({
     borderRightColor: colors.line,
   },
   prefixButton: { color: colors.lagoon },
-  // D132: minWidth 0 lets the box shrink to its frame. In a browser an input
-  // keeps a width of its own (about 20 characters), so the day, month and
-  // year boxes were wider than their frames and the screen slid sideways when
-  // she tapped the year. D133: no browser focus frame inside the rounded box.
+  // D132: minWidth 0 so the date boxes fit their frame in a browser (the screen
+  // used to slide sideways). D133: no browser focus outline inside the box.
   input: { flex: 1, minWidth: 0, outlineWidth: 0, fontFamily: fonts.bodySemiBold, fontSize: 22, color: colors.ink, paddingVertical: 12 },
 });

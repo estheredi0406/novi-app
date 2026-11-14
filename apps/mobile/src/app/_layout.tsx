@@ -18,16 +18,10 @@ import { stopSpeaking } from "../lib/speak";
 import { SessionProvider, useSession } from "../session/SessionProvider";
 import { colors } from "../theme/colors";
 
-// Shows nothing until the session is known, so no screen flashes before
-// the app knows whether to start sign-up or ask for the PIN.
-// The guards decide which screens exist right now: the member screens (home,
-// groups, invitations) only once she has unlocked Novi; sign-up and login
-// only while she has not. When the status
-// changes (she logs in, or logs out), Expo Router leaves any screen that
-// is no longer allowed, so the back button cannot reopen it.
-// A Listen reading belongs to the screen it describes (D99): it stops when
-// she moves to another screen (a call or a payment page is a screen too), and
-// when Novi leaves the foreground or the phone locks.
+// Shows nothing until we know the session, so no screen flashes. The guards
+// decide which screens exist: member screens only once unlocked, sign-up and
+// login only before. A Listen reading stops when she changes screen or the
+// app goes to the background (D99).
 function SpeechGuard() {
   const pathname = usePathname();
   useEffect(() => stopSpeaking, [pathname]);

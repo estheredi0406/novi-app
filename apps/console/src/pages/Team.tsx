@@ -5,10 +5,8 @@ import { fcfa } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
-// The MFI's team (D81): its administrators add officers, deactivate those
-// who leave, and reset a lost access, without anyone running a command on
-// the server. Every action is written to the Journal. The temporary password
-// and the authenticator code are shown once, to be handed over in person.
+// The MFI's team (D81): admins add officers, deactivate them and reset lost
+// access from here. Everything goes to the journal.
 export function Team({ t, onExpired }: { t: Text; onExpired: () => void }) {
   const { data, failed, reload } = useLoad(() => api<StaffMember[]>("GET", "/v1/console/team"), onExpired);
   const [adding, setAdding] = useState(false);

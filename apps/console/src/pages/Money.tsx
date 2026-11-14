@@ -5,10 +5,8 @@ import { day, fcfa } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
-// D124: "Comptes". Where the money is,
-// what moved today with where each franc is now, and what needs a person.
-// FedaPay's own dashboard is one click away: Novi reads the balance, the MFI
-// moves money to its bank there.
+// D124: "Comptes": where the money is, what moved today, and what needs a person.
+// A link to FedaPay's dashboard, where the MFI moves money to its bank.
 export const FEDAPAY_DASHBOARD = "https://fedapay.com";
 const time = (iso: string) => new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const TAG: Record<ConsoleMoneyWhere, string> = {

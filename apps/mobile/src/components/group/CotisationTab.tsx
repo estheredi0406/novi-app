@@ -19,11 +19,9 @@ import { WaxCard } from "../WaxCard";
 import { MemberFaces } from "./MemberFaces";
 import { SkipSheet } from "./SkipSheet";
 
-// The "Cotisation" tab (D92): this
-// round with every member as a face in turn order, who receives the pot,
-// her own turn, the Payer button with its cowrie, then the group's own
-// actions (call, swap a turn, an advance). Only amounts, dates, names and
-// buttons: the explanations are behind "?" and Listen.
+// The "Cotisation" tab (D92): this round with each member as a face in turn
+// order, who receives, her turn, the Payer button, then the group's actions.
+// Explanations are behind "?" and Listen.
 export function CotisationTab({
   group,
   rounds,

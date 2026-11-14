@@ -1,15 +1,10 @@
 import { prisma } from "../lib/db.js";
 import { pilotMode } from "../lib/pilot.js";
 
-// Pilot only (D93): erases every group and everything that happened inside
-// one, so testing can start again from a clean console, while keeping the
-// people. Members keep their account, verified identity and PIN; officers
-// keep their logins; the MFI keeps its credit conditions.
-//
-// The ledger is append-only (D5): a trigger refuses any row deleted from it.
-// TRUNCATE does not fire row triggers, so it is the only way to empty it, and
-// it is used here on purpose, once, for test data. A real deployment never
-// runs this: it refuses unless the server is in pilot mode.
+// Pilot only (D93): deletes every group and what happened in it, but keeps the
+// people (accounts, PINs, officer logins, credit conditions).
+// The ledger refuses deletes (D5); TRUNCATE is the only way to empty it, used
+// here on purpose for test data. Refuses to run outside pilot mode.
 
 // Journal lines about the people themselves, kept: sign-up, identity check,
 // logins, PIN events, and the MFI's team.
@@ -59,11 +54,8 @@ export async function resetPilotData(): Promise<PilotCounts> {
   if (!pilotMode()) throw new Error("Refused: the reset only runs on the pilot server (PILOT_SHOW_CODES=true).");
   const before = await countPilotData();
   await prisma.$transaction([
-    // CASCADE empties every table that points at these: memberships, rules,
-    // invites, rounds, payments, pots, ledger lines, reminders, the caisse,
-    // chats and voice notes, meetings, swaps, loan documents and
-    // the record shares' views. Users, officers and the MFI point nowhere
-    // here, so they stay.
+    // CASCADE empties every table linked to the groups. Users, officers and the
+    // MFI are not linked here, so they stay.
     prisma.$executeRawUnsafe(
       'TRUNCATE TABLE "groups", "loan_requests", "record_shares", "staff_alerts", "payment_events" CASCADE',
     ),

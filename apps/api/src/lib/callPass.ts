@@ -1,10 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-// D112: a member's pass to one call room, signed by the server. It says
-// which room, who she is (her id and the name her group sees), whether she
-// organised it, the room's size, and when it opens and closes. The call page
-// and the signalling server trust only this pass: the room's address alone
-// lets nobody in, as with Daily's tokens before (D71).
+// D112: a member's signed pass to one call room (who she is, the room, when it
+// opens and closes). Knowing the room's address alone lets nobody in.
 export type CallPass = {
   room: string;
   uid: string;

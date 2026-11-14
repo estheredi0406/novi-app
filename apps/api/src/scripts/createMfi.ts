@@ -1,14 +1,11 @@
 import { prisma } from "../lib/db.js";
 
-// Adds a partner MFI that groups can choose to keep their money (D95):
+// Adds a partner MFI (D95):
 //
 //   npm run mfi:create -w @novi/api -- DZIDZO "Caisse Dzidzo"
 //
-// The code is short and stays fixed (it appears in logs and in
-// staff:create); the name is what members and officers see. Running it again
-// with the same code only changes the name. Then open its first console
-// account with staff:create and that code. Never add a real institution
-// without an agreement with it: in the pilot, a test MFI says so in its name.
+// Running it again with the same code only renames it. Never add a real
+// institution without an agreement.
 
 async function main() {
   const [code, name] = process.argv.slice(2);

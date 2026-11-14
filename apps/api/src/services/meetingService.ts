@@ -6,13 +6,9 @@ import { holdsSeat } from "../lib/groupRules.js";
 import { meetings } from "../providers/index.js";
 import { notifyCall } from "./notifyService.js";
 
-// Group meetings (D71). The organiser schedules a call: a title, a date and
-// time, a length and what will be discussed. Novi asks the video provider
-// for a private room that opens 10 minutes before and closes at the end,
-// and posts the meeting in the group's chat. Each member who joins gets a
-// personal pass, valid only for that room and that meeting, with her display
-// name: the address alone lets nobody in. Nothing is recorded, and the MFI
-// does not see meetings (D33).
+// Group meetings (D71): the organiser plans one, Novi gets a private room that
+// opens 10 minutes before, and posts it in the chat. Each member gets her own
+// pass. Nothing is recorded and the MFI does not see meetings (D33).
 
 export const OPENS_BEFORE_MS = 10 * 60 * 1000;
 const MINUTE = 60 * 1000;
@@ -220,10 +216,8 @@ export async function joinMeeting(
   return { url };
 }
 
-// "Appeler le groupe" (D76): any active member calls the whole group now, as
-// she would ring her neighbours. If a call or a meeting is already open, she
-// joins it instead of opening a second room. A new call is posted in the
-// chat ("Akossiwa a lancé un appel · Rejoindre") and ends after 30 minutes.
+// "Appeler le groupe" (D76): calls the whole group now, or joins the call
+// already open. Posted in the chat, ends after 30 minutes.
 export async function startCall(groupId: string, userId: string, now = new Date()): Promise<GroupCall> {
   const seat = await seatOf(groupId, userId);
   if (!active(seat) || !["PROPOSED", "STARTING", "ACTIVE"].includes(seat.group.state)) {

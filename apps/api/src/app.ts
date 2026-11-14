@@ -21,10 +21,8 @@ import { webhooksRouter } from "./routes/webhooks.js";
 // so tests can send requests to it without opening a network port.
 export const app = express();
 
-// Online, requests reach the API through the host's proxy (Render). Trusting
-// that one proxy makes req.ip the member's real address, which the
-// per-address rate limits rely on; otherwise every request would seem to
-// come from the proxy and share one limit.
+// On Render, requests come through a proxy. Trusting it gives us the member's
+// real address, which the rate limits need.
 if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 
 // Payment webhooks read their raw body to check its signature, so they are
@@ -67,20 +65,16 @@ app.use("/call", callPageRouter);
 const consoleDist = fileURLToPath(new URL("../../console/dist", import.meta.url));
 if (existsSync(consoleDist)) app.use("/console", express.static(consoleDist));
 
-// D119: the member app's web version (apps/mobile/dist), for members without
-// an Android phone (an iPhone, a laptop). Same address as the API, so no
-// cross-origin settings either. Every other path under /app is one of the
-// app's own screens: the browser gets the app, which opens that screen.
+// D119: the web version of the member app (for iPhones and laptops). Any path
+// under /app opens the app, which then shows the right screen.
 const appDist = fileURLToPath(new URL("../../mobile/dist", import.meta.url));
 if (existsSync(appDist)) {
   app.use("/app", express.static(appDist));
   app.get("/app/{*screen}", (_req, res) => res.sendFile(`${appDist}/index.html`));
 }
 
-// D133: the site's root has no page of its own. A payment page (FedaPay's
-// checkout, opened from the web version) sends the member back here once she
-// has paid, so the root sends her on to the app, which checks the payment
-// and shows the receipt. Without the app built, to the console.
+// D133: the root has no page. After paying on FedaPay's page, the member is
+// sent back here, so we forward her to the app (or to the console).
 app.get("/", (_req, res) => res.redirect(302, existsSync(appDist) ? "/app/" : "/console/"));
 
 // Must come last: turns every error into the standard error response.

@@ -6,10 +6,8 @@ import type { Text } from "../text";
 
 const time = (iso: string) => `${day(iso).slice(0, 5)} ${iso.slice(11, 16)}`;
 
-// The compliance view (D117): the group with its members' legal
-// names, for an anti-money-laundering check. It opens only with a reason,
-// the opening is logged with the officer's name, and it closes by itself
-// after 15 minutes. Nothing is kept in the browser.
+// Compliance view (D117): members' legal names for an anti-money-laundering
+// check. Needs a reason, is logged, and closes after 15 minutes.
 export function Compliance({
   t,
   groupId,

@@ -3,11 +3,8 @@ import { StyleSheet, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import { colors } from "../../theme/colors";
 
-// The ring of members (D92): one segment per seat, in turn order, starting at
-// the top. Green when that member has paid this round, pale when not, orange
-// for her own seat while she still owes. Outside the ring, a saffron dot marks
-// the member who receives this round's pot and a small orange dot marks her
-// seat. Whatever is passed as children sits in the middle.
+// The ring of members (D92): one segment per seat in turn order, green when
+// paid. A saffron dot marks who receives, an orange dot marks her seat.
 export function SeatRing({
   paid,
   mine,

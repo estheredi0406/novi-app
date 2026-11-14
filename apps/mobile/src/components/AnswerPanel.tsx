@@ -14,14 +14,9 @@ import { Field } from "./Field";
 import { PrimaryButton } from "./PrimaryButton";
 import { TextButton } from "./TextButton";
 
-// Her three answers to a group's rules (D39): accept, ask for a change, or
-// say no. Used on an invitation and, after the rules change, on the group page.
-// - canAnswer: false while the group is a draft; she can then only say no
-// - hasSeat: she already holds a seat, so "say no" reads "leave the group"
-// - waiting: when she cannot answer, explain that the rules are not sent yet
-// D147: right after she joins, where her pot goes, with the caisse's savings
-// conditions. Only when the caisse offers savings and she has not answered;
-// if she leaves the screen, a card on home asks again until the start.
+// Her answer to the rules (D39): accept, ask for a change, or say no. D147:
+// right after she joins, Novi asks where her pot goes; if she skips it, a card
+// on home asks again.
 export async function askPot(groupId: string) {
   try {
     const { choices } = await getSavings();

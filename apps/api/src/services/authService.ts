@@ -114,11 +114,8 @@ export async function register(input: {
   });
 }
 
-// D106: the last step of a sign-up by USSD. The operator vouches for her
-// number, ANID confirmed her identity and she confirmed her name; she then
-// chose the name her group sees and her PIN. The account has no device or
-// session: she uses Novi by dialling the code, and can log in to the app
-// later with the same number and PIN, which trusts that phone by SMS (D20).
+// D106: last step of a USSD sign-up. She has no app session yet; she can log
+// in to the app later with the same number and PIN (D20).
 export async function registerByUssd(input: { phone: string; pin: string; displayName: string }): Promise<User> {
   const pending = await prisma.ussdSignup.findUnique({ where: { phone: input.phone } });
   if (!pending?.legalName || !pending.verifiedAt || pending.expiresAt <= new Date()) {

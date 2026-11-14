@@ -17,9 +17,7 @@ import { useSession } from "../../session/SessionProvider";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// Me, as on the approved "Me: wax" board: who she is, her language, the
-// things she may change, and logging out. The agency map row waits for
-// the map itself (no link that leads nowhere).
+// "Mon compte": who she is, her language, what she can change, and logging out.
 export default function MeScreen() {
   const { pilotSmsInbox } = useServerConfig();
   const { t } = useTranslation();

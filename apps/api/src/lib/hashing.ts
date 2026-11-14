@@ -2,13 +2,9 @@ import { createHash, createHmac, randomBytes } from "node:crypto";
 import argon2 from "argon2";
 import { config } from "./config.js";
 
-// Short secrets a person types (PIN, SMS code). argon2id is deliberately slow
-// and salted, so guessing all 10,000 PINs from a leaked database is impractical.
-//
-// Tests hash hundreds of PINs; at the production cost (64 MiB of memory per
-// hash) a modest laptop runs out of memory and the test process is killed.
-// Under test only, a light cost is used; argon2.verify reads the cost from
-// each stored hash, so nothing else changes. Production keeps the default.
+// PINs and SMS codes are hashed with argon2id, which is slow on purpose, so a
+// leaked database cannot be brute-forced. Tests use a lighter cost so a laptop
+// does not run out of memory; production keeps the default.
 const TEST_COST = { memoryCost: 4096, timeCost: 2, parallelism: 1 };
 
 export async function hashSecret(secret: string): Promise<string> {

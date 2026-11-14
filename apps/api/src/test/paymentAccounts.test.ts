@@ -10,10 +10,8 @@ import { runPayouts } from "../services/payoutService.js";
 import { createStaff } from "../services/staffService.js";
 import { ABLA, KOFFI, signedUpMember } from "./helpers.js";
 
-// D102: each MFI connects its own FedaPay account. Members' payments go into
-// it and pots leave from it; Novi only gives instructions. FedaPay is played
-// here by a fake fetch, so the tests check exactly what Novi asks, and with
-// which MFI's key.
+// D102: each MFI connects its own FedaPay account. FedaPay is faked with a
+// fetch stub, so we check exactly what Novi sends and with which key.
 
 const SECRET = "sk_sandbox_mawuli_0123456789";
 const WEBHOOK = "wh_sandbox_mawuli_0123456789";

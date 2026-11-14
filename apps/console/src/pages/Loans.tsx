@@ -13,10 +13,9 @@ import { day, fcfa } from "../format";
 import type { Text } from "../text";
 import { useLoad } from "../useLoad";
 
-// Microloan requests (D89, D91). The MFI's conditions are checked one by one
-// with her figures, beside her declared business. The officer shortlists or
-// declines; she comes to sign at the agency, and the outcome is recorded here.
-// Novi neither lends nor moves the money.
+// Loan requests (D89, D91): each condition checked against her figures, next to
+// her declared business. The officer shortlists or declines; she signs at the
+// agency. Novi does not lend or move the money.
 
 function Tabs({ t, on }: { t: Text; on: "requests" | "policy" }) {
   return (

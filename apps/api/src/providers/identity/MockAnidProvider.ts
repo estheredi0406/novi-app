@@ -6,10 +6,9 @@ import type {
   StartVerificationResult,
 } from "./IdentityProvider.js";
 
-// A record in the fake register. NIU values are invented for the demo but
-// follow the card's format, 4-3-4 digits (1234-234-2344); every demo number
-// starts with 0000 so it can never be a real person's.
-// D132: a first name and a surname, kept apart as on the card.
+// A record in the fake register. The NIUs follow the card format (1234-234-2344)
+// and all start with 0000, so none can be a real person's. D132: first name and
+// surname kept apart, like on the card.
 type AnidRecord = { niu: string; firstName: string; lastName: string; dateOfBirth: string; phone: string };
 
 type PendingVerification = { code: string; expiresAt: number; attemptsLeft: number; fullName: string };

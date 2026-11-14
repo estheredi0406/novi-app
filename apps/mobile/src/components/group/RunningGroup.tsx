@@ -24,11 +24,9 @@ import { GroupInfoTab } from "./GroupInfoTab";
 export type GroupTab = "cotisation" | "discussion" | "groupe";
 export const GROUP_TABS: GroupTab[] = ["cotisation", "discussion", "groupe"];
 
-// A running group (D92): the
-// blue pagne band with the name, the rules, who organises and which MFI keeps
-// the money, a phone to call the group, then three tabs as one segmented
-// control, so nothing is stacked on one long page. The tab is in the address (?tab=), so a notification or the back
-// button returns to the same place.
+// A running group (D92): the band with the name and rules, then three tabs.
+// The tab is kept in the address (?tab=), so a notification or the back button
+// returns to the same place.
 export function RunningGroup({
   group,
   rounds,

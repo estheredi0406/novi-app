@@ -128,7 +128,7 @@ describe("changing the rules", () => {
     const groupId = await createdGroup(api);
     await api.post(`/v1/groups/${groupId}/propose`);
 
-    // Until invitations exist (S2.5), Abla's seat is placed directly.
+    // Until invitations exist, Abla's seat is placed directly.
     const abla = await signedUpMember("+22890000002", undefined, ABLA, "Abla");
     await prisma.membership.create({
       data: { groupId, userId: abla.member.id, state: "ACCEPTED", acceptedVersion: 1 },

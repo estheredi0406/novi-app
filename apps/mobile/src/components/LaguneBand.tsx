@@ -6,11 +6,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Pattern, Rect, Stop } from "react-native-svg";
 import { colors } from "../theme/colors";
 
-// The blue band at the top of home, Mes groupes and a group (D92). Novi's own
-// pagne motif, an eight-petal flower in a ring with quarter circles in the
-// corners (drawn for Novi, not copied from any wax house), printed blue on
-// blue and darkened towards the bottom so white text stays readable. The
-// white card below overlaps its lower edge.
+// The blue band at the top of home and the group screens (D92), with Novi's own
+// pagne motif (drawn for Novi, not copied), darker at the bottom so white text
+// stays readable.
 const PETALS = [0, 45, 90, 135, 180, 225, 270, 315];
 
 // The band reaches under the phone's status bar (the screen leaves that edge

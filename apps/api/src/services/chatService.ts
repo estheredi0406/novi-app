@@ -6,13 +6,9 @@ import { holdsSeat } from "../lib/groupRules.js";
 import { stateOf } from "./meetingService.js";
 import { notifyChat } from "./notifyService.js";
 
-// The group's chat (D70). A tontine is a group of people who know each
-// other; the chat is where they remind, encourage and agree, as they would
-// at the market. Only the group's members read it, never the MFI (D33).
-// Novi adds a line itself when money moves (a payment, a pot paid), so the
-// chat is also the group's running story. The app asks for new lines every
-// few seconds while the chat is open: no extra service to run on Render, and
-// it works the same on a weak connection.
+// The group chat (D70), like the talk at the market. Only members read it, never
+// the MFI (D33). Novi adds a line when money moves. The app checks for new
+// messages every few seconds, which works fine on a weak connection.
 
 const PAGE = 50;
 export const MAX_LENGTH = 500;
@@ -37,11 +33,8 @@ async function seatOf(groupId: string, userId: string) {
   return seat;
 }
 
-// She may write while she holds a seat in a group that has not been cancelled,
-// and has not left it (D69). A seat exists once she has answered the
-// invitation: accepted, or asked for a change (COUNTERED), so a member
-// discussing the rules can do it here. Before she answers she is only an
-// invited number, and the group does not know she uses Novi (D38).
+// She can write once she has answered the invitation (accepted or asked for a
+// change) and while she is still in the group (D69, D38).
 function canWrite(seat: Awaited<ReturnType<typeof seatOf>>): boolean {
   return (
     seat.group.state !== "CANCELLED" &&

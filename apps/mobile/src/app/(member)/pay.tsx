@@ -17,11 +17,9 @@ import { canCallInApp } from "../../lib/openCall";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// D86: the payment page, inside Novi. In the pilot this is FedaPay's test
-// checkout page; with live mobile money there is no page at all (her phone
-// shows the Moov Money or Mixx by Yas prompt). Only FedaPay's own pages load
-// here; anything else opens in the browser. Novi keeps asking whether the
-// payment went through, and closes this page by itself once it has.
+// D86: the payment page inside Novi. In the pilot it is FedaPay's test page;
+// with live mobile money her phone shows the prompt instead. Only FedaPay's
+// pages load here. It closes by itself once the payment is confirmed.
 const FEDAPAY = /^https:\/\/([a-z0-9-]+\.)*fedapay\.com\//i;
 const CHECK_MS = 3000;
 

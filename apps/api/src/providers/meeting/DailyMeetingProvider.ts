@@ -1,9 +1,7 @@
 import type { MeetingProvider } from "./MeetingProvider.js";
 
-// Daily (daily.co) through its REST API. A private room opens 10 minutes
-// before the meeting and closes at its end, ejecting anyone still in it, so
-// a forgotten call never runs on. Members start with the camera off: voice
-// first, which saves data on a weak connection. Nothing is recorded.
+// Daily.co rooms: open 10 minutes before the meeting, closed at the end,
+// camera off by default to save data. Nothing is recorded.
 const API = "https://api.daily.co/v1";
 const seconds = (date: Date) => Math.floor(date.getTime() / 1000);
 

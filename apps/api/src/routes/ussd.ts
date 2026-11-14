@@ -6,19 +6,9 @@ import { identity } from "../providers/index.js";
 import { MockAnidProvider } from "../providers/identity/MockAnidProvider.js";
 import { handleUssd } from "../services/ussdService.js";
 
-// Novi by USSD (D73), reached through Africa's Talking's USSD gateway. At
-// each key press the gateway posts a form (sessionId, serviceCode,
-// phoneNumber, text) and shows the member the plain-text answer, which
-// starts with "CON" (show and wait) or "END" (show and hang up).
-//
-// The gateway does not sign its requests, so the address itself carries a
-// secret, USSD_CALLBACK_TOKEN, known only to Novi and the Africa's Talking
-// dashboard. Without it, or with a wrong one, the route does not exist.
-// While the channel is the sandbox (pilot mode), a member's keys pass through
-// Africa's Talking's test servers, so only test accounts may use it: in the
-// pilot every account was opened with a demo identity (the simulated ANID
-// accepts nothing else, D3), so any account qualifies; once the real ANID is
-// connected, the sandbox is closed to all.
+// USSD through Africa's Talking (D73). The gateway posts a form at each key
+// press and shows our "CON"/"END" answer. It does not sign requests, so the URL
+// carries a secret (USSD_CALLBACK_TOKEN). The sandbox only accepts test accounts.
 export const ussdRouter = Router();
 ussdRouter.use(express.urlencoded({ extended: false, limit: "4kb" }));
 

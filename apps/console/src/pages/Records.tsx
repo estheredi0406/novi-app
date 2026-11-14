@@ -34,11 +34,8 @@ export function Records({ t, onExpired }: { t: Text; onExpired: () => void }) {
   );
 }
 
-// One record, as the member shared it, checked against Novi's signature.
-// Opening it is logged with the officer's name, and she sees it was opened.
-// One shared record, shown as the ACEV document itself (D65): the same page
-// a lender sees by scanning its QR code, which the officer can print or save
-// as PDF. Opening it is logged with the officer's name (D54).
+// One shared record, shown as the ACEV document (D65), checked against Novi's
+// signature. Opening it is logged with the officer's name (D54).
 export function RecordPage({ t, shareId, onExpired }: { t: Text; shareId: string; onExpired: () => void }) {
   const { data, failed } = useLoad(() => apiHtml(`/v1/console/records/${shareId}/document`), onExpired);
 

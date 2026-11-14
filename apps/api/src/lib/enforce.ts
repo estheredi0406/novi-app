@@ -1,10 +1,8 @@
 import type { RuleBreak, RuleResult } from "./groupRules.js";
 import { AppError } from "./errors.js";
 
-// How each refusal from the rules engine is answered: 400 the request itself
-// is wrong, 403 this person may not do it, 409 the group (or the round) is
-// not in a state that allows it. Shared by every service that applies the
-// rules, so the same refusal always gets the same answer.
+// How each refusal from the rules is answered: 400 bad request, 403 not
+// allowed for this person, 409 the group is not in the right state.
 const STATUS: Record<RuleBreak, number> = {
   NOT_ALLOWED_NOW: 409,
   ORGANISER_ONLY: 403,

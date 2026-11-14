@@ -6,11 +6,9 @@ import type { Text } from "../text";
 
 const PHONE = /^\+228\d{8}$/;
 
-// A member at the counter (D69). The officer finds her by her phone number,
-// then acts: for an estate (succession), when she leaves a started group, when
-// her phone was lost or stolen, or to make her the organiser. The money does
-// not move here: it stays in the group's account, only who receives it and
-// who may log in change. Every search and action is in the log.
+// A member at the counter (D69): find her by phone number, then handle a death,
+// a member leaving, a lost phone, or a new organiser. The money does not move.
+// Everything is logged.
 export function Members({ t, onExpired }: { t: Text; onExpired: () => void }) {
   const [phone, setPhone] = useState("+228");
   const [member, setMember] = useState<ConsoleMember | null>(null);

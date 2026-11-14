@@ -1,11 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-// The webhook signature scheme FedaPay uses (read from its official Node
-// library, fedapay-node, Webhook.ts): a header "t=<unix time>,s=<signature>",
-// where the signature is HMAC-SHA256 of "<unix time>.<raw body>" with the
-// webhook secret. A signature older than 5 minutes is refused, so a recorded
-// webhook cannot be replayed later. The mock provider signs the same way, so
-// tests exercise the real check.
+// FedaPay's webhook signature (from its Node library): HMAC-SHA256 of
+// "<time>.<body>". Signatures older than 5 minutes are refused so an old
+// webhook cannot be replayed. The mock signs the same way.
 
 const TOLERANCE_SEC = 5 * 60;
 

@@ -14,11 +14,9 @@ type Data = {
   overview: ConsoleOverview;
 };
 
-// "Aujourd'hui" (D116, D150): today's figures, a gap in the accounts if any, what
-// Novi settled by itself (D114), what only a person can decide, and the
-// groups to keep an eye on. Everything that went normally stays out of the
-// way. Totals only, never who paid (D33), except a reported payment, which
-// the officer must find on the operator's statement.
+// "Aujourd'hui" (D116, D150): today's figures, any gap in the accounts, what Novi
+// settled by itself (D114), what needs a decision, and groups to watch. Totals
+// only (D33).
 export function Overview({ t, onExpired }: { t: Text; onExpired: () => void }) {
   const { data, failed, reload } = useLoad<Data>(
     async () => ({

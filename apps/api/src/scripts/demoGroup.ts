@@ -2,18 +2,10 @@ import { hashSecret, niuKeyedHash } from "../lib/hashing.js";
 import { prisma } from "../lib/db.js";
 import { acceptRules, createGroup, inviteToGroup, proposeGroup, startGroup } from "../services/groupService.js";
 
-// Development only: sets up a running group of 3 in one command, so payments
-// can be tried on the phone without signing up two more people by hand.
+// Development only: creates a running group of 3 in one go, with two test
+// members (PIN 4829), using the same services as the app.
 //
 //   npm run demo:group -w @novi/api -- +22890123456
-//
-// The number is the one you signed up with in the app. The script:
-//   1. creates Abla and Koffi as test members (PIN 4829), if they do not exist;
-//   2. creates "Pagnes Assigamé (démo)": 5 000 FCFA every week, 3 members,
-//      due the day after today, with you as organiser;
-//   3. invites them, proposes the rules, has them accept, and starts the group.
-// Every step goes through the same services the app uses, so the group passes
-// the same rules (D26 to D29) and ends up exactly as if it had been set up by hand.
 
 const DEMO_MEMBERS = [
   { phone: "+22899000002", niu: "DEMO-0002", legalName: "Abla Agbeko", displayName: "Abla" },

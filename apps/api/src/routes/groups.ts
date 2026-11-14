@@ -111,7 +111,7 @@ groupsRouter.get("/:id", async (req, res) => {
   res.json(await getGroup(id, currentMember(res).userId));
 });
 
-// State changes are explicit actions, one route each (brief, section 9),
+// State changes are explicit actions, one route each,
 // not a general "update the group" that could change anything.
 groupsRouter.post("/:id/rules", async (req, res) => {
   const { id } = groupId.parse(req.params);
@@ -133,7 +133,7 @@ groupsRouter.post("/:id/cancel", async (req, res) => {
   res.json(await cancelGroup(id, currentMember(res).userId));
 });
 
-// ---------- Invitations (S2.5) ----------
+// ---------- Invitations ----------
 
 groupsRouter.post("/:id/invites", async (req, res) => {
   const { id } = groupId.parse(req.params);
@@ -151,7 +151,7 @@ groupsRouter.post("/:id/seats/:memberId/remove", async (req, res) => {
   res.json(await removeSeat(id, currentMember(res).userId, memberId));
 });
 
-// ---------- Answering (S2.6) ----------
+// ---------- Answering ----------
 
 groupsRouter.post("/:id/accept", async (req, res) => {
   const { id } = groupId.parse(req.params);
@@ -180,7 +180,7 @@ groupsRouter.post("/:id/decline", async (req, res) => {
   res.status(204).end();
 });
 
-// ---------- Payout order and start (S2.7) ----------
+// ---------- Payout order and start ----------
 
 groupsRouter.post("/:id/order", async (req, res) => {
   const { id } = groupId.parse(req.params);

@@ -1,14 +1,10 @@
 import "dotenv/config";
 import { DailyMeetingProvider } from "../providers/meeting/DailyMeetingProvider.js";
 
-// Checks the Daily key before a real meeting (D71): creates a private test
-// room that opens now and closes in 15 minutes, prints a pass to join it as
-// owner, and never prints the key. Run from apps/api:
+// Checks the Daily key before a real meeting (D71): opens a test room for
+// 15 minutes and prints a pass. Never prints the key.
 //
 //   npm run daily:probe
-//
-// Open the printed address on your phone: you should see Daily's call page
-// with your microphone on and camera off. The room disappears by itself.
 
 const key = process.env.DAILY_API_KEY;
 if (!key) {

@@ -16,14 +16,9 @@ export type NewsItem = {
   notice: { title: string; body: string; url: string; read: boolean } | null;
 };
 
-// One line of her statement: a payment she made, or a pot she received.
-// One line of her own transactions ("Mes transactions"), newest first.
-// PAID: a contribution; ADVANCE: her advance paid with round 1 (D103);
-// RECEIVED: a pot; ADVANCE_BACK: her advance given back at the end;
-// PENDING: sent, the operator has not confirmed yet; FAILED: not confirmed,
-// she can say the money left her account or pay again; COVERED: the group's
-// advances paid her share (D104), to repay before dueBy. No money moved for
-// COVERED, so it is in neither column of the table.
+// One line of her transactions ("Mes transactions"), newest first.
+// PAID, ADVANCE (D103), RECEIVED, ADVANCE_BACK, PENDING, FAILED, and COVERED
+// (the advances paid her share, D104; no money moved, so it is in neither column).
 export type StatementLine = {
   id: string;
   kind: "PAID" | "ADVANCE" | "RECEIVED" | "ADVANCE_BACK" | "PENDING" | "FAILED" | "COVERED";

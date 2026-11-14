@@ -10,11 +10,8 @@ import { LineIcon } from "../LineIcon";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// One line of "Dernières nouvelles" (D92), like a line in a bank statement:
-// who, what, which group and when on the left, the amount on the right. Her
-// own payments are in night blue with a minus; others' money is muted, since
-// it is not her money moving. Opens the group's discussion, where the same
-// line sits among the messages.
+// One line of "Dernières nouvelles" (D92), like a bank statement line: who, what
+// and when on the left, the amount on the right. Opens the group's chat.
 
 export function newsTitle(t: TFunction, item: NewsItem): string {
   if (item.notice) return item.notice.title;

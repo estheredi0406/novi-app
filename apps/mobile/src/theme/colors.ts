@@ -1,14 +1,10 @@
-// Novi's palette, direction "Lagune" (D92): the deep blues of a bank
-// app people already trust, with Novi's own pagne motif and cowries on top.
-// One meaning per colour, on every screen (D121):
-// - indigo: structure (bands, titles, what is selected, "you" in a group);
-// - action blue: every button and link;
-// - orange (accent): only what waits for her now: Payer and the pay buttons,
-//   an invitation to answer, unread messages, a meeting that is live;
-// - green (paid): money paid or arrived, a condition met;
-// - saffron (yourTurn): whose turn it is to receive, or something waiting
-//   on someone else;
-// - red (problem): a problem with money, or a safety warning about it.
+// Novi's colours (D92), one meaning each (D121):
+// - indigo: structure, titles, what is selected;
+// - action blue: buttons and links;
+// - orange: what waits for her now (Payer, an invitation, unread messages);
+// - green: money paid or arrived;
+// - saffron: whose turn it is to receive;
+// - red: a money problem or a safety warning.
 export const colors = {
   indigo: "#06294A", // night blue: headings, outlines, dark screens
   action: "#0B4F8A", // links

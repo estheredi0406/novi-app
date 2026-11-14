@@ -1,11 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-// Codes from an authenticator app (Google Authenticator, Microsoft
-// Authenticator and others), as defined by RFC 6238 (TOTP) on top of RFC 4226
-// (HOTP). Written with Node's crypto instead of a library, because the method
-// is short: the app and the server share a secret, and every 30 seconds both
-// turn the current time into the same 6-digit code. A stolen password alone
-// is then not enough to log in to the console (D52).
+// Authenticator app codes (TOTP, RFC 6238), written with Node's crypto since the
+// method is short. A stolen password alone is not enough for the console (D52).
 
 const STEP_SECONDS = 30;
 const DIGITS = 6;
@@ -67,10 +63,8 @@ export function codeForStep(secret: Buffer, step: number, digits = DIGITS): stri
   return String(number).padStart(digits, "0");
 }
 
-// Returns the step the code belongs to, or null if it is wrong. The step
-// before and after are accepted too, because a phone's clock can be a few
-// seconds off. A step at or before lastUsedStep is refused, so a code seen
-// over someone's shoulder cannot be used a second time.
+// Returns the code's time step, or null if wrong. One step before and after is
+// accepted for clock drift, and a used step is refused so a code cannot be reused.
 export function checkTotp(secretBase32: string, code: string, nowMs: number, lastUsedStep: number | null): number | null {
   if (!/^\d{6}$/.test(code)) return null;
   const secret = base32Decode(secretBase32);

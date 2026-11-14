@@ -1,9 +1,7 @@
 import type { ErrorCode } from "@novi/shared";
 
-// An expected failure with a known code, such as a wrong SMS code. Thrown
-// anywhere in the API and turned into a standard response by errorHandler.
-// An expected failure with a known code, such as a wrong SMS code. Thrown
-// anywhere in the API and turned into a standard response by errorHandler.
+// An expected failure with a known code (for example a wrong SMS code), turned
+// into a normal error response by errorHandler.
 export class AppError extends Error {
   constructor(
     readonly code: ErrorCode,

@@ -4,11 +4,7 @@ import { logout as logoutRequest } from "../api/auth";
 import { restoreSavedLanguage, setAppLanguage } from "../i18n";
 import { clearTokens, getMember, saveMember, saveTokens } from "../lib/storage";
 
-// Where the app stands:
-// - loading: reading the phone's storage at launch
-// - new: nobody has signed up on this phone; sign-up starts
-// - locked: a member uses this phone; her PIN opens Novi
-// - open: she unlocked Novi during this launch
+// Where the app stands: loading, new (sign-up), locked (PIN), open.
 type Status = "loading" | "new" | "locked" | "open";
 
 type SessionState = {

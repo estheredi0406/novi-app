@@ -11,11 +11,9 @@ function startOfDay(moment: Date): Date {
   return new Date(Date.UTC(moment.getUTCFullYear(), moment.getUTCMonth(), moment.getUTCDate()));
 }
 
-// Round 1 is due on the first due day AFTER the group starts, never on the
-// same day (D44). A group started on a Friday that pays on Fridays is due
-// the next Friday, so nobody is asked to pay within hours of the start.
-// WEEKLY dueDay: 1 Monday to 7 Sunday. MONTHLY dueDay: 1 to 28. DAILY has no
-// due day: every day but Sunday, when the markets of Lomé are quiet (D92).
+// Round 1 is due on the first due day after the start, never the same day (D44).
+// WEEKLY dueDay: 1 (Monday) to 7 (Sunday). MONTHLY: 1 to 28. DAILY: every day
+// except Sunday, when Lomé's markets are quiet (D92).
 export function firstDueDate(startedAt: Date, frequency: Frequency, dueDay: number): Date {
   const start = startOfDay(startedAt);
 

@@ -1,10 +1,8 @@
 import { Redirect } from "expo-router";
 import { useSession } from "../session/SessionProvider";
 
-// Where the app starts:
-// - open: she unlocked Novi during this launch, so home
-// - locked: she has an account on this phone, so her PIN
-// - new: nobody has signed up on this phone, so sign-up
+// Where the app starts: home if unlocked, the PIN if she has an account here,
+// sign-up otherwise.
 export default function Start() {
   const { status } = useSession();
   if (status === "open") return <Redirect href="/home" />;

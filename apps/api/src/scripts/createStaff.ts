@@ -3,15 +3,11 @@ import { prisma } from "../lib/db.js";
 import { PILOT_MFIS } from "../services/groupService.js";
 import { createStaff } from "../services/staffService.js";
 
-// Opens a console account for an MFI officer (D52):
+// Opens a console account for an officer (D52):
 //
 //   npm run staff:create -w @novi/api -- MAWULI mawuli@mawuli.example "Mawuli Adzo"
 //
-// It prints a one-time password and the authenticator secret. The officer
-// adds the secret to an authenticator app (Google or Microsoft Authenticator:
-// "add account", "enter a setup key"), then logs in with email, password and
-// the app's 6-digit code. Both are shown only once: run it again with another
-// email if they are lost.
+// Prints a one-time password and the authenticator key, shown only once.
 
 async function main() {
   const [mfiCode, email, name, role] = process.argv.slice(2);

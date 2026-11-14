@@ -1,34 +1,21 @@
 import type { CollectionRequest, CollectionStatus, MobileOperator, PaymentProvider } from "./PaymentProvider.js";
 import { verifySignature } from "./webhookSignature.js";
 
-// Collects contributions through FedaPay, which reaches Moov Money and
-// T-Money in Togo. Written from FedaPay's documentation and the request and
-// response shapes in its official Node library's tests; it calls the API with
-// Node's own fetch instead of that library, whose HTTP client (axios 0.28)
-// has known high-severity advisories.
-//
-// Each payment is three calls:
-//   1. POST /v1/transactions                create the transaction
-//   2. POST /v1/transactions/{id}/token     get a payment token
-//   3. POST /v1/{mode}                      send the request to her phone ("send now")
-// Status is read back with GET /v1/transactions/{id}.
-//
-// Sandbox: https://sandbox-api.fedapay.com. Live mode needs a registered
-// company in a FedaPay country, and under D34 the merchant account belongs to
-// the MFI that holds the money, not to Novi.
+// Collects contributions through FedaPay (Moov Money and T-Money in Togo).
+// We call the API with fetch instead of FedaPay's Node library, which depends
+// on an old axios version with security advisories.
+// A payment is three calls: create the transaction, get a token, send the
+// request to her phone. The status is read with GET /v1/transactions/{id}.
+// Under D34 the merchant account belongs to the MFI, not to Novi.
 
 // FedaPay's names for the Togolese operators ("send now" modes).
 const MODES: Record<MobileOperator, string> = { MOOV_TG: "moov_tg", TOGOCEL: "togocel" };
 
 type FedaPayTransaction = { id: number; status: string; amount: number };
 
-// Sandbox only. FedaPay's sandbox publishes test numbers for Benin only
-// (MTN 66000001, Moov 64000001 succeed), and it refuses a Togolese number
-// with "Opération non autorisée". With this set, the payment request (step 3)
-// goes to that test number instead of the member's own, so a full payment can
-// be watched end to end. With mode "page", no request is sent to a phone:
-// the API prints FedaPay's payment page instead. Never used in live mode, where she pays from her own
-// verified number (D49).
+// Sandbox only. FedaPay's test numbers are Beninese and it refuses Togolese
+// numbers, so we can redirect the request to a test number, or use "page" for
+// FedaPay's payment page. Never used in live mode (D49).
 export type SandboxPayer = { mode: string; country: string; number: string };
 
 export const FEDAPAY_SANDBOX_API = "https://sandbox-api.fedapay.com";
@@ -85,10 +72,8 @@ export class FedaPayProvider implements PaymentProvider {
 
     const { token, url } = await this.call<{ token: string; url?: string }>("POST", `/transactions/${transaction.id}/token`);
     if (this.sandboxPayer?.mode === "page") {
-      // Checkout (D64): no request is sent to a phone. The app opens
-      // FedaPay's own payment page, where she chooses her operator and
-      // approves; FedaPay then tells Novi through the signed webhook. This
-      // sandbox account may not use "send now" ("Opération non autorisée").
+      // Checkout (D64): she pays on FedaPay's page and FedaPay tells us through the
+      // webhook. This sandbox account cannot use "send now".
       if (!url) throw new Error(`FedaPay returned no payment page for transaction ${transaction.id}`);
       console.log(`[fedapay] payment page for transaction ${transaction.id}`);
       return { providerRef: String(transaction.id), paymentUrl: url };
@@ -119,10 +104,8 @@ export class FedaPayProvider implements PaymentProvider {
     await this.call("GET", "/transactions/search");
   }
 
-  // D113: what the account holds now, summed over its balances (one per
-  // mode). FedaPay's API reference gives GET /v1/balances as a plain list of
-  // { id, amount, mode, ... }; its PHP library reads a "balances" wrapper, so
-  // both are accepted, and the "v1/balances" wrapper its other lists use.
+  // D113: the account balance, added up over its balances. FedaPay's docs and
+  // libraries disagree on the response shape, so we accept both.
   async getBalance(): Promise<number> {
     const body = await this.call<unknown>("GET", "/balances");
     type Row = { amount: number };

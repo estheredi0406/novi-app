@@ -4,12 +4,9 @@ import { toGsm } from "./TwilioSmsProvider.js";
 
 export type SmsRoute = { provider: SmsProvider; real: boolean };
 
-// Where every SMS goes through (D109, D111). It picks the provider by the
-// number's country (+250 to Pindo on the pilot; +228 to Twilio, or to the
-// mock until a Togo provider is chosen), keeps a month under the cost limit,
-// and writes each SMS down: on the pilot with its text, so the tester can read
-// it in "Mes SMS". An SMS that fails is logged, never thrown: the payment or
-// payout behind it has already happened.
+// Every SMS goes through here (D109, D111): it picks the provider by country,
+// keeps under the monthly limit and logs each SMS. A failed SMS never stops the
+// payment behind it.
 export class SmsDesk implements SmsProvider {
   constructor(
     private readonly options: {

@@ -22,11 +22,9 @@ import { alertStaff } from "./alertService.js";
 import { owedCovers } from "./memberService.js";
 import { notifyMembers } from "./notifyService.js";
 
-// Microloan requests to the MFI (D89, D91). Novi carries her request, her
-// record and her declared business; the MFI decides, lends and is repaid at
-// its agency. Sending the request is her consent that the MFI sees them (D37).
-// Steps: sent; preselected (she comes to sign, with the documents listed);
-// then granted or not at the agency. Novi keeps no document of hers.
+// Loan requests to the MFI (D89, D91). Novi carries the request, her record and
+// her declared business; the MFI decides and lends at its agency. Novi keeps
+// no document of hers.
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const DEFAULT_DOCUMENTS: LoanDocumentSpec[] = [

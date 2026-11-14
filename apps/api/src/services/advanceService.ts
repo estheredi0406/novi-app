@@ -5,17 +5,10 @@ import { currentRoundNumber } from "../lib/schedule.js";
 import { notifyMembers } from "./notifyService.js";
 import { deadlineAfter, reserveBalance } from "./reserveService.js";
 
-// D104: what happens when a member cannot pay, built on the group's advances
-// (D103). One cover order whatever the cause: her own advance, then her pot
-// still to come, then the others' advances in proportion; the pot is held only
-// when the advances are empty. The cause only changes her record.
-//
-// "Je ne peux pas payer ce tour": said before the due date, her share is
-// covered at once and it is not a late payment, as long as she repays before
-// the deadline (7 days, or the next turn if later). At most twice in a cycle,
-// never two turns in a row, never while she still owes a cover.
-// A deadline that passes unpaid is a missed turn; a second one puts her in
-// default: blocked from every group until she repays (DEBT_OUTSTANDING, D69).
+// D104: when a member cannot pay, using the group's advances (D103). The share
+// is covered by her own advance, then her coming pot, then the others'
+// advances. She can say "Je ne peux pas payer ce tour" at most twice a cycle;
+// a second missed deadline blocks her until she repays (D69).
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

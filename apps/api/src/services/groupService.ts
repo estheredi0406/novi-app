@@ -52,11 +52,9 @@ async function refuseIfOwing(userId: string): Promise<void> {
     throw new AppError("DEBT_OUTSTANDING", 409);
 }
 
-// The pilot's partner MFIs have fictional names (D120): Novi has no agreement
-// with any real institution, so it must not show one as its partner. The
-// default partner is created the first time a group needs it; the second one
-// is created with its first officer (scripts/createStaff.ts), so a group can
-// never choose an MFI that has nobody to validate it.
+// The partner MFIs have made-up names (D120): Novi has no agreement with a real
+// one. The default MFI is created when first needed; the others with their
+// first officer, so a group never picks an MFI with nobody to validate it.
 export const PILOT_MFIS = [
   { code: "MAWULI", name: "Caisse Mawuli" },
   { code: "DZIDZO", name: "Caisse Dzidzo" },
@@ -324,10 +322,8 @@ export async function listMyGroups(userId: string): Promise<GroupSummary[]> {
   );
 }
 
-// The round open for payment today in a running group, seen from her side:
-// whether she has paid it, and whether its pot is hers.
-// D139: her pot is on her phone and she has not answered "did it arrive?".
-// A pot she kept whole in savings sent nothing to her phone: nothing to ask.
+// Today's round in a running group, from her side: has she paid, is the pot
+// hers. D139: if her pot went to her phone, we ask her if it arrived.
 function toConfirm(
   payout: {
     id: string;
@@ -644,7 +640,7 @@ export async function cancelGroup(
   return getGroup(groupId, userId);
 }
 
-// ---------- Invitations (S2.5) ----------
+// ---------- Invitations ----------
 
 // Invites a phone number. It works the same whether or not the number has a
 // Novi account, and the answer to the organiser is the same either way: she
@@ -794,7 +790,7 @@ export async function listMyInvitations(userId: string): Promise<Invitation[]> {
   }));
 }
 
-// ---------- Answering (S2.6) ----------
+// ---------- Answering ----------
 
 // Loads a group for the person answering it: she holds a seat in it, or an
 // invitation to her verified phone number is waiting. Anyone else is told the
@@ -862,11 +858,8 @@ async function recordAnswer(
   });
 }
 
-// She accepts the version of the rules she read. From now on the group counts
-// towards her 3-group limit (D26), so she must have room for it.
-// D84: shareConsent is her agreement that the MFI sees her Novi record when
-// it validates the group. Older apps do not send it: the seat is taken, and
-// the officer sees that she has not agreed.
+// She accepts the rules she read; the group now counts in her 3-group limit
+// (D26). D84: shareConsent lets the MFI see her record when it checks the group.
 export async function acceptRules(
   groupId: string,
   userId: string,
@@ -919,10 +912,8 @@ async function tellOrganiserIfReady(detail: GroupDetail, organiserId: string) {
   );
 }
 
-// She asks for a change, with a note the whole group can read ("Saturday
-// suits me better, the market is closed on Friday"). Her place is kept, but
-// the group cannot start until the organiser changes the rules and she
-// accepts the new version, or her seat is removed.
+// She asks for a change, with a note the group can read. Her place is kept, but
+// the group cannot start until the rules change and she accepts.
 export async function counterRules(
   groupId: string,
   userId: string,
@@ -960,12 +951,11 @@ export async function declineGroup(
   });
 }
 
-// ---------- Payout order and start (S2.7) ----------
+// ---------- Payout order and start ----------
 
-// The organiser sets who is paid first, second, and so on (D41): for example
-// Abla first, because her shop rent is due. It needs every seat taken, so the
-// order names real members, and it becomes a new version of the rules, so
-// everyone accepts the exact order before the group can start (D29).
+// The organiser sets the order of turns (D41), for example Abla first because
+// her rent is due. It makes a new version of the rules, so everyone accepts
+// it before the start (D29).
 export async function setPayoutOrder(
   groupId: string,
   userId: string,
@@ -1020,14 +1010,9 @@ async function hasCompletedCycle(userId: string): Promise<boolean> {
   return seats > 0;
 }
 
-// Starts the group, in two steps.
-// 1. Novi checks every rule, fixes the payout order and moves the group to
-//    STARTING. From here nobody can leave or change anything.
-// 2. Novi asks the MFI to open the group's account; once it answers, the
-//    group is ACTIVE.
-// If the MFI does not answer, the group waits in STARTING with its order
-// kept, and the organiser can try again: the order is never drawn twice, so
-// nobody can retry until the draw suits them.
+// Starts the group: check the rules, fix the order, then ask the MFI to open
+// the account. If the MFI does not answer, the order is kept and never drawn
+// again, so nobody can retry until the draw suits them.
 export async function startGroup(
   groupId: string,
   userId: string,
@@ -1195,16 +1180,10 @@ async function createRounds(
 
 // ---------- The next cycle (D72) ----------
 
-// A tontine rarely stops after one cycle: when the last pot is paid, the
-// same women usually go again. The organiser starts the next cycle in one
-// step: a new group with the same name and rules, linked to the one before,
-// and an invitation to every member who completed the cycle. It starts as
-// a draft, so she can change the rules first; each member then accepts the
-// new cycle herself, as consent is given per cycle (D29). Members who left
-// or died (D69) are not invited again, nor a member who answered "Non,
-// j'arrête" (D80); one who has not answered is invited, and can decline. A
-// member who still owes the fund is invited, but cannot accept until she
-// has repaid it.
+// Next cycle in one step: a new group with the same rules, and an invitation
+// to each member who finished. It starts as a draft and each member accepts
+// again (D29). Members who left (D69) or said "Non, j'arrête" (D80) are not
+// invited.
 export async function startNextCycle(
   groupId: string,
   userId: string,

@@ -9,10 +9,8 @@ import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
 
-// D132, after the ANID code: the name on her identity record, as ANID returns
-// it, for her to confirm (the "e-KYC" pattern, as on a basic phone, D106).
-// That name is the one her MFI uses; the name her group sees comes later, on
-// the profile screen. "No" starts the identity step again: nothing is kept.
+// D132: after the ANID code, the name on her identity record for her to confirm
+// (D106). That is the name the MFI uses. "Non" restarts the step, nothing kept.
 export default function IdentityConfirmScreen() {
   const { t } = useTranslation();
   const { draft, update } = useSignUp();

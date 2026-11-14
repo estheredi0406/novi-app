@@ -27,3 +27,6 @@ apps/mobile/assets/voice/ee/machine/
 
 # Test reports written on request (vitest --outputFile)
 test-results.json
+
+# Files set aside to be deleted by hand
+_to_delete/

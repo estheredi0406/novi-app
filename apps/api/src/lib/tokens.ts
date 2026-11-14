@@ -36,11 +36,9 @@ export async function verifyAccessToken(token: string): Promise<AccessClaims | n
 // Which step of a flow a step token proves was completed.
 export type StepPurpose = "SIGN_UP" | "PIN_RESET" | "NEW_DEVICE" | "IDENTITY_PENDING" | "IDENTITY_VERIFIED";
 
-// Short-lived proof that one step was completed, e.g. "this phone number was
-// confirmed by SMS for sign-up". Each purpose gets its own audience, so a token
-// earned in one flow cannot be used in another, and none can pass as an access
-// token. Extra claims carry what the next step needs; they are signed, so they
-// cannot be altered, but they are readable, so they never hold a raw secret.
+// Short-lived proof that a step was done (for example, the phone was confirmed by
+// SMS). Each purpose has its own audience, so a token cannot be reused elsewhere.
+// The claims are signed but readable, so no secret goes in them.
 export async function createStepToken(
   purpose: StepPurpose,
   subject: string,

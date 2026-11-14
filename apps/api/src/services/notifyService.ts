@@ -3,12 +3,9 @@ import { prisma } from "../lib/db.js";
 import { push } from "../providers/index.js";
 import type { PushMessage } from "../providers/push/PushProvider.js";
 
-// Phone notifications (D79): what reaches a member when Novi is closed.
-// Four moments matter: a call starting (so the call brings people in), new
-// chat messages (at most one notification an hour per group, so the phone
-// does not buzz all day at the market), her pot paid, and a payment due.
-// The chat ones can be switched off in "Mon compte"; the money ones cannot.
-// A notification never stops what triggered it.
+// Phone notifications (D79): a call starting, new chat messages (at most one
+// an hour per group), her pot paid, a payment due. Chat ones can be turned off
+// in "Mon compte". A notification never stops what triggered it.
 
 const HOUR_MS = 60 * 60 * 1000;
 

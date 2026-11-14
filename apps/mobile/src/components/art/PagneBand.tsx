@@ -2,10 +2,9 @@ import { View } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 import { colors } from "../../theme/colors";
 
-// A strip in the spirit of a wax-print border, drawn for Novi. Each group gets
-// its own pattern and colours from its ID, so a member recognises her group at
-// a glance, as she would recognise a cloth. Decoration only: it carries no
-// meaning, so it uses none of the colours reserved for paid, problem or turn.
+// A wax-print style strip drawn for Novi. Each group gets its own pattern from
+// its ID so members recognise it. Decoration only, so it avoids the colours
+// that mean something.
 const PALETTES = [
   [colors.indigo, colors.laterite, "#E9C46A"],
   [colors.laterite, colors.indigo, colors.card],

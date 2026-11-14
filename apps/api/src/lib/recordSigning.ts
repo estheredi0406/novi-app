@@ -1,14 +1,9 @@
 import { createPrivateKey, createPublicKey, generateKeyPairSync, type KeyObject, sign, verify } from "node:crypto";
 
-// Signs shared savings records with Ed25519 (D50). The private key stays on
-// the server; the public key is published, so a lender's systems can check a
-// record without asking Novi. Changing one character of a signed record
-// makes the signature fail.
-//
-// The key is read from ACEV_PRIVATE_KEY in .env: an Ed25519 private key in
-// PKCS#8 DER form, base64. Generate one with:
+// Signs shared records with Ed25519 (D50). The private key stays on the server;
+// the public key lets a lender check a record. Change one character and the
+// signature fails. The key comes from ACEV_PRIVATE_KEY; to make one:
 //   node -e "const {generateKeyPairSync}=require('crypto');console.log(generateKeyPairSync('ed25519').privateKey.export({type:'pkcs8',format:'der'}).toString('base64'))"
-// Tests use a fresh key made at start, so no real key is ever needed in them.
 
 let privateKey: KeyObject | null = null;
 

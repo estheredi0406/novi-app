@@ -5,11 +5,9 @@ import { AppError } from "../lib/errors.js";
 import { owedCovers } from "./memberService.js";
 import { writeOffCovers } from "./reserveService.js";
 
-// Protecting the group (D69): what the MFI officer does when a member dies,
-// leaves a started group, or loses her number. The money never moves here:
-// it stays in the group's account at the MFI (D2). These actions only change
-// who it is sent to, and who may log in. Each is logged with the officer's
-// name, and each is limited to the officer's own MFI (D52).
+// Protecting the group (D69): when a member dies, leaves, or loses her number.
+// The money stays at the MFI (D2); only who receives it changes. Every action
+// is logged with the officer's name, within her own MFI (D52).
 
 type Tx = Prisma.TransactionClient;
 
@@ -97,17 +95,11 @@ async function handOver(tx: Tx, groupId: string, leavingId: string): Promise<str
   return next.userId;
 }
 
-// Records that she died, or left a started group, on the officer's word.
-//
-// DEATH (on a death certificate): applies to all her running groups at this
-// MFI. Her account is closed and logged out everywhere. What the fund paid
-// for her is written off, and the fund pays her remaining shares; nobody
-// owes them. Her pot, at her turn, and her part of the reserve go to her
-// next of kin's number, or the one the officer gives.
-//
-// LEFT: only that group. She still owes what the fund pays for her; it is
-// taken from her pot first if her turn has not come, otherwise it stays a
-// debt that stops her joining another group, which the MFI recovers.
+// Records that she died or left, on the officer's word.
+// DEATH: all her groups at this MFI; what the fund paid for her is written off
+// and her pot goes to her next of kin.
+// LEFT: that group only; she still owes what the fund paid for her, taken from
+// her pot if her turn has not come.
 export async function recordExit(
   mfiId: string,
   staffId: string,
@@ -171,11 +163,9 @@ export async function recordExit(
   return memberView(userId, mfiId);
 }
 
-// Her phone was lost or stolen and she has a new SIM. She comes to the
-// agency with her ID; the officer checks it and records the new number.
-// Every session is closed and every phone untrusted, so whoever holds the
-// old phone is logged out, and she logs in again with the SMS code sent to
-// the new number and her PIN. Her pots not yet sent follow the new number.
+// She lost her phone and has a new SIM. The officer checks her ID and saves the
+// new number; all her sessions are closed and her coming pots follow the new
+// number.
 export async function changePhone(
   mfiId: string,
   staffId: string,

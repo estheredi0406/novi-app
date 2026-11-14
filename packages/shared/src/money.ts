@@ -57,7 +57,7 @@ export type RoundSummary = {
 };
 
 // One member's payment in a round. Every member of the group sees every
-// payment (F8): the shared record is what makes the group trust itself.
+// payment: the shared record is what makes the group trust itself.
 export type RoundPayment = {
   memberId: string;
   displayName: string;

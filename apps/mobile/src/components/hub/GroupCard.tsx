@@ -16,16 +16,10 @@ import { LineIcon, type LineIconName } from "../LineIcon";
 import { CycleRing } from "../art/CycleRing";
 import { sheetColumn } from "../WebFrame";
 
-// One running group on home (D92, D121, D122): a rounded white card riding over the pagne band, about her
-// only. On the left, her cycle as a ring (CycleRing), the round in the
-// middle. On the right, one figure in large type: what she must pay (orange,
-// with the Payer button and, below, when her pot comes), else her pot to
-// come, else the pot she received, in green. Who receives this round is on the
-// group page, not here. Appeler, Discussion and Plus are plain blue links.
-// D144: the big figure is the pot she will receive, said as such ("Vous
-// recevrez le 14 nov."), never a bare amount that reads like a balance; under
-// it, where it goes once she has chosen, with a link to change it while the
-// choice is open.
+// One running group on home (D92, D121, D122): her cycle as a ring on the left,
+// and on the right one big figure: what she must pay, or the pot she will
+// receive, or the pot she received. D144: the pot is always said as a pot, never
+// a bare amount that looks like a balance.
 export function GroupCard({
   group,
   width,

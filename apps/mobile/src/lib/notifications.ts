@@ -6,11 +6,9 @@ import { Platform } from "react-native";
 import { memberRequest } from "../api/client";
 import { colors } from "../theme/colors";
 
-// Phone notifications (D79). Once she has unlocked Novi, the phone asks
-// once whether Novi may notify her, then tells Novi's server where to reach
-// it. Tapping a notification opens the screen it is about (the call in the
-// chat, the group's payments). Nothing here may stop the app: a phone that
-// refuses, or Expo Go (which cannot receive them), simply gets none.
+// Phone notifications (D79): asks permission once, sends the phone's token to
+// the server, and opens the right screen when tapped. A refusal never breaks
+// the app.
 
 // While Novi is open, a notification still shows at the top, quietly.
 Notifications.setNotificationHandler({

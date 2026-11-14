@@ -14,13 +14,9 @@ import {
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
 import type { PaymentProvider } from "../providers/payment/PaymentProvider.js";
 
-// D102: whose payment account a payment goes into, and a pot comes out of.
-// Each MFI connects its own FedaPay account in the console, so members' money
-// lands in the MFI's balance and pots leave from it: Novi gives instructions
-// and never holds the money (D2, D34). An MFI that has not connected one
-// uses Novi's demo account (the FedaPay sandbox set in the server's settings)
-// only on the pilot or in tests; anywhere else its groups cannot take
-// payments until it does.
+// D102: whose FedaPay account a payment goes into and a pot leaves from. Each
+// MFI connects its own, so Novi never holds money (D2, D34). Without one, the
+// pilot uses Novi's demo account.
 
 type PayoutSender = {
   sendPayout(request: PayoutRequest): Promise<PayoutAnswer>;

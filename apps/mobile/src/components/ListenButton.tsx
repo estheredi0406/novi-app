@@ -7,11 +7,8 @@ import { colors } from "../theme/colors";
 import { fonts } from "../theme/typography";
 import { LineIcon } from "./LineIcon";
 
-// Reads the screen aloud, for members who prefer listening to reading.
-// French and English use the phone's voice; Ewe plays the sentences kept in
-// the voice studio, and the phone's French voice for the rest (lib/speak).
-// Tapping again while it reads stops it (D99): the button says "Arrêter" and
-// shows a square until the reading ends, however it ends.
+// Reads the screen aloud. French and English use the phone's voice; Ewe plays
+// the recorded sentences (lib/speak). Tap again to stop (D99).
 function useListen(text: string) {
   const id = useId();
   const [owner, setOwner] = useState(speakingOwner());

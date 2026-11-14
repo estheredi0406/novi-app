@@ -46,11 +46,9 @@ function temporaryPassword(): string {
 
 export const MIN_PASSWORD = 12;
 
-// Creates a staff account for an MFI. The staff:create script uses it once,
-// for the MFI's first administrator; after that, administrators add their
-// officers in the console (D81). Returns the temporary password and the
-// authenticator secret, shown once and never again. The temporary password
-// must be replaced at the first login.
+// Creates a staff account. Used once by the script for the first admin; after
+// that, admins add officers in the console (D81). The temporary password and
+// the authenticator key are shown only once.
 export async function createStaff(input: { mfiCode: string; email: string; name: string; role?: StaffRole }) {
   const mfi = await prisma.mfi.findUnique({ where: { code: input.mfiCode } });
   if (!mfi) throw new Error(`No MFI with code ${input.mfiCode}.`);

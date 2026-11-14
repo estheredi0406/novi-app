@@ -20,10 +20,8 @@ import { Money } from "./pages/Money";
 import { Icon, type IconName } from "./Icon";
 import { useCounts } from "./useCounts";
 
-// The console's pages, read from the address bar after "#", so the browser's
-// back button works without a routing library: #/, #/groups, #/groups/<id>,
-// #/loans, #/members, #/records, #/analytics, #/settings (D116: six items in
-// the menu; the log, the team and the shared records sit under them).
+// The console's pages come from the part after "#" in the address, so the back
+// button works without a router library (D116).
 function useRoute(): string[] {
   const read = () =>
     window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);

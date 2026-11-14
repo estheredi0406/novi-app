@@ -21,15 +21,10 @@ import { PindoSmsProvider } from "./sms/PindoSmsProvider.js";
 import { SmsDesk, type SmsRoute } from "./sms/SmsDesk.js";
 import { TwilioSmsProvider } from "./sms/TwilioSmsProvider.js";
 
-// The one place that decides which implementation the API uses. Everything
-// else depends only on the interfaces, so replacing a mock with a real
-// provider changes this file and nothing else (D3).
-// SMS (D109, D111). Rwandan numbers (the pilot, run from Kigali) go to Pindo
-// when PINDO_API_TOKEN and PINDO_SENDER are set; Togolese numbers go to Twilio
-// when SMS_PROVIDER=twilio and its keys are set; everything else is simulated
-// by the mock. Real SMS are capped at SMS_MONTHLY_LIMIT a month (200 if
-// unset). With PILOT_SHOW_SMS=true, the text of each SMS is kept for the
-// tester's "Mes SMS" screen. Tests always use the bare mock.
+// The only file that chooses which provider is used (D3). The rest of the code
+// only knows the interfaces, so a mock can be swapped for a real one here.
+// SMS (D109, D111): Rwandan numbers go to Pindo, Togolese numbers to Twilio when
+// configured, everything else to the mock. Real SMS are capped each month.
 function chooseSms(): SmsProvider {
   if (process.env.NODE_ENV === "test") return new MockSmsProvider();
   const {
@@ -68,10 +63,8 @@ export const sms: SmsProvider = chooseSms();
 export const identity: IdentityProvider = new MockAnidProvider();
 export const mfi: MfiAdapter = new MockMfiAdapter();
 
-// Optional, sandbox only: FEDAPAY_SANDBOX_PAYER="moov:bj:64000001" sends
-// every payment request to that FedaPay test number (see SandboxPayer);
-// "page:bj:66000001" (or just "page") prints FedaPay's payment page instead.
-// FEDAPAY_SANDBOX_PAYOUT does the same for pots sent by payout (D102).
+// Sandbox only: send every payment (or payout, D102) to one FedaPay test number,
+// or "page" to use FedaPay's payment page instead.
 export function sandboxPayer(name: "FEDAPAY_SANDBOX_PAYER" | "FEDAPAY_SANDBOX_PAYOUT"): SandboxPayer | undefined {
   const [mode, country, number] = (process.env[name] ?? "").split(":");
   if (mode === "page" && !number) return { mode, country: "", number: "" };

@@ -17,38 +17,19 @@ import { hasApp, notifyMembers } from "./notifyService.js";
 import { savingsDecidedSms } from "../lib/smsText.js";
 import { sms } from "../providers/index.js";
 
-// D123: a member can keep her pot, or part of it, in a savings account at the
-// MFI that holds her group's money, instead of receiving it on her wallet.
-//
-// The rules, in one place:
-// 1. D147: as soon as she has joined a group, before it starts, Novi asks
-//    where her pot goes: all on her wallet (the default if she never
-//    answers), all kept, or a part kept, with the caisse's conditions on the
-//    same screen. She can change her mind until the pot is sent.
-// 1b. D147: the caisse must have set its conditions (rates, fees, minimum,
-//    early-withdrawal rule) first: until then it cannot validate a group and
-//    Novi offers no savings at all.
-// 2. Kept money goes into one of two pockets: FREE (she withdraws when she
-//    wants) or LOCKED for 3, 6 or 12 months (she cannot withdraw it before;
-//    the MFI pays a better rate). The rate is the MFI's, fixed when the money
-//    comes in, and Novi shows it; it never sets it.
-// 3. One savings account per member per MFI. The first time she keeps money,
-//    she agrees that Novi sends the MFI the identity it verified (her name,
-//    date of birth, number, and that ANID confirmed her identity); the MFI
-//    opens the account from its console. D141: the pot waits until it is
-//    opened; refused, the whole pot goes to her wallet and she is told.
-// 4. A withdrawal goes only to her own Novi number, like a pot, from the
-//    MFI's account. Locked money becomes free on its unlock day. Before that
-//    day she can take a whole placement back on the caisse's early rule (D147:
-//    without gains, or less a penalty): the app says first what she would get
-//    by waiting.
-// 5. Interest is shown as an estimate: simple interest, day by day, on each
-//    amount at the rate it came in with. The MFI credits it by its own rules.
-// 6. A member must have started saving at the MFI before she asks for a loan
-//    (SavingsPolicy.requireForLoan, on by default since D125; the MFI can
-//    turn it off in the console).
-// Novi never holds the money (D2): the MFI does, in its FedaPay balance and
-// its own books; Novi records her choices and instructions.
+// D123: she can keep all or part of her pot in a savings account at the MFI.
+// The main rules:
+// 1. D147: Novi asks where her pot goes as soon as she joins (default: all to
+//    her phone). Only at a caisse that has set its conditions.
+// 2. Two pockets: FREE, or LOCKED for 3, 6 or 12 months at a better rate. The
+//    rate is the MFI's, never Novi's.
+// 3. One account per member per MFI, opened by the MFI after her consent.
+//    D141: the pot waits until it is open.
+// 4. Withdrawals only go to her own number. Locked money can come out early on
+//    the caisse's rule (D147).
+// 5. Interest shown is an estimate (simple interest).
+// 6. The MFI can require savings before a loan (requireForLoan, D125).
+// Novi never holds the money (D2).
 
 export const LOCK_MONTHS = [3, 6, 12] as const;
 const DAY_MS = 86_400_000;
@@ -208,11 +189,8 @@ function accountView(
   };
 }
 
-// Her pots she can still direct (D147): in each group she has joined that
-// has not started yet (no round: the choice is kept on her seat), and each
-// round of hers in a running group whose pot has not left (no payout yet, or
-// a full pot waiting for an officer, D137). Only at a caisse whose savings
-// conditions are complete.
+// Her pots she can still direct (D147): groups not started yet, and her rounds
+// whose pot has not left. Only at a caisse with complete savings conditions.
 type Open = {
   groupId: string;
   roundId: string | null;
@@ -323,11 +301,8 @@ export async function mySavings(userId: string, now = new Date()): Promise<MySav
 
 type ChoiceInput = { keepFcfa: number; pocket: SavingsPocket; lockMonths: number | null; consent: boolean };
 
-// Her choice for one pot, by its round (running group) or by its group (D147:
-// before the start, or her round in a running group). Keeping anything needs
-// her agreement to share her verified identity with the MFI, the first time;
-// the account is asked for at once, so the caisse can open it long before her
-// turn.
+// Her choice for one pot (D147). Keeping any of it needs her consent the first
+// time, and the account is requested right away so it can be open before her turn.
 export async function choosePot(
   userId: string,
   input: ChoiceInput & ({ roundId: string } | { groupId: string }),
@@ -423,10 +398,8 @@ export async function carryChoices(tx: Prisma.TransactionClient, groupId: string
   }
 }
 
-// D141: she chose to keep part of this pot in savings and the MFI has not
-// opened her account yet: the pot waits (no release, no auto-release, no
-// retry) until an officer opens the account, or refuses it (then all of it
-// goes to her phone). Returns the amount she keeps, or 0 if nothing waits.
+// D141: she keeps part of this pot and her account is not open yet, so the pot
+// waits. If the MFI refuses the account, it all goes to her phone.
 export async function savingsToOpen(payoutId: string): Promise<number> {
   const payout = await prisma.payout.findUnique({
     where: { id: payoutId },

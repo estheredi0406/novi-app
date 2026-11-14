@@ -9,12 +9,9 @@ import { ValidateGroup } from "../ValidateGroup";
 
 const time = (iso: string) => `${day(iso).slice(0, 5)} ${iso.slice(11, 16)}`;
 
-// One group (D117): who is where by turn, never by name (D33);
-// one round's payments with their references, so an officer can match them
-// with the operator's statement; every pot; the group's account at the MFI
-// (D113); its history. Names are only in the compliance view, for an
-// administrator or a compliance officer, with a reason (D117).
-// D84, D98: while the group waits for validation, each member's Novi record.
+// One group (D117): seats by turn, never by name (D33), the round's payments
+// with their references, the pots, the group's account at the MFI (D113) and its
+// history. D84, D98: while it waits for validation, each member's record.
 export function GroupPage({
   t,
   groupId,

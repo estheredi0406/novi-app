@@ -13,12 +13,9 @@ import { PrimaryButton } from "./PrimaryButton";
 import { QrCode } from "./QrCode";
 import { TextButton } from "./TextButton";
 
-// Sharing her savings record (D50, D54), on the credit screen since D121:
-// sharing it is how she shows a lender her seriousness, so it sits with the
-// lender's conditions rather than in her history. She shares with one MFI by
-// name, whose staff see it in their console, or makes a QR code for any
-// lender. Each share lasts 30 days, can be withdrawn, and she sees each time
-// it was opened.
+// Sharing her record (D50, D54), on the credit screen since D121: with one MFI
+// by name, or as a QR code for any lender. A share lasts 30 days, can be
+// withdrawn, and she sees when it was opened.
 export function RecordShare() {
   const { t } = useTranslation();
   const [shares, setShares] = useState<RecordShareView[]>([]);

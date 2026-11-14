@@ -1,9 +1,7 @@
 import { randomInt } from "node:crypto";
 
-// Draws the payout order: who receives the pot first, second, and so on.
-// Fisher-Yates with the operating system's secure random numbers, so every
-// order is equally likely and nobody, Novi included, can predict or steer it.
-// The random source can be replaced in tests.
+// Draws the order of turns with the system's secure random numbers (Fisher-Yates),
+// so nobody, not even Novi, can predict or steer it.
 export function drawOrder<T>(items: readonly T[], random: (max: number) => number = randomInt): T[] {
   const order = [...items];
   for (let i = order.length - 1; i > 0; i--) {

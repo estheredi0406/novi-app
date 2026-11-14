@@ -107,11 +107,8 @@ async function groupNews(userId: string, take: number, since: Date): Promise<New
   });
 }
 
-// Her own money, line by line ("Mes transactions"): every payment she made
-// (on time or late, pending or not confirmed), her advance, every pot and
-// advance given back, and every share the group's advances paid for her
-// (D103, D104). The record (D50) gives the totals; this gives the lines
-// behind them, for her eyes only.
+// Her own money line by line ("Mes transactions"): payments, her advance, pots,
+// advances given back, shares the group covered (D103, D104). Only she sees it.
 export async function getStatement(userId: string, limit = 200): Promise<Statement> {
   const group = { select: { id: true, name: true } };
   const [contributions, received, covers, returns] = await Promise.all([

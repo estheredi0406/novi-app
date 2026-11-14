@@ -15,11 +15,9 @@ import { recordOpenedSms } from "../lib/smsText.js";
 import { sms } from "../providers/index.js";
 import { hasApp, notifyMembers } from "./notifyService.js";
 
-// Her savings record, the ACEV. It turns years of tontine saving,
-// which banks cannot see today, into facts a lender can rely on: how often
-// she paid, on time or late, how much she saved and received. Facts only,
-// never a score (brief). It is hers: nobody sees it until she shares it
-// (D33), and each share is signed, limited in time and logged (D50).
+// Her savings record (ACEV): facts a lender can trust about her tontine saving,
+// never a score. Nobody sees it until she shares it (D33), and each share is
+// signed, time-limited and logged (D50).
 
 // A shared record stops working after this long; she can withdraw it sooner.
 const SHARE_DAYS = 30;
@@ -221,10 +219,8 @@ export async function revokeShare(userId: string, shareId: string): Promise<Reco
 // Who is opening a record shared with an MFI: one of its officers (D54).
 type StaffViewer = { staffId: string; mfiId: string };
 
-// A lender opens a shared record. Every opening is logged, so she can see it
-// was looked at (D37). The facts are shown only while the share is valid and
-// its signature still matches. A record shared with one MFI shows nothing to
-// anyone else, not even with its code: only "shared with Caisse Mawuli" (D54).
+// A lender opens a shared record. Each opening is logged (D37). A record shared
+// with one MFI shows nothing to anyone else (D54).
 export async function verifyShare(
   shareId: string,
   now = new Date(),

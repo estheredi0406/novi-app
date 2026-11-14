@@ -1,9 +1,6 @@
-// Her on-time streak in one group: how many rounds in a row, counting back
-// from the latest, she paid on or before the due date. Shown on home as
-// encouragement; never shown to anyone else (D33).
-//
-// A round whose day has not come yet and that she has not paid does not break
-// the streak: she still has time. A late or missed payment ends it.
+// Her on-time streak in one group, counted back from the latest round. A round
+// not due yet does not break it; a late or missed payment does. Only she sees it
+// (D33).
 
 export type StreakRound = { dueDay: number; paidDay: number | null }; // days as UTC midnights in ms
 

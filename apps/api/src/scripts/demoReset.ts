@@ -1,15 +1,11 @@
 import { prisma } from "../lib/db.js";
 import { countPilotData, resetPilotData } from "../services/pilotReset.js";
 
-// Pilot only (D93): start testing again from zero groups.
+// Pilot only (D93): start again from zero groups. Accounts, PINs, officer
+// logins and credit conditions are kept.
 //
-//   npm run demo:reset            shows what would be erased
-//   npm run demo:reset -- --yes   erases it
-//
-// Run it from the server's shell (Render › novi-api › Shell). Members keep
-// their accounts and PINs, officers keep their logins, the MFI keeps its credit
-// conditions. Everything else (groups, payments, pots, chats, advances, loan
-// requests, shared records, the Journal) is gone for good.
+//   npm run demo:reset            shows what would be deleted
+//   npm run demo:reset -- --yes   deletes it
 
 async function main() {
   const counts = await countPilotData();

@@ -3,19 +3,9 @@ import { prisma } from "../lib/db.js";
 import { AppError } from "../lib/errors.js";
 import { getAccounts } from "./consoleService.js";
 
-// D124: where the MFI's money is, and what does not match. One page answers three questions for the officer:
-// 1. How much is there? Novi's ledger for the groups, the group accounts in
-//    the MFI's books (D113), the members' placed savings (D123), and the real
-//    balance FedaPay reports for the MFI's account. FedaPay's balance should be
-//    the groups' money plus the savings, less FedaPay's fees and what the MFI
-//    already moved to its bank; Novi shows the figures side by side, it does
-//    not move money to the bank (the MFI does that in its FedaPay dashboard).
-// 2. What moved today, each line with where the money is now.
-// 3. What needs a person: a payment FedaPay confirmed for another amount than
-//    asked. Novi credits nothing then (moneyService.settle) and, until now, the
-//    officer never saw it: it was only in the log. Reported payments and
-//    failed transfers keep their own queues (D105, D114).
-// The MFI sees seats and rounds, not names (D33).
+// D124: where the MFI's money is, and what does not match. Shows the totals
+// (our ledger, the MFI's books, savings, FedaPay's balance), today's movements,
+// and payments FedaPay confirmed for a different amount. No names (D33).
 
 const DAY_MS = 86_400_000;
 

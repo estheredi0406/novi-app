@@ -16,23 +16,17 @@ import { alertStaff } from "./alertService.js";
 import { notifyCycleDone, notifyMembers, notifyPotPaid } from "./notifyService.js";
 import { coverMissing, repayFromPot, returnReserve, runReturns } from "./reserveService.js";
 
-// Money out (D63). On a round's due date, a full pot becomes READY;
-// the MFI officer then releases it from the console, and only then does Novi
-// instruct the MFI to send it to the member whose turn it is. Novi never holds the money: the MFI
-// does, and sends it (D2, D34). This runs as a job every minute, and also
-// right after a payment is confirmed, so a held pot leaves as soon as it is
-// full. Running it twice at the same moment is safe: each pot is sent once,
-// to her own verified number only (D49).
+// Money out (D63): on the due date a full pot becomes READY, the MFI releases
+// it, then Novi tells the MFI to send it. Runs every minute and right after a
+// payment. Each pot is sent once, only to her verified number (D49).
 
 // A transfer that Novi asked for but never heard back about (the API stopped
 // mid-request, for example) is asked again after this long. The MFI treats
 // the same payoutId as the same transfer, so asking again never sends twice.
 const STUCK_AFTER_MS = 10 * 60 * 1000;
 
-// D114: a transfer the sender refused is tried again by itself, three times,
-// spaced out (a wallet briefly unavailable, an operator outage); after that,
-// it waits for an officer, who is told: the number or the wallet is probably
-// what needs fixing, and trying every minute would not help.
+// D114: a refused transfer is retried three times, spaced out. After that an
+// officer is told, since the number or wallet probably needs fixing.
 export const RETRY_AFTER_MS = [5 * 60_000, 30 * 60_000, 2 * 3_600_000];
 export const MAX_ATTEMPTS = 1 + RETRY_AFTER_MS.length;
 
@@ -82,12 +76,9 @@ export async function runPayouts(
   await syncCoreBanking().catch((err) => console.error("Core banking booking failed:", err));
 }
 
-// D127: in the pilot, rounds follow each other. Testers should not wait a
-// week (or a month) to see a pot leave: as soon as every share of a round is
-// paid, and every earlier round's pot has left, the round is due now and its
-// pot is handled at once (released alone under the MFI's limit, or by the
-// officers above it, D105). The next round then becomes the one to pay. Only
-// on the pilot server (pilotMode); a real launch keeps the calendar.
+// D127: on the pilot, testers should not wait a week. When everyone has paid a
+// round (and earlier pots have left), it is due now. A real launch keeps the
+// calendar.
 export async function pilotFastForward(roundId: string, now = new Date()): Promise<boolean> {
   if (!pilotMode()) return false;
   const round = await prisma.round.findUnique({
@@ -180,11 +171,8 @@ async function handleRound(round: DueRound, now: Date) {
     }
   }
 
-  // The pot is each paid contribution less the reserve's share, plus what the
-  // reserve covered. It goes to her own number, with the mobile money
-  // service she pays with in this group.
-  // Once the officer released it, what her pot repaid to the fund is no
-  // longer part of what is sent (D69).
+  // The pot: the paid shares plus what the advances covered, sent to her number
+  // with the mobile money she pays with. What she owes the fund is taken off (D69).
   const amountFcfa =
     paid.reduce((sum, c) => sum + potShare(c.amountFcfa - c.advanceFcfa), 0) +
     covers.reduce((sum, c) => sum + c.amountFcfa, 0) -
@@ -223,10 +211,8 @@ async function handleRound(round: DueRound, now: Date) {
     return;
   }
 
-  // Full and due: the pot becomes ready (D63). A held pot that has just
-  // filled up becomes ready the same way. D105: up to the MFI's limit it then
-  // leaves at once, with no officer; above it, the officers are told, and two
-  // of them approve it in the console.
+  // Full and due: the pot is READY (D63). D105: under the MFI's limit it leaves
+  // by itself; above it, two officers approve it in the console.
   const limit = await autoReleaseLimit(round.group.mfiId);
   let readyId: string | null = null;
   if (!round.payout) {
@@ -279,10 +265,9 @@ export async function autoReleaseLimit(mfiId: string): Promise<number | null> {
   return found?.autoReleaseFcfa ?? null;
 }
 
-// D151: a full pot that would leave on its own first waits for her to say
-// where it goes (all to her phone, or part kept at the caisse), when her
-// caisse offers savings and she has not answered. She has until the end of
-// its due day (Lomé is on GMT); then it leaves, all to her phone, as before.
+// D151: a pot that would leave by itself first waits for her to say where it
+// goes, if her caisse offers savings. She has until the end of the due day,
+// then it all goes to her phone.
 async function waitsForHerAnswer(
   round: { id: string; groupId: string; beneficiaryId: string; dueDate: Date; group: { mfiId: string } },
   now: Date,
@@ -587,10 +572,9 @@ async function claimForSending(
   return claimed.count === 1 ? payout.id : null;
 }
 
-// D154: why a transfer could not even be asked. A 401 or 403 means the
-// sender's account is not allowed to send (for FedaPay: payouts not enabled
-// on the caisse's account); another 4xx, that the transfer itself was
-// refused (often the number); anything else, that nobody answered.
+// D154: why the transfer failed. 401/403: the account may not send (payouts
+// not enabled at FedaPay); another 4xx: the transfer was refused (often the
+// number); anything else: no answer.
 function failReasonOf(err: unknown): "ACCOUNT" | "REFUSED" | "NO_ANSWER" {
   const message = err instanceof Error ? err.message : String(err);
   const status = /answered (\d{3})/.exec(message)?.[1];
@@ -632,10 +616,8 @@ async function alertIfLastTry(payoutId: string) {
   });
 }
 
-// The MFI confirmed the money reached her wallet. Like a contribution (D45),
-// this is applied once: the update only matches a payout not yet PAID, and
-// the ledger accepts one line per payout. When the last round is paid out,
-// the cycle is complete (D27).
+// The MFI confirmed she got the money. Applied once (like D45). After the
+// last round, the cycle is complete (D27).
 async function settlePayout(payoutId: string, mfiRef: string) {
   const paidAt = new Date();
   const done = await prisma.$transaction(async (tx) => {

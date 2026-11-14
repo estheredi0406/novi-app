@@ -36,12 +36,9 @@ const POLL_MS = 3000;
 const clock = (iso: string) => iso.slice(11, 16);
 const POLL_FOR_MS = 2 * 60 * 1000;
 
-// One round (restyled D92, like the confirmation screens of Flooz and Mixx by
-// Yas): what she pays, for which round, who receives; her service as two big
-// choices; Payer with the cowrie; then who has paid, as faces in turn order
-// (every member sees every payment, F8). Paying has three moments: she chooses her mobile money service and
-// taps Pay; she confirms on her phone with her mobile money PIN, which Novi
-// never sees; the receipt appears once the provider has confirmed.
+// One round (D92): what she pays, who receives, her mobile money choice, Payer,
+// then who has paid. She confirms on her phone with her PIN, which Novi never
+// sees; the receipt shows once the provider confirms.
 export default function RoundScreen() {
   const { t } = useTranslation();
   const { member } = useSession();

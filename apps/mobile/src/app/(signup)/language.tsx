@@ -13,10 +13,8 @@ import { fonts } from "../../theme/typography";
 // Ewe first, once its texts are ready (D78).
 const LANGUAGES = APP_LANGUAGES;
 
-// Welcome: the orange of the splash continues,
-// with Novi's mark and name. The language is chosen right here, in one tap
-// at the top; below, the two ways in, as in most apps: create an account,
-// or log in to one she already has.
+// Welcome screen: Novi's mark, the language choice at the top, then create an
+// account or log in.
 export default function WelcomeScreen() {
   const { t } = useTranslation();
   const selected = currentLanguage();

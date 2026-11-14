@@ -1,10 +1,7 @@
 import type { Frequency, GroupState, SeatState } from "../generated/prisma/enums.js";
 
-// Novi's group rules, written as plain functions: no database, no network.
-// Each one receives the facts it needs and answers "allowed" or "refused,
-// and why". The services fetch the facts and act on the answer;
-// keeping the rules here means they can be tested on their own, and read as
-// one list.
+// The group rules as plain functions, without database or network. Each one
+// answers "allowed" or "refused, and why", so they are easy to test and read.
 
 // The limits from the product rules and decisions D26 to D28, D31.
 export const LIMITS = {
@@ -57,10 +54,8 @@ export type GroupAction =
 
 type Who = "ORGANISER" | "MEMBER" | "ANYONE";
 
-// The whole state machine in one table. Anything not listed is refused.
-// Once a group is STARTING, the only thing a person can do is ask Novi to
-// try opening the MFI account again; from then on, only Novi and the MFI
-// move it forward.
+// The group's states and what each allows. Anything not listed is refused.
+// Once STARTING, only Novi and the MFI move the group forward.
 const WHEN: Record<GroupAction, { states: readonly GroupState[]; by: Who }> = {
   EDIT_RULES: { states: ["DRAFT", "PROPOSED"], by: "ORGANISER" },
   INVITE: { states: ["DRAFT", "PROPOSED"], by: "ORGANISER" },
@@ -179,12 +174,8 @@ export const PAYMENT_WAIT_MS = 5 * 60 * 1000;
 
 export type PaymentAttempt = { status: "PENDING" | "PAID" | "FAILED"; requestedAt: Date };
 
-// May she pay this round now? Rounds up to the current one can be paid,
-// late ones included. Once she has paid the current round, she may also pay
-// the next one ahead (D83), never further: a trader who has the money today
-// can set it aside, but nobody pays a whole cycle in advance.
-// One payment per round: a paid round is refused, and a request still
-// waiting for her confirmation is not sent twice.
+// Can she pay this round now? Any round up to the current one, and once that
+// is paid, the next one ahead (D83), never further. One payment per round.
 export function checkCanPay(
   roundNumber: number,
   currentRound: number,
@@ -224,10 +215,8 @@ export function advanceOf(amountFcfa: number): number {
   return Math.ceil(amountFcfa / 2);
 }
 
-// D104: "Je ne peux pas payer ce tour", at most twice in a cycle, never for
-// two turns in a row, never while a cover is still to repay, never for her own
-// turn (her share is then simply taken from her pot), and only before the
-// due date has passed.
+// D104: "Je ne peux pas payer ce tour": twice a cycle at most, not two turns in
+// a row, not while she owes a cover, not on her own turn, and before the due date.
 export const SKIPS_PER_CYCLE = 2;
 
 export type SkipFacts = {
@@ -284,10 +273,9 @@ export function extendedDeadline(coveredAt: Date, dueBy: Date): Date {
   return new Date(dueBy.getTime() + (dueBy.getTime() - coveredAt.getTime()));
 }
 
-// D104: a member with no Novi history (no completed cycle) cannot take turn 1,
-// the turn where receiving and disappearing costs the group most. The first
-// member in the order who has a history takes it; with none, the organiser,
-// who vouches for the members she invited. Returns a new order.
+// D104: a member without a finished cycle cannot take turn 1. It goes to the
+// first member with a history, or else to the organiser, who vouches for her
+// members.
 export function guardTurnOne(order: string[], withHistory: Set<string>, organiserId: string): string[] {
   if (order.length === 0 || withHistory.has(order[0]!)) return order;
   const pick = order.find((id) => withHistory.has(id)) ?? (order.includes(organiserId) ? organiserId : order[0]!);
@@ -301,11 +289,9 @@ export function guardTurnOne(order: string[], withHistory: Set<string>, organise
 
 export type PayoutDecision = "WAIT" | "HOLD" | "SEND";
 
-// What to do with a round's pot today (D48):
-// - WAIT before the due date: members expect the pot on the agreed day.
-// - SEND on or after the due date once every member has paid.
-// - HOLD on or after the due date while the pot is not full: nothing is sent
-//   short, and the payout leaves as soon as the last payment arrives.
+// What to do with a round's pot today (D48): WAIT before the due date, SEND
+// once everyone has paid, HOLD while it is not full (it leaves when the last
+// payment arrives, never short).
 export function decidePayout(dueDate: Date, today: Date, paidCount: number, size: number): PayoutDecision {
   const dueDay = Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate());
   const day = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());

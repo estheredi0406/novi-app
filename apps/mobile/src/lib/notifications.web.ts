@@ -1,5 +1,3 @@
-// D128: the web version (D119) gets no phone notifications. The browser has
-// no Expo push token, and expo-notifications' hooks are not built for the web
-// (calling them stopped the page from opening). Metro picks this file on the
-// web instead of notifications.ts.
+// D128: the web version gets no notifications (no Expo token, and the hooks
+// broke the page). Metro uses this file on the web.
 export function usePushNotifications(): void {}

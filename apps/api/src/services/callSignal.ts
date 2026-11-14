@@ -4,14 +4,10 @@ import type { Duplex } from "node:stream";
 import { WebSocket, WebSocketServer } from "ws";
 import { readPass } from "../lib/callPass.js";
 
-// D112: Novi's own group calls, without a call service. The voice goes
-// directly from phone to phone (WebRTC, audio only, each member connected to
-// each other: a "mesh"). The server only introduces them: it passes each
-// phone's connection details to the others ("signalling") over a WebSocket,
-// and never carries or records the voice. A phone finds its public address
-// through STUN servers (CALL_STUN, Google's public ones by default); there is
-// no relay (TURN) on Render, so two phones behind strict mobile-network NAT
-// may fail to connect, and then a voice note is the fallback.
+// D112: group calls without a call service. The voice goes phone to phone
+// (WebRTC); the server only passes the connection details and never hears the
+// call. Without a relay server, some mobile networks may block the call, and
+// a voice note is the backup.
 
 type Peer = { id: string; uid: string; name: string; owner: boolean; muted: boolean; socket: WebSocket };
 // removed: members the organiser took out; their pass no longer lets them in.

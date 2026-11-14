@@ -2,10 +2,8 @@ import { signPass } from "../../lib/callPass.js";
 import { closeRoom } from "../../services/callSignal.js";
 import type { MeetingProvider } from "./MeetingProvider.js";
 
-// D112: group calls and meetings on Novi's own server, replacing Daily (D71)
-// as the default; Daily stays behind MEETINGS_PROVIDER=daily. A room is only a name;
-// its size and opening hours travel in each member's signed pass. The call
-// page is served by the API (/call/<room>), opened inside Novi (D85).
+// D112: calls on Novi's own server, the default now (Daily stays available).
+// The room size and hours travel in each member's signed pass.
 export class NoviMeetingProvider implements MeetingProvider {
   constructor(private readonly baseUrl: string) {}
 

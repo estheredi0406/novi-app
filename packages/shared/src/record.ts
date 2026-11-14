@@ -1,5 +1,5 @@
 // Her savings record (the ACEV): facts about how she has saved,
-// never a score (brief). Amounts in whole FCFA (D4), dates "YYYY-MM-DD".
+// never a score. Amounts in whole FCFA (D4), dates "YYYY-MM-DD".
 
 // One group she has saved in.
 export type RecordGroup = {

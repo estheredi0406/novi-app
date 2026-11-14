@@ -19,10 +19,8 @@ import { PinBoxes } from "../components/PinBoxes";
 import { NoviMark } from "../components/art/NoviMark";
 import { usePhoneCountry } from "../lib/phoneCountry";
 
-// The three things this screen can show:
-// - pin: she types her PIN (and her number, on a phone Novi does not know)
-// - locked: 5 wrong PINs; a countdown until she may try again (D18)
-// - code: a new phone; the SMS code proves she holds the SIM before it is trusted
+// What this screen can show: the PIN, a countdown after 5 wrong PINs (D18), or
+// the SMS code on a new phone.
 type Mode = { kind: "pin" } | { kind: "locked"; seconds: number } | { kind: "code"; challengeId: string };
 
 // Screens A7, A8 and the new-phone check. One file, because the PIN she

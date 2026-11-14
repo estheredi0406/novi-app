@@ -67,10 +67,8 @@ function checkText(t: TFunction, c: LoanCheck): [string, string] {
   }
 }
 
-// "Crédit" (D89, D91). Not yet: what is missing and what is already fine.
-// She can ask: the amount, what for, and her business, which she declares.
-// Her request then follows four steps: sent, kept by the MFI, signing at the
-// agency with the documents listed, money paid. Novi keeps no document.
+// "Crédit" (D89, D91): what is still missing, or the request (amount, purpose,
+// her business), then its four steps: sent, kept, signing at the agency, paid.
 export default function LoanScreen() {
   const { t } = useTranslation();
   const { section } = useLocalSearchParams<{ section?: string }>();

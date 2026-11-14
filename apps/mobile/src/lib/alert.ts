@@ -1,9 +1,8 @@
 import { Alert as NativeAlert, Platform, type AlertButton } from "react-native";
 
-// D119: React Native's Alert does nothing in a browser, so in the web version
-// every "Are you sure?" silently cancelled the action (inviting a member,
-// sending a loan request...). This drop-in shows the browser's own dialog
-// there, and the phone's dialog in the app, unchanged.
+// D119: React Native's Alert does nothing in a browser, so confirmations were
+// silently cancelled on the web. This uses the browser's dialog there and the
+// phone's dialog in the app.
 function alert(title: string, message?: string, buttons?: AlertButton[]): void {
   if (Platform.OS !== "web") {
     NativeAlert.alert(title, message, buttons);

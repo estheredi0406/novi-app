@@ -1,12 +1,8 @@
 import { prisma } from "../lib/db.js";
 
-// D113: the MFI's banking system, simulated. A real MFI books each group's
-// savings in its own system (its "core banking"); no Togolese MFI offers an
-// API for it today, so Novi keeps a stand-in: one account per group, with a
-// balance and a statement, booked from the same events as Novi's ledger
-// (a payment credited, a pot paid out, an advance returned). It lets the
-// console show the MFI's side and compare it with Novi's ledger and with the
-// real FedaPay balance. A real connection would replace this file, nothing else.
+// D113: the MFI's banking system, simulated, since no Togolese MFI offers an
+// API for it. One account per group, booked from the same events as our ledger.
+// A real connection would replace this file only.
 
 type Movement = {
   source: "CONTRIBUTION" | "PAYOUT" | "ADVANCE_RETURN";

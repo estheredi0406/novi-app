@@ -106,7 +106,7 @@ describe("inviting by phone number", () => {
   it("refuses invitations from someone who is not the organiser", async () => {
     const { groupId } = await organiserWithGroup();
     const abla = await signedUpMember("+22890000002", undefined, ABLA, "Abla");
-    // Until answering exists (S2.6), Abla's seat is placed directly.
+    // Until answering exists, Abla's seat is placed directly.
     await prisma.membership.create({ data: { groupId, userId: abla.member.id, state: "ACCEPTED", acceptedVersion: 1 } });
 
     const res = await as(abla.tokens.accessToken).post(`/v1/groups/${groupId}/invites`, { phone: AMA });

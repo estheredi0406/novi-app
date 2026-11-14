@@ -4,11 +4,9 @@ import { StyleSheet, Text, View } from "react-native";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
-// Who has paid this round, as faces in turn order (D92): the same
-// order as the ring on home, so seat 6 there is the sixth face here. Green
-// with a tick when paid, turquoise when the caisse paid her share (D68), a
-// blue ring while a payment is being confirmed, her own face in dashed orange
-// while she still owes, and a saffron ring around whoever receives the pot.
+// Who has paid this round, as faces in turn order (D92): green when paid,
+// turquoise when the advances paid (D68), blue while confirming, her own face
+// in orange while she owes, a saffron ring for who receives.
 export function MemberFaces({
   payments,
   memberId,

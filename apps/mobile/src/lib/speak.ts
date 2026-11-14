@@ -3,11 +3,8 @@ import * as Speech from "expo-speech";
 import i18n from "../i18n";
 import { clips } from "../voice/ee/clips";
 
-// Reads a text aloud (Listen, a chat line). In French and English, the
-// phone's own voice. In Ewe, phones have no voice of their own: each
-// sentence that a person listened to and kept in the voice studio plays
-// from its recording; anything else (a group's name, a sentence not kept
-// yet) falls back to the phone's French voice.
+// Reads a text aloud. French and English: the phone's voice. Ewe: the recorded
+// sentences, or the French voice for anything not recorded yet.
 
 type Piece = number | string; // a recording, or text for the phone's voice
 

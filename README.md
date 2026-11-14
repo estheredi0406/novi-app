@@ -147,7 +147,7 @@ novi-app/
 │   │       └── theme/        colours and type
 │   └── console/              React + Vite MFI console (pages, texts in French and English)
 ├── packages/shared/          types, error codes and PIN rules shared by the three apps
-├── docs/                     decisions.md, deploy.md, testing.md, Ewe sentences, test identities
+├── docs/                     decisions.md, business-rules.md, deploy.md, testing.md, Ewe sentences, test identities
 ├── tools/perf/               load test and console compatibility scripts
 ├── Dockerfile, render.yaml   hosting
 └── package.json              npm workspaces

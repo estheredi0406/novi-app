@@ -3,11 +3,9 @@ import { StyleSheet, View } from "react-native";
 import Svg, { Circle, Ellipse, Path } from "react-native-svg";
 import { colors } from "../../theme/colors";
 
-// Her cycle on home (D122): one arc per round, starting at
-// the top. Rounds before this one are green (paid), this round is orange while
-// she owes, blue while her payment is being confirmed, green once paid, and
-// the rounds to come are pale. A saffron cowrie sits on the round where she
-// receives her pot. Whatever is passed as children sits in the middle.
+// Her cycle on home (D122): one arc per round. Green when paid, orange while
+// she owes, blue while confirming, pale for rounds to come. A cowrie marks the
+// round where she receives.
 export type RoundState = "owe" | "pending" | "paid";
 
 export function CycleRing({

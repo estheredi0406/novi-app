@@ -10,11 +10,8 @@ import { ListenButton } from "./ListenButton";
 
 const SIGN_UP_STEPS = 6;
 
-// The top of every sign-up, login and PIN screen (colours and back button
-// in the "Lagune" style, D92):
-// on the plain cotton screen, back (or Novi's mark) and Listen, then for a
-// sign-up step its name and a progress bar, then the title and one line,
-// all aligned to the left like the rest of the app.
+// The top of the sign-up, login and PIN screens (D92): back button, Listen,
+// the step and progress bar, then the title.
 export function AuthBand({
   step,
   eyebrow,

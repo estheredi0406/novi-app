@@ -1,17 +1,9 @@
 import { prisma } from "../lib/db.js";
 import { email } from "../providers/index.js";
 
-// D90: the MFI's staff hear about what waits for them without watching the
-// console, so a member is never kept waiting because nobody looked.
-// - When something arrives (a group to validate, a pot ready to release, a
-//   pot a member says she did not receive, a loan request, a payment the
-//   operator still has not confirmed, a transfer refused), every active officer and administrator of that MFI gets an email
-//   with a link straight to it.
-// - Each working morning at 08:00 (Lomé is on GMT all year), one summary of
-//   everything still waiting, if anything is.
-// - Anything still waiting after 4 working hours (Monday to Friday, 08:00 to
-//   17:00) is emailed again to the administrators.
-// Members are never emailed. An email never stops what triggered it.
+// D90: emails to the MFI's staff so nothing waits unseen: one when something
+// arrives, a summary at 08:00 on working days, and a reminder to the admins
+// after 4 working hours. Members are never emailed.
 
 export type AlertKind =
   | "GROUP_TO_VALIDATE"

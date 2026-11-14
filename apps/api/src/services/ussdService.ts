@@ -13,26 +13,12 @@ import { confirmUssdIdentity, dateFromKeypad, niuFromKeypad, startUssdIdentity }
 import { payRound } from "./moneyService.js";
 import { buildRecord, listLenders, shareRecord } from "./recordService.js";
 
-// Novi by USSD (D73), for a member whose phone has no internet or no apps:
-// she dials a short code, and her phone shows short menus she answers with
-// the keypad. The operator's gateway sends, at each step, the session, her
-// number (which the operator vouches for) and everything she typed so far,
-// joined by "*"; Novi answers "CON <text>" to show a menu and wait, or
-// "END <text>" to close. This is the common gateway convention (used by
-// aggregators such as Africa's Talking), so a real code can be connected
-// later without changing the menus. Until an operator in Togo gives Novi a
-// code, the channel is Africa's Talking's sandbox (routes/ussd.ts).
-//
-// Every session starts with her PIN, checked with the same lockout as the
-// app (D18). Each screen stays under 160 characters, the size of a USSD
-// screen on a basic phone.
-//
-// D106: a number with no account can create one here, alone, with no agent
-// and no smartphone: consent, NIU, date of birth, then ANID's code (by SMS,
-// so she dials again to type it), her name shown for her to confirm, the
-// name her group sees, and her PIN. Nobody else types or sees her details.
-// Menu 4 lists what waits for her answer (invitations, changed rules, a turn
-// swap); menu 5 shows what Novi keeps about her and who opened her record.
+// Novi by USSD (D73), for phones without internet: she dials a code and answers
+// short menus with the keypad. We answer "CON <text>" to continue or "END <text>"
+// to close, the usual gateway convention, so a real code can be plugged in later.
+// Each session starts with her PIN (same lockout as the app, D18) and each
+// screen stays under 160 characters.
+// D106: she can even sign up here alone, without a smartphone.
 
 export type UssdReply = { text: string; end: boolean };
 

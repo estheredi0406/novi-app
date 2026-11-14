@@ -27,13 +27,9 @@ import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 import { useAppWidth } from "../../components/WebFrame";
 
-// Home, direction "Lagune" (D92, boards E1 to E3 and E7), built like the bank
-// and mobile money apps traders already use: a blue band with her name, one
-// card per running group (swipe between them) with that group's own actions
-// on it, then "Pour vous" (things about her, never about one group), then the
-// latest news from all her groups. Invitations and groups still being set up
-// sit under the cards. A new member sees how a tontine works and one button.
-// The rounded group card rides over the band's lower edge (D122).
+// Home (D92): a blue band with her name, one card per running group, "Pour
+// vous", then the latest news. Invitations and groups being set up sit under
+// the cards. A new member sees how a tontine works and one button.
 const OVERLAP = 28;
 const CARD_SIDE = 16;
 const CARD_GAP = 12;

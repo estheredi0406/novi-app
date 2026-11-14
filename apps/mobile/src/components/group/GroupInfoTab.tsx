@@ -12,10 +12,8 @@ import { RulesCard } from "../RulesCard";
 import { GroupHelpPanel } from "./GroupHelpPanel";
 import { HelpDot, Sheet } from "../Sheet";
 
-// The "Le groupe" tab: who receives, and on which day
-// (D122: every round always shown, each saying in words where it
-// stands, her own line in indigo); the caisse de secours, explained behind
-// "?"; the rules and the register one tap away.
+// The "Le groupe" tab: who receives and when (D122, her line in indigo), the
+// advances explained behind "?", and the rules.
 export function GroupInfoTab({
   group,
   rounds,

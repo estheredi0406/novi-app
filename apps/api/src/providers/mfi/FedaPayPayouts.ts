@@ -1,16 +1,10 @@
 import type { PayoutAnswer, PayoutRequest } from "./MfiAdapter.js";
 import type { SandboxPayer } from "../payment/FedaPayProvider.js";
 
-// D102: a pot sent from the MFI's own FedaPay balance to the receiver's
-// mobile money number, through FedaPay's payout API, with the MFI's key. The
-// MFI's officers decide when (D63, D105); FedaPay moves the money; Novi only
-// gives the instruction. Two calls: create the payout, then start it.
-// Status is read back with GET /v1/payouts/{id} (pending, started,
-// processing, sent, failed).
-//
-// Sandbox: like collections (D64), FedaPay's sandbox may refuse a Togolese
-// number, so FEDAPAY_SANDBOX_PAYOUT="mode:country:number" sends sandbox
-// payouts to one of its test numbers instead. Never used in live mode.
+// D102: a pot sent from the MFI's FedaPay balance to her mobile money. The MFI
+// decides when (D63, D105); Novi only gives the instruction. Two calls: create
+// the payout, then start it. In the sandbox, FEDAPAY_SANDBOX_PAYOUT sends it to
+// a test number.
 const MODES: Record<PayoutRequest["operator"], string> = { MOOV_TG: "moov_tg", TOGOCEL: "togocel" };
 
 type FedaPayPayout = { id: number; status: string };
