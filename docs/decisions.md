@@ -527,3 +527,7 @@ The final cleanup had removed home's fourth tile, "Partager mon relevé", becaus
 
 From Esther's test on her phone. On her turn, the card now says "C'est votre tour, vous recevez", then the whole pot, then where it stands ("2 sur 3 ont payé"); the box with one line per destination shows on every turn of hers, from the amount she keeps, even when the round is late. When she has paid, it says "Vous avez payé le tour 1" instead of "Payé pour ce tour". The small ticks before these lines are gone (the words say it), and the unread count of the chat takes the place of its icon, so "Discussion" keeps its room on a small phone and nothing overlaps. The group's name takes two lines instead of being cut. The row of group names under the card (D153) did not hold long names or several groups on a small phone: it is replaced by two round arrows and "Groupe 1 sur 2" (an orange dot on an arrow when she still has to pay in a group that way); the card itself names the group.
 
+## D160: the keyboard no longer hides what she types on Android (14 November 2026)
+
+From Esther's test: on Android, the keyboard covered the field being typed in (sign-up details, PIN, the group chat). Expo apps are now edge-to-edge on Android, so the window no longer shrinks for the keyboard by itself, and the screens only avoided the keyboard on iOS. Every screen frame and the group chat now push their content up on both platforms (KeyboardAvoidingView with behavior "padding", as Expo's keyboard guide recommends).
+

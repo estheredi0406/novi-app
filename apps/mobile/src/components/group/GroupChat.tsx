@@ -2,7 +2,7 @@ import type { ChatMessage, GroupMeetingView } from "@novi/shared";
 import { type Href, router, useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Alert } from "../../lib/alert";
 import Svg, { Path, Rect } from "react-native-svg";
 import { errorKey } from "../../api/client";
@@ -405,10 +405,8 @@ export function GroupChat({
   const typing = draft.trim().length > 0;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.fill}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    // Android too: edge-to-edge, the window does not shrink for the keyboard.
+    <KeyboardAvoidingView style={styles.fill} behavior="padding">
       <Pressable
         accessibilityRole="button"
         onPress={() => router.push(`/groups/${groupId}/meetings` as Href)}

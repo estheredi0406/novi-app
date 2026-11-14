@@ -1,5 +1,5 @@
 import { type ReactNode, useRef } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, type ScrollViewInstance, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, ScrollView, type ScrollViewInstance, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
 
@@ -29,8 +29,10 @@ export function Screen({
     // With a tab bar, the bar itself fills the space under it down to the
     // phone's edge, so the bottom stays white.
     <SafeAreaView style={[styles.safe, dark && styles.dark]} edges={edges}>
-      {/* Keeps the field she is typing in above the keyboard. */}
-      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      {/* Keeps the field she is typing in above the keyboard. On Android too:
+          the app is edge-to-edge, so the window no longer shrinks for the
+          keyboard by itself (Expo's keyboard guide). */}
+      <KeyboardAvoidingView style={styles.fill} behavior="padding">
         <ScrollView
           ref={scroll}
           onContentSizeChange={() => {
