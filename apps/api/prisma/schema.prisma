@@ -173,6 +173,7 @@ model User {
   reminders       Reminder[]
   contributions   Contribution[]
   ledgerEntries   LedgerEntry[]
+  notices         Notice[]
   reserveCovers   ReserveCover[]
   reserveReturns  ReserveReturn[]
   messages        GroupMessage[]  @relation("MessageAuthor")
@@ -1158,3 +1159,20 @@ enum EarlyWithdrawalRule {
   LOSE_GAINS // she gets her money back without the gains
   PENALTY    // she gets her money back less a percentage, kept by the caisse
 }
+
+// D157: a money notification, kept in the app: home and the bell show it
+// to members whose phone gets no push, until she opens it.
+model Notice {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  url       String    // the screen it opens, as for the push
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  @@index([userId, createdAt])
+  @@map("notices")
+}
+

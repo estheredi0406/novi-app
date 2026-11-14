@@ -11,6 +11,42 @@ type NewsEvent = (typeof NEWS_EVENTS)[number];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function listNews(userId: string, limit = 30, now = new Date()): Promise<NewsItem[]> {
+  const take = Math.min(Math.max(limit, 1), 50);
+  const since = new Date(now.getTime() - 30 * DAY_MS);
+  const [groupLines, notices] = await Promise.all([
+    groupNews(userId, take, since),
+    prisma.notice.findMany({ where: { userId, createdAt: { gte: since } }, orderBy: { createdAt: "desc" }, take }),
+  ]);
+  // D157: what Novi asked her to look at comes first while she has not
+  // opened it; then everything by date.
+  const asNews = notices.map(
+    (n): NewsItem => ({
+      id: n.id,
+      groupId: /^\/groups\/([^/?]+)/.exec(n.url)?.[1] ?? "",
+      groupName: "",
+      event: "NOTICE",
+      who: null,
+      mine: true,
+      round: null,
+      amountFcfa: null,
+      meetingStartsAt: null,
+      createdAt: n.createdAt.toISOString(),
+      notice: { title: n.title, body: n.body, url: n.url, read: n.readAt !== null },
+    }),
+  );
+  const unread = asNews.filter((n) => !n.notice?.read);
+  const rest = [...asNews.filter((n) => n.notice?.read), ...groupLines].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
+  );
+  return [...unread, ...rest].slice(0, take);
+}
+
+// D157: she opened it.
+export async function readNotice(userId: string, noticeId: string, now = new Date()): Promise<void> {
+  await prisma.notice.updateMany({ where: { id: noticeId, userId, readAt: null }, data: { readAt: now } });
+}
+
+async function groupNews(userId: string, take: number, since: Date): Promise<NewsItem[]> {
   // Only groups she joined: an invited member does not see a group's money.
   const seats = await prisma.membership.findMany({
     where: { userId, state: "ACCEPTED", group: { state: { not: "CANCELLED" } } },
@@ -34,10 +70,10 @@ export async function listNews(userId: string, limit = 30, now = new Date()): Pr
       groupId: { in: groups.map((g) => g.id) },
       kind: "EVENT",
       event: { in: [...NEWS_EVENTS] },
-      createdAt: { gte: new Date(now.getTime() - 30 * DAY_MS) },
+      createdAt: { gte: since },
     },
     orderBy: { createdAt: "desc" },
-    take: Math.min(Math.max(limit, 1), 50),
+    take,
     include: {
       author: { select: { displayName: true } },
       meeting: { select: { startsAt: true } },
@@ -66,6 +102,7 @@ export async function listNews(userId: string, limit = 30, now = new Date()): Pr
       amountFcfa,
       meetingStartsAt: m.meeting?.startsAt.toISOString() ?? null,
       createdAt: m.createdAt.toISOString(),
+      notice: null,
     };
   });
 }

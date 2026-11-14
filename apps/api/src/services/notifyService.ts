@@ -40,7 +40,19 @@ async function send(
   channel: Channel,
   url: string,
   text: (language: Language) => Text,
+  keep = true,
 ) {
+  // D157: a money notification is kept in the app too, in her language, for
+  // every member it is for, with or without a phone that gets pushes. Not
+  // when the same news is already a line of her groups' news (keep false).
+  if (keep && channel === "money" && userIds.length > 0) {
+    try {
+      const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, language: true } });
+      await prisma.notice.createMany({ data: users.map((u) => ({ userId: u.id, url, ...text(u.language) })) });
+    } catch (err) {
+      console.error("Notice not kept:", err);
+    }
+  }
   try {
     const phones = await phonesOf(userIds, channel);
     await push.send(
@@ -176,6 +188,7 @@ export async function notifyPotPaid(
           title: `Votre cagnotte de ${fcfa(amountFcfa)} est envoyée`,
           body: `${groupName} : dites au groupe quand elle arrive.`,
         },
+    false, // already "Vous avez reçu la cagnotte" in her news
   );
 }
 
@@ -285,8 +298,9 @@ export async function notifyMembers(
   url: string,
   fr: Text,
   english: Text,
+  keep = true,
 ): Promise<void> {
-  await send(userIds, channel, url, (l) => (en(l) ? english : fr));
+  await send(userIds, channel, url, (l) => (en(l) ? english : fr), keep);
 }
 
 // D111: does she use the app? A trusted phone with a notification address,

@@ -855,7 +855,8 @@
     "potAsk": "Everyone has paid. Say where you want it.",
     "yourPotLabel": "Your pot",
     "toMobileMoney": "To your mobile money",
-    "toSavingsAt": "Savings · {{mfi}}"
+    "toSavingsAt": "Savings · {{mfi}}",
+    "tileShare": "My record"
   },
   "news": {
     "title": "News",
@@ -871,7 +872,8 @@
     "CALL_STARTED_mine": "You started a call",
     "someone": "A member",
     "ago": "{{group}} · {{when}}",
-    "yesterday": "yesterday"
+    "yesterday": "yesterday",
+    "unread": "Unread"
   },
   "myGroups": {
     "title": "My groups",

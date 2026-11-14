@@ -157,7 +157,10 @@ export function HomeView({
   const isNew = loaded && groups.length === 0;
   const cardWidth = width - 2 * CARD_SIDE;
   const step = cardWidth + CARD_GAP;
-  const newsToday = news.some((n) => !n.mine && Date.now() - Date.parse(n.createdAt) < 86_400_000);
+  // D157: the bell's dot: a notification she has not opened, or news today.
+  const newsToday = news.some(
+    (n) => (n.notice ? !n.notice.read : !n.mine && Date.now() - Date.parse(n.createdAt) < 86_400_000),
+  );
 
   // What "Écouter" reads: her name, then this week in each group.
   const listenText = [
@@ -176,6 +179,8 @@ export function HomeView({
     // D142: her savings at the caisse, always one touch away.
     { icon: "hand", label: t("hub.tileSavings"), onPress: () => router.push("/savings" as never) },
     { icon: "plus", label: t("hub.tileNew"), onPress: () => router.push("/groups/new") },
+    // D158: her record to show a lender, straight to the sharing part.
+    { icon: "qr", label: t("hub.tileShare"), onPress: () => router.push({ pathname: "/loan" as never, params: { section: "share" } }) },
   ];
 
   return (

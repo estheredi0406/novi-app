@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { type ReactNode, useRef } from "react";
+import { KeyboardAvoidingView, Platform, ScrollView, type ScrollViewInstance, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
 
@@ -13,13 +13,17 @@ export function Screen({
   top,
   bar,
   bleedTop = false,
+  openAtEnd = false,
 }: {
   children: ReactNode;
   dark?: boolean;
   top?: ReactNode;
   bar?: ReactNode;
   bleedTop?: boolean; // the top band draws under the status bar itself (LaguneBand)
+  openAtEnd?: boolean; // D158: opens at its last part once its content is there
 }) {
+  const scroll = useRef<ScrollViewInstance>(null);
+  const scrolled = useRef(false);
   const edges = [...(bleedTop ? [] : (["top"] as const)), "left", "right", ...(bar ? [] : (["bottom"] as const))] as const;
   return (
     // With a tab bar, the bar itself fills the space under it down to the
@@ -28,6 +32,12 @@ export function Screen({
       {/* Keeps the field she is typing in above the keyboard. */}
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView
+          ref={scroll}
+          onContentSizeChange={() => {
+            if (!openAtEnd || scrolled.current) return;
+            scrolled.current = true;
+            setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 300);
+          }}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets

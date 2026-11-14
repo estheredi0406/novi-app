@@ -1,9 +1,12 @@
 import type { NewsItem } from "@novi/shared";
 import { router } from "expo-router";
 import type { TFunction } from "i18next";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { readNotice } from "../../api/news";
 import { formatDay } from "../../lib/format";
+import { LineIcon } from "../LineIcon";
 import { colors } from "../../theme/colors";
 import { fonts } from "../../theme/typography";
 
@@ -14,6 +17,7 @@ import { fonts } from "../../theme/typography";
 // line sits among the messages.
 
 export function newsTitle(t: TFunction, item: NewsItem): string {
+  if (item.notice) return item.notice.title;
   const who = item.who ?? t("news.someone");
   if (item.event === "MEETING_SCHEDULED") {
     return t("news.MEETING_SCHEDULED", { date: item.meetingStartsAt ? formatDay(item.meetingStartsAt) : "" });
@@ -37,6 +41,7 @@ export function when(iso: string, language: string, t: TFunction, now = new Date
 
 export function NewsRow({ item, first }: { item: NewsItem; first?: boolean }) {
   const { t, i18n } = useTranslation();
+  if (item.notice) return <NoticeRow item={item} notice={item.notice} first={first} />;
   const money = item.amountFcfa
     ? `${item.mine && item.event === "PAID" ? "− " : item.mine && item.event === "POT_PAID" ? "+ " : ""}${String(
         item.amountFcfa,
@@ -67,6 +72,46 @@ export function NewsRow({ item, first }: { item: NewsItem; first?: boolean }) {
   );
 }
 
+// D157: a notification Novi sent her, kept here for members whose phone got
+// no push. Unread: an orange dot and bold text, first in the list; a tap
+// marks it read and opens the screen it is about.
+function NoticeRow({
+  item,
+  notice,
+  first,
+}: {
+  item: NewsItem;
+  notice: NonNullable<NewsItem["notice"]>;
+  first?: boolean;
+}) {
+  const { t, i18n } = useTranslation();
+  const [read, setRead] = useState(notice.read);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => {
+        setRead(true);
+        void readNotice(item.id).catch(() => undefined);
+        router.push(notice.url as never);
+      }}
+      style={[styles.row, !first && styles.divider]}
+    >
+      <View style={[styles.avatar, { backgroundColor: read ? colors.mist : colors.turnSoft }]}>
+        <LineIcon name="bell" color={read ? colors.lagoon : colors.accent} size={20} />
+      </View>
+      <View style={styles.text}>
+        <Text style={[styles.title, read && styles.titleRead]} numberOfLines={2}>
+          {notice.title}
+        </Text>
+        <Text style={styles.sub} numberOfLines={2}>
+          {notice.body} · {when(item.createdAt, i18n.language, t)}
+        </Text>
+      </View>
+      {read ? null : <View style={styles.unreadDot} accessibilityLabel={t("news.unread")} />}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 15 },
   divider: { borderTopWidth: 1, borderTopColor: colors.line },
@@ -78,4 +123,6 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 20, color: colors.ink },
   sub: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
   amount: { fontFamily: fonts.bodyBold, fontSize: 15 },
+  titleRead: { fontFamily: fonts.body },
+  unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
 });

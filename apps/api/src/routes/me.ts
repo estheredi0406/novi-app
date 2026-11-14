@@ -5,7 +5,7 @@ import { z } from "zod";
 import { currentMember, requireAuth } from "../middleware/requireAuth.js";
 import { getProfile, updateProfile } from "../services/memberService.js";
 import { BUSINESS_KINDS, BUSINESS_SINCE, getLoanPage, requestLoan, withdrawLoan } from "../services/loanService.js";
-import { getStatement, listNews } from "../services/newsService.js";
+import { getStatement, listNews, readNotice } from "../services/newsService.js";
 import { breakPlacement, choosePot, mySavings, withdraw } from "../services/savingsService.js";
 import { savePushToken } from "../services/notifyService.js";
 import { answerReceipt, potAnswered } from "../services/payoutService.js";
@@ -58,6 +58,12 @@ meRouter.patch("/", async (req, res) => {
 meRouter.get("/news", async (req, res) => {
   const limit = z.coerce.number().int().min(1).max(50).catch(30).parse(req.query.limit);
   res.json(await listNews(currentMember(res).userId, limit));
+});
+
+// D157: she opened a notification kept in the app.
+meRouter.post("/notices/:noticeId/read", async (req, res) => {
+  await readNotice(currentMember(res).userId, z.string().uuid().parse(req.params.noticeId));
+  res.status(204).end();
 });
 
 // D92: her payments and pots, line by line, for "Mon relevé".

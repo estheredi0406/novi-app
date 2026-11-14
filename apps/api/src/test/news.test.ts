@@ -90,16 +90,17 @@ describe("home news and statement (D92)", () => {
       amountFcfa: number;
       groupName: string;
     }[];
-    expect(news.map((n) => [n.event, n.who, n.mine])).toEqual([
+    const lines = news.filter((n) => n.event !== "NOTICE");
+    expect(lines.map((n) => [n.event, n.who, n.mine])).toEqual([
       ["PAID", "Akossiwa", true],
       ["PAID", "Abla", false],
     ]);
     // Round 1: what she paid, her advance included (D118).
-    expect(news[0]?.amountFcfa).toBe(7500);
+    expect(lines[0]?.amountFcfa).toBe(7500);
     const after = (await akossiwa.get("/v1/groups")).body as { currentRound: { paidSeats: boolean[]; paidCount: number } }[];
     expect(after[0]?.currentRound.paidSeats).toHaveLength(3);
     expect(after[0]?.currentRound.paidSeats.filter(Boolean)).toHaveLength(2);
-    expect(news[0]?.groupName).toBe("Marché de Bè");
+    expect(lines[0]?.groupName).toBe("Marché de Bè");
 
     const statement = (await akossiwa.get("/v1/me/statement")).body as {
       lines: { kind: string; amountFcfa: number; onTime: boolean; round: number }[];
@@ -108,6 +109,27 @@ describe("home news and statement (D92)", () => {
     expect(statement.lines).toEqual([
       expect.objectContaining({ kind: "PAID", amountFcfa: 7500, advanceFcfa: 2500, onTime: true, round: 1 }),
     ]);
+  });
+
+  it("keeps Novi's notifications in the app, unread first, until she opens one (D157)", async () => {
+    const { akossiwa, abla, groupId } = await runningGroup({ amountFcfa: 5000, frequency: "WEEKLY", dueDay: 5 });
+    await pay(abla, groupId);
+    type Item = { id: string; event: string; notice: { title: string; url: string; read: boolean } | null };
+    const before = (await akossiwa.get("/v1/me/news")).body as Item[];
+    // The group's start reached every member, even with no phone for pushes.
+    expect(before[0]).toMatchObject({
+      event: "NOTICE",
+      notice: { title: "Marché de Bè : le premier tour commence", url: `/groups/${groupId}`, read: false },
+    });
+    expect(before[1]?.event).toBe("PAID");
+
+    expect((await akossiwa.post(`/v1/me/notices/${before[0]?.id}/read`)).status).toBe(204);
+    const after = (await akossiwa.get("/v1/me/news")).body as Item[];
+    // Read, it takes its place by date, under the newer payment.
+    expect(after.map((n) => n.event)).toEqual(["PAID", "NOTICE"]);
+    expect(after[1]?.notice?.read).toBe(true);
+    // Someone else's notice cannot be marked.
+    expect((await abla.post(`/v1/me/notices/${before[0]?.id}/read`)).status).toBe(204);
   });
 
   it("is empty while she has no group, and the statement too", async () => {

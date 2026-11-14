@@ -5,13 +5,15 @@ export type NewsItem = {
   id: string;
   groupId: string;
   groupName: string;
-  event: "PAID" | "POT_PAID" | "TURN_SWAPPED" | "MEETING_SCHEDULED" | "CALL_STARTED";
+  event: "PAID" | "POT_PAID" | "TURN_SWAPPED" | "MEETING_SCHEDULED" | "CALL_STARTED" | "NOTICE";
   who: string | null; // the member it is about, as her group sees her
   mine: boolean; // it is about her: her payment, her pot
   round: number | null;
   amountFcfa: number | null; // PAID: one contribution; POT_PAID: the pot
   meetingStartsAt: string | null; // MEETING_SCHEDULED only
   createdAt: string; // ISO
+  // D157: NOTICE only: a notification Novi sent her, with the screen it opens.
+  notice: { title: string; body: string; url: string; read: boolean } | null;
 };
 
 // One line of her statement: a payment she made, or a pot she received.

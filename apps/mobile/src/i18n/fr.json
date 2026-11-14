@@ -855,7 +855,8 @@
     "potAsk": "Tout le monde a payé. Dites où vous la voulez.",
     "yourPotLabel": "Votre cagnotte",
     "toMobileMoney": "Sur votre mobile money",
-    "toSavingsAt": "Épargne · {{mfi}}"
+    "toSavingsAt": "Épargne · {{mfi}}",
+    "tileShare": "Mon relevé"
   },
   "news": {
     "title": "Nouvelles",
@@ -871,7 +872,8 @@
     "CALL_STARTED_mine": "Vous avez lancé un appel",
     "someone": "Une membre",
     "ago": "{{group}} · {{when}}",
-    "yesterday": "hier"
+    "yesterday": "hier",
+    "unread": "Non lu"
   },
   "myGroups": {
     "title": "Mes groupes",

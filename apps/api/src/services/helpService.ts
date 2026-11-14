@@ -274,6 +274,8 @@ async function applySwap(
       title: "Turns swapped",
       body: `${nameOf(loaded, swap.requesterId)} and ${nameOf(loaded, swap.partnerId)} swapped turns.`,
     },
+    false, // already a line of their groups' news
+
   );
   return true;
 }

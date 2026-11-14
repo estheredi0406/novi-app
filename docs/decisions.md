@@ -515,3 +515,11 @@ The console's open savings accounts showed only the account number ("names hidde
 
 From Esther's test: on her turn, the group card said "À recevoir sur votre mobile money 75 000 F" at the top and, below, "75 000 F sur votre mobile money, 75 000 F sur votre épargne à la caisse": the same figure twice, and the pot itself nowhere. Now the top shows "Votre cagnotte" with the whole pot, and below, a small box with one line per destination, each with its icon and amount (mobile money, savings at the named caisse), and "Modifier" while the pot has not left.
 
+## D157: every money notification is kept in the app too (14 November 2026)
+
+From Esther's test: a member on the web version (an iPhone) got no push at all, and the simulated SMS stayed in the test inbox, so nothing told her to look at a group. Now every notification Novi sends on the money channel (the group is checked, started or declined, her pot is ready and waits for her answer, her savings account is open, a payment is confirmed or not found, a loan decision...) is also kept as a notice, in her language, for every member it is for, with or without a phone that gets pushes. Home's "Dernières nouvelles" and the bell show the unread ones first, with an orange dot, and the bell itself shows a dot; a tap marks it read and opens the screen it is about. Chat and call notifications are not kept (the chat already holds them), nor those already shown as a line of her news (her pot sent, a turn swap).
+
+## D158: "Mon relevé" back on home, opening the sharing part (14 November 2026)
+
+The final cleanup had removed home's fourth tile, "Partager mon relevé", because it opened the credit screen like "Crédit". Esther preferred four tiles. It is back as "Mon relevé" (short enough for two lines on a small phone), and it now opens the credit screen at its last part, sharing her record with a lender, signed and with its QR code, instead of its top.
+

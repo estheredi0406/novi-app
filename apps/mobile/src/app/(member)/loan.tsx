@@ -6,7 +6,7 @@ import type {
   LoanPurpose,
   LoanRequestView,
 } from "@novi/shared";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import type { TFunction } from "i18next";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -73,6 +73,7 @@ function checkText(t: TFunction, c: LoanCheck): [string, string] {
 // agency with the documents listed, money paid. Novi keeps no document.
 export default function LoanScreen() {
   const { t } = useTranslation();
+  const { section } = useLocalSearchParams<{ section?: string }>();
   const [page, setPage] = useState<LoanPage | null>(null);
   const [amount, setAmount] = useState<number | null>(null);
   const [purpose, setPurpose] = useState<LoanPurpose>("STOCK");
@@ -141,7 +142,8 @@ export default function LoanScreen() {
   }
 
   return (
-    <Screen>
+    // D158: "Mon relevé" on home opens it at its last part, sharing her record.
+    <Screen openAtEnd={section === "share"}>
       <BackHeader listenText={t("loan.title", { mfi })} />
       <Text style={[type.title, styles.indigo]}>{t("loan.title", { mfi })}</Text>
 
