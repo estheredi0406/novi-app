@@ -246,7 +246,12 @@
     "addToList": "+ Add another number",
     "removeFromList": "Remove",
     "sendInvites": "Send the {{count}} invitations",
-    "invitesConfirmTitle": "Send {{count}} invitations? {{phones}}"
+    "invitesConfirmTitle": "Send {{count}} invitations? {{phones}}",
+    "allAcceptedWait": "Everyone has accepted. {{name}} starts the group, then {{mfi}} checks it.",
+    "orderNext": "Next step: set the order of turns. The members accept it, then you start.",
+    "changeOrder": "Change the order of turns",
+    "orderFirst": "Set the order of turns first.",
+    "waitAnswers": "The members must accept the latest version of the rules."
   },
   "order": {
     "title": "Order of turns",
@@ -404,7 +409,7 @@
     "seatsNotFilled": "Every seat must be filled before the group starts.",
     "notEveryoneAccepted": "Everyone must accept the latest rules before the group starts.",
     "rulesChanged": "The organiser has just changed the rules. Read the new version before you answer.",
-    "orderInvalid": "The payout order must list every member once.",
+    "orderInvalid": "Set the order of turns with every member once, then start.",
     "mfiUnavailable": "The MFI could not open the group's account just now. Try again in a few minutes: the payout order is kept.",
     "alreadyInvited": "This number is already invited to the group, or already has a seat in it.",
     "cannotRemoveOrganiser": "The organiser's seat cannot be removed. Cancel the group instead.",

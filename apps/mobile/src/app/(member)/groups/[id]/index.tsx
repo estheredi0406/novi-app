@@ -152,6 +152,12 @@ export default function GroupScreen() {
     (seat) => seat.acceptedCurrentRules,
   );
   const started = group.seats.some((seat) => seat.payoutPosition !== null);
+  // D162: a fixed order is set when it names every member once.
+  const orderSet =
+    rules.payoutOrder !== "FIXED" ||
+    (rules.fixedOrder.length === group.seats.length &&
+      group.seats.every((seat) => rules.fixedOrder.includes(seat.memberId)));
+  const organiserName = group.seats.find((seat) => seat.role === "ORGANISER")?.displayName ?? "";
   const seats = started ? [...group.seats].sort(byTurn) : group.seats;
 
   const listen = `${group.name}. ${stateLabel(t, state)}. ${t("group.places", { taken: placesTaken, size: rules.size })}`;
@@ -332,9 +338,14 @@ export default function GroupScreen() {
 
       {isOrganiser && state === "PROPOSED" ? (
         <View style={styles.section}>
+          {/* D162: with a fixed order, setting it is the next step, said
+              plainly, with what it means for the members. */}
+          {rules.payoutOrder === "FIXED" && !orderSet && full ? (
+            <Text style={[type.body, styles.ink]}>{t("group.orderNext")}</Text>
+          ) : null}
           {rules.payoutOrder === "FIXED" ? (
             <TextButton
-              label={t("group.setOrder")}
+              label={orderSet ? t("group.changeOrder") : t("group.setOrder")}
               disabled={busy || !full}
               onPress={() =>
                 router.push({
@@ -346,7 +357,7 @@ export default function GroupScreen() {
           ) : null}
           <PrimaryButton
             label={t("group.start")}
-            disabled={busy || !full || !everyoneAccepted}
+            disabled={busy || !full || !everyoneAccepted || !orderSet}
             onPress={() =>
               confirm(
                 t("group.startTitle"),
@@ -363,9 +374,13 @@ export default function GroupScreen() {
             }
           />
           <Text style={[type.small, styles.muted]}>
-            {full && everyoneAccepted
-              ? t("group.startReady")
-              : t("group.startHint")}
+            {!full
+              ? t("group.startHint")
+              : !orderSet
+                ? t("group.orderFirst")
+                : everyoneAccepted
+                  ? t("group.startReady")
+                  : t("group.waitAnswers")}
           </Text>
         </View>
       ) : null}
@@ -389,8 +404,11 @@ export default function GroupScreen() {
       {!isOrganiser && setup && mySeat ? (
         mySeat.acceptedCurrentRules ? (
           <View style={styles.section}>
+            {/* D162: once everyone has accepted, what happens next. */}
             <Text style={[type.body, styles.ink]}>
-              {t("group.youAccepted", { version: rules.version })}
+              {full && everyoneAccepted
+                ? t("group.allAcceptedWait", { name: organiserName, mfi: group.mfiName })
+                : t("group.youAccepted", { version: rules.version })}
             </Text>
             <AnswerPanel
               groupId={group.id}

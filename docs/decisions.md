@@ -535,3 +535,7 @@ From Esther's test: on Android, the keyboard covered the field being typed in (s
 
 Once the keyboard pushed the chat up (D160), the group's header, the tabs, the meetings strip and "Appeler le groupe" left only a sliver for the messages. While the keyboard is open on the chat, the meetings strip and the call button fold away, and the header keeps only the group's name; everything comes back when the keyboard closes.
 
+## D162: the group's start, guided step by step (14 November 2026)
+
+From Esther's test: with a fixed order of turns, the members had accepted and nothing told anyone what came next; the organiser's screen showed "L'ordre des tours doit citer chaque membre une seule fois" as an error, and setting the order (a new version of the rules) silently undid the members' "A accepté". Now: when the last member accepts, the organiser is notified ("tout le monde a accepté", with "fixez l'ordre des tours" first when she chose to set it); setting the order or changing the rules notifies the members who had answered that a new version waits for them; the organiser's screen says "Étape suivante : fixez l'ordre des tours" and keeps "Démarrer" off until the order is set and accepted; the members who accepted read "Tout le monde a accepté. Gladys démarre le groupe, puis la caisse le vérifie." Starting stays the organiser's deliberate act: Novi does not start a group on its own.
+

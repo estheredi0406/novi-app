@@ -41,7 +41,7 @@ import { inviteSms } from "../lib/smsText.js";
 import { mfi, sms } from "../providers/index.js";
 import { unreadCount } from "./chatService.js";
 import { alertStaff } from "./alertService.js";
-import { notifyGroupStatus } from "./notifyService.js";
+import { notifyGroupStatus, notifyMembers } from "./notifyService.js";
 import { owedCovers } from "./memberService.js";
 import { reserveSummary } from "./reserveService.js";
 
@@ -508,6 +508,10 @@ async function saveNextVersion(
   const groupId = group.id;
   const version = group.currentVersion + 1;
   const mfiChanged = rules.mfiId !== group.mfiId;
+  // Who had answered: they now have to read and answer the new version.
+  const answered = group.memberships
+    .filter((m) => m.role === "MEMBER" && (m.state === "ACCEPTED" || m.state === "COUNTERED"))
+    .map((m) => m.userId);
 
   await prisma.$transaction(async (tx) => {
     await tx.rulesVersion.create({
@@ -545,6 +549,25 @@ async function saveNextVersion(
       data: { userId, type: audit, details: { groupId, version } },
     });
   });
+  // D162: they hear it, instead of finding their "A accepté" gone.
+  const order = audit === "GROUP_ORDER_SET";
+  await notifyMembers(
+    answered,
+    "money",
+    `/groups/${groupId}`,
+    {
+      title: `${group.name} : nouvelle version des règles`,
+      body: order
+        ? "L'ordre des tours est fixé. Relisez-le et acceptez pour que le groupe démarre."
+        : "Les règles ont changé. Relisez-les et répondez.",
+    },
+    {
+      title: `${group.name}: new version of the rules`,
+      body: order
+        ? "The order of turns is set. Read it and accept so the group can start."
+        : "The rules have changed. Read them and answer.",
+    },
+  );
 }
 
 // Changes the amount, frequency, day, size or payout order. A fixed order
@@ -863,7 +886,37 @@ export async function acceptRules(
     ...(shareConsent ? { shareConsentAt: new Date() } : {}),
     audit: "GROUP_ACCEPTED",
   });
-  return getGroup(groupId, userId);
+  const detail = await getGroup(groupId, userId);
+  if (!isOrganiser) await tellOrganiserIfReady(detail, group.organiserId);
+  return detail;
+}
+
+// D162: the last answer makes the group ready: the organiser hears that it
+// is her turn to act (set the order of turns if she chose it, then start),
+// instead of finding out by opening the group.
+async function tellOrganiserIfReady(detail: GroupDetail, organiserId: string) {
+  const ready =
+    detail.state === "PROPOSED" &&
+    detail.pendingInvites.length === 0 &&
+    detail.seats.length === detail.rules.size &&
+    detail.seats.every((s) => s.acceptedCurrentRules);
+  if (!ready) return;
+  const needsOrder =
+    detail.rules.payoutOrder === "FIXED" &&
+    !checkFixedOrder(detail.rules.fixedOrder, detail.seats.map((s) => s.memberId)).ok;
+  await notifyMembers(
+    [organiserId],
+    "money",
+    `/groups/${detail.id}`,
+    {
+      title: `${detail.name} : tout le monde a accepté`,
+      body: needsOrder ? "Fixez l'ordre des tours, puis démarrez le groupe." : "Vous pouvez démarrer le groupe.",
+    },
+    {
+      title: `${detail.name}: everyone has accepted`,
+      body: needsOrder ? "Set the order of turns, then start the group." : "You can start the group.",
+    },
+  );
 }
 
 // She asks for a change, with a note the whole group can read ("Saturday

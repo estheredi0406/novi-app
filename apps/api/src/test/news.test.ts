@@ -115,7 +115,8 @@ describe("home news and statement (D92)", () => {
     const { akossiwa, abla, groupId } = await runningGroup({ amountFcfa: 5000, frequency: "WEEKLY", dueDay: 5 });
     await pay(abla, groupId);
     type Item = { id: string; event: string; notice: { title: string; url: string; read: boolean } | null };
-    const before = (await akossiwa.get("/v1/me/news")).body as Item[];
+    // Abla, a member: the organiser also has "everyone has accepted" (D162).
+    const before = (await abla.get("/v1/me/news")).body as Item[];
     // The group's start reached every member, even with no phone for pushes.
     expect(before[0]).toMatchObject({
       event: "NOTICE",
@@ -123,13 +124,52 @@ describe("home news and statement (D92)", () => {
     });
     expect(before[1]?.event).toBe("PAID");
 
-    expect((await akossiwa.post(`/v1/me/notices/${before[0]?.id}/read`)).status).toBe(204);
-    const after = (await akossiwa.get("/v1/me/news")).body as Item[];
+    expect((await abla.post(`/v1/me/notices/${before[0]?.id}/read`)).status).toBe(204);
+    const after = (await abla.get("/v1/me/news")).body as Item[];
     // Read, it takes its place by date, under the newer payment.
     expect(after.map((n) => n.event)).toEqual(["PAID", "NOTICE"]);
     expect(after[1]?.notice?.read).toBe(true);
     // Someone else's notice cannot be marked.
-    expect((await abla.post(`/v1/me/notices/${before[0]?.id}/read`)).status).toBe(204);
+    expect((await akossiwa.post(`/v1/me/notices/${before[0]?.id}/read`)).status).toBe(204);
+  });
+
+  it("tells the organiser when everyone has accepted, and the members when the order changes the rules (D162)", async () => {
+    const akossiwa = await signedUpMember();
+    const abla = await signedUpMember("+22890000002", undefined, ABLA, "Abla");
+    const koffi = await signedUpMember("+22890000003", undefined, KOFFI, "Koffi");
+    const a = as(akossiwa.tokens.accessToken);
+    const b = as(abla.tokens.accessToken);
+    const k = as(koffi.tokens.accessToken);
+    const groupId = (
+      await a.post("/v1/groups", {
+        name: "Marché de Bè",
+        size: 3,
+        payoutOrder: "FIXED",
+        amountFcfa: 5000,
+        frequency: "WEEKLY",
+        dueDay: 5,
+      })
+    ).body.id as string;
+    await a.post(`/v1/groups/${groupId}/invites`, { phone: "+22890000002" });
+    await a.post(`/v1/groups/${groupId}/invites`, { phone: "+22890000003" });
+    await a.post(`/v1/groups/${groupId}/propose`, { shareConsent: true });
+    await b.post(`/v1/groups/${groupId}/accept`, { version: 1, shareConsent: true });
+    await k.post(`/v1/groups/${groupId}/accept`, { version: 1, shareConsent: true });
+    type Item = { notice: { title: string; body: string } | null };
+    const titles = async (who: ReturnType<typeof as>) =>
+      ((await who.get("/v1/me/news")).body as Item[]).flatMap((n) => (n.notice ? [`${n.notice.title} | ${n.notice.body}`] : []));
+    expect(await titles(a)).toEqual([
+      "Marché de Bè : tout le monde a accepté | Fixez l'ordre des tours, puis démarrez le groupe.",
+    ]);
+
+    const ids = [akossiwa.member.id, abla.member.id, koffi.member.id];
+    expect((await a.post(`/v1/groups/${groupId}/order`, { memberIds: ids })).status).toBe(200);
+    expect(await titles(b)).toEqual([
+      "Marché de Bè : nouvelle version des règles | L'ordre des tours est fixé. Relisez-le et acceptez pour que le groupe démarre.",
+    ]);
+    await b.post(`/v1/groups/${groupId}/accept`, { version: 2, shareConsent: true });
+    await k.post(`/v1/groups/${groupId}/accept`, { version: 2, shareConsent: true });
+    expect((await titles(a))[0]).toBe("Marché de Bè : tout le monde a accepté | Vous pouvez démarrer le groupe.");
   });
 
   it("is empty while she has no group, and the statement too", async () => {

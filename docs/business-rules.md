@@ -25,6 +25,7 @@ Each rule below is enforced in the API, which is the only place that decides. Th
 | Starts only when every seat is filled and every member accepted the current rules | `lib/groupRules.ts` | `groupRules` |
 | The MFI validates the group before its account opens (D66); refused while its savings conditions are incomplete (D147) | `consoleService` | `console` |
 | Every member is told when the caisse checks, opens or declines the group, with its reason (D152) | `notifyService` | |
+| The organiser is told when the last member accepts; members are told when a new version of the rules (or the order of turns) needs their answer (D162) | `groupService` | `news` |
 | Every money notification is also kept in the app, unread first in her news and on the bell, until she opens it (D157) | `notifyService`, `newsService` | `news` |
 | A member with no Novi history cannot take turn 1 (D104) | `lib/groupRules.ts` | `advance` |
 | A member who owes the group's advances cannot join or create a group | `groupService` | `protection` |
