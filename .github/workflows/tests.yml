@@ -57,9 +57,22 @@ jobs:
           NIU_HASH_KEY=ci-test-niu-hash-key-at-least-32-chars
           ENV
 
-      - name: API tests (unit and integration)
+      # The coverage tool is installed for this run only (--no-save), so the
+      # project's package files stay as they are.
+      - name: Install the coverage tool
+        run: npm install --no-save @vitest/coverage-v8@5.0.5
+
+      - name: API tests (unit and integration), with code coverage
         working-directory: apps/api
-        run: npx vitest run
+        run: >-
+          npx vitest run --coverage
+          --coverage.provider=v8
+          --coverage.include='src/**'
+          --coverage.exclude='src/generated/**'
+          --coverage.exclude='src/test/**'
+          --coverage.exclude='src/scripts/**'
+          --coverage.reporter=text
+          --coverage.reporter=text-summary
 
       - name: Member app tests
         working-directory: apps/mobile
