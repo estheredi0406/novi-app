@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { app } from "../app.js";
 import { prisma } from "../lib/db.js";
 import { base32Decode, codeForStep, totpStep } from "../lib/totp.js";
-import { payments } from "../providers/index.js";
+import { payments, sms } from "../providers/index.js";
 import { MockPaymentProvider } from "../providers/payment/MockPaymentProvider.js";
 import { runPaymentChecks } from "../services/exceptionService.js";
 import { runPayouts } from "../services/payoutService.js";
@@ -250,6 +250,36 @@ describe("payments checked again by Novi itself (D114)", () => {
     expect(await prisma.ledgerEntry.count({ where: { contributionId } })).toBe(1);
   });
 
+  it("marks a payment she never finished as not done at the 15 min check, and she can pay again (D166)", async () => {
+    const { contributionId, abla, groupId } = await lostWebhook(); // she closed the payment page
+    await runPaymentChecks(later(5));
+    expect((await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } })).status).toBe("PENDING");
+
+    await runPaymentChecks(later(16));
+    expect((await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } })).status).toBe("FAILED");
+    expect(await prisma.auditEvent.count({ where: { type: "CONTRIBUTION_NOT_FINISHED" } })).toBe(1);
+    // She has no app in the test: she is told by SMS, with nothing taken.
+    const outbox = (sms as unknown as { sent: { to: string; text: string }[] }).sent;
+    expect(outbox.some((m) => m.to === "+22890000002" && m.text.includes("paiement non terminé"))).toBe(true);
+    // Home shows her round as unpaid again, and she pays.
+    expect((await abla.get(`/v1/groups/${groupId}/rounds/1`)).body.myStatus).toBe("FAILED");
+    expect((await abla.post(`/v1/groups/${groupId}/rounds/1/pay`, { operator: "TOGOCEL" })).status).toBe(202);
+  });
+
+  it("still credits a payment marked not finished if the operator confirms it later (D166)", async () => {
+    const { contributionId, providerRef } = await lostWebhook();
+    await runPaymentChecks(later(16));
+    expect((await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } })).status).toBe("FAILED");
+    const delivery = mockPayments.settle(providerRef, "PAID");
+    await request(app)
+      .post("/v1/webhooks/payments")
+      .set("X-FEDAPAY-SIGNATURE", delivery.signature)
+      .set("Content-Type", "application/json")
+      .send(delivery.body);
+    expect((await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } })).status).toBe("PAID");
+    expect(await prisma.ledgerEntry.count({ where: { contributionId } })).toBe(1);
+  });
+
   it("shows a reported payment to the officers only after the 1 h check, and emails them then", async () => {
     const { abla, groupId } = await activeGroup().then((g) => ({ ...g, abla: g.members[1] as Client }));
     const contributionId = await pay(abla, groupId, 1, "FAILED");
@@ -284,7 +314,9 @@ describe("payments checked again by Novi itself (D114)", () => {
   });
 
   it("asks four times at most, then leaves it", async () => {
-    const { contributionId } = await lostWebhook();
+    const { contributionId, abla } = await lostWebhook();
+    // She said the money left: Novi keeps checking instead of calling it not finished.
+    await abla.post(`/v1/contributions/${contributionId}/report`);
     for (const minutes of [16, 61, 6 * 60 + 1, 24 * 60 + 1, 48 * 60]) await runPaymentChecks(later(minutes));
     expect((await prisma.contribution.findUniqueOrThrow({ where: { id: contributionId } })).autoChecks).toBe(4);
   });

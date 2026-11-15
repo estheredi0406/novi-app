@@ -37,7 +37,7 @@ export async function runPaymentChecks(now = new Date()): Promise<{ checked: num
     if (claimed.count === 0) continue;
     checked += 1;
     try {
-      if (await recheckPayment(c.id)) {
+      if (await recheckPayment(c.id, now)) {
         found += 1;
         continue;
       }

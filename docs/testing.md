@@ -43,6 +43,7 @@ cd apps/mobile && npm test
 | Rules changed while she reads them on USSD | Nothing accepted, she is told to look again (D164) | `ussd.test.ts` "accepts nothing when the rules change while she reads them" |
 | Sharing her record on USSD | A confirmation screen first; she can withdraw it in menu 5 (D165) | `ussd.test.ts` "shows her names, shares her record with an MFI, and lists who opened it" |
 | Loan asked on USSD with an amount above her ceiling | Refused on screen; a valid one reaches the console without business details (D165) | `help.test.ts` "lets a basic-phone member ask by USSD; her business is seen at the agency (D165)" |
+| Payment page closed without approving | Marked not done at the 15 min check; she is told and can pay again; a late approval is still credited once (D166) | `release.test.ts` "marks a payment she never finished as not done at the 15 min check, and she can pay again (D166)" |
 | Easy PIN such as 1234 | Refused | `auth.pin.test.ts` "refuses an easy new PIN" |
 | Someone outside the group asks for it | `NOT_FOUND`, as if it did not exist | "answers NOT_FOUND to someone with no seat in the group" |
 

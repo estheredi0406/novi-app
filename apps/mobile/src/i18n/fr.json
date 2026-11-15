@@ -293,7 +293,7 @@
     "ownWallet": "Depuis votre numéro uniquement. Novi ne voit jamais votre code.",
     "confirmOnPhone": "Confirmez sur votre téléphone",
     "confirmOnPhoneHint": "Entrez votre code mobile money dans la demande reçue sur votre téléphone ({{amount}}).",
-    "stillWaiting": "Pas encore de réponse. Si vous avez confirmé, le paiement peut mettre un moment à arriver.",
+    "stillWaiting": "Pas encore de réponse. Si vous avez confirmé, le paiement peut mettre un moment à arriver. Si vous avez fermé la page sans valider, rien n'a été prélevé : vous pourrez payer à nouveau dans quelques minutes.",
     "checkAgain": "Vérifier à nouveau",
     "receiptTitle": "Paiement reçu",
     "receiptBody": "{{amount}} pour le tour {{number}}. Reçu envoyé par SMS.",

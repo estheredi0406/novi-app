@@ -293,7 +293,7 @@
     "ownWallet": "From your own number only. Novi never sees your PIN.",
     "confirmOnPhone": "Confirm on your phone",
     "confirmOnPhoneHint": "Enter your mobile money PIN in the request on your phone ({{amount}}).",
-    "stillWaiting": "No answer yet. If you confirmed, the payment may take a moment to arrive.",
+    "stillWaiting": "No answer yet. If you approved it, the payment can take a moment to arrive. If you closed the page without approving, nothing was taken: you can pay again in a few minutes.",
     "checkAgain": "Check again",
     "receiptTitle": "Payment received",
     "receiptBody": "{{amount}} for round {{number}}. Receipt sent by SMS.",

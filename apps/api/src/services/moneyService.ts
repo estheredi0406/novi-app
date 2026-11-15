@@ -1,11 +1,11 @@
-import { hasApp, notifyMembers } from "./notifyService.js";
+import { hasApp, notifyMembers, notifyOrSms } from "./notifyService.js";
 import { createHash } from "node:crypto";
 import type { ContributionView, LedgerLine, MobileOperator, RoundDetail, RoundSummary } from "@novi/shared";
 import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/db.js";
 import { enforce } from "../lib/enforce.js";
 import { AppError } from "../lib/errors.js";
-import { nextCheckAt } from "../lib/autoChecks.js";
+import { CHECK_AFTER_MS, nextCheckAt } from "../lib/autoChecks.js";
 import { advanceOf, checkAction, checkCanPay, holdsSeat, PAYMENT_WAIT_MS, potShare } from "../lib/groupRules.js";
 import { currentRoundNumber, isoDay } from "../lib/schedule.js";
 import { receiptSms, failedSms, notFoundSms } from "../lib/smsText.js";
@@ -476,13 +476,56 @@ function trace(where: string, providerRef: string | null, outcome: string): void
   console.info(`[payment ${where}] transaction ${providerRef ?? "?"}: ${outcome}`);
 }
 
+// D166: a payment still waiting at the provider at the first automatic check
+// (15 minutes) was never finished: she closed the payment page, or did not
+// approve it on her phone. It is marked as not done, so she sees it and can
+// pay again, instead of reading "en route" for ever. If the operator confirms
+// it later after all, it is still credited (settle accepts a late approval).
+export const NOT_FINISHED_AFTER_MS = CHECK_AFTER_MS[0] ?? 15 * 60_000;
+
+async function markNotFinished(contributionId: string, now = new Date()): Promise<boolean> {
+  const c = await prisma.contribution.findUnique({
+    where: { id: contributionId },
+    include: { round: { include: { group: { select: { id: true, name: true } } } } },
+  });
+  if (!c || c.status !== "PENDING" || c.reportedAt) return false;
+  if (now.getTime() - c.requestedAt.getTime() < NOT_FINISHED_AFTER_MS) return false;
+  // Only this attempt: if she has just asked again, the new one is left alone.
+  const moved = await prisma.contribution.updateMany({
+    where: { id: c.id, status: "PENDING", requestedAt: c.requestedAt },
+    data: { status: "FAILED", failedAt: now },
+  });
+  if (moved.count === 0) return false;
+  await prisma.auditEvent.create({
+    data: { userId: c.userId, type: "CONTRIBUTION_NOT_FINISHED", details: { contributionId: c.id } },
+  });
+  const { group, number } = c.round;
+  // In the app; by SMS too when she has no app (D165), naming the USSD menu to pay.
+  await notifyOrSms(
+    [c.userId],
+    `/groups/${group.id}/rounds/${number}`,
+    {
+      title: `${group.name} : paiement non terminé`,
+      body: `Votre paiement du tour ${number} n'est pas terminé. Si vous ne l'avez pas validé, rien n'a été prélevé : vous pouvez payer à nouveau.`,
+    },
+    {
+      title: `${group.name}: payment not finished`,
+      body: `Your payment for round ${number} was not finished. If you did not approve it, nothing was taken: you can pay again.`,
+    },
+    1,
+  ).catch(() => undefined);
+  return true;
+}
+
 // D114: Novi asks the provider again about a payment not confirmed (the job
 // of automatic checks). True when this check found it paid.
-export async function recheckPayment(contributionId: string): Promise<boolean> {
+export async function recheckPayment(contributionId: string, now = new Date()): Promise<boolean> {
   const contribution = await prisma.contribution.findUnique({ where: { id: contributionId } });
   if (!contribution || contribution.status === "PAID" || !contribution.providerRef) return false;
   const { payments } = await accountForPayment(contribution.paymentAccountMfiId);
   await settle(contribution.id, await payments.getStatus(contribution.providerRef));
+  // D166: still waiting at the provider after 15 minutes: never finished.
+  await markNotFinished(contribution.id, now);
   const after = await prisma.contribution.findUniqueOrThrow({
     where: { id: contributionId },
     include: { round: { include: { group: { include: { mfi: true } } } } },
@@ -573,6 +616,8 @@ export async function checkContribution(contributionId: string, userId: string):
   if (contribution.status !== "PAID" && contribution.providerRef) {
     const { payments } = await accountForPayment(contribution.paymentAccountMfiId);
     await settle(contribution.id, await payments.getStatus(contribution.providerRef));
+    // D166: she checks long after closing the payment page: she is told it was not finished.
+    await markNotFinished(contribution.id);
     // D113: the dashboard shows the new balance and the booking at once.
     forgetBalance(contribution.paymentAccountMfiId);
     await syncCoreBanking().catch(() => undefined);
