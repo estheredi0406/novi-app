@@ -555,3 +555,7 @@ From the field: the MFI officer we met said that even with a smartphone a member
 
 Found while preparing the tests: a member who opened the payment page and closed it without approving saw "En route" on her home screen for ever. FedaPay keeps such a transaction "pending", so Novi's checks at 15 minutes, 1 hour, 6 hours and 24 hours always found it still waiting, and nothing told her she had not paid. Now, at the first check (15 minutes), a payment still waiting at the provider is marked as not done. She is told in the app, or by SMS with the USSD menu if she has no app, that nothing was taken and that she can pay again; her round shows as unpaid, with the usual question "Votre argent a-t-il quitté votre compte ?" in case it did. A payment she said had left her account is left alone, so the checks go on. If the operator confirms the payment later after all, it is still credited once, as before. The waiting screen also says that closing the page without approving takes nothing.
 
+## D167: the opening screen always closes (15 November 2026)
+
+Found on Esther's own phone after publishing v1.0.1-test: the app stayed on the orange opening screen (the cowries and "Novi"). The intro closed only when its animation reported that it had finished, and on some phones it never does, for example when animations are turned off to save battery or the app goes to the background during the intro. The intro now closes when the animation stops for any reason, and after 3 seconds at the latest.
+

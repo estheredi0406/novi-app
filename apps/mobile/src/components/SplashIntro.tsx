@@ -21,8 +21,24 @@ export function SplashIntro({ onDone }: { onDone: () => void }) {
       Animated.delay(650),
       Animated.timing(whole, { toValue: 0, duration: 320, useNativeDriver: true }),
     ]);
-    run.start(({ finished }) => finished && onDone());
-    return () => run.stop();
+    // D167: the intro always ends. On some phones (animations turned off to
+    // save battery, the app sent to the background mid-way) the animation
+    // never reports that it finished, and the orange screen stayed on top of
+    // the app for ever. It now closes when the animation stops for any
+    // reason, and after 3 seconds at the latest.
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      onDone();
+    };
+    run.start(close);
+    const latest = setTimeout(close, 3000);
+    return () => {
+      closed = true; // leaving the screen is not a reason to call onDone
+      clearTimeout(latest);
+      run.stop();
+    };
   }, [mark, words, whole, onDone]);
 
   return (
