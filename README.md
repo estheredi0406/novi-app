@@ -1,5 +1,7 @@
 # Novi
 
+[![Tests](https://github.com/estheredi0406/novi-app/actions/workflows/tests.yml/badge.svg)](https://github.com/estheredi0406/novi-app/actions/workflows/tests.yml)
+
 Novi is a digital tontine for women informal traders in Lomé, Togo. A group of traders saves together on a fixed rhythm (for example 5 000 FCFA every Friday, or 1 000 FCFA every market day), and at each round one member receives the whole pot. **Novi never holds the money**: each group's savings sit in an account at a licensed microfinance institution (Caisse Mawuli in the pilot). Novi applies the group's rules, shows every member the same record, and instructs the institution when a pot is due. Each member's payment history becomes a signed record that a lender can trust, and the path to a microloan.
 
 > Mission: increase access to safe savings and formal credit for women informal traders in Lomé, Togo, by building a digital tontine that keeps their group savings with a licensed microfinance institution and turns their payment history into a record lenders can trust.

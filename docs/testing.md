@@ -2,6 +2,8 @@
 
 How Novi was tested, what came out, and what was changed because of it. Every figure here can be reproduced with the commands given; the scripts are in `tools/perf/`.
 
+**Continuous integration (D168).** Every push to main runs the API and app tests on GitHub Actions (Ubuntu, Node 24, PostgreSQL 16): see the Tests badge in the README and the Actions tab of the repository.
+
 ## Summary
 
 | Strategy | What it checks | Result |

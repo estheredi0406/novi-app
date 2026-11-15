@@ -559,3 +559,7 @@ Found while preparing the tests: a member who opened the payment page and closed
 
 Found on Esther's own phone after publishing v1.0.1-test: the app stayed on the orange opening screen (the cowries and "Novi"). The intro closed only when its animation reported that it had finished, and on some phones it never does, for example when animations are turned off to save battery or the app goes to the background during the intro. The intro now closes when the animation stops for any reason, and after 3 seconds at the latest.
 
+## D168: the tests also run on GitHub, on a clean Linux machine (15 November 2026)
+
+On the author's Windows 11 laptop (Node 24.15.0), the test process crashed at random points with exit code 0xC0000409 during the heavier integration files, with every default and reduced setting tried: one process per file, two at a time, one at a time and the thread pool. No test failed on its assertions; the same suite passes in full on Linux, the system Render runs on. A GitHub Actions workflow (`.github/workflows/tests.yml`) now runs the API and app tests on each push to main, on Ubuntu with Node 24 and a PostgreSQL 16 database, with test-only settings. Its result is public and dated, and the README shows its badge.
+
