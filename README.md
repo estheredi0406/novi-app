@@ -10,8 +10,8 @@ Capstone project, BSc Software Engineering, African Leadership University (2026)
 
 | | |
 | --- | --- |
-| Walkthrough video | https://drive.google.com/file/d/14VB0Iwb2AAfy9Imy48L39sAIw1N0srCe/view?usp=sharing_ |
-| Technical report (PDF) https://drive.google.com/file/d/1xnoM5nkKuPxni25QNK2243s2GlWd5ZQy/view?usp=sharing
+| Walkthrough video (demo) | [Watch on Google Drive](https://drive.google.com/file/d/1AHG5M5wKQb5B1QPlKX6CjKyJGoV-hd5g/view?usp=sharing) |
+| Technical report (PDF) | [Read on Google Drive](https://drive.google.com/file/d/1xnoM5nkKuPxni25QNK2243s2GlWd5ZQy/view?usp=sharing) |
 | Live API | https://novi-api-w7ri.onrender.com/health |
 | MFI console (live) | https://novi-api-w7ri.onrender.com/console/ |
 | Decision log | [docs/decisions.md](docs/decisions.md) (D1 to D94) |
