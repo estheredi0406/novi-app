@@ -75,6 +75,8 @@ export function getProfile() {
 export function updateProfile(changes: {
   language?: AppLanguage;
   displayName?: string;
+  area?: string;
+  market?: string | null;
   nextOfKin?: { name: string; relation: string; phone: string } | null;
   notifyChat?: boolean;
 }) {

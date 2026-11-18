@@ -13,6 +13,6 @@ export function HeaderBand({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  band: { backgroundColor: colors.mist, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  band: { backgroundColor: colors.mist },
   inner: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 24, gap: 6 },
 });

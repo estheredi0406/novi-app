@@ -72,7 +72,6 @@ export default function MeScreen() {
           </View>
           <View style={styles.who}>
             <View style={styles.avatarWrap}>
-              <View style={styles.avatarShadow} />
               <View style={styles.avatar}>
                 <Text style={styles.initial}>
                   {member.displayName.slice(0, 1).toUpperCase()}
@@ -92,9 +91,7 @@ export default function MeScreen() {
     >
       <LanguageSwitch />
 
-      <View style={styles.cardWrap}>
-        <View style={styles.cardShadow} />
-        <View style={styles.card}>
+      <View style={styles.card}>
           <Row
             icon={
               <Path
@@ -112,18 +109,18 @@ export default function MeScreen() {
             icon={
               <>
                 <Path
-                  d="M4 8 H20 V18 H4 Z M4 11 H20"
+                  d="M12 21 C12 21 5 14 5 9.5 A7 7 0 0 1 19 9.5 C19 14 12 21 12 21 Z"
                   stroke={colors.indigo}
                   strokeWidth={1.8}
-                  fill={colors.gold}
+                  fill={colors.shell}
                   strokeLinejoin="round"
                 />
-                <Circle cx={16} cy={15} r={1.4} fill={colors.indigo} />
+                <Circle cx={12} cy={9.5} r={2.2} fill={colors.action} />
               </>
             }
-            label={t("loan.menu")}
-            sub={t("loan.menuSub")}
-            onPress={() => router.push("/loan" as Href)}
+            label={t("me.place")}
+            sub={where}
+            onPress={() => router.push("/me-place" as Href)}
           />
           <Row
             icon={
@@ -138,6 +135,27 @@ export default function MeScreen() {
             }
             label={t("me.pin")}
             onPress={changePin}
+            last
+          />
+      </View>
+
+      <View style={styles.card}>
+          <Row
+            icon={
+              <>
+                <Path
+                  d="M4 8 H20 V18 H4 Z M4 11 H20"
+                  stroke={colors.indigo}
+                  strokeWidth={1.8}
+                  fill={colors.gold}
+                  strokeLinejoin="round"
+                />
+                <Circle cx={16} cy={15} r={1.4} fill={colors.indigo} />
+              </>
+            }
+            label={t("loan.menu")}
+            sub={t("loan.menuSub")}
+            onPress={() => router.push("/loan" as Href)}
           />
           <Row
             icon={
@@ -182,7 +200,6 @@ export default function MeScreen() {
             </View>
             <View style={styles.rowText}>
               <Text style={styles.rowLabel}>{t("me.notifyChat")}</Text>
-              <Text style={styles.rowSub}>{t("me.notifyMoney")}</Text>
             </View>
             <Switch
               value={member.notifyChat}
@@ -242,7 +259,6 @@ export default function MeScreen() {
               last
             />
           ) : null}
-        </View>
       </View>
 
       <View style={styles.footer}>
@@ -294,23 +310,12 @@ function Row({
 const styles = StyleSheet.create({
   top: { flexDirection: "row", justifyContent: "flex-end" },
   who: { flexDirection: "row", alignItems: "center", gap: 14 },
-  avatarWrap: { paddingRight: 3, paddingBottom: 3 },
-  avatarShadow: {
-    position: "absolute",
-    top: 3,
-    left: 3,
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: colors.indigo,
-  },
+  avatarWrap: {},
   avatar: {
     width: 68,
     height: 68,
     borderRadius: 34,
     backgroundColor: colors.indigo,
-    borderWidth: 1,
-    borderColor: colors.line,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -323,16 +328,6 @@ const styles = StyleSheet.create({
     color: colors.indigo,
   },
   detail: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted },
-  cardWrap: { paddingRight: 3, paddingBottom: 3 },
-  cardShadow: {
-    position: "absolute",
-    top: 3,
-    left: 3,
-    right: 0,
-    bottom: 0,
-    borderRadius: 22,
-    backgroundColor: colors.indigo,
-  },
   card: {
     borderRadius: 22,
     borderWidth: 1,

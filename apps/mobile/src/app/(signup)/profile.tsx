@@ -12,14 +12,11 @@ import { Screen } from "../../components/Screen";
 import { AuthBand } from "../../components/AuthBand";
 import { currentLanguage } from "../../i18n";
 import { useSession } from "../../session/SessionProvider";
+import { AREAS, MARKETS } from "../../lib/places";
 import { useSignUp } from "../../signup/SignUpContext";
 import { colors } from "../../theme/colors";
 import { fonts, type } from "../../theme/typography";
 
-// Lomé neighbourhoods and markets offered as one-tap choices. Anything else
-// is typed in, so nobody is left out because her place is not listed.
-const AREAS = ["Bè", "Agoè", "Adidogomé", "Hédzranawoé"];
-const MARKETS = ["Assigamé", "Hédzranawoé"];
 
 // "OTHER" means she types the name; "NONE" means she does not trade in a market.
 const OTHER = "OTHER";
