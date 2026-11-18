@@ -7,22 +7,25 @@ const post = async (p, body, token) => {
   if (!r.ok) throw new Error(`${p} ${r.status} ${JSON.stringify(j)}`);
   return j;
 };
+// D132: the NIU, first name, surname and date of birth must all match the
+// demo register (apps/api/src/providers/identity/MockAnidProvider.ts).
+// 0000-000-0003 is a man (Koffi Amegah), so it is skipped.
 const people = [
-  ["0000-000-0001", "Akossiwa Afi Mensah", "1984-03-12"], ["0000-000-0002", "Abla Dzifa Agbeko", "1990-07-25"],
-  ["0000-000-0004", "Adjoa Mawuena Kpodar", "1988-05-04"], ["0000-000-0005", "Ama Essi Lawson", "1992-11-19"],
-  ["0000-000-0006", "Afi Yawa Dogbe", "1986-02-27"], ["0000-000-0007", "Kafui Edem Ahianyo", "1995-09-08"],
-  ["0000-000-0008", "Senam Aku Koudjo", "1991-06-30"], ["0000-000-0009", "Enyonam Afiwa Attisso", "1983-12-15"],
-  ["0000-000-0010", "Delali Sitsofe Gbadoe", "1997-04-21"], ["0000-000-0011", "Essowazina Afi Palanga", "1989-08-03"],
-  ["0000-000-0012", "Magnoudewa Abra Tchalla", "1985-01-01"], ["0000-000-0013", "Ayoko Prisca Akakpo", "1993-03-17"],
+  ["0000-000-0001", "Akossiwa", "Mensah", "1984-03-12"], ["0000-000-0002", "Abla", "Agbeko", "1990-07-25"],
+  ["0000-000-0004", "Marie", "Koffi", "1988-05-04"], ["0000-000-0005", "Grace", "Mensah", "1992-11-19"],
+  ["0000-000-0006", "Ama", "Dossou", "1986-02-27"], ["0000-000-0007", "Sarah", "Agbo", "1995-09-08"],
+  ["0000-000-0008", "Afi", "Lawson", "1991-06-30"], ["0000-000-0009", "Ruth", "Akue", "1983-12-15"],
+  ["0000-000-0010", "Esther", "Kodjo", "1997-04-21"], ["0000-000-0011", "Rose", "Sossou", "1989-08-03"],
+  ["0000-000-0012", "Julie", "Ayivi", "1985-01-01"], ["0000-000-0013", "Claire", "Soglo", "1993-03-17"],
 ];
 const tokens = [];
-for (const [i, [niu, name, dob]] of people.entries()) {
+for (const [i, [niu, firstName, lastName, dob]] of people.entries()) {
   const phone = `+2289100${String(i + 1).padStart(4, "0")}`;
   const otp = await post("/v1/auth/otp", { phone, purpose: "SIGN_UP", language: "FR" });
   const { verificationToken } = await post("/v1/auth/otp/verify", { challengeId: otp.challengeId, code: otp.pilotCode });
-  const start = await post("/v1/auth/identity/start", { verificationToken, consentToIdCheck: true, niu, legalName: name, dateOfBirth: dob });
+  const start = await post("/v1/auth/identity/start", { verificationToken, consentToIdCheck: true, niu, firstName, lastName, dateOfBirth: dob });
   const { identityToken } = await post("/v1/auth/identity/confirm", { verificationToken, pendingToken: start.pendingToken, code: start.pilotCode });
-  const reg = await post("/v1/auth/register", { verificationToken, identityToken, pin: "4829", displayName: name.split(" ")[0], area: "Bè", market: "Assigamé", language: "FR", installationId: randomUUID(), acceptedTerms: true, acceptedCreditDataUse: true });
+  const reg = await post("/v1/auth/register", { verificationToken, identityToken, pin: "4829", displayName: firstName, area: "Bè", market: "Assigamé", language: "FR", installationId: randomUUID(), acceptedTerms: true, acceptedCreditDataUse: true });
   tokens.push({ phone, token: reg.tokens.accessToken });
 }
 const org = tokens[0].token;
