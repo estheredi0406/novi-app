@@ -433,6 +433,7 @@
     "pinBody": "Un code par SMS, puis un nouveau PIN.",
     "pinGo": "Continuer",
     "agreed": "Ce que j'ai accepté",
+    "privacy": "Politique de confidentialité",
     "notifyChat": "Notifications de la discussion",
     "notifyMoney": "Celles de l'argent restent toujours actives.",
     "pilotSms": "Mes SMS (pilote)"
@@ -1063,5 +1064,27 @@
     "yes": "Oui, c'est moi",
     "no": "Non, ce n'est pas moi",
     "note": "Ce nom est celui de votre dossier d'identité. Votre caisse l'utilise pour vos comptes. Le prénom que votre groupe verra, vous le choisirez juste après."
+  },
+  "privacy": {
+    "intro": "Novi garde la confiance de votre groupe, pas votre argent. Voici ce que nous collectons, qui le voit, et ce que vous contrôlez.",
+    "moneyTitle": "Novi ne garde jamais votre argent",
+    "moneyBody": "L'argent de votre groupe reste à la caisse choisie par le groupe.",
+    "moneyDetail": "L'argent de votre groupe est gardé à la caisse que votre groupe a choisie. Novi enregistre seulement chaque paiement et applique les règles acceptées par votre groupe.",
+    "dataTitle": "Nous collectons seulement le nécessaire",
+    "dataBody": "Votre téléphone, votre nom comme sur votre pièce, votre quartier et vos paiements. Rien de plus.",
+    "dataDetail": "Votre numéro de téléphone, votre nom et votre date de naissance comme sur votre pièce d'identité, votre quartier, et vos paiements. Nous ne gardons aucune photo de vos documents. Votre numéro d'identité n'est pas enregistré : seulement un code calculé à partir de lui, pour empêcher un deuxième compte.",
+    "whoTitle": "Qui voit quoi",
+    "whoBody": "Votre groupe voit vos paiements. Votre caisse voit l'argent du groupe, sans les noms.",
+    "whoDetail": "Votre groupe voit votre prénom affiché et vos paiements. Votre caisse voit l'argent du groupe sans les noms. Pour les contrôles contre le blanchiment, un agent autorisé peut ouvrir une liste avec les noms ; chaque ouverture est enregistrée avec son nom et la raison.",
+    "recordTitle": "Votre relevé vous appartient",
+    "recordBody": "Partagé seulement si vous le choisissez, avec un seul prêteur, pendant 30 jours.",
+    "recordDetail": "Il n'est partagé que si vous le choisissez, avec un seul prêteur, pendant 30 jours. Vous pouvez arrêter le partage à tout moment, et chaque consultation est enregistrée.",
+    "safeTitle": "Personne ne peut lire votre PIN ni changer votre historique",
+    "safeBody": "Personne ne peut lire votre PIN. Aucune ligne de paiement ne peut être modifiée.",
+    "safeDetail": "Votre PIN est enregistré brouillé : personne chez Novi ni à la caisse ne peut le lire. Après 5 essais faux, votre compte se bloque. Une ligne de paiement ne peut jamais être modifiée ni supprimée : une erreur se corrige par une nouvelle ligne.",
+    "rightsTitle": "Vos droits",
+    "rightsBody": "Pour voir, corriger ou supprimer vos données : e.sessenou@alustudent.com",
+    "rightsDetail": "Vous pouvez demander à voir ou corriger vos données, ou à fermer votre compte, en écrivant à e.sessenou@alustudent.com. La caisse peut devoir garder les traces de l'argent qu'elle a détenu, selon ses propres obligations légales.",
+    "version": "Version pilote, novembre 2026. Dans ce pilote, les identités sont fictives et les paiements simulés."
   }
 }

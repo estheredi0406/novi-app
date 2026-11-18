@@ -208,6 +208,22 @@ export default function MeScreen() {
             }
             label={t("me.agreed")}
             onPress={() => router.push("/me-agreed" as Href)}
+          />
+          <Row
+            icon={
+              <>
+                <Path
+                  d="M12 3 L19 6 V11 C19 15.5 16 19 12 21 C8 19 5 15.5 5 11 V6 Z"
+                  stroke={colors.indigo}
+                  strokeWidth={1.8}
+                  fill={colors.shell}
+                  strokeLinejoin="round"
+                />
+                <Circle cx={12} cy={11} r={1.6} fill={colors.action} />
+              </>
+            }
+            label={t("me.privacy")}
+            onPress={() => router.push("/me-privacy" as Href)}
             last={!pilotSmsInbox}
           />
           {pilotSmsInbox ? (

@@ -433,6 +433,7 @@
     "pinBody": "A code by SMS, then a new PIN.",
     "pinGo": "Continue",
     "agreed": "What I agreed to",
+    "privacy": "Privacy policy",
     "notifyChat": "Chat notifications",
     "notifyMoney": "Money notifications always stay on.",
     "pilotSms": "My SMS (pilot)"
@@ -1063,5 +1064,27 @@
     "yes": "Yes, it's me",
     "no": "No, it's not me",
     "note": "This is the name on your identity record. Your MFI uses it for your accounts. You will choose the name your group sees just after."
+  },
+  "privacy": {
+    "intro": "Novi keeps your group's trust, not your money. Here is what we collect, who sees it, and what you control.",
+    "moneyTitle": "Novi never holds your money",
+    "moneyBody": "Your group's money stays at the MFI your group chose.",
+    "moneyDetail": "Your group's money is kept at the MFI your group chose. Novi only records each payment and follows the rules your group agreed.",
+    "dataTitle": "We collect only what we need",
+    "dataBody": "Your phone, your name as on your ID, your area and your payments. Nothing more.",
+    "dataDetail": "Your phone number, your name and date of birth as on your ID, your area, and your payments. We keep no photo of your documents. Your ID number is not stored: only a code made from it, to stop a second account.",
+    "whoTitle": "Who sees what",
+    "whoBody": "Your group sees your payments. Your MFI sees the group's money, without names.",
+    "whoDetail": "Your group sees your display name and your payments. Your MFI sees your group's money without names. For anti-money-laundering checks, an authorised officer can open a list with names; each opening is recorded with the officer's name and the reason.",
+    "recordTitle": "Your savings record is yours",
+    "recordBody": "Shared only when you choose, with one lender, for 30 days.",
+    "recordDetail": "It is shared only when you choose, with one lender, for 30 days. You can stop sharing at any time, and every view is recorded.",
+    "safeTitle": "Nobody can read your PIN or change your history",
+    "safeBody": "No one can read your PIN. No payment line can be changed.",
+    "safeDetail": "Your PIN is stored scrambled, so no one at Novi or the MFI can read it. After 5 wrong tries your account locks. A payment line can never be changed or deleted: a mistake is corrected by a new line.",
+    "rightsTitle": "Your rights",
+    "rightsBody": "Ask to see, correct or delete your data: e.sessenou@alustudent.com",
+    "rightsDetail": "You can ask to see or correct your data, or to close your account, by writing to e.sessenou@alustudent.com. The MFI may have to keep records of money it held, under its own legal duties.",
+    "version": "Pilot version, November 2026. In this pilot, identities are fictional and payments are simulated."
   }
 }
