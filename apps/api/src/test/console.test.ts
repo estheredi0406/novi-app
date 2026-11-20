@@ -568,6 +568,29 @@ describe("bringing a due date forward, in the pilot only (D82)", () => {
     vi.unstubAllEnvs();
   });
 
+  it("covers nobody on the day it brings forward: the next click ends that day (D104)", async () => {
+    vi.stubEnv("PILOT_SHOW_CODES", "true");
+    const { groupId, members } = await activeGroup();
+    const mawuli = await officer();
+    for (const member of members) await pay(member, groupId, 1);
+    const first = await prisma.payout.findFirstOrThrow({ where: { round: { groupId, number: 1 } } });
+    await mawuli.post(`/v1/console/payouts/${first.id}/release`);
+
+    // Round 2: brought to today with one share missing. Nobody is late yet.
+    const round2 = await prisma.round.findUniqueOrThrow({ where: { groupId_number: { groupId, number: 2 } } });
+    expect((await mawuli.post(`/v1/console/groups/${groupId}/demo-due`)).body).toEqual({ round: 2 });
+    // The receiver and one other pay; the third is missing.
+    const seats = await Promise.all(members.map(async (m) => ({ m, me: (await m.get("/v1/me")).body.id as string })));
+    const others = seats.filter((s) => s.me !== round2.beneficiaryId);
+    for (const s of [seats.find((x) => x.me === round2.beneficiaryId), others[0]]) await pay(s!.m, groupId, 2);
+    expect(await prisma.reserveCover.count({ where: { round: { groupId } } })).toBe(0);
+
+    // Next click: round 2's day is over, the advances cover the missing share.
+    expect((await mawuli.post(`/v1/console/groups/${groupId}/demo-due`)).body).toEqual({ round: 3 });
+    expect(await prisma.reserveCover.count({ where: { roundId: round2.id } })).toBeGreaterThan(0);
+    vi.unstubAllEnvs();
+  });
+
   it("does not exist outside the pilot", async () => {
     vi.stubEnv("PILOT_SHOW_CODES", "false");
     const { groupId } = await activeGroup();

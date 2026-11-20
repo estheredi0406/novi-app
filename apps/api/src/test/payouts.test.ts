@@ -414,6 +414,14 @@ describe("the group's advances (D103, D104)", () => {
       await runPayouts();
       await release(groupId, number);
     }
+    // The last pot left, but she still has a week to repay: the cycle stays
+    // open and nothing is given back yet (D27, D104).
+    expect((await prisma.group.findUniqueOrThrow({ where: { id: groupId } })).state).toBe("ACTIVE");
+    expect(await prisma.reserveReturn.count({ where: { groupId } })).toBe(0);
+    // Her deadline passes unpaid: the cycle closes without her part.
+    const owed = await prisma.reserveCover.findFirstOrThrow({ where: { round: { groupId }, userId: first.beneficiaryId } });
+    await runPayouts(new Date((owed.dueBy as Date).getTime() + 1000));
+    expect((await prisma.group.findUniqueOrThrow({ where: { id: groupId } })).state).toBe("COMPLETED");
     const returns = await prisma.reserveReturn.findMany({ where: { groupId } });
     expect(returns.map((r) => r.userId)).not.toContain(first.beneficiaryId);
     expect(returns).toHaveLength(2);
@@ -422,6 +430,32 @@ describe("the group's advances (D103, D104)", () => {
     const record = (await (members.at(stops) as Member).get("/v1/me/record")).body;
     // The fund protected the group, but her record still says she missed it.
     expect(record).toMatchObject({ coveredByReserve: 1, coversRepaid: 0, missed: 1 });
+  });
+
+  it("waits for a late member to repay before closing the cycle, and lets her repay (D27, D104)", async () => {
+    const { groupId, members } = await activeGroup();
+    const first = await prisma.round.findUniqueOrThrow({
+      where: { groupId_number: { groupId, number: 1 } },
+      include: { beneficiary: { select: { displayName: true } } },
+    });
+    const late = NAMES.indexOf(first.beneficiary.displayName);
+    for (const number of [1, 2, 3]) {
+      const payers = number === 3 ? members.filter((_, i) => i !== late) : members;
+      for (const member of payers) await pay(member, groupId, number);
+      await makeDue(groupId, number);
+      await runPayouts();
+      await release(groupId, number);
+    }
+    const group = (await (members.at(0) as Member).get(`/v1/groups/${groupId}`)).body;
+    expect(group.state).toBe("ACTIVE");
+
+    // She repays the covered round after the last pot left: allowed, and the cycle closes.
+    await pay(members.at(late) as Member, groupId, 3);
+    const cover = await prisma.reserveCover.findFirstOrThrow({ where: { round: { groupId }, userId: first.beneficiaryId } });
+    expect(cover.repaidAt).not.toBeNull();
+    expect((await prisma.group.findUniqueOrThrow({ where: { id: groupId } })).state).toBe("COMPLETED");
+    const returns = await prisma.reserveReturn.findMany({ where: { groupId } });
+    expect(returns).toHaveLength(3);
   });
 
   // D149: the advances given back are followed like a pot.

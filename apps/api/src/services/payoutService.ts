@@ -70,6 +70,21 @@ export async function runPayouts(
       );
     }
   }
+  // D27: a cycle whose pots have all left closes once its last covered share
+  // is repaid, or its deadline passed.
+  const finished = await prisma.group.findMany({
+    where: {
+      state: "ACTIVE",
+      ...(groupId ? { id: groupId } : {}),
+      rounds: { some: {}, none: { OR: [{ payout: null }, { payout: { status: { not: "PAID" } } }] } },
+    },
+    select: { id: true },
+  });
+  for (const group of finished) {
+    await closeCycleIfDone(group.id, now).catch((err: unknown) =>
+      console.error(`Closing the cycle of group ${group.id} failed:`, err),
+    );
+  }
   // D149: the advances given back at the end of a cycle, followed like pots.
   if (!groupId) await runReturns(now).catch((err) => console.error("Advance returns failed:", err));
   // D113: the MFI's books follow every pot paid and every advance returned.
@@ -154,10 +169,12 @@ async function handleRound(round: DueRound, now: Date) {
   );
   if (decision === "WAIT") return;
 
-  // D104: payments are missing on the due date; the group's advances pay
-  // the missing shares if they can, and the pot leaves full.
+  // D104: payments are still missing once the due day is over; the group's
+  // advances pay the missing shares if they can, and the pot leaves full.
+  // During the due day itself, members can still pay: nobody is late yet.
   if (
     decision === "HOLD" &&
+    now >= endOfDueDay(round.dueDate) &&
     (!round.payout || round.payout.status === "HELD")
   ) {
     const amount = paid[0]
@@ -265,6 +282,11 @@ export async function autoReleaseLimit(mfiId: string): Promise<number | null> {
   return found?.autoReleaseFcfa ?? null;
 }
 
+// Midnight (UTC) after the due day: until then, the due day is still open.
+export function endOfDueDay(due: Date): Date {
+  return new Date(Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate() + 1));
+}
+
 // D151: a pot that would leave by itself first waits for her to say where it
 // goes, if her caisse offers savings. She has until the end of the due day,
 // then it all goes to her phone.
@@ -272,9 +294,7 @@ async function waitsForHerAnswer(
   round: { id: string; groupId: string; beneficiaryId: string; dueDate: Date; group: { mfiId: string } },
   now: Date,
 ): Promise<boolean> {
-  const due = round.dueDate;
-  const endOfDueDay = new Date(Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate() + 1));
-  if (now >= endOfDueDay) return false;
+  if (now >= endOfDueDay(round.dueDate)) return false;
   const [choice, seat] = await Promise.all([
     prisma.potChoice.findUnique({ where: { roundId: round.id } }),
     prisma.membership.findFirst({
@@ -616,6 +636,39 @@ async function alertIfLastTry(payoutId: string) {
   });
 }
 
+// D27: the cycle is complete when every round's pot has been paid AND no
+// member still has a covered share to repay within its deadline (D104).
+// Until then the group stays active, so a late member can still repay.
+// A deadline that passed unpaid (missedAt) no longer holds the group back:
+// she stays owing, and gets none of the advances back (D68).
+export async function closeCycleIfDone(groupId: string, now = new Date()): Promise<boolean> {
+  const [rounds, paidOut, owed] = await Promise.all([
+    prisma.round.count({ where: { groupId } }),
+    prisma.payout.count({ where: { round: { groupId }, status: "PAID" } }),
+    prisma.reserveCover.count({
+      where: { round: { groupId }, repaidAt: null, writtenOffAt: null, missedAt: null },
+    }),
+  ]);
+  if (rounds === 0 || paidOut < rounds || owed > 0) return false;
+  const closed = await prisma.$transaction(async (tx) => {
+    const moved = await tx.group.updateMany({
+      where: { id: groupId, state: "ACTIVE" },
+      data: { state: "COMPLETED", completedAt: now },
+    });
+    if (moved.count === 0) return false;
+    await tx.auditEvent.create({ data: { type: "GROUP_COMPLETED", details: { groupId } } });
+    return true;
+  });
+  if (!closed) return false;
+  // D68: what is left in the advances goes back.
+  await returnReserve(groupId, now).catch((err: unknown) => console.error("Reserve return failed:", err));
+  // The voice notes go with the cycle; the written chat stays.
+  await deleteGroupVoices(groupId).catch((err: unknown) => console.error("Voice notes not deleted:", err));
+  // D80: each member says whether she goes again.
+  await notifyCycleDone(groupId);
+  return true;
+}
+
 // The MFI confirmed she got the money. Applied once (like D45). After the
 // last round, the cycle is complete (D27).
 async function settlePayout(payoutId: string, mfiRef: string) {
@@ -649,45 +702,13 @@ async function settlePayout(payoutId: string, mfiRef: string) {
         details: { payoutId, round: payout.round.number },
       },
     });
-
-    const rounds = await tx.round.count({
-      where: { groupId: payout.round.groupId },
-    });
-    const paidOut = await tx.payout.count({
-      where: { round: { groupId: payout.round.groupId }, status: "PAID" },
-    });
-    if (paidOut === rounds) {
-      await tx.group.updateMany({
-        where: { id: payout.round.groupId, state: "ACTIVE" },
-        data: { state: "COMPLETED", completedAt: paidAt },
-      });
-      await tx.auditEvent.create({
-        data: {
-          type: "GROUP_COMPLETED",
-          details: { groupId: payout.round.groupId },
-        },
-      });
-    }
     return payout;
   });
 
   if (done) {
-    // D68: the last pot closed the cycle; what is left in the reserve goes back.
-    await returnReserve(done.round.groupId).catch((err: unknown) =>
-      console.error("Reserve return failed:", err),
-    );
-    // The voice notes go with the cycle; the written chat stays.
-    const closed = await prisma.group.findUnique({
-      where: { id: done.round.groupId },
-      select: { state: true },
-    });
-    if (closed?.state === "COMPLETED") {
-      await deleteGroupVoices(done.round.groupId).catch((err: unknown) =>
-        console.error("Voice notes not deleted:", err),
-      );
-      // D80: each member says whether she goes again.
-      await notifyCycleDone(done.round.groupId);
-    }
+    // D27: the last pot closes the cycle, unless a member still has a covered
+    // share to repay; then it closes when she repays (or her deadline passes).
+    await closeCycleIfDone(done.round.groupId, paidAt);
     // D70: the group's chat shows whose pot was paid.
     await postEvent(
       done.round.groupId,

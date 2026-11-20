@@ -122,7 +122,11 @@ describe("Mes transactions", () => {
     for (const id of [g.byTurn(1), g.byTurn(2)]) await pay(g.client(id), g.groupId, 2);
     outbox.length = 0;
     const due = await prisma.round.findUniqueOrThrow({ where: { groupId_number: { groupId: g.groupId, number: 2 } } });
+    // Still the due day: she can pay, nothing is covered yet (D104).
     await runPayouts(new Date(due.dueDate.getTime() + 12 * 60 * 60 * 1000));
+    expect(await prisma.reserveCover.count({ where: { roundId: due.id } })).toBe(0);
+    // The day after: the advances pay her share and she is told.
+    await runPayouts(new Date(due.dueDate.getTime() + 36 * 60 * 60 * 1000));
 
     const covered = (await g.client(late).get("/v1/me/statement")).body.lines.find((l: { kind: string }) => l.kind === "COVERED");
     expect(covered).toMatchObject({ amountFcfa: 1000, round: 2, repaid: false });
